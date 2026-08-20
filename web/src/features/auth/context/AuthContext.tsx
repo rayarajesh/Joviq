@@ -1,0 +1,111 @@
+import { createContext, useCallback, useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
+import { authApi } from "../api/authApi";
+import type { AuthTokenResponse, UserSummary } from "../api/authTypes";
+import { tokenStore } from "../../../lib/api/httpClient";
+
+type AuthContextValue = {
+  accessToken: string | null;
+  user: UserSummary | null;
+  isBooting: boolean;
+  applyAuthResponse: (response: AuthTokenResponse) => void;
+  refresh: () => Promise<AuthTokenResponse>;
+  loadMe: () => Promise<UserSummary>;
+  logout: () => Promise<void>;
+  logoutAll: () => Promise<void>;
+  clearAuth: () => void;
+};
+
+export const AuthContext = createContext<AuthContextValue | null>(null);
+
+type AuthProviderProps = {
+  children: ReactNode;
+};
+
+export function AuthProvider({ children }: AuthProviderProps) {
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [user, setUser] = useState<UserSummary | null>(null);
+  const [isBooting, setIsBooting] = useState(true);
+
+  const clearAuth = useCallback(() => {
+    tokenStore.set(null);
+    setAccessToken(null);
+    setUser(null);
+  }, []);
+
+  const applyAuthResponse = useCallback((response: AuthTokenResponse) => {
+    if (response.accessToken) {
+      tokenStore.set(response.accessToken);
+      setAccessToken(response.accessToken);
+    }
+
+    if (response.user) {
+      setUser(response.user);
+    }
+  }, []);
+
+  const refresh = useCallback(async () => {
+    const response = await authApi.refresh();
+    applyAuthResponse(response.data);
+    return response.data;
+  }, [applyAuthResponse]);
+
+  const loadMe = useCallback(async () => {
+    const response = await authApi.me();
+    setUser(response.data);
+    return response.data;
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      await authApi.logout();
+    } finally {
+      clearAuth();
+    }
+  }, [clearAuth]);
+
+  const logoutAll = useCallback(async () => {
+    try {
+      await authApi.logoutAll();
+    } finally {
+      clearAuth();
+    }
+  }, [clearAuth]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    refresh()
+      .catch(() => {
+        if (mounted) {
+          clearAuth();
+        }
+      })
+      .finally(() => {
+        if (mounted) {
+          setIsBooting(false);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [clearAuth, refresh]);
+
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      accessToken,
+      user,
+      isBooting,
+      applyAuthResponse,
+      refresh,
+      loadMe,
+      logout,
+      logoutAll,
+      clearAuth
+    }),
+    [accessToken, user, isBooting, applyAuthResponse, refresh, loadMe, logout, logoutAll, clearAuth]
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}

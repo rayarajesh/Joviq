@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Joviq.Lms.Domain</RootNamespace>
+    <AssemblyName>Joviq.Lms.Domain</AssemblyName>
+  </PropertyGroup>
+
+</Project>
