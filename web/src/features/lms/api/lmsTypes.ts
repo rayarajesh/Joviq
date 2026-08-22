@@ -130,6 +130,20 @@ export type StudentProgramWorkspaceResponse = {
   payments: PaymentTransactionResponse[];
 };
 
+export type RecordedClassResponse = {
+  lessonId: string;
+  moduleId: string;
+  moduleTitle: string;
+  title: string;
+  summary: string;
+  videoUrl?: string;
+  notesUrl?: string;
+  durationMinutes: number;
+  isLocked: boolean;
+  progressPercentage: number;
+  isCompleted: boolean;
+};
+
 export type PaymentTransactionResponse = {
   id: string;
   enrollmentId?: string;
@@ -210,6 +224,36 @@ export type AssessmentResponse = {
   isPublished: boolean;
 };
 
+export type AssessmentAttemptResponse = {
+  id: string;
+  assessmentId: string;
+  assessmentTitle: string;
+  studentId: string;
+  enrollmentId?: string;
+  status: string;
+  startedAt: string;
+  submittedAt?: string;
+  score?: number;
+  resultJson?: string;
+};
+
+export type AiInterviewAttemptResponse = {
+  id: string;
+  studentId: string;
+  enrollmentId?: string;
+  jobRole: string;
+  domain: string;
+  interviewType: string;
+  technicalScore?: number;
+  communicationScore?: number;
+  overallScore?: number;
+  transcriptJson?: string;
+  recommendationsJson?: string;
+  status: string;
+  startedAt: string;
+  completedAt?: string;
+};
+
 export type CertificateResponse = {
   id: string;
   studentId: string;
@@ -252,6 +296,15 @@ export type NotificationResponse = {
   readAt?: string;
 };
 
+export type CareerSupportResponse = {
+  resumeStatus: string;
+  linkedInStatus: string;
+  gitHubStatus: string;
+  portfolioStatus: string;
+  interviewFocusAreas: string[];
+  requests: SupportTicketResponse[];
+};
+
 export type AdminLmsSummaryResponse = {
   programs: number;
   publishedPrograms: number;
@@ -274,6 +327,37 @@ export type MentorDashboardResponse = {
 export type MentorReviewQueueResponse = {
   assignmentSubmissions: SubmissionResponse[];
   projectSubmissions: SubmissionResponse[];
+};
+
+export type MentorLearnerResponse = {
+  studentId: string;
+  fullName: string;
+  email: string;
+  phoneNumber?: string;
+  enrollmentId: string;
+  programTitle: string;
+  enrollmentStatus: string;
+  progressPercentage: number;
+  enrolledAt: string;
+};
+
+export type CouponResponse = {
+  id: string;
+  code: string;
+  description: string;
+  discountValue: number;
+  isPercentage: boolean;
+  isActive: boolean;
+  startsAt?: string;
+  expiresAt?: string;
+};
+
+export type AdminReportResponse = {
+  summary: AdminLmsSummaryResponse;
+  programs: ProgramSummaryResponse[];
+  recentEnrollments: EnrollmentResponse[];
+  recentPayments: PaymentTransactionResponse[];
+  openSupportTickets: SupportTicketResponse[];
 };
 
 export type LeadCaptureResponse = {
@@ -321,6 +405,111 @@ export type CreateProgramRequest = {
   outcomes: string[];
   faqs: FaqItemResponse[];
   status: number;
+};
+
+export type CreateCategoryRequest = {
+  name: string;
+  slug: string;
+  description: string;
+  isPublished?: boolean;
+};
+
+export type CreateModuleRequest = {
+  title: string;
+  description: string;
+};
+
+export type CreateLessonRequest = {
+  title: string;
+  summary: string;
+  videoUrl?: string;
+  notesUrl?: string;
+  durationMinutes: number;
+  accessLevel: number;
+};
+
+export type CreateLiveClassRequest = {
+  programId: string;
+  mentorId?: string;
+  title: string;
+  description: string;
+  startsAt: string;
+  endsAt: string;
+  joinUrl?: string;
+  recordingUrl?: string;
+};
+
+export type CreateAssignmentRequest = {
+  programId: string;
+  title: string;
+  instructions: string;
+  dueAt?: string;
+  maxScore?: number;
+  isPublished?: boolean;
+};
+
+export type CreateProjectRequest = {
+  programId: string;
+  title: string;
+  description: string;
+  requiredArtifacts: string[];
+  maxScore?: number;
+  isPublished?: boolean;
+};
+
+export type CreateAssessmentRequest = {
+  programId: string;
+  title: string;
+  assessmentType: string;
+  instructions: string;
+  durationMinutes: number;
+  passingPercentage?: number;
+  isAiPowered?: boolean;
+  isPublished?: boolean;
+};
+
+export type UpdateEnrollmentStatusRequest = {
+  status: number;
+  lockedReason?: string;
+};
+
+export type UpdatePaymentStatusRequest = {
+  status: number;
+  gatewayPaymentId?: string;
+  failureReason?: string;
+};
+
+export type RefundPaymentRequest = {
+  reason?: string;
+};
+
+export type SubmitAssessmentAttemptRequest = {
+  score?: number;
+  resultJson?: string;
+};
+
+export type StartAiInterviewRequest = {
+  jobRole: string;
+  domain: string;
+  interviewType: string;
+};
+
+export type CreateCouponRequest = {
+  code: string;
+  description: string;
+  discountValue: number;
+  isPercentage: boolean;
+  isActive?: boolean;
+  startsAt?: string;
+  expiresAt?: string;
+};
+
+export type IssueCertificateRequest = {
+  studentId: string;
+  programId: string;
+  enrollmentId?: string;
+  type?: number;
+  authorizedSignatory?: string;
 };
 
 export type CreateSupportTicketRequest = {

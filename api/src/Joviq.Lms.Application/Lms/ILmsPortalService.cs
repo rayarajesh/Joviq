@@ -24,6 +24,8 @@ public interface ILmsPortalService
 
     Task<StudentProgramWorkspaceResponse> GetStudentWorkspaceAsync(Guid studentId, CancellationToken cancellationToken);
 
+    Task<ProgramDetailsResponse> GetStudentMyProgramAsync(Guid studentId, CancellationToken cancellationToken);
+
     Task<EnrollmentResponse> CreateEnrollmentAsync(Guid studentId, CreateEnrollmentRequest request, CancellationToken cancellationToken);
 
     Task<PaymentTransactionResponse> CreatePaymentCheckoutAsync(Guid studentId, CreatePaymentCheckoutRequest request, CancellationToken cancellationToken);
@@ -36,6 +38,8 @@ public interface ILmsPortalService
 
     Task<IReadOnlyList<LiveClassResponse>> GetStudentLiveClassesAsync(Guid studentId, CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<RecordedClassResponse>> GetStudentRecordedClassesAsync(Guid studentId, CancellationToken cancellationToken);
+
     Task<IReadOnlyList<AssignmentResponse>> GetStudentAssignmentsAsync(Guid studentId, CancellationToken cancellationToken);
 
     Task<SubmissionResponse> SubmitAssignmentAsync(Guid studentId, Guid assignmentId, SubmitAssignmentRequest request, CancellationToken cancellationToken);
@@ -46,15 +50,39 @@ public interface ILmsPortalService
 
     Task<IReadOnlyList<AssessmentResponse>> GetStudentAssessmentsAsync(Guid studentId, CancellationToken cancellationToken);
 
+    Task<AssessmentAttemptResponse> StartAssessmentAttemptAsync(Guid studentId, Guid assessmentId, CancellationToken cancellationToken);
+
+    Task<AssessmentAttemptResponse> SubmitAssessmentAttemptAsync(Guid studentId, Guid attemptId, SubmitAssessmentAttemptRequest request, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<AssessmentResponse>> GetStudentAiAssessmentsAsync(Guid studentId, CancellationToken cancellationToken);
+
+    Task<AssessmentAttemptResponse> StartAiAssessmentAttemptAsync(Guid studentId, Guid assessmentId, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<AiInterviewAttemptResponse>> GetStudentAiInterviewsAsync(Guid studentId, CancellationToken cancellationToken);
+
+    Task<AiInterviewAttemptResponse> StartAiInterviewAsync(Guid studentId, StartAiInterviewRequest request, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<SupportTicketResponse>> GetStudentMentorSupportAsync(Guid studentId, CancellationToken cancellationToken);
+
+    Task<CareerSupportResponse> GetStudentCareerSupportAsync(Guid studentId, CancellationToken cancellationToken);
+
+    Task<SupportTicketResponse> CreateResumeReviewRequestAsync(Guid studentId, CreateSupportTicketRequest request, CancellationToken cancellationToken);
+
     Task<IReadOnlyList<PaymentTransactionResponse>> GetStudentPaymentsAsync(Guid studentId, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<CertificateResponse>> GetStudentCertificatesAsync(Guid studentId, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<NotificationResponse>> GetStudentNotificationsAsync(Guid studentId, CancellationToken cancellationToken);
 
+    Task<NotificationResponse> MarkNotificationReadAsync(Guid studentId, Guid notificationId, CancellationToken cancellationToken);
+
     Task<SupportTicketResponse> CreateSupportTicketAsync(Guid userId, CreateSupportTicketRequest request, CancellationToken cancellationToken);
 
     Task<AdminLmsSummaryResponse> GetAdminSummaryAsync(CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<ProgramCategoryResponse>> GetAdminCategoriesAsync(CancellationToken cancellationToken);
+
+    Task<ProgramCategoryResponse> CreateCategoryAsync(CreateCategoryRequest request, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<ProgramSummaryResponse>> GetAdminProgramsAsync(CancellationToken cancellationToken);
 
@@ -62,7 +90,51 @@ public interface ILmsPortalService
 
     Task<ProgramDetailsResponse> UpdateProgramAsync(Guid programId, UpdateProgramRequest request, CancellationToken cancellationToken);
 
+    Task DeleteProgramAsync(Guid programId, CancellationToken cancellationToken);
+
     Task<ProgramPlanResponse> CreateProgramPlanAsync(Guid programId, CreatePlanRequest request, CancellationToken cancellationToken);
+
+    Task<ProgramPlanResponse> UpdateProgramPlanAsync(Guid planId, CreatePlanRequest request, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<CurriculumModuleResponse>> GetAdminCurriculumAsync(Guid? programId, CancellationToken cancellationToken);
+
+    Task<CurriculumModuleResponse> CreateModuleAsync(Guid programId, CreateModuleRequest request, CancellationToken cancellationToken);
+
+    Task<LessonResponse> CreateLessonAsync(Guid moduleId, CreateLessonRequest request, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<LiveClassResponse>> GetAdminLiveClassesAsync(CancellationToken cancellationToken);
+
+    Task<LiveClassResponse> CreateLiveClassAsync(CreateLiveClassRequest request, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<AssignmentResponse>> GetAdminAssignmentsAsync(CancellationToken cancellationToken);
+
+    Task<AssignmentResponse> CreateAssignmentAsync(CreateAssignmentRequest request, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<ProjectResponse>> GetAdminProjectsAsync(CancellationToken cancellationToken);
+
+    Task<ProjectResponse> CreateProjectAsync(CreateProjectRequest request, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<AssessmentResponse>> GetAdminAssessmentsAsync(CancellationToken cancellationToken);
+
+    Task<AssessmentResponse> CreateAssessmentAsync(CreateAssessmentRequest request, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<EnrollmentResponse>> GetAdminEnrollmentsAsync(CancellationToken cancellationToken);
+
+    Task<EnrollmentResponse> UpdateEnrollmentStatusAsync(Guid enrollmentId, UpdateEnrollmentStatusRequest request, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<PaymentTransactionResponse>> GetAdminPaymentsAsync(CancellationToken cancellationToken);
+
+    Task<PaymentTransactionResponse> UpdatePaymentStatusAsync(Guid paymentId, UpdatePaymentStatusRequest request, CancellationToken cancellationToken);
+
+    Task<PaymentTransactionResponse> RefundPaymentAsync(Guid paymentId, RefundPaymentRequest request, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<CouponResponse>> GetCouponsAsync(CancellationToken cancellationToken);
+
+    Task<CouponResponse> CreateCouponAsync(CreateCouponRequest request, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<CertificateResponse>> GetAdminCertificatesAsync(CancellationToken cancellationToken);
+
+    Task<CertificateResponse> IssueCertificateAsync(IssueCertificateRequest request, CancellationToken cancellationToken);
 
     Task<PagedResult<SupportTicketResponse>> GetSupportTicketsAsync(int page, int pageSize, CancellationToken cancellationToken);
 
@@ -70,9 +142,25 @@ public interface ILmsPortalService
 
     Task<MentorDashboardResponse> GetMentorDashboardAsync(Guid mentorId, CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<MentorLearnerResponse>> GetMentorLearnersAsync(Guid mentorId, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<LiveClassResponse>> GetMentorLiveClassesAsync(Guid mentorId, CancellationToken cancellationToken);
+
+    Task<LiveClassResponse> CreateMentorLiveClassAsync(Guid mentorId, CreateLiveClassRequest request, CancellationToken cancellationToken);
+
     Task<MentorReviewQueueResponse> GetMentorReviewQueueAsync(Guid mentorId, CancellationToken cancellationToken);
 
     Task<SubmissionResponse> ReviewAssignmentSubmissionAsync(Guid mentorId, Guid submissionId, ReviewSubmissionRequest request, CancellationToken cancellationToken);
 
     Task<SubmissionResponse> ReviewProjectSubmissionAsync(Guid mentorId, Guid submissionId, ReviewSubmissionRequest request, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<AssessmentAttemptResponse>> GetMentorAssessmentReviewQueueAsync(Guid mentorId, CancellationToken cancellationToken);
+
+    Task<AssessmentAttemptResponse> ReviewAssessmentAttemptAsync(Guid mentorId, Guid attemptId, SubmitAssessmentAttemptRequest request, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<SupportTicketResponse>> GetMentorSupportRequestsAsync(Guid mentorId, CancellationToken cancellationToken);
+
+    Task<SupportTicketResponse> UpdateMentorSupportRequestAsync(Guid mentorId, Guid ticketId, UpdateSupportTicketRequest request, CancellationToken cancellationToken);
+
+    Task<AdminReportResponse> GetAdminReportsAsync(CancellationToken cancellationToken);
 }

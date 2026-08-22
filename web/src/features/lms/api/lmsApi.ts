@@ -1,15 +1,33 @@
 import { request } from "../../../lib/api/httpClient";
 import type {
+  AdminReportResponse,
   AdminLmsSummaryResponse,
+  AssessmentAttemptResponse,
+  AssessmentResponse,
   AssignmentResponse,
+  AiInterviewAttemptResponse,
+  CareerSupportResponse,
+  CertificateResponse,
+  CouponResponse,
+  CreateAssessmentRequest,
+  CreateAssignmentRequest,
+  CreateCategoryRequest,
+  CreateCouponRequest,
   CreateEnrollmentRequest,
+  CreateLessonRequest,
+  CreateLiveClassRequest,
+  CreateModuleRequest,
   CreatePaymentCheckoutRequest,
+  CreateProjectRequest,
   CreateProgramRequest,
   CreateSupportTicketRequest,
   CurriculumModuleResponse,
   EnrollmentResponse,
+  IssueCertificateRequest,
+  LiveClassResponse,
   LmsSupportTicketPage,
   MentorDashboardResponse,
+  MentorLearnerResponse,
   MentorReviewQueueResponse,
   PaymentTransactionResponse,
   ProgramCategoryResponse,
@@ -17,11 +35,17 @@ import type {
   ProgramListParams,
   ProgramSummaryResponse,
   ProjectResponse,
+  RecordedClassResponse,
+  RefundPaymentRequest,
   ReviewSubmissionRequest,
+  StartAiInterviewRequest,
   StudentLmsDashboardResponse,
   StudentProgramWorkspaceResponse,
+  SubmitAssessmentAttemptRequest,
   SubmissionResponse,
   SupportTicketResponse,
+  UpdateEnrollmentStatusRequest,
+  UpdatePaymentStatusRequest,
   VerifyPaymentRequest
 } from "./lmsTypes";
 
@@ -58,6 +82,10 @@ export const studentLmsApi = {
 
   getWorkspace() {
     return request<StudentProgramWorkspaceResponse>("/api/v1/student/lms/workspace");
+  },
+
+  getMyProgram() {
+    return request<ProgramDetailsResponse>("/api/v1/student/lms/my-program");
   },
 
   createEnrollment(body: CreateEnrollmentRequest) {
@@ -116,6 +144,65 @@ export const studentLmsApi = {
 
   createSupportTicket(body: CreateSupportTicketRequest) {
     return request<SupportTicketResponse>("/api/v1/student/lms/support/tickets", { method: "POST", body });
+  },
+
+  getLiveClasses() {
+    return request<LiveClassResponse[]>("/api/v1/student/lms/live-classes");
+  },
+
+  getRecordedClasses() {
+    return request<RecordedClassResponse[]>("/api/v1/student/lms/recorded-classes");
+  },
+
+  getAssessments() {
+    return request<AssessmentResponse[]>("/api/v1/student/lms/assessments");
+  },
+
+  startAssessmentAttempt(assessmentId: string) {
+    return request<AssessmentAttemptResponse>(`/api/v1/student/lms/assessments/${assessmentId}/attempts`, { method: "POST" });
+  },
+
+  submitAssessmentAttempt(attemptId: string, body: SubmitAssessmentAttemptRequest) {
+    return request<AssessmentAttemptResponse>(`/api/v1/student/lms/assessments/attempts/${attemptId}/submit`, {
+      method: "POST",
+      body
+    });
+  },
+
+  getAiAssessments() {
+    return request<AssessmentResponse[]>("/api/v1/student/lms/ai-assessments");
+  },
+
+  startAiAssessmentAttempt(assessmentId: string) {
+    return request<AssessmentAttemptResponse>(`/api/v1/student/lms/ai-assessments/${assessmentId}/start`, { method: "POST" });
+  },
+
+  getAiInterviews() {
+    return request<AiInterviewAttemptResponse[]>("/api/v1/student/lms/ai-interviews");
+  },
+
+  startAiInterview(body: StartAiInterviewRequest) {
+    return request<AiInterviewAttemptResponse>("/api/v1/student/lms/ai-interviews/start", { method: "POST", body });
+  },
+
+  getMentorSupport() {
+    return request<SupportTicketResponse[]>("/api/v1/student/lms/mentor-support");
+  },
+
+  createMentorSupportRequest(body: CreateSupportTicketRequest) {
+    return request<SupportTicketResponse>("/api/v1/student/lms/mentor-support/requests", { method: "POST", body });
+  },
+
+  getCareerSupport() {
+    return request<CareerSupportResponse>("/api/v1/student/lms/career-support");
+  },
+
+  createResumeReviewRequest(body: CreateSupportTicketRequest) {
+    return request<SupportTicketResponse>("/api/v1/student/lms/career-support/resume-review", { method: "POST", body });
+  },
+
+  markNotificationRead(notificationId: string) {
+    return request(`/api/v1/student/lms/notifications/${notificationId}/read`, { method: "PATCH" });
   }
 };
 
@@ -128,12 +215,108 @@ export const adminLmsApi = {
     return request<ProgramSummaryResponse[]>("/api/v1/admin/lms/programs");
   },
 
+  getCategories() {
+    return request<ProgramCategoryResponse[]>("/api/v1/admin/lms/categories");
+  },
+
+  createCategory(body: CreateCategoryRequest) {
+    return request<ProgramCategoryResponse>("/api/v1/admin/lms/categories", { method: "POST", body });
+  },
+
   createProgram(body: CreateProgramRequest) {
     return request<ProgramDetailsResponse>("/api/v1/admin/lms/programs", { method: "POST", body });
   },
 
+  deleteProgram(programId: string) {
+    return request(`/api/v1/admin/lms/programs/${programId}`, { method: "DELETE" });
+  },
+
+  getCurriculum(programId?: string) {
+    return request<CurriculumModuleResponse[]>(`/api/v1/admin/lms/curriculum${toQuery({ programId })}`);
+  },
+
+  createModule(programId: string, body: CreateModuleRequest) {
+    return request<CurriculumModuleResponse>(`/api/v1/admin/lms/programs/${programId}/modules`, { method: "POST", body });
+  },
+
+  createLesson(moduleId: string, body: CreateLessonRequest) {
+    return request(`/api/v1/admin/lms/modules/${moduleId}/lessons`, { method: "POST", body });
+  },
+
+  getLiveClasses() {
+    return request<LiveClassResponse[]>("/api/v1/admin/lms/live-classes");
+  },
+
+  createLiveClass(body: CreateLiveClassRequest) {
+    return request<LiveClassResponse>("/api/v1/admin/lms/live-classes", { method: "POST", body });
+  },
+
+  getAssignments() {
+    return request<AssignmentResponse[]>("/api/v1/admin/lms/assignments");
+  },
+
+  createAssignment(body: CreateAssignmentRequest) {
+    return request<AssignmentResponse>("/api/v1/admin/lms/assignments", { method: "POST", body });
+  },
+
+  getProjects() {
+    return request<ProjectResponse[]>("/api/v1/admin/lms/projects");
+  },
+
+  createProject(body: CreateProjectRequest) {
+    return request<ProjectResponse>("/api/v1/admin/lms/projects", { method: "POST", body });
+  },
+
+  getAssessments() {
+    return request<AssessmentResponse[]>("/api/v1/admin/lms/assessments");
+  },
+
+  createAssessment(body: CreateAssessmentRequest) {
+    return request<AssessmentResponse>("/api/v1/admin/lms/assessments", { method: "POST", body });
+  },
+
+  getEnrollments() {
+    return request<EnrollmentResponse[]>("/api/v1/admin/lms/enrollments");
+  },
+
+  updateEnrollmentStatus(enrollmentId: string, body: UpdateEnrollmentStatusRequest) {
+    return request<EnrollmentResponse>(`/api/v1/admin/lms/enrollments/${enrollmentId}/status`, { method: "PATCH", body });
+  },
+
+  getPayments() {
+    return request<PaymentTransactionResponse[]>("/api/v1/admin/lms/payments");
+  },
+
+  updatePaymentStatus(paymentId: string, body: UpdatePaymentStatusRequest) {
+    return request<PaymentTransactionResponse>(`/api/v1/admin/lms/payments/${paymentId}/verify`, { method: "PATCH", body });
+  },
+
+  refundPayment(paymentId: string, body: RefundPaymentRequest) {
+    return request<PaymentTransactionResponse>(`/api/v1/admin/lms/refunds${toQuery({ paymentId })}`, { method: "POST", body });
+  },
+
+  getCoupons() {
+    return request<CouponResponse[]>("/api/v1/admin/lms/coupons");
+  },
+
+  createCoupon(body: CreateCouponRequest) {
+    return request<CouponResponse>("/api/v1/admin/lms/coupons", { method: "POST", body });
+  },
+
+  getCertificates() {
+    return request<CertificateResponse[]>("/api/v1/admin/lms/certificates");
+  },
+
+  issueCertificate(body: IssueCertificateRequest) {
+    return request<CertificateResponse>("/api/v1/admin/lms/certificates/issue", { method: "POST", body });
+  },
+
   getSupportTickets(page = 1, pageSize = 8) {
     return request<LmsSupportTicketPage>(`/api/v1/admin/lms/support/tickets${toQuery({ page, pageSize })}`);
+  },
+
+  getReports() {
+    return request<AdminReportResponse>("/api/v1/admin/lms/reports");
   }
 };
 
@@ -144,6 +327,22 @@ export const mentorLmsApi = {
 
   getReviewQueue() {
     return request<MentorReviewQueueResponse>("/api/v1/mentor/lms/review-queue");
+  },
+
+  getLearners() {
+    return request<MentorLearnerResponse[]>("/api/v1/mentor/lms/learners");
+  },
+
+  getLiveClasses() {
+    return request<LiveClassResponse[]>("/api/v1/mentor/lms/live-classes");
+  },
+
+  createLiveClass(body: CreateLiveClassRequest) {
+    return request<LiveClassResponse>("/api/v1/mentor/lms/live-classes", { method: "POST", body });
+  },
+
+  getAssessmentReviewQueue() {
+    return request<AssessmentAttemptResponse[]>("/api/v1/mentor/lms/assessments/review-queue");
   },
 
   reviewAssignmentSubmission(submissionId: string, body: ReviewSubmissionRequest) {
@@ -158,5 +357,16 @@ export const mentorLmsApi = {
       method: "POST",
       body
     });
+  },
+
+  reviewAssessmentAttempt(attemptId: string, body: SubmitAssessmentAttemptRequest) {
+    return request<AssessmentAttemptResponse>(`/api/v1/mentor/lms/assessment-attempts/${attemptId}/feedback`, {
+      method: "POST",
+      body
+    });
+  },
+
+  getSupportRequests() {
+    return request<SupportTicketResponse[]>("/api/v1/mentor/lms/support-requests");
   }
 };

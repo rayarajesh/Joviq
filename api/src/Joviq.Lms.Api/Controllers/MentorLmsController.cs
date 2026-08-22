@@ -29,6 +29,39 @@ public sealed class MentorLmsController(
         return Ok(ApiResponse<MentorReviewQueueResponse>.Ok(result, "Mentor review queue loaded.", CorrelationId));
     }
 
+    [HttpGet("learners")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<MentorLearnerResponse>>>> GetLearners(
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.GetMentorLearnersAsync(RequiredUserId, cancellationToken);
+        return Ok(ApiResponse<IReadOnlyList<MentorLearnerResponse>>.Ok(result, "Mentor learners loaded.", CorrelationId));
+    }
+
+    [HttpGet("live-classes")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<LiveClassResponse>>>> GetLiveClasses(
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.GetMentorLiveClassesAsync(RequiredUserId, cancellationToken);
+        return Ok(ApiResponse<IReadOnlyList<LiveClassResponse>>.Ok(result, "Mentor live classes loaded.", CorrelationId));
+    }
+
+    [HttpPost("live-classes")]
+    public async Task<ActionResult<ApiResponse<LiveClassResponse>>> CreateLiveClass(
+        CreateLiveClassRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.CreateMentorLiveClassAsync(RequiredUserId, request, cancellationToken);
+        return Ok(ApiResponse<LiveClassResponse>.Ok(result, "Live class created.", CorrelationId));
+    }
+
+    [HttpGet("assessments/review-queue")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<AssessmentAttemptResponse>>>> GetAssessmentReviewQueue(
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.GetMentorAssessmentReviewQueueAsync(RequiredUserId, cancellationToken);
+        return Ok(ApiResponse<IReadOnlyList<AssessmentAttemptResponse>>.Ok(result, "Assessment review queue loaded.", CorrelationId));
+    }
+
     [HttpPost("assignment-submissions/{submissionId:guid}/feedback")]
     public async Task<ActionResult<ApiResponse<SubmissionResponse>>> ReviewAssignmentSubmission(
         Guid submissionId,
@@ -47,5 +80,33 @@ public sealed class MentorLmsController(
     {
         var result = await lmsPortalService.ReviewProjectSubmissionAsync(RequiredUserId, submissionId, request, cancellationToken);
         return Ok(ApiResponse<SubmissionResponse>.Ok(result, "Project feedback saved.", CorrelationId));
+    }
+
+    [HttpPost("assessment-attempts/{attemptId:guid}/feedback")]
+    public async Task<ActionResult<ApiResponse<AssessmentAttemptResponse>>> ReviewAssessmentAttempt(
+        Guid attemptId,
+        SubmitAssessmentAttemptRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.ReviewAssessmentAttemptAsync(RequiredUserId, attemptId, request, cancellationToken);
+        return Ok(ApiResponse<AssessmentAttemptResponse>.Ok(result, "Assessment feedback saved.", CorrelationId));
+    }
+
+    [HttpGet("support-requests")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<SupportTicketResponse>>>> GetSupportRequests(
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.GetMentorSupportRequestsAsync(RequiredUserId, cancellationToken);
+        return Ok(ApiResponse<IReadOnlyList<SupportTicketResponse>>.Ok(result, "Mentor support requests loaded.", CorrelationId));
+    }
+
+    [HttpPatch("support-requests/{ticketId:guid}")]
+    public async Task<ActionResult<ApiResponse<SupportTicketResponse>>> UpdateSupportRequest(
+        Guid ticketId,
+        UpdateSupportTicketRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.UpdateMentorSupportRequestAsync(RequiredUserId, ticketId, request, cancellationToken);
+        return Ok(ApiResponse<SupportTicketResponse>.Ok(result, "Mentor support request updated.", CorrelationId));
     }
 }

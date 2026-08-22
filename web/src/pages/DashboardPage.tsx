@@ -53,12 +53,26 @@ import type {
 import { useAuth } from "../features/auth/context/useAuth";
 import { adminLmsApi, mentorLmsApi, publicLmsApi, studentLmsApi } from "../features/lms/api/lmsApi";
 import type {
+  AdminReportResponse,
   AdminLmsSummaryResponse,
+  AssessmentAttemptResponse,
+  AssessmentResponse,
   AssignmentResponse,
+  AiInterviewAttemptResponse,
+  CareerSupportResponse,
+  CertificateResponse,
+  CouponResponse,
+  CurriculumModuleResponse,
+  EnrollmentResponse,
+  LiveClassResponse,
   MentorDashboardResponse,
+  MentorLearnerResponse,
   MentorReviewQueueResponse,
+  PaymentTransactionResponse,
   ProgramCategoryResponse,
   ProgramSummaryResponse,
+  ProjectResponse,
+  RecordedClassResponse,
   StudentLmsDashboardResponse,
   StudentProgramWorkspaceResponse,
   SubmissionResponse,
@@ -73,12 +87,81 @@ type MessageState = { tone: "success" | "error"; text: string } | null;
 
 const pageSize = 8;
 const emailPattern = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$";
+const dashboardNavItems: Record<PrimaryRole, string[]> = {
+  Admin: [
+    "Overview",
+    "Users",
+    "Programs",
+    "Curriculum",
+    "Live Classes",
+    "Assignments",
+    "Projects",
+    "Assessments",
+    "Enrollments",
+    "Payments",
+    "Coupons",
+    "Certificates",
+    "Support",
+    "Reports"
+  ],
+  Mentor: ["Overview", "Learners", "Reviews", "Live Classes", "Projects", "Assessments", "Support"],
+  Student: [
+    "Overview",
+    "My Program",
+    "Continue Learning",
+    "Live Classes",
+    "Recorded Classes",
+    "Assignments",
+    "Projects",
+    "Assessments",
+    "AI Assessment",
+    "AI Interview",
+    "Mentor Support",
+    "Career Support",
+    "Payments",
+    "Notifications",
+    "Profile",
+    "Certificates",
+    "Support"
+  ]
+};
+
+const moduleIconMap: Record<string, ComponentType<{ size?: number }>> = {
+  Overview: LayoutDashboard,
+  Users: UsersRound,
+  Programs: BookOpen,
+  Curriculum: Layers3,
+  "Live Classes": CalendarClock,
+  "Recorded Classes": PlayCircle,
+  Assignments: ListChecks,
+  Projects: FolderKanban,
+  Assessments: FileCheck2,
+  "AI Assessment": Sparkles,
+  "AI Interview": BriefcaseBusiness,
+  "Mentor Support": Headphones,
+  "Career Support": Trophy,
+  Enrollments: GraduationCap,
+  Payments: CreditCard,
+  Coupons: CircleDollarSign,
+  Certificates: Award,
+  Notifications: Bell,
+  Profile: ShieldCheck,
+  Support: LifeBuoy,
+  Reports: BarChart3,
+  Reviews: FileCheck2,
+  Learners: GraduationCap
+};
 
 export function DashboardPage() {
   const auth = useAuth();
   const navigate = useNavigate();
   const roles = auth.user?.roles ?? [];
   const primaryRole: PrimaryRole = roles.includes("Admin") ? "Admin" : roles.includes("Mentor") ? "Mentor" : "Student";
+  const [activeModule, setActiveModule] = useState("Overview");
+
+  useEffect(() => {
+    setActiveModule("Overview");
+  }, [primaryRole]);
 
   async function logout() {
     await auth.logout();
@@ -87,12 +170,12 @@ export function DashboardPage() {
 
   return (
     <main className="dashboard-shell">
-      <DashboardSidebar role={primaryRole} />
+      <DashboardSidebar activeModule={activeModule} onModuleChange={setActiveModule} role={primaryRole} />
       <section className="dashboard-main">
         <header className="dashboard-header">
           <div>
             <span className="eyebrow">Joviq LMS</span>
-            <h1>{primaryRole} Dashboard</h1>
+            <h1>{activeModule}</h1>
             <p>{auth.user?.fullName} - {auth.user?.email}</p>
           </div>
           <button className="ghost-button" type="button" onClick={logout}>
@@ -101,34 +184,24 @@ export function DashboardPage() {
           </button>
         </header>
 
-        {primaryRole === "Admin" ? <AdminDashboard currentUserId={auth.user?.id} /> : null}
-        {primaryRole === "Mentor" ? <MentorDashboard /> : null}
-        {primaryRole === "Student" ? <StudentDashboard /> : null}
+        {primaryRole === "Admin" ? <AdminDashboard activeModule={activeModule} currentUserId={auth.user?.id} /> : null}
+        {primaryRole === "Mentor" ? <MentorDashboard activeModule={activeModule} /> : null}
+        {primaryRole === "Student" ? <StudentDashboard activeModule={activeModule} /> : null}
       </section>
     </main>
   );
 }
 
-function DashboardSidebar({ role }: { role: PrimaryRole }) {
-  const navItems =
-    role === "Admin"
-      ? ["Overview", "Users", "Programs", "Payments", "Support", "Reports"]
-      : role === "Mentor"
-        ? ["Overview", "Learners", "Reviews", "Live Classes", "Projects"]
-        : [
-            "Overview",
-            "My Program",
-            "Continue Learning",
-            "Live Classes",
-            "Assignments",
-            "Projects",
-            "Assessments",
-            "Career Support",
-            "Payments",
-            "Certificates",
-            "Support"
-          ];
-
+function DashboardSidebar({
+  activeModule,
+  onModuleChange,
+  role
+}: {
+  activeModule: string;
+  onModuleChange: (module: string) => void;
+  role: PrimaryRole;
+}) {
+  const navItems = dashboardNavItems[role];
   return (
     <aside className="dashboard-sidebar">
       <div className="sidebar-brand">
@@ -139,23 +212,41 @@ function DashboardSidebar({ role }: { role: PrimaryRole }) {
         </div>
       </div>
       <nav className="sidebar-nav" aria-label="Dashboard navigation">
-        {navItems.map((item, index) => (
-          <button className={index === 0 ? "is-active" : ""} key={item} type="button">
-            {index === 0 ? <LayoutDashboard size={18} /> : <BarChart3 size={18} />}
+        {navItems.map((item) => {
+          const Icon = moduleIconMap[item] ?? BarChart3;
+          return (
+          <button
+            className={activeModule === item ? "is-active" : ""}
+            key={item}
+            type="button"
+            onClick={() => onModuleChange(item)}
+          >
+            <Icon size={18} />
             {item}
           </button>
-        ))}
+          );
+        })}
       </nav>
     </aside>
   );
 }
 
-function AdminDashboard({ currentUserId }: { currentUserId?: string }) {
+function AdminDashboard({ activeModule, currentUserId }: { activeModule: string; currentUserId?: string }) {
   const [users, setUsers] = useState<AdminUserResponse[]>([]);
   const [summary, setSummary] = useState<AdminUserSummaryResponse | null>(null);
   const [lmsSummary, setLmsSummary] = useState<AdminLmsSummaryResponse | null>(null);
   const [lmsPrograms, setLmsPrograms] = useState<ProgramSummaryResponse[]>([]);
   const [programCategories, setProgramCategories] = useState<ProgramCategoryResponse[]>([]);
+  const [adminCurriculum, setAdminCurriculum] = useState<CurriculumModuleResponse[]>([]);
+  const [adminLiveClasses, setAdminLiveClasses] = useState<LiveClassResponse[]>([]);
+  const [adminAssignments, setAdminAssignments] = useState<AssignmentResponse[]>([]);
+  const [adminProjects, setAdminProjects] = useState<ProjectResponse[]>([]);
+  const [adminAssessments, setAdminAssessments] = useState<AssessmentResponse[]>([]);
+  const [adminEnrollments, setAdminEnrollments] = useState<EnrollmentResponse[]>([]);
+  const [adminPayments, setAdminPayments] = useState<PaymentTransactionResponse[]>([]);
+  const [adminCoupons, setAdminCoupons] = useState<CouponResponse[]>([]);
+  const [adminCertificates, setAdminCertificates] = useState<CertificateResponse[]>([]);
+  const [adminReports, setAdminReports] = useState<AdminReportResponse | null>(null);
   const [supportTickets, setSupportTickets] = useState<SupportTicketResponse[]>([]);
   const [message, setMessage] = useState<MessageState>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -202,7 +293,17 @@ function AdminDashboard({ currentUserId }: { currentUserId?: string }) {
         lmsSummaryResponse,
         lmsProgramsResponse,
         categoriesResponse,
-        supportTicketsResponse
+        supportTicketsResponse,
+        curriculumResponse,
+        liveClassesResponse,
+        assignmentsResponse,
+        projectsResponse,
+        assessmentsResponse,
+        enrollmentsResponse,
+        paymentsResponse,
+        couponsResponse,
+        certificatesResponse,
+        reportsResponse
       ] = await Promise.all([
         adminUsersApi.getSummary(),
         adminUsersApi.getUsers({
@@ -213,8 +314,18 @@ function AdminDashboard({ currentUserId }: { currentUserId?: string }) {
         }),
         adminLmsApi.getSummary(),
         adminLmsApi.getPrograms(),
-        publicLmsApi.getCategories(),
-        adminLmsApi.getSupportTickets(1, 8)
+        adminLmsApi.getCategories(),
+        adminLmsApi.getSupportTickets(1, 8),
+        adminLmsApi.getCurriculum(),
+        adminLmsApi.getLiveClasses(),
+        adminLmsApi.getAssignments(),
+        adminLmsApi.getProjects(),
+        adminLmsApi.getAssessments(),
+        adminLmsApi.getEnrollments(),
+        adminLmsApi.getPayments(),
+        adminLmsApi.getCoupons(),
+        adminLmsApi.getCertificates(),
+        adminLmsApi.getReports()
       ]);
 
       setSummary(summaryResponse.data);
@@ -223,6 +334,16 @@ function AdminDashboard({ currentUserId }: { currentUserId?: string }) {
       setLmsPrograms(lmsProgramsResponse.data);
       setProgramCategories(categoriesResponse.data);
       setSupportTickets(supportTicketsResponse.data.items);
+      setAdminCurriculum(curriculumResponse.data);
+      setAdminLiveClasses(liveClassesResponse.data);
+      setAdminAssignments(assignmentsResponse.data);
+      setAdminProjects(projectsResponse.data);
+      setAdminAssessments(assessmentsResponse.data);
+      setAdminEnrollments(enrollmentsResponse.data);
+      setAdminPayments(paymentsResponse.data);
+      setAdminCoupons(couponsResponse.data);
+      setAdminCertificates(certificatesResponse.data);
+      setAdminReports(reportsResponse.data);
       setTotalPages(Math.max(usersResponse.data.totalPages, 1));
       setTotalCount(usersResponse.data.totalCount);
     } catch (error) {
@@ -322,22 +443,30 @@ function AdminDashboard({ currentUserId }: { currentUserId?: string }) {
     void loadDashboard();
   }, [loadDashboard]);
 
+  const showOverview = activeModule === "Overview";
+  const showUsers = activeModule === "Overview" || activeModule === "Users";
+
   return (
     <section className="dashboard-stack">
-      <section className="metric-grid">
-        {metrics.map((metric) => (
-          <DashboardMetric key={metric.label} icon={metric.icon} label={metric.label} value={metric.value} />
-        ))}
-      </section>
+      {showOverview ? (
+        <section className="metric-grid">
+          {metrics.map((metric) => (
+            <DashboardMetric key={metric.label} icon={metric.icon} label={metric.label} value={metric.value} />
+          ))}
+        </section>
+      ) : null}
 
-      <section className="metric-grid metric-grid--lms">
-        {lmsMetrics.map((metric) => (
-          <DashboardMetric key={metric.label} icon={metric.icon} label={metric.label} value={metric.value} />
-        ))}
-      </section>
+      {showOverview ? (
+        <section className="metric-grid metric-grid--lms">
+          {lmsMetrics.map((metric) => (
+            <DashboardMetric key={metric.label} icon={metric.icon} label={metric.label} value={metric.value} />
+          ))}
+        </section>
+      ) : null}
 
       {message ? <MessageBox message={message} /> : null}
 
+      {showUsers ? (
       <section className="admin-layout">
         <form className="dashboard-card admin-form" onSubmit={createUser}>
           <div className="card-title-row">
@@ -541,8 +670,20 @@ function AdminDashboard({ currentUserId }: { currentUserId?: string }) {
           </div>
         </section>
       </section>
+      ) : null}
 
       <AdminLmsPanel
+        activeModule={activeModule}
+        adminAssessments={adminAssessments}
+        adminAssignments={adminAssignments}
+        adminCertificates={adminCertificates}
+        adminCoupons={adminCoupons}
+        adminCurriculum={adminCurriculum}
+        adminEnrollments={adminEnrollments}
+        adminLiveClasses={adminLiveClasses}
+        adminPayments={adminPayments}
+        adminProjects={adminProjects}
+        adminReports={adminReports}
         categories={programCategories}
         programs={lmsPrograms}
         summary={lmsSummary}
@@ -555,6 +696,17 @@ function AdminDashboard({ currentUserId }: { currentUserId?: string }) {
 }
 
 function AdminLmsPanel({
+  activeModule,
+  adminAssessments,
+  adminAssignments,
+  adminCertificates,
+  adminCoupons,
+  adminCurriculum,
+  adminEnrollments,
+  adminLiveClasses,
+  adminPayments,
+  adminProjects,
+  adminReports,
   categories,
   programs,
   summary,
@@ -562,6 +714,17 @@ function AdminLmsPanel({
   onMessage,
   onRefresh
 }: {
+  activeModule: string;
+  adminAssessments: AssessmentResponse[];
+  adminAssignments: AssignmentResponse[];
+  adminCertificates: CertificateResponse[];
+  adminCoupons: CouponResponse[];
+  adminCurriculum: CurriculumModuleResponse[];
+  adminEnrollments: EnrollmentResponse[];
+  adminLiveClasses: LiveClassResponse[];
+  adminPayments: PaymentTransactionResponse[];
+  adminProjects: ProjectResponse[];
+  adminReports: AdminReportResponse | null;
   categories: ProgramCategoryResponse[];
   programs: ProgramSummaryResponse[];
   summary: AdminLmsSummaryResponse | null;
@@ -623,12 +786,20 @@ function AdminLmsPanel({
     }
   }
 
+  const showPrograms = activeModule === "Overview" || activeModule === "Programs";
+  const showSupport = activeModule === "Overview" || activeModule === "Support";
+  const showModule = (module: string) => activeModule === module;
+
+  if (activeModule === "Users") {
+    return null;
+  }
+
   return (
     <section className="dashboard-card lms-admin-panel">
       <div className="card-title-row">
         <div>
           <span className="eyebrow">LMS engine</span>
-          <h2>Programs, reviews, payments, and support</h2>
+          <h2>{activeModule === "Overview" ? "Programs, reviews, payments, and support" : activeModule}</h2>
           <p>
             {summary?.publishedPrograms ?? 0} published programs, {summary?.activeEnrollments ?? 0} active enrollments.
           </p>
@@ -637,85 +808,288 @@ function AdminLmsPanel({
       </div>
 
       <div className="lms-admin-grid">
-        <form className="lms-mini-form" onSubmit={createProgram}>
-          <h3>Create program</h3>
-          <label>
-            Domain
-            <select name="categoryId" required>
-              <option value="">Choose domain</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
+        {showPrograms ? (
+          <form className="lms-mini-form" onSubmit={createProgram}>
+            <h3>Create program</h3>
+            <label>
+              Domain
+              <select name="categoryId" required>
+                <option value="">Choose domain</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Program title
+              <input name="title" placeholder="Example: Robotics" required />
+            </label>
+            <div className="lms-form-two">
+              <label>
+                Duration
+                <input name="duration" defaultValue="8 to 16 weeks" />
+              </label>
+              <label>
+                Level
+                <input name="level" defaultValue="Beginner to job-ready" />
+              </label>
+            </div>
+            <label>
+              Learning mode
+              <input name="learningMode" defaultValue="Live + recorded + project mentoring" />
+            </label>
+            <label>
+              Skills
+              <input name="skills" placeholder="Python, SQL, Projects, Interview prep" />
+            </label>
+            <button className="primary-action" type="submit" disabled={isCreatingProgram || categories.length === 0}>
+              <UserPlus size={18} />
+              {isCreatingProgram ? "Creating" : "Create program"}
+            </button>
+          </form>
+        ) : null}
+
+        {showPrograms ? (
+          <section className="lms-list-panel">
+            <h3>Catalog</h3>
+            <div className="lms-scroll-list">
+              {programs.slice(0, 10).map((program) => (
+                <article key={program.id} className="lms-list-item">
+                  <div>
+                    <strong>{program.title}</strong>
+                    <span>{program.categoryName} - {program.duration}</span>
+                  </div>
+                  <small>{program.status}</small>
+                </article>
               ))}
-            </select>
-          </label>
-          <label>
-            Program title
-            <input name="title" placeholder="Example: Robotics" required />
-          </label>
-          <div className="lms-form-two">
-            <label>
-              Duration
-              <input name="duration" defaultValue="8 to 16 weeks" />
-            </label>
-            <label>
-              Level
-              <input name="level" defaultValue="Beginner to job-ready" />
-            </label>
-          </div>
-          <label>
-            Learning mode
-            <input name="learningMode" defaultValue="Live + recorded + project mentoring" />
-          </label>
-          <label>
-            Skills
-            <input name="skills" placeholder="Python, SQL, Projects, Interview prep" />
-          </label>
-          <button className="primary-action" type="submit" disabled={isCreatingProgram || categories.length === 0}>
-            <UserPlus size={18} />
-            {isCreatingProgram ? "Creating" : "Create program"}
-          </button>
-        </form>
+            </div>
+          </section>
+        ) : null}
 
-        <section className="lms-list-panel">
-          <h3>Catalog</h3>
-          <div className="lms-scroll-list">
-            {programs.slice(0, 10).map((program) => (
-              <article key={program.id} className="lms-list-item">
-                <div>
-                  <strong>{program.title}</strong>
-                  <span>{program.categoryName} - {program.duration}</span>
-                </div>
-                <small>{program.status}</small>
-              </article>
-            ))}
-          </div>
-        </section>
+        {showModule("Curriculum") ? (
+          <section className="lms-list-panel lms-list-panel--wide">
+            <h3>Curriculum modules</h3>
+            <div className="lms-scroll-list">
+              {adminCurriculum.length === 0 ? <div className="table-state">No curriculum modules yet.</div> : null}
+              {adminCurriculum.map((module) => (
+                <article key={module.id} className="lms-list-item">
+                  <div>
+                    <strong>{module.title}</strong>
+                    <span>{module.description || `${module.lessons.length} lessons configured`}</span>
+                  </div>
+                  <small>{module.lessons.length} lessons</small>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
-        <section className="lms-list-panel">
-          <h3>Support queue</h3>
-          <div className="lms-scroll-list">
-            {supportTickets.length === 0 ? <div className="table-state">No support tickets yet.</div> : null}
-            {supportTickets.map((ticket) => (
-              <article key={ticket.id} className="lms-list-item">
-                <div>
-                  <strong>{ticket.issue}</strong>
-                  <span>{ticket.name} - {formatDate(ticket.createdAt)}</span>
-                </div>
-                <small>{ticket.status}</small>
+        {showModule("Live Classes") ? (
+          <section className="lms-list-panel lms-list-panel--wide">
+            <h3>Live class schedule</h3>
+            <div className="lms-scroll-list">
+              {adminLiveClasses.length === 0 ? <div className="table-state">No live classes scheduled.</div> : null}
+              {adminLiveClasses.map((liveClass) => (
+                <article key={liveClass.id} className="lms-list-item">
+                  <div>
+                    <strong>{liveClass.title}</strong>
+                    <span>{formatDateTime(liveClass.startsAt)} - {liveClass.description}</span>
+                  </div>
+                  <small>{liveClass.status}</small>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {showModule("Assignments") ? (
+          <section className="lms-list-panel lms-list-panel--wide">
+            <h3>Assignments</h3>
+            <div className="lms-scroll-list">
+              {adminAssignments.length === 0 ? <div className="table-state">No assignments yet.</div> : null}
+              {adminAssignments.map((assignment) => (
+                <article key={assignment.id} className="lms-list-item">
+                  <div>
+                    <strong>{assignment.title}</strong>
+                    <span>{assignment.instructions}</span>
+                  </div>
+                  <small>{assignment.isPublished ? "Published" : "Draft"}</small>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {showModule("Projects") ? (
+          <section className="lms-list-panel lms-list-panel--wide">
+            <h3>Projects</h3>
+            <div className="lms-scroll-list">
+              {adminProjects.length === 0 ? <div className="table-state">No projects yet.</div> : null}
+              {adminProjects.map((project) => (
+                <article key={project.id} className="lms-list-item">
+                  <div>
+                    <strong>{project.title}</strong>
+                    <span>{project.requiredArtifacts.join(", ") || project.description}</span>
+                  </div>
+                  <small>{project.isPublished ? "Published" : "Draft"}</small>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {showModule("Assessments") ? (
+          <section className="lms-list-panel lms-list-panel--wide">
+            <h3>Assessments</h3>
+            <div className="lms-scroll-list">
+              {adminAssessments.length === 0 ? <div className="table-state">No assessments yet.</div> : null}
+              {adminAssessments.map((assessment) => (
+                <article key={assessment.id} className="lms-list-item">
+                  <div>
+                    <strong>{assessment.title}</strong>
+                    <span>{assessment.assessmentType} - {assessment.durationMinutes} min</span>
+                  </div>
+                  <small>{assessment.isAiPowered ? "AI" : "Manual"}</small>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {showModule("Enrollments") ? (
+          <section className="lms-list-panel lms-list-panel--wide">
+            <h3>Enrollments</h3>
+            <div className="lms-scroll-list">
+              {adminEnrollments.length === 0 ? <div className="table-state">No enrollments yet.</div> : null}
+              {adminEnrollments.map((enrollment) => (
+                <article key={enrollment.id} className="lms-list-item">
+                  <div>
+                    <strong>{enrollment.programTitle}</strong>
+                    <span>{formatCurrency(enrollment.paidAmount)} paid of {formatCurrency(enrollment.totalAmount)}</span>
+                  </div>
+                  <small>{enrollment.status}</small>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {showModule("Payments") ? (
+          <section className="lms-list-panel lms-list-panel--wide">
+            <h3>Payments</h3>
+            <div className="lms-scroll-list">
+              {adminPayments.length === 0 ? <div className="table-state">No payments yet.</div> : null}
+              {adminPayments.map((payment) => (
+                <article key={payment.id} className="lms-list-item">
+                  <div>
+                    <strong>{formatCurrency(payment.amount)}</strong>
+                    <span>{payment.mode} - {formatDate(payment.createdAt)}</span>
+                  </div>
+                  <small>{payment.status}</small>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {showModule("Coupons") ? (
+          <section className="lms-list-panel lms-list-panel--wide">
+            <h3>Coupons</h3>
+            <div className="lms-scroll-list">
+              {adminCoupons.length === 0 ? <div className="table-state">No coupons yet.</div> : null}
+              {adminCoupons.map((coupon) => (
+                <article key={coupon.id} className="lms-list-item">
+                  <div>
+                    <strong>{coupon.code}</strong>
+                    <span>{coupon.description}</span>
+                  </div>
+                  <small>{coupon.isPercentage ? `${coupon.discountValue}%` : formatCurrency(coupon.discountValue)}</small>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {showModule("Certificates") ? (
+          <section className="lms-list-panel lms-list-panel--wide">
+            <h3>Certificates</h3>
+            <div className="lms-scroll-list">
+              {adminCertificates.length === 0 ? <div className="table-state">No certificates issued yet.</div> : null}
+              {adminCertificates.map((certificate) => (
+                <article key={certificate.id} className="lms-list-item">
+                  <div>
+                    <strong>{certificate.certificateId}</strong>
+                    <span>{certificate.programTitle} - {certificate.type}</span>
+                  </div>
+                  <small>{certificate.status}</small>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {showSupport ? (
+          <section className="lms-list-panel">
+            <h3>Support queue</h3>
+            <div className="lms-scroll-list">
+              {supportTickets.length === 0 ? <div className="table-state">No support tickets yet.</div> : null}
+              {supportTickets.map((ticket) => (
+                <article key={ticket.id} className="lms-list-item">
+                  <div>
+                    <strong>{ticket.issue}</strong>
+                    <span>{ticket.name} - {formatDate(ticket.createdAt)}</span>
+                  </div>
+                  <small>{ticket.status}</small>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {showModule("Reports") ? (
+          <section className="lms-list-panel lms-list-panel--wide">
+            <h3>Reports snapshot</h3>
+            <div className="module-stat-strip">
+              <article>
+                <span>Programs</span>
+                <strong>{adminReports?.summary.programs ?? 0}</strong>
               </article>
-            ))}
-          </div>
-        </section>
+              <article>
+                <span>Active enrollments</span>
+                <strong>{adminReports?.summary.activeEnrollments ?? 0}</strong>
+              </article>
+              <article>
+                <span>Revenue</span>
+                <strong>{formatCurrency(adminReports?.summary.verifiedRevenue ?? 0)}</strong>
+              </article>
+            </div>
+            <div className="lms-scroll-list">
+              {(adminReports?.recentPayments ?? []).slice(0, 8).map((payment) => (
+                <article key={payment.id} className="lms-list-item">
+                  <div>
+                    <strong>{formatCurrency(payment.amount)}</strong>
+                    <span>{payment.status} - {formatDate(payment.createdAt)}</span>
+                  </div>
+                  <small>{payment.mode}</small>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
       </div>
     </section>
   );
 }
 
-function MentorDashboard() {
+function MentorDashboard({ activeModule }: { activeModule: string }) {
   const [summary, setSummary] = useState<MentorDashboardResponse | null>(null);
   const [queue, setQueue] = useState<MentorReviewQueueResponse | null>(null);
+  const [learners, setLearners] = useState<MentorLearnerResponse[]>([]);
+  const [liveClasses, setLiveClasses] = useState<LiveClassResponse[]>([]);
+  const [assessmentAttempts, setAssessmentAttempts] = useState<AssessmentAttemptResponse[]>([]);
+  const [supportRequests, setSupportRequests] = useState<SupportTicketResponse[]>([]);
   const [message, setMessage] = useState<MessageState>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
@@ -723,12 +1097,20 @@ function MentorDashboard() {
   const loadMentorDashboard = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [summaryResponse, queueResponse] = await Promise.all([
+      const [summaryResponse, queueResponse, learnersResponse, liveClassesResponse, assessmentAttemptsResponse, supportRequestsResponse] = await Promise.all([
         mentorLmsApi.getDashboard(),
-        mentorLmsApi.getReviewQueue()
+        mentorLmsApi.getReviewQueue(),
+        mentorLmsApi.getLearners(),
+        mentorLmsApi.getLiveClasses(),
+        mentorLmsApi.getAssessmentReviewQueue(),
+        mentorLmsApi.getSupportRequests()
       ]);
       setSummary(summaryResponse.data);
       setQueue(queueResponse.data);
+      setLearners(learnersResponse.data);
+      setLiveClasses(liveClassesResponse.data);
+      setAssessmentAttempts(assessmentAttemptsResponse.data);
+      setSupportRequests(supportRequestsResponse.data);
     } catch (error) {
       setMessage({ tone: "error", text: formatApiError(error) });
     } finally {
@@ -761,6 +1143,27 @@ function MentorDashboard() {
     }
   }
 
+  async function reviewAssessment(attempt: AssessmentAttemptResponse) {
+    setActionId(attempt.id);
+    setMessage(null);
+
+    try {
+      await mentorLmsApi.reviewAssessmentAttempt(attempt.id, {
+        score: 90,
+        resultJson: JSON.stringify({
+          feedback: "Reviewed by mentor. The answer quality is ready for the next checkpoint."
+        })
+      });
+
+      setMessage({ tone: "success", text: "Assessment feedback saved." });
+      await loadMentorDashboard();
+    } catch (error) {
+      setMessage({ tone: "error", text: formatApiError(error) });
+    } finally {
+      setActionId(null);
+    }
+  }
+
   useEffect(() => {
     void loadMentorDashboard();
   }, [loadMentorDashboard]);
@@ -769,33 +1172,150 @@ function MentorDashboard() {
     ...(queue?.assignmentSubmissions ?? []),
     ...(queue?.projectSubmissions ?? [])
   ];
+  const visibleSubmissions = activeModule === "Projects"
+    ? submissions.filter((submission) => submission.itemType === "Project")
+    : submissions;
+  const showOverview = activeModule === "Overview";
+  const showReviews = activeModule === "Overview" || activeModule === "Reviews" || activeModule === "Projects";
 
   return (
     <section className="dashboard-stack">
-      <section className="metric-grid">
-        <DashboardMetric icon={CalendarClock} label="Live sessions" value={summary?.assignedLiveClasses ?? "-"} />
-        <DashboardMetric icon={ListChecks} label="Assignments pending" value={summary?.pendingAssignmentReviews ?? "-"} />
-        <DashboardMetric icon={FolderKanban} label="Projects pending" value={summary?.pendingProjectReviews ?? "-"} />
-        <DashboardMetric icon={CheckCircle2} label="Reviewed" value={summary?.reviewedSubmissions ?? "-"} />
-      </section>
+      {showOverview ? (
+        <section className="metric-grid">
+          <DashboardMetric icon={CalendarClock} label="Live sessions" value={summary?.assignedLiveClasses ?? "-"} />
+          <DashboardMetric icon={ListChecks} label="Assignments pending" value={summary?.pendingAssignmentReviews ?? "-"} />
+          <DashboardMetric icon={FolderKanban} label="Projects pending" value={summary?.pendingProjectReviews ?? "-"} />
+          <DashboardMetric icon={CheckCircle2} label="Reviewed" value={summary?.reviewedSubmissions ?? "-"} />
+        </section>
+      ) : null}
 
       {message ? <MessageBox message={message} /> : null}
 
+      {activeModule === "Learners" ? (
+        <section className="dashboard-card mentor-review-panel">
+          <div className="card-title-row">
+            <div>
+              <span className="eyebrow">Learners</span>
+              <h2>Assigned student progress</h2>
+              <p>Track active enrollments, learning progress, and program context.</p>
+            </div>
+            <GraduationCap size={23} />
+          </div>
+          <div className="mentor-review-list">
+            {learners.length === 0 ? <div className="table-state">No learners assigned yet.</div> : null}
+            {learners.map((learner) => (
+              <article key={learner.enrollmentId} className="mentor-review-card">
+                <div>
+                  <span className="status-pill status-pill--active">{learner.enrollmentStatus}</span>
+                  <h3>{learner.fullName}</h3>
+                  <p>{learner.programTitle} - {learner.progressPercentage}% complete - {learner.email}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {activeModule === "Live Classes" ? (
+        <section className="dashboard-card mentor-review-panel">
+          <div className="card-title-row">
+            <div>
+              <span className="eyebrow">Live classes</span>
+              <h2>Mentor session calendar</h2>
+              <p>Upcoming and shared sessions visible to this mentor workspace.</p>
+            </div>
+            <CalendarClock size={23} />
+          </div>
+          <div className="mentor-review-list">
+            {liveClasses.length === 0 ? <div className="table-state">No live classes scheduled.</div> : null}
+            {liveClasses.map((liveClass) => (
+              <article key={liveClass.id} className="mentor-review-card">
+                <div>
+                  <span className="status-pill status-pill--active">{liveClass.status}</span>
+                  <h3>{liveClass.title}</h3>
+                  <p>{formatDateTime(liveClass.startsAt)} - {liveClass.description}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {activeModule === "Assessments" ? (
+        <section className="dashboard-card mentor-review-panel">
+          <div className="card-title-row">
+            <div>
+              <span className="eyebrow">Assessments</span>
+              <h2>Evaluation queue</h2>
+              <p>Review submitted assessment attempts and save scored feedback.</p>
+            </div>
+            <FileCheck2 size={23} />
+          </div>
+          <div className="mentor-review-list">
+            {assessmentAttempts.length === 0 ? <div className="table-state">No assessment attempts waiting for review.</div> : null}
+            {assessmentAttempts.map((attempt) => (
+              <article key={attempt.id} className="mentor-review-card">
+                <div>
+                  <span className="status-pill status-pill--active">{attempt.status}</span>
+                  <h3>{attempt.assessmentTitle}</h3>
+                  <p>Submitted {attempt.submittedAt ? formatDateTime(attempt.submittedAt) : "recently"}</p>
+                </div>
+                <button
+                  className="secondary-action"
+                  type="button"
+                  disabled={actionId === attempt.id}
+                  onClick={() => void reviewAssessment(attempt)}
+                >
+                  <CheckCircle2 size={17} />
+                  {actionId === attempt.id ? "Saving" : "Approve"}
+                </button>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {activeModule === "Support" ? (
+        <section className="dashboard-card mentor-review-panel">
+          <div className="card-title-row">
+            <div>
+              <span className="eyebrow">Support</span>
+              <h2>Mentor support requests</h2>
+              <p>Questions related to reviews, projects, assignments, and mentor help.</p>
+            </div>
+            <Headphones size={23} />
+          </div>
+          <div className="mentor-review-list">
+            {supportRequests.length === 0 ? <div className="table-state">No mentor support requests yet.</div> : null}
+            {supportRequests.map((ticket) => (
+              <article key={ticket.id} className="mentor-review-card">
+                <div>
+                  <span className="status-pill status-pill--active">{ticket.status}</span>
+                  <h3>{ticket.issue}</h3>
+                  <p>{ticket.name} - {ticket.description}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {showReviews ? (
       <section className="dashboard-card mentor-review-panel">
         <div className="card-title-row">
           <div>
             <span className="eyebrow">Mentor reviews</span>
-            <h2>Submission queue</h2>
+            <h2>{activeModule === "Projects" ? "Project queue" : "Submission queue"}</h2>
             <p>Review project work, assignment checkpoints, and career-readiness proof.</p>
           </div>
           <FileCheck2 size={23} />
         </div>
 
         {isLoading ? <div className="table-state">Loading review queue...</div> : null}
-        {!isLoading && submissions.length === 0 ? <div className="table-state">No submissions waiting for review.</div> : null}
+        {!isLoading && visibleSubmissions.length === 0 ? <div className="table-state">No submissions waiting for review.</div> : null}
 
         <div className="mentor-review-list">
-          {submissions.map((submission) => (
+          {visibleSubmissions.map((submission) => (
             <article key={submission.id} className="mentor-review-card">
               <div>
                 <span className="status-pill status-pill--active">{submission.itemType}</span>
@@ -815,14 +1335,21 @@ function MentorDashboard() {
           ))}
         </div>
       </section>
+      ) : null}
     </section>
   );
 }
 
-function StudentDashboard() {
+function StudentDashboard({ activeModule }: { activeModule: string }) {
+  const navigate = useNavigate();
   const [dashboard, setDashboard] = useState<StudentLmsDashboardResponse | null>(null);
   const [workspace, setWorkspace] = useState<StudentProgramWorkspaceResponse | null>(null);
   const [programs, setPrograms] = useState<ProgramSummaryResponse[]>([]);
+  const [recordedClasses, setRecordedClasses] = useState<RecordedClassResponse[]>([]);
+  const [aiAssessments, setAiAssessments] = useState<AssessmentResponse[]>([]);
+  const [aiInterviews, setAiInterviews] = useState<AiInterviewAttemptResponse[]>([]);
+  const [mentorSupport, setMentorSupport] = useState<SupportTicketResponse[]>([]);
+  const [careerSupport, setCareerSupport] = useState<CareerSupportResponse | null>(null);
   const [message, setMessage] = useState<MessageState>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
@@ -841,6 +1368,21 @@ function StudentDashboard() {
       setDashboard(dashboardResponse.data);
       setWorkspace(workspaceResponse.data);
       setPrograms(programsResponse.data);
+
+      const [recordedResponse, aiAssessmentResponse, aiInterviewResponse, mentorSupportResponse, careerSupportResponse] =
+        await Promise.allSettled([
+          studentLmsApi.getRecordedClasses(),
+          studentLmsApi.getAiAssessments(),
+          studentLmsApi.getAiInterviews(),
+          studentLmsApi.getMentorSupport(),
+          studentLmsApi.getCareerSupport()
+        ]);
+
+      setRecordedClasses(recordedResponse.status === "fulfilled" ? recordedResponse.value.data : []);
+      setAiAssessments(aiAssessmentResponse.status === "fulfilled" ? aiAssessmentResponse.value.data : []);
+      setAiInterviews(aiInterviewResponse.status === "fulfilled" ? aiInterviewResponse.value.data : []);
+      setMentorSupport(mentorSupportResponse.status === "fulfilled" ? mentorSupportResponse.value.data : []);
+      setCareerSupport(careerSupportResponse.status === "fulfilled" ? careerSupportResponse.value.data : null);
     } catch (error) {
       setMessage({ tone: "error", text: formatApiError(error) });
     } finally {
@@ -975,6 +1517,70 @@ function StudentDashboard() {
     }
   }
 
+  async function startAssessment(assessment: AssessmentResponse, isAiPowered = false) {
+    setActionId(`assessment-${assessment.id}`);
+    setMessage(null);
+
+    try {
+      const attempt = isAiPowered
+        ? await studentLmsApi.startAiAssessmentAttempt(assessment.id)
+        : await studentLmsApi.startAssessmentAttempt(assessment.id);
+
+      await studentLmsApi.submitAssessmentAttempt(attempt.data.id, {
+        score: 85,
+        resultJson: JSON.stringify({
+          note: "Demo submission recorded from the LMS dashboard."
+        })
+      });
+
+      setMessage({ tone: "success", text: `${assessment.title} attempt submitted.` });
+      await loadStudentDashboard();
+    } catch (error) {
+      setMessage({ tone: "error", text: formatApiError(error) });
+    } finally {
+      setActionId(null);
+    }
+  }
+
+  async function startAiInterview(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+
+    setActionId("ai-interview");
+    setMessage(null);
+
+    try {
+      await studentLmsApi.startAiInterview({
+        jobRole: String(form.get("jobRole") ?? ""),
+        domain: String(form.get("domain") ?? ""),
+        interviewType: String(form.get("interviewType") ?? "Technical")
+      });
+      formElement.reset();
+      setMessage({ tone: "success", text: "AI interview practice started." });
+      await loadStudentDashboard();
+    } catch (error) {
+      setMessage({ tone: "error", text: formatApiError(error) });
+    } finally {
+      setActionId(null);
+    }
+  }
+
+  async function markNotificationRead(notificationId: string) {
+    setActionId(`notification-${notificationId}`);
+    setMessage(null);
+
+    try {
+      await studentLmsApi.markNotificationRead(notificationId);
+      setMessage({ tone: "success", text: "Notification marked as read." });
+      await loadStudentDashboard();
+    } catch (error) {
+      setMessage({ tone: "error", text: formatApiError(error) });
+    } finally {
+      setActionId(null);
+    }
+  }
+
   async function createSupportTicket(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formElement = event.currentTarget;
@@ -1013,20 +1619,41 @@ function StudentDashboard() {
   const projects = workspace?.projects ?? [];
   const payments = workspace?.payments ?? [];
   const certificates = workspace?.certificates ?? [];
+  const liveClasses = workspace?.liveClasses ?? [];
+  const assessments = workspace?.assessments ?? [];
+  const notifications = dashboard?.notifications ?? [];
+  const showOverview = activeModule === "Overview";
+  const showStudentModule = (...modules: string[]) => activeModule === "Overview" || modules.includes(activeModule);
 
   return (
     <section className="dashboard-stack">
-      <section className="metric-grid">
-        <DashboardMetric icon={BookOpen} label="Program status" value={dashboard?.programStatus ?? "-"} />
-        <DashboardMetric icon={BarChart3} label="Learning progress" value={`${dashboard?.learningProgressPercentage ?? 0}%`} />
-        <DashboardMetric icon={ListChecks} label="Pending work" value={(dashboard?.pendingAssignments ?? 0) + (dashboard?.pendingProjects ?? 0)} />
-        <DashboardMetric icon={WalletCards} label="Balance due" value={formatCurrency(dashboard?.balanceDue ?? 0)} />
-      </section>
+      {showOverview ? (
+        <section className="metric-grid">
+          <DashboardMetric icon={BookOpen} label="Program status" value={dashboard?.programStatus ?? "-"} />
+          <DashboardMetric icon={BarChart3} label="Learning progress" value={`${dashboard?.learningProgressPercentage ?? 0}%`} />
+          <DashboardMetric icon={ListChecks} label="Pending work" value={(dashboard?.pendingAssignments ?? 0) + (dashboard?.pendingProjects ?? 0)} />
+          <DashboardMetric icon={WalletCards} label="Balance due" value={formatCurrency(dashboard?.balanceDue ?? 0)} />
+        </section>
+      ) : null}
 
       {message ? <MessageBox message={message} /> : null}
       {isLoading ? <section className="dashboard-card"><div className="table-state">Loading LMS workspace...</div></section> : null}
 
-      {!isLoading && !enrollment ? (
+      {!isLoading && activeModule === "Profile" ? (
+        <section className="dashboard-card student-program-hero">
+          <div>
+            <span className="eyebrow">Profile</span>
+            <h2>Complete your student onboarding profile.</h2>
+            <p>Keep personal, academic, resume, LinkedIn, GitHub, portfolio, skills, and target role details ready for mentors and career support.</p>
+          </div>
+          <button className="primary-action" type="button" onClick={() => navigate("/student/onboarding")}>
+            <UserPlus size={18} />
+            Open profile
+          </button>
+        </section>
+      ) : null}
+
+      {!isLoading && !enrollment && activeModule !== "Profile" ? (
         <section className="dashboard-card student-marketplace">
           <div className="card-title-row">
             <div>
@@ -1074,6 +1701,7 @@ function StudentDashboard() {
 
       {!isLoading && enrollment ? (
         <section className="student-lms-grid">
+          {showStudentModule("My Program") ? (
           <section className="dashboard-card student-program-hero">
             <div>
               <span className="eyebrow">My program</span>
@@ -1085,7 +1713,9 @@ function StudentDashboard() {
               <span>{dashboard?.completedLessons ?? 0} of {dashboard?.totalLessons ?? 0} lessons complete</span>
             </div>
           </section>
+          ) : null}
 
+          {showStudentModule("Payments", "My Program") ? (
           <section className="dashboard-card payment-access-card">
             <div className="card-title-row">
               <div>
@@ -1117,7 +1747,9 @@ function StudentDashboard() {
               ))}
             </div>
           </section>
+          ) : null}
 
+          {showStudentModule("Continue Learning") ? (
           <section className="dashboard-card learning-path-card">
             <div className="card-title-row">
               <div>
@@ -1154,7 +1786,9 @@ function StudentDashboard() {
               ))}
             </div>
           </section>
+          ) : null}
 
+          {showStudentModule("Assignments") ? (
           <section className="dashboard-card work-submit-card">
             <div className="card-title-row">
               <div>
@@ -1184,7 +1818,9 @@ function StudentDashboard() {
               ))}
             </div>
           </section>
+          ) : null}
 
+          {showStudentModule("Projects") ? (
           <section className="dashboard-card work-submit-card">
             <div className="card-title-row">
               <div>
@@ -1214,31 +1850,203 @@ function StudentDashboard() {
               ))}
             </div>
           </section>
+          ) : null}
 
+          {showStudentModule("Live Classes") ? (
           <section className="dashboard-card lms-side-panel">
             <div className="card-title-row">
               <div>
-                <span className="eyebrow">Live and assessment</span>
-                <h2>Upcoming</h2>
+                <span className="eyebrow">Live classes</span>
+                <h2>Upcoming sessions</h2>
               </div>
               <CalendarClock size={23} />
             </div>
             <div className="lms-timeline">
-              {workspace?.liveClasses.slice(0, 3).map((liveClass) => (
+              {liveClasses.length === 0 ? <div className="table-state">No live classes scheduled.</div> : null}
+              {liveClasses.slice(0, 6).map((liveClass) => (
                 <article key={liveClass.id}>
                   <strong>{liveClass.title}</strong>
                   <span>{formatDateTime(liveClass.startsAt)}</span>
                 </article>
               ))}
-              {workspace?.assessments.slice(0, 3).map((assessment) => (
+            </div>
+          </section>
+          ) : null}
+
+          {showStudentModule("Assessments") ? (
+          <section className="dashboard-card lms-side-panel">
+            <div className="card-title-row">
+              <div>
+                <span className="eyebrow">Assessments</span>
+                <h2>Practice and scoring</h2>
+              </div>
+              <FileCheck2 size={23} />
+            </div>
+            <div className="lms-timeline">
+              {assessments.length === 0 ? <div className="table-state">No assessments published yet.</div> : null}
+              {assessments.slice(0, 8).map((assessment) => (
                 <article key={assessment.id}>
-                  <strong>{assessment.title}</strong>
-                  <span>{assessment.assessmentType} - {assessment.durationMinutes} min</span>
+                  <div>
+                    <strong>{assessment.title}</strong>
+                    <span>{assessment.assessmentType} - {assessment.durationMinutes} min</span>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={actionId === `assessment-${assessment.id}`}
+                    onClick={() => void startAssessment(assessment)}
+                  >
+                    <PlayCircle size={16} />
+                  </button>
                 </article>
               ))}
             </div>
           </section>
+          ) : null}
 
+          {showStudentModule("Recorded Classes") ? (
+          <section className="dashboard-card lms-side-panel">
+            <div className="card-title-row">
+              <div>
+                <span className="eyebrow">Recorded classes</span>
+                <h2>Replay lessons</h2>
+              </div>
+              <PlayCircle size={23} />
+            </div>
+            <div className="lms-timeline">
+              {recordedClasses.length === 0 ? <div className="table-state">No recordings available yet.</div> : null}
+              {recordedClasses.slice(0, 8).map((recording) => (
+                <article key={recording.lessonId}>
+                  <div>
+                    <strong>{recording.title}</strong>
+                    <span>{recording.moduleTitle} - {recording.durationMinutes} min - {recording.isLocked ? "Locked" : `${recording.progressPercentage}%`}</span>
+                  </div>
+                  <button type="button" disabled={recording.isLocked} title={recording.isLocked ? "Complete payment to unlock" : "Open recording"}>
+                    {recording.isLocked ? <Lock size={16} /> : <PlayCircle size={16} />}
+                  </button>
+                </article>
+              ))}
+            </div>
+          </section>
+          ) : null}
+
+          {showStudentModule("AI Assessment") ? (
+          <section className="dashboard-card lms-side-panel">
+            <div className="card-title-row">
+              <div>
+                <span className="eyebrow">AI assessment</span>
+                <h2>Adaptive practice</h2>
+              </div>
+              <Sparkles size={23} />
+            </div>
+            <div className="lms-timeline">
+              {aiAssessments.length === 0 ? <div className="table-state">No AI assessments published yet.</div> : null}
+              {aiAssessments.map((assessment) => (
+                <article key={assessment.id}>
+                  <div>
+                    <strong>{assessment.title}</strong>
+                    <span>{assessment.durationMinutes} min - passing {assessment.passingPercentage}%</span>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={actionId === `assessment-${assessment.id}`}
+                    onClick={() => void startAssessment(assessment, true)}
+                  >
+                    <Sparkles size={16} />
+                  </button>
+                </article>
+              ))}
+            </div>
+          </section>
+          ) : null}
+
+          {showStudentModule("AI Interview") ? (
+          <form className="dashboard-card support-ticket-form" onSubmit={startAiInterview}>
+            <div className="card-title-row">
+              <div>
+                <span className="eyebrow">AI interview</span>
+                <h2>Start practice</h2>
+              </div>
+              <BriefcaseBusiness size={23} />
+            </div>
+            <input name="jobRole" placeholder="Target role, e.g. Data Analyst" required />
+            <input name="domain" placeholder="Domain, e.g. Data Science" required />
+            <select name="interviewType" defaultValue="Technical">
+              <option value="Technical">Technical</option>
+              <option value="HR">HR</option>
+              <option value="Project">Project explanation</option>
+            </select>
+            <button className="primary-action" type="submit" disabled={actionId === "ai-interview"}>
+              <Sparkles size={17} />
+              Start interview
+            </button>
+            <div className="lms-timeline">
+              {aiInterviews.length === 0 ? <div className="table-state">No AI interview attempts yet.</div> : null}
+              {aiInterviews.slice(0, 4).map((attempt) => (
+                <article key={attempt.id}>
+                  <strong>{attempt.jobRole}</strong>
+                  <span>{attempt.domain} - {attempt.status} - {formatDateTime(attempt.startedAt)}</span>
+                </article>
+              ))}
+            </div>
+          </form>
+          ) : null}
+
+          {showStudentModule("Career Support") ? (
+          <section className="dashboard-card lms-side-panel">
+            <div className="card-title-row">
+              <div>
+                <span className="eyebrow">Career support</span>
+                <h2>Readiness tracker</h2>
+              </div>
+              <Trophy size={23} />
+            </div>
+            <div className="module-stat-strip module-stat-strip--compact">
+              <article>
+                <span>Resume</span>
+                <strong>{careerSupport?.resumeStatus ?? "Pending"}</strong>
+              </article>
+              <article>
+                <span>LinkedIn</span>
+                <strong>{careerSupport?.linkedInStatus ?? "Pending"}</strong>
+              </article>
+              <article>
+                <span>Portfolio</span>
+                <strong>{careerSupport?.portfolioStatus ?? "Pending"}</strong>
+              </article>
+            </div>
+            <div className="task-list">
+              {(careerSupport?.interviewFocusAreas ?? ["Resume review", "Mock interview", "Project explanation"]).map((item) => (
+                <article key={item}>
+                  <CheckCircle2 size={18} />
+                  <span>{item}</span>
+                </article>
+              ))}
+            </div>
+          </section>
+          ) : null}
+
+          {showStudentModule("Mentor Support") ? (
+          <section className="dashboard-card lms-side-panel">
+            <div className="card-title-row">
+              <div>
+                <span className="eyebrow">Mentor support</span>
+                <h2>Review requests</h2>
+              </div>
+              <Headphones size={23} />
+            </div>
+            <div className="lms-timeline">
+              {mentorSupport.length === 0 ? <div className="table-state">No mentor support tickets yet.</div> : null}
+              {mentorSupport.slice(0, 8).map((ticket) => (
+                <article key={ticket.id}>
+                  <strong>{ticket.issue}</strong>
+                  <span>{ticket.status} - {formatDate(ticket.createdAt)}</span>
+                </article>
+              ))}
+            </div>
+          </section>
+          ) : null}
+
+          {showStudentModule("Certificates") ? (
           <section className="dashboard-card lms-side-panel">
             <div className="card-title-row">
               <div>
@@ -1258,7 +2066,9 @@ function StudentDashboard() {
               </article>
             ))}
           </section>
+          ) : null}
 
+          {showStudentModule("Notifications") ? (
           <section className="dashboard-card lms-side-panel">
             <div className="card-title-row">
               <div>
@@ -1268,19 +2078,31 @@ function StudentDashboard() {
               <Bell size={23} />
             </div>
             <div className="notification-list">
-              {(dashboard?.notifications ?? []).map((notification) => (
+              {notifications.length === 0 ? <div className="table-state">No notifications yet.</div> : null}
+              {notifications.map((notification) => (
                 <article key={notification.id}>
-                  <strong>{notification.title}</strong>
-                  <span>{notification.body}</span>
+                  <div>
+                    <strong>{notification.title}</strong>
+                    <span>{notification.body}</span>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={notification.status === "Read" || actionId === `notification-${notification.id}`}
+                    onClick={() => void markNotificationRead(notification.id)}
+                  >
+                    <CheckCircle2 size={16} />
+                  </button>
                 </article>
               ))}
             </div>
           </section>
+          ) : null}
 
+          {showStudentModule("Support", "Mentor Support") ? (
           <form className="dashboard-card support-ticket-form" onSubmit={createSupportTicket}>
             <div className="card-title-row">
               <div>
-                <span className="eyebrow">Support</span>
+                <span className="eyebrow">{activeModule === "Mentor Support" ? "Mentor support" : "Support"}</span>
                 <h2>Raise a ticket</h2>
               </div>
               <Headphones size={23} />
@@ -1298,6 +2120,7 @@ function StudentDashboard() {
               Create ticket
             </button>
           </form>
+          ) : null}
         </section>
       ) : null}
     </section>

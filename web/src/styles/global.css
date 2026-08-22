@@ -1046,6 +1046,7 @@ button.hero-button {
   flex-direction: column;
   gap: 24px;
   height: 100vh;
+  overflow: hidden;
   border-right: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.82);
   padding: 24px 18px;
@@ -1079,6 +1080,8 @@ button.hero-button {
 .sidebar-nav {
   display: grid;
   gap: 8px;
+  overflow: auto;
+  padding-right: 4px;
 }
 
 .sidebar-nav button {
@@ -1094,6 +1097,7 @@ button.hero-button {
   padding: 0 12px;
   font-weight: 850;
   text-align: left;
+  cursor: pointer;
 }
 
 .sidebar-nav button.is-active {
@@ -5151,6 +5155,43 @@ button.hero-button {
   min-width: 0;
 }
 
+.lms-list-panel--wide {
+  grid-column: 1 / -1;
+}
+
+.module-stat-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.module-stat-strip article {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcf8;
+  padding: 14px;
+}
+
+.module-stat-strip span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.module-stat-strip strong {
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: 1.15rem;
+}
+
+.module-stat-strip--compact {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .lms-mini-form h3,
 .lms-list-panel h3,
 .module-card h3,
@@ -5501,6 +5542,32 @@ button.hero-button {
   padding: 12px;
 }
 
+.lms-timeline article,
+.notification-list article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.lms-timeline article > button,
+.notification-list article > button {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--green-dark);
+}
+
+.lms-timeline article > button:disabled,
+.notification-list article > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .certificate-mini {
   display: flex;
   align-items: center;
@@ -5538,6 +5605,11 @@ button.hero-button {
 
   .student-progress-block {
     flex-basis: auto;
+  }
+
+  .module-stat-strip,
+  .module-stat-strip--compact {
+    grid-template-columns: 1fr;
   }
 }
 

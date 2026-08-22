@@ -272,6 +272,83 @@ public sealed record MentorReviewQueueResponse(
     IReadOnlyList<SubmissionResponse> AssignmentSubmissions,
     IReadOnlyList<SubmissionResponse> ProjectSubmissions);
 
+public sealed record RecordedClassResponse(
+    Guid LessonId,
+    Guid ModuleId,
+    string ModuleTitle,
+    string Title,
+    string Summary,
+    string? VideoUrl,
+    string? NotesUrl,
+    int DurationMinutes,
+    bool IsLocked,
+    int ProgressPercentage,
+    bool IsCompleted);
+
+public sealed record AssessmentAttemptResponse(
+    Guid Id,
+    Guid AssessmentId,
+    string AssessmentTitle,
+    Guid StudentId,
+    Guid? EnrollmentId,
+    string Status,
+    DateTimeOffset StartedAt,
+    DateTimeOffset? SubmittedAt,
+    decimal? Score,
+    string? ResultJson);
+
+public sealed record AiInterviewAttemptResponse(
+    Guid Id,
+    Guid StudentId,
+    Guid? EnrollmentId,
+    string JobRole,
+    string Domain,
+    string InterviewType,
+    decimal? TechnicalScore,
+    decimal? CommunicationScore,
+    decimal? OverallScore,
+    string? TranscriptJson,
+    string? RecommendationsJson,
+    string Status,
+    DateTimeOffset StartedAt,
+    DateTimeOffset? CompletedAt);
+
+public sealed record CareerSupportResponse(
+    string ResumeStatus,
+    string LinkedInStatus,
+    string GitHubStatus,
+    string PortfolioStatus,
+    IReadOnlyList<string> InterviewFocusAreas,
+    IReadOnlyList<SupportTicketResponse> Requests);
+
+public sealed record MentorLearnerResponse(
+    Guid StudentId,
+    string FullName,
+    string Email,
+    string? PhoneNumber,
+    Guid EnrollmentId,
+    string ProgramTitle,
+    string EnrollmentStatus,
+    int ProgressPercentage,
+    DateTimeOffset EnrolledAt);
+
+public sealed record CouponResponse(
+    Guid Id,
+    string Code,
+    string Description,
+    decimal DiscountValue,
+    bool IsPercentage,
+    bool IsActive,
+    DateTimeOffset? StartsAt,
+    DateTimeOffset? ExpiresAt);
+
+public sealed record AdminReportResponse(
+    AdminLmsSummaryResponse Summary,
+    IReadOnlyList<ProgramSummaryResponse> Programs,
+    IReadOnlyList<EnrollmentResponse> RecentEnrollments,
+    IReadOnlyList<PaymentTransactionResponse> RecentPayments,
+    IReadOnlyList<SupportTicketResponse> OpenSupportTickets);
+
 public sealed class ProgramListRequest
 {
     public string? Search { get; init; }
@@ -422,11 +499,119 @@ public sealed class CreatePlanRequest
     public bool IsActive { get; init; } = true;
 }
 
+public sealed class CreateCategoryRequest
+{
+    public string Name { get; init; } = string.Empty;
+
+    public string Slug { get; init; } = string.Empty;
+
+    public string Description { get; init; } = string.Empty;
+
+    public bool IsPublished { get; init; } = true;
+}
+
+public sealed class CreateModuleRequest
+{
+    public string Title { get; init; } = string.Empty;
+
+    public string Description { get; init; } = string.Empty;
+}
+
+public sealed class CreateLessonRequest
+{
+    public string Title { get; init; } = string.Empty;
+
+    public string Summary { get; init; } = string.Empty;
+
+    public string? VideoUrl { get; init; }
+
+    public string? NotesUrl { get; init; }
+
+    public int DurationMinutes { get; init; }
+
+    public ContentAccessLevel AccessLevel { get; init; } = ContentAccessLevel.Full;
+}
+
+public sealed class CreateLiveClassRequest
+{
+    public Guid ProgramId { get; init; }
+
+    public Guid? MentorId { get; init; }
+
+    public string Title { get; init; } = string.Empty;
+
+    public string Description { get; init; } = string.Empty;
+
+    public DateTimeOffset StartsAt { get; init; }
+
+    public DateTimeOffset EndsAt { get; init; }
+
+    public string? JoinUrl { get; init; }
+
+    public string? RecordingUrl { get; init; }
+}
+
+public sealed class CreateAssignmentRequest
+{
+    public Guid ProgramId { get; init; }
+
+    public string Title { get; init; } = string.Empty;
+
+    public string Instructions { get; init; } = string.Empty;
+
+    public DateTimeOffset? DueAt { get; init; }
+
+    public decimal MaxScore { get; init; } = 100;
+
+    public bool IsPublished { get; init; } = true;
+}
+
+public sealed class CreateProjectRequest
+{
+    public Guid ProgramId { get; init; }
+
+    public string Title { get; init; } = string.Empty;
+
+    public string Description { get; init; } = string.Empty;
+
+    public IReadOnlyList<string> RequiredArtifacts { get; init; } = [];
+
+    public decimal MaxScore { get; init; } = 100;
+
+    public bool IsPublished { get; init; } = true;
+}
+
+public sealed class CreateAssessmentRequest
+{
+    public Guid ProgramId { get; init; }
+
+    public string Title { get; init; } = string.Empty;
+
+    public string AssessmentType { get; init; } = string.Empty;
+
+    public string Instructions { get; init; } = string.Empty;
+
+    public int DurationMinutes { get; init; }
+
+    public decimal PassingPercentage { get; init; } = 70;
+
+    public bool IsAiPowered { get; init; }
+
+    public bool IsPublished { get; init; } = true;
+}
+
 public sealed class CreateEnrollmentRequest
 {
     public Guid ProgramId { get; init; }
 
     public Guid? ProgramPlanId { get; init; }
+}
+
+public sealed class UpdateEnrollmentStatusRequest
+{
+    public EnrollmentStatus Status { get; init; }
+
+    public string? LockedReason { get; init; }
 }
 
 public sealed class CreatePaymentCheckoutRequest
@@ -440,6 +625,20 @@ public sealed class CreatePaymentCheckoutRequest
     public PaymentMode Mode { get; init; } = PaymentMode.ReserveSeat;
 }
 
+public sealed class UpdatePaymentStatusRequest
+{
+    public PaymentStatus Status { get; init; }
+
+    public string? GatewayPaymentId { get; init; }
+
+    public string? FailureReason { get; init; }
+}
+
+public sealed class RefundPaymentRequest
+{
+    public string? Reason { get; init; }
+}
+
 public sealed class VerifyPaymentRequest
 {
     public Guid? PaymentTransactionId { get; init; }
@@ -447,6 +646,22 @@ public sealed class VerifyPaymentRequest
     public string? GatewayOrderId { get; init; }
 
     public string? GatewayPaymentId { get; init; }
+}
+
+public sealed class SubmitAssessmentAttemptRequest
+{
+    public decimal? Score { get; init; }
+
+    public string? ResultJson { get; init; }
+}
+
+public sealed class StartAiInterviewRequest
+{
+    public string JobRole { get; init; } = string.Empty;
+
+    public string Domain { get; init; } = string.Empty;
+
+    public string InterviewType { get; init; } = "Technical";
 }
 
 public sealed class UpdateLessonProgressRequest
@@ -474,6 +689,36 @@ public sealed class SubmitProjectRequest
     public string? PresentationUrl { get; init; }
 
     public string? Notes { get; init; }
+}
+
+public sealed class CreateCouponRequest
+{
+    public string Code { get; init; } = string.Empty;
+
+    public string Description { get; init; } = string.Empty;
+
+    public decimal DiscountValue { get; init; }
+
+    public bool IsPercentage { get; init; }
+
+    public bool IsActive { get; init; } = true;
+
+    public DateTimeOffset? StartsAt { get; init; }
+
+    public DateTimeOffset? ExpiresAt { get; init; }
+}
+
+public sealed class IssueCertificateRequest
+{
+    public Guid StudentId { get; init; }
+
+    public Guid ProgramId { get; init; }
+
+    public Guid? EnrollmentId { get; init; }
+
+    public CertificateType Type { get; init; } = CertificateType.Training;
+
+    public string? AuthorizedSignatory { get; init; }
 }
 
 public sealed class CreateSupportTicketRequest
