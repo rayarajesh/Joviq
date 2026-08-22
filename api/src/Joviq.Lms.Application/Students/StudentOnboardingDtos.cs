@@ -49,25 +49,25 @@ public sealed record UpdatePersonalDetailsRequest
     [Required, RegularExpression(@"^\d{4}-\d{2}-\d{2}$")]
     public string DateOfBirth { get; init; } = string.Empty;
 
-    [Required, MaxLength(500)]
+    [Required, MinLength(8), MaxLength(500)]
     public string Address { get; init; } = string.Empty;
 
-    [Required, MaxLength(120)]
+    [Required, MinLength(2), MaxLength(120)]
     public string City { get; init; } = string.Empty;
 
-    [Required, MaxLength(120)]
+    [Required, MinLength(2), MaxLength(120)]
     public string State { get; init; } = string.Empty;
 }
 
 public sealed record UpdateAcademicDetailsRequest
 {
-    [Required, MaxLength(200)]
+    [Required, MinLength(2), MaxLength(200)]
     public string College { get; init; } = string.Empty;
 
-    [Required, MaxLength(120)]
+    [Required, MinLength(2), MaxLength(120)]
     public string Degree { get; init; } = string.Empty;
 
-    [Required, MaxLength(120)]
+    [Required, MinLength(2), MaxLength(120)]
     public string Branch { get; init; } = string.Empty;
 
     [Range(2000, 2100)]
@@ -79,9 +79,10 @@ public sealed record UpdateAcademicDetailsRequest
 
 public sealed record UpdateCareerDetailsRequest
 {
-    [Required, MaxLength(160)]
+    [Required, MinLength(2), MaxLength(80)]
     public string TargetJobRole { get; init; } = string.Empty;
 
+    [MinLength(3), MaxLength(15)]
     public IReadOnlyList<string> Skills { get; init; } = [];
 
     [Required, Url, MaxLength(500)]
