@@ -5,6 +5,7 @@ import { AuthProvider } from "../features/auth/context/AuthContext";
 import { DashboardPage } from "../pages/DashboardPage";
 import { LandingPage } from "../pages/LandingPage";
 import { ProgramDetailsPage } from "../pages/ProgramDetailsPage";
+import { StudentOnboardingPage } from "../pages/StudentOnboardingPage";
 import { ProtectedRoute } from "./ProtectedRoute";
 
 export function App() {
@@ -20,6 +21,14 @@ export function App() {
             element={
               <ProtectedRoute>
                 <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/onboarding"
+            element={
+              <ProtectedRoute allowIncompleteProfile>
+                <StudentOnboardingPage />
               </ProtectedRoute>
             }
           />

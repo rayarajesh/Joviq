@@ -1,13 +1,15 @@
 import type { ReactNode } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../features/auth/context/useAuth";
 
 type ProtectedRouteProps = {
   children: ReactNode;
+  allowIncompleteProfile?: boolean;
 };
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, allowIncompleteProfile = false }: ProtectedRouteProps) {
   const { user, isBooting } = useAuth();
+  const location = useLocation();
 
   if (isBooting) {
     return <div className="page-loader">Loading your workspace...</div>;
@@ -15,6 +17,13 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (!user) {
     return <Navigate to="/" replace />;
+  }
+
+  const needsStudentOnboarding =
+    user.roles.includes("Student") && user.onboardingStatus !== "Completed" && !allowIncompleteProfile;
+
+  if (needsStudentOnboarding) {
+    return <Navigate to="/student/onboarding" replace state={{ from: location.pathname }} />;
   }
 
   return children;

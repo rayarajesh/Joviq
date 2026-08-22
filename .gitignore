@@ -17,6 +17,7 @@ build/
 docs/
 api/src/Joviq.Lms.Api/appsettings.Development.json
 api/src/Joviq.Lms.Api/appsettings.Local.json
+api/src/Joviq.Lms.Api/wwwroot/uploads/
 
 *.log
 logs/

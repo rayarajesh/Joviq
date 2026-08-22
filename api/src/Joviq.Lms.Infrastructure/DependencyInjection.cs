@@ -3,6 +3,7 @@ using Joviq.Lms.Application.Auth;
 using Joviq.Lms.Application.Common.Interfaces;
 using Joviq.Lms.Application.Common.Options;
 using Joviq.Lms.Application.Common.Security;
+using Joviq.Lms.Application.Students;
 using Joviq.Lms.Application.Users;
 using Joviq.Lms.Infrastructure.Identity;
 using Joviq.Lms.Infrastructure.Persistence;
@@ -94,6 +95,7 @@ public static class DependencyInjection
 
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IAdminUserService, AdminUserService>();
+        services.AddScoped<IStudentOnboardingService, StudentOnboardingService>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<IOtpService, OtpService>();

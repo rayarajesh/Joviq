@@ -16,7 +16,7 @@ export type ProblemDetails = {
   errors?: Record<string, string[]>;
 };
 
-export type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
+export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 export type RequestOptions = {
   method?: HttpMethod;

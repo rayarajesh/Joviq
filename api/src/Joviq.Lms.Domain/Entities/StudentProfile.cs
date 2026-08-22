@@ -22,6 +22,14 @@ public sealed class StudentProfile : AuditableEntity
 
     public string? ResumeUrl { get; set; }
 
+    public string? ResumeFileName { get; set; }
+
+    public string? ResumeContentType { get; set; }
+
+    public long? ResumeSizeBytes { get; set; }
+
+    public DateTimeOffset? ResumeUploadedAt { get; set; }
+
     public string? LinkedInUrl { get; set; }
 
     public string? GitHubUrl { get; set; }

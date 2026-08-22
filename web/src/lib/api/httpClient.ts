@@ -26,9 +26,15 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   const headers = new Headers(options.headers);
   headers.set("Accept", "application/json");
 
-  if (options.body !== undefined) {
+  const formDataBody = typeof FormData !== "undefined" && options.body instanceof FormData ? options.body : null;
+  const isFormData = formDataBody !== null;
+
+  if (options.body !== undefined && !isFormData) {
     headers.set("Content-Type", "application/json");
   }
+
+  const requestBody: BodyInit | undefined =
+    options.body === undefined ? undefined : formDataBody ?? JSON.stringify(options.body);
 
   const token = options.accessToken ?? tokenStore.get();
   if (token) {
@@ -39,7 +45,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
     method: options.method ?? "GET",
     headers,
     credentials: "include",
-    body: options.body === undefined ? undefined : JSON.stringify(options.body)
+    body: requestBody
   });
 
   const contentType = response.headers.get("content-type") ?? "";

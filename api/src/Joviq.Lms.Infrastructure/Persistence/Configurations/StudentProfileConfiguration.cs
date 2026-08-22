@@ -17,6 +17,8 @@ public sealed class StudentProfileConfiguration : IEntityTypeConfiguration<Stude
         builder.Property(x => x.TargetJobRole).HasMaxLength(160);
         builder.Property(x => x.SkillsJson).HasColumnType("jsonb");
         builder.Property(x => x.ResumeUrl).HasMaxLength(500);
+        builder.Property(x => x.ResumeFileName).HasMaxLength(255);
+        builder.Property(x => x.ResumeContentType).HasMaxLength(120);
         builder.Property(x => x.LinkedInUrl).HasMaxLength(500);
         builder.Property(x => x.GitHubUrl).HasMaxLength(500);
         builder.Property(x => x.PortfolioUrl).HasMaxLength(500);
