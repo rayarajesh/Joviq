@@ -19,3 +19,5 @@ api/src/Joviq.Lms.Api/appsettings.Development.json
 api/src/Joviq.Lms.Api/appsettings.Local.json
 
 *.log
+logs/
+*/logs/

@@ -1,32 +1,60 @@
-import { FormEvent, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import type { CSSProperties, FormEvent, MouseEvent, ReactNode } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   Award,
+  BadgeCheck,
   BarChart3,
   BookOpenCheck,
-  BrainCircuit,
+  BriefcaseBusiness,
   Building2,
+  CalendarClock,
   CheckCircle2,
+  ChevronRight,
+  ClipboardCheck,
   Code2,
   Cpu,
   Eye,
   EyeOff,
-  Gauge,
   GraduationCap,
   KeyRound,
   Layers3,
+  Lightbulb,
   LockKeyhole,
   MailCheck,
+  MapPin,
   Menu,
+  MessageCircle,
+  PhoneCall,
   RefreshCw,
+  Search,
+  Send,
   ShieldCheck,
   Sparkles,
+  Star,
   UserPlus,
   UsersRound,
-  X
+  X,
+  Zap
 } from "lucide-react";
 import { IndiaMobileInput } from "../components/IndiaMobileInput";
+import { SiteFooter } from "../components/SiteFooter";
+import {
+  allPrograms,
+  alumniCompanies,
+  hiringPartners,
+  homeFaqs,
+  howItWorks,
+  keyStatistics,
+  mentors,
+  poweredBy,
+  pricingPlans,
+  programCategories,
+  recognitions,
+  reviews,
+  successOutcomes
+} from "../data/siteContent";
 import { authApi } from "../features/auth/api/authApi";
 import { useAuth } from "../features/auth/context/useAuth";
 import { formatApiError } from "../lib/api/httpClient";
@@ -34,62 +62,27 @@ import { toIndiaMobileNumber } from "../lib/validation/indiaMobile";
 
 const policyVersion = "2026-08-20";
 const emailPattern = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$";
+
 type AuthMessage = { tone: "success" | "error"; text: string } | null;
 type AuthMode = "login" | "register" | "verify-email" | "forgot-password" | "reset-password";
 
-const programs = [
-  {
-    title: "Generative AI",
-    text: "Prompt engineering, copilots, RAG apps, and production AI workflows.",
-    meta: "Project studio",
-    Icon: BrainCircuit
-  },
-  {
-    title: "Full Stack",
-    text: ".NET API layers, React interfaces, PostgreSQL, auth, and deployment.",
-    meta: "Career track",
-    Icon: Code2
-  },
-  {
-    title: "Data Science",
-    text: "Analytics, ML foundations, dashboards, model evaluation, and reporting.",
-    meta: "Portfolio ready",
-    Icon: BarChart3
-  },
-  {
-    title: "VLSI",
-    text: "Digital design, verification practice, workflows, and interview preparation.",
-    meta: "Core engineering",
-    Icon: Cpu
-  }
-];
-
-const outcomes = [
-  {
-    title: "Live mentor loops",
-    text: "Every learner gets guided review cycles, project feedback, and clear next steps.",
-    Icon: UsersRound
-  },
-  {
-    title: "Assessment engine",
-    text: "Track quizzes, tasks, project rubrics, and certification readiness in one place.",
-    Icon: Gauge
-  },
-  {
-    title: "Verified certificates",
-    text: "Completion paths are mapped to projects, mentor reviews, and skill evidence.",
-    Icon: Award
-  }
-];
-
 const navItems = [
+  { label: "Home", href: "#home" },
   { label: "Programs", href: "#programs" },
-  { label: "Outcomes", href: "#outcomes" },
-  { label: "Workspaces", href: "#workspaces" }
+  { label: "Features", href: "#features" },
+  { label: "Campus Ambassador", href: "#campus-ambassador" },
+  { label: "Reviews", href: "#reviews" },
+  { label: "Careers", href: "#careers" },
+  { label: "About Us", href: "#about" }
 ];
+
+const projectHighlights = allPrograms
+  .flatMap((program) => program.projects.slice(0, 1).map((project) => ({ program: program.title, project })))
+  .slice(0, 8);
 
 export function LandingPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const auth = useAuth();
   const [mode, setMode] = useState<AuthMode>("login");
   const [message, setMessage] = useState<AuthMessage>(null);
@@ -97,19 +90,124 @@ export function LandingPage() {
   const [pendingResetEmail, setPendingResetEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(location.hash === "#auth");
+  const [heroParallax, setHeroParallax] = useState<Record<string, string>>({
+    "--hero-bg-x": "50%",
+    "--hero-bg-y": "50%",
+    "--hero-card-x": "0px",
+    "--hero-card-y": "0px",
+    "--hero-dashboard-x": "0px",
+    "--hero-dashboard-y": "0px",
+    "--hero-line-x": "0px"
+  });
+  const [programSearchQuery, setProgramSearchQuery] = useState("");
+
+  const searchResults = useMemo(() => {
+    const query = programSearchQuery.trim().toLowerCase();
+
+    if (!query) {
+      return allPrograms.slice(0, 8);
+    }
+
+    return allPrograms.filter((program) => {
+      const searchable = [
+        program.title,
+        program.domain,
+        program.shortDescription,
+        program.level,
+        ...program.tags,
+        ...program.skills
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return searchable.includes(query);
+    });
+  }, [programSearchQuery]);
 
   function selectMode(nextMode: AuthMode) {
     setMode(nextMode);
     setMessage(null);
   }
 
-  function scrollToAuth(nextMode: AuthMode) {
+  function closeMenu() {
     setIsMenuOpen(false);
+  }
+
+  function scrollToAuth(nextMode: AuthMode) {
+    closeMenu();
     selectMode(nextMode);
+    setIsAuthDialogOpen(true);
+  }
+
+  function closeAuthDialog() {
+    setIsAuthDialogOpen(false);
+    setMessage(null);
+  }
+
+  function scrollToCallback() {
+    closeMenu();
     window.requestAnimationFrame(() => {
-      document.getElementById("auth")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.getElementById("callback")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }
+
+  function handleHeroPointerMove(event: MouseEvent<HTMLElement>) {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - bounds.left) / bounds.width - 0.5;
+    const y = (event.clientY - bounds.top) / bounds.height - 0.5;
+
+    setHeroParallax({
+      "--hero-bg-x": `${50 + x * 3}%`,
+      "--hero-bg-y": `${50 + y * 2}%`,
+      "--hero-card-x": `${x * -22}px`,
+      "--hero-card-y": `${y * -18}px`,
+      "--hero-dashboard-x": `${x * 18}px`,
+      "--hero-dashboard-y": `${y * 14}px`,
+      "--hero-line-x": `${x * 34}px`
+    });
+  }
+
+  function resetHeroParallax() {
+    setHeroParallax({
+      "--hero-bg-x": "50%",
+      "--hero-bg-y": "50%",
+      "--hero-card-x": "0px",
+      "--hero-card-y": "0px",
+      "--hero-dashboard-x": "0px",
+      "--hero-dashboard-y": "0px",
+      "--hero-line-x": "0px"
+    });
+  }
+
+  useEffect(() => {
+    if (location.hash === "#auth") {
+      selectMode("login");
+      setIsAuthDialogOpen(true);
+    }
+  }, [location.hash]);
+
+  useEffect(() => {
+    if (!isAuthDialogOpen) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        closeAuthDialog();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isAuthDialogOpen]);
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -286,365 +384,871 @@ export function LandingPage() {
   }
 
   return (
-    <main className="landing-page">
-      <header className={`landing-nav ${isMenuOpen ? "is-open" : ""}`}>
-        <a className="landing-nav__brand" href="#home" aria-label="Joviq Technologies LMS home" onClick={() => setIsMenuOpen(false)}>
-          <span className="landing-nav__mark">
+    <main className="site-page">
+      <header className={`site-nav ${isMenuOpen ? "is-open" : ""}`}>
+        <a className="site-nav__brand" href="#home" onClick={closeMenu} aria-label="Joviq Technologies home">
+          <span className="site-nav__mark">
             <Sparkles size={20} />
           </span>
           <span>
             <strong>Joviq Technologies</strong>
-            <small>Learning Management System</small>
+            <small>Website and LMS</small>
           </span>
         </a>
-        <nav className="landing-nav__links" aria-label="Landing page navigation">
+
+        <nav className="site-nav__links" aria-label="Main menu">
           {navItems.map((item) => (
-            <a key={item.href} href={item.href} onClick={() => setIsMenuOpen(false)}>
+            <a key={item.href} href={item.href} onClick={closeMenu}>
               {item.label}
             </a>
           ))}
         </nav>
-        <div className="landing-nav__actions">
+
+        <div className="site-nav__actions">
           <button type="button" onClick={() => scrollToAuth("login")}>
             Login
           </button>
-          <button className="is-primary" type="button" onClick={() => scrollToAuth("register")}>
-            Register
-            <ArrowRight size={16} />
+          <button className="is-primary" type="button" onClick={scrollToCallback}>
+            Request Callback
           </button>
         </div>
+
         <button
-          className="landing-nav__menu-button"
+          className="site-nav__menu-button"
           type="button"
-          aria-controls="landing-mobile-menu"
+          aria-controls="site-mobile-menu"
           aria-expanded={isMenuOpen}
           aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
           onClick={() => setIsMenuOpen((value) => !value)}
         >
           {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
-        <div id="landing-mobile-menu" className="landing-nav__mobile" aria-hidden={!isMenuOpen}>
+
+        <div id="site-mobile-menu" className="site-nav__mobile" aria-hidden={!isMenuOpen}>
           {navItems.map((item) => (
-            <a key={item.href} href={item.href} onClick={() => setIsMenuOpen(false)}>
+            <a key={item.href} href={item.href} onClick={closeMenu}>
               {item.label}
             </a>
           ))}
-          <div className="landing-nav__mobile-actions">
+          <div className="site-nav__mobile-actions">
             <button type="button" onClick={() => scrollToAuth("login")}>
               Login
             </button>
-            <button className="is-primary" type="button" onClick={() => scrollToAuth("register")}>
-              Register
-              <ArrowRight size={16} />
+            <button className="is-primary" type="button" onClick={scrollToCallback}>
+              Request Callback
             </button>
           </div>
         </div>
       </header>
 
-      <section id="home" className="hero" aria-labelledby="landing-title">
-        <div className="hero__content">
-          <div className="brand-mark">
-            <Sparkles size={22} />
-            <span>Career LMS for ambitious learners</span>
-          </div>
-          <h1 id="landing-title">
-            <span>Learn with mentors.</span>
-            <span>Build real projects.</span>
-            <span>Get hired faster.</span>
-          </h1>
-          <p className="hero__copy">
-            Career-focused programs with mentors, real-time projects, assessments, certificates, and dedicated LMS
-            workspaces for students, mentors, and admins.
-          </p>
-          <div className="hero__actions">
-            <button className="hero-button hero-button--primary" type="button" onClick={() => scrollToAuth("register")}>
-              Start learning <ArrowRight size={18} />
-            </button>
-            <a href="#programs" className="hero-button hero-button--light">
-              Explore programs
-            </a>
-          </div>
-          <div className="hero__metrics" aria-label="Joviq LMS highlights">
-            <article>
-              <strong>4</strong>
-              <span>Career tracks</span>
-            </article>
-            <article>
-              <strong>3</strong>
-              <span>Role dashboards</span>
-            </article>
-            <article>
-              <strong>100%</strong>
-              <span>Project-led learning</span>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <section id="programs" className="program-band" aria-label="Joviq LMS programs">
-        {programs.map((program) => {
-          const Icon = program.Icon;
-
-          return (
-            <article key={program.title} className="program-tile">
-              <div className="program-tile__top">
-                <Icon size={23} />
-                <small>{program.meta}</small>
-              </div>
-              <strong>{program.title}</strong>
-              <span>{program.text}</span>
-              <BookOpenCheck size={20} className="program-tile__end" />
-            </article>
-          );
-        })}
-      </section>
-
-      <section id="outcomes" className="outcome-section">
-        <div className="section-heading">
-          <div>
-            <span className="eyebrow">Learning system</span>
-            <h2>Built for momentum from login to placement.</h2>
-          </div>
-          <p>
-            Joviq LMS connects curriculum, mentors, projects, assessments, certificates, and access control into one
-            focused learning journey.
-          </p>
-        </div>
-
-        <div className="bento-grid">
-          <article className="bento-card bento-card--wide">
-            <Layers3 size={24} />
-            <h3>One flow for daily learning, mentor review, and proof of work.</h3>
-            <div className="pipeline-bars" aria-hidden="true">
-              <span style={{ width: "92%" }} />
-              <span style={{ width: "76%" }} />
-              <span style={{ width: "84%" }} />
+      <section
+        id="home"
+        className="site-hero"
+        aria-labelledby="site-title"
+        onMouseMove={handleHeroPointerMove}
+        onMouseLeave={resetHeroParallax}
+        style={heroParallax as CSSProperties}
+      >
+        <div className="site-hero__content">
+          <div className="site-hero__copy-block">
+            <div className="site-kicker">
+              <Sparkles size={18} />
+              Industry-focused learning with real project outcomes
             </div>
-          </article>
-          {outcomes.map((outcome) => {
-            const Icon = outcome.Icon;
+            <h1 id="site-title">Learn. Build. Get Certified. Get Hired.</h1>
+            <p>
+              Industry-focused programs, real-time projects, expert mentors, AI assessments, certifications, and career
+              support for students and professionals.
+            </p>
+            <div className="site-hero__actions">
+              <a className="site-button site-button--primary" href="#programs">
+                Explore Programs <ArrowRight size={18} />
+              </a>
+              <button className="site-button site-button--light" type="button" onClick={scrollToCallback}>
+                Request Callback <PhoneCall size={18} />
+              </button>
+              <button className="site-button site-button--ghost" type="button" onClick={() => scrollToAuth("login")}>
+                Login to LMS <LockKeyhole size={18} />
+              </button>
+            </div>
+            <div className="site-hero__proof" aria-label="Website highlights">
+              <span>AI assessments</span>
+              <span>Expert mentors</span>
+              <span>Interview support</span>
+            </div>
+          </div>
 
-            return (
-              <article key={outcome.title} className="bento-card">
-                <Icon size={22} />
-                <h3>{outcome.title}</h3>
-                <p>{outcome.text}</p>
-              </article>
-            );
-          })}
-          <article className="bento-card bento-card--accent">
-            <ShieldCheck size={22} />
-            <h3>Secure role-based access</h3>
-            <p>Admin, mentor, and student experiences stay separated with RBAC-backed dashboards.</p>
+          <div className="site-hero__dashboard" aria-hidden="true">
+            <div className="hero-dashboard-card hero-dashboard-card--main">
+              <div>
+                <span>Career Readiness</span>
+                <strong>92%</strong>
+              </div>
+              <div className="hero-progress">
+                <span style={{ width: "92%" }} />
+              </div>
+            </div>
+            <div className="hero-dashboard-card">
+              <Lightbulb size={20} />
+              <strong>AI Assessment</strong>
+              <span>Adaptive quiz and project review</span>
+            </div>
+            <div className="hero-dashboard-card">
+              <UsersRound size={20} />
+              <strong>Mentor Loop</strong>
+              <span>Weekly review and interview practice</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="program-search" className="site-section site-section--lift">
+        <div className="program-search">
+          <div>
+            <span className="site-eyebrow">Program Search</span>
+            <h2>What do you want to learn?</h2>
+          </div>
+          <label className="program-search__field">
+            <Search size={20} />
+            <input
+              value={programSearchQuery}
+              onChange={(event) => setProgramSearchQuery(event.target.value)}
+              placeholder="Search Data Science, Generative AI, Full Stack, VLSI, Finance..."
+            />
+          </label>
+          <div className="program-search__results">
+            {searchResults.length ? (
+              searchResults.map((program) => (
+                <Link key={program.slug} to={`/programs/${program.slug}`}>
+                  <strong>{program.title}</strong>
+                  <span>{program.domain}</span>
+                  <ChevronRight size={16} />
+                </Link>
+              ))
+            ) : (
+              <p>No matching programs found.</p>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="site-section site-section--compact">
+        <div className="stat-strip">
+          {keyStatistics.map((stat) => (
+            <article key={stat.label}>
+              <strong>{stat.value}</strong>
+              <span>{stat.label}</span>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section id="programs" className="site-section">
+        <SectionHeading
+          eyebrow="Program Categories"
+          title="Programs grouped by domain."
+          text="Choose a focused path in technology, core engineering, CAD, finance, marketing, analytics, or management."
+        />
+        <div className="category-grid">
+          {programCategories.map((category) => (
+            <article key={category.domain} className="category-card">
+              <div className="category-card__top">
+                <DomainIcon domain={category.domain} />
+                <span>{category.programs.length} programs</span>
+              </div>
+              <h3>{category.domain}</h3>
+              <p>{category.description}</p>
+              <div className="category-card__programs">
+                {category.programs.map((program) => (
+                  <Link key={program.slug} to={`/programs/${program.slug}`}>
+                    {program.title}
+                  </Link>
+                ))}
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section id="features" className="site-section site-section--band">
+        <SectionHeading
+          eyebrow="Features"
+          title="A beautiful website connected to a serious LMS engine."
+          text="The public website sells the promise. The LMS dashboard manages users, learning activity, assessments, and access."
+        />
+        <div className="feature-grid">
+          <FeatureCard icon={<Layers3 size={24} />} title="Structured curriculum" text="Every program has overview, skills, curriculum, mode, assignments, assessment, certification, and outcomes." />
+          <FeatureCard icon={<UsersRound size={24} />} title="Expert mentors" text="Mentor review loops help learners improve project quality and explain their work confidently." />
+          <FeatureCard icon={<ClipboardCheck size={24} />} title="AI assessments" text="Quizzes, rubrics, and practical checkpoints keep learners aligned with career outcomes." />
+          <FeatureCard icon={<BriefcaseBusiness size={24} />} title="Career support" text="Resume reviews, mock interviews, project walkthroughs, and interview readiness tracking." />
+        </div>
+      </section>
+
+      <section className="site-section">
+        <SectionHeading
+          eyebrow="Expert Mentors"
+          title="Guided by people who know the work."
+          text="Mentors are organized around technology, core engineering, business, and career readiness."
+        />
+        <div className="mentor-grid">
+          {mentors.map((mentor) => (
+            <article key={mentor.name}>
+              <div>
+                <GraduationCap size={24} />
+              </div>
+              <h3>{mentor.name}</h3>
+              <p>{mentor.role}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="site-section site-section--split">
+        <div>
+          <span className="site-eyebrow">Recognitions</span>
+          <h2>Built around skills that can be shown, reviewed, and discussed.</h2>
+        </div>
+        <div className="recognition-list">
+          {recognitions.map((item) => (
+            <article key={item}>
+              <BadgeCheck size={20} />
+              <span>{item}</span>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="site-section site-section--compact">
+        <LogoCloud title="Hiring Partners" items={hiringPartners} />
+      </section>
+
+      <section className="site-section site-section--compact">
+        <LogoCloud title="Technology / Powered By" items={poweredBy} />
+      </section>
+
+      <section className="site-section">
+        <SectionHeading
+          eyebrow="How It Works"
+          title="From program discovery to interview confidence."
+          text="A simple learning journey that keeps the learner moving toward portfolio and career readiness."
+        />
+        <div className="work-steps">
+          {howItWorks.map((step, index) => (
+            <article key={step.title}>
+              <strong>{String(index + 1).padStart(2, "0")}</strong>
+              <h3>{step.title}</h3>
+              <p>{step.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="site-section site-section--band">
+        <SectionHeading
+          eyebrow="Real-Time Projects"
+          title="Projects that make every program concrete."
+          text="Each program detail page includes 5 to 6 project examples. Here are sample outcomes across domains."
+        />
+        <div className="project-grid">
+          {projectHighlights.map((item) => (
+            <article key={`${item.program}-${item.project}`}>
+              <BookOpenCheck size={22} />
+              <strong>{item.project}</strong>
+              <span>{item.program}</span>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="site-section site-section--compact">
+        <LogoCloud title="Alumni Companies" items={alumniCompanies} />
+      </section>
+
+      <section className="site-section">
+        <SectionHeading
+          eyebrow="Student Success"
+          title="Interview outcomes are treated as part of the learning journey."
+          text="Learners practice the moments that matter: explaining projects, answering questions, and showing proof of skill."
+        />
+        <div className="outcome-grid">
+          {successOutcomes.map((outcome) => (
+            <article key={outcome}>
+              <CheckCircle2 size={20} />
+              <span>{outcome}</span>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="site-section site-section--split">
+        <div>
+          <span className="site-eyebrow">Certifications</span>
+          <h2>Certificates backed by projects, mentor reviews, and assessments.</h2>
+          <p>
+            Completion is linked to real-time projects, assignments, assessment scores, and interview preparation
+            milestones.
+          </p>
+        </div>
+        <div className="certificate-preview">
+          <Award size={46} />
+          <span>Joviq Technologies</span>
+          <strong>Career Program Certification</strong>
+          <small>Project reviewed - Assessment completed - Interview ready</small>
+        </div>
+      </section>
+
+      <section id="pricing" className="site-section">
+        <SectionHeading
+          eyebrow="Pricing"
+          title="Flexible pricing for foundation learning and career tracks."
+          text="Use pricing cards as a guide. Final program pricing can vary by duration, batch, and mentorship level."
+        />
+        <div className="pricing-grid">
+          {pricingPlans.map((plan) => (
+            <article key={plan.name} className={plan.name === "Career Track" ? "is-featured" : undefined}>
+              <span>{plan.name}</span>
+              <h3>{plan.price}</h3>
+              <p>{plan.description}</p>
+              <ul>
+                {plan.features.map((feature) => (
+                  <li key={feature}>
+                    <CheckCircle2 size={17} />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section id="reviews" className="site-section site-section--band">
+        <SectionHeading
+          eyebrow="Reviews"
+          title="Learners remember the project feedback."
+          text="Showcase student experience, interview confidence, and practical program outcomes."
+        />
+        <div className="review-grid">
+          {reviews.map((review) => (
+            <article key={review.name}>
+              <div className="review-stars" aria-label="Five star review">
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <Star key={index} size={16} />
+                ))}
+              </div>
+              <p>{review.quote}</p>
+              <strong>{review.name}</strong>
+              <span>{review.program}</span>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section id="campus-ambassador" className="site-section site-section--split">
+        <div>
+          <span className="site-eyebrow">Campus Ambassador</span>
+          <h2>Represent Joviq in your college and grow with the community.</h2>
+          <p>
+            Campus ambassadors help conduct awareness drives, workshops, referral campaigns, and student learning
+            communities.
+          </p>
+        </div>
+        <div className="campus-panel">
+          <FeatureCard icon={<MessageCircle size={24} />} title="Community leadership" text="Host learning circles, program talks, and career readiness sessions." />
+          <FeatureCard icon={<Award size={24} />} title="Recognition" text="Earn certificates, recommendations, and performance-linked rewards." />
+        </div>
+      </section>
+
+      <section id="careers" className="site-section site-section--band">
+        <SectionHeading
+          eyebrow="Careers"
+          title="Join the team building practical career education."
+          text="Joviq can showcase mentor, trainer, counselor, business development, and operations openings here."
+        />
+        <div className="career-grid">
+          {["Mentor / Trainer", "Career Counselor", "Business Development Executive", "LMS Operations Associate"].map((role) => (
+            <article key={role}>
+              <BriefcaseBusiness size={22} />
+              <strong>{role}</strong>
+              <span>Open for driven people who care about learner outcomes.</span>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section id="faq" className="site-section">
+        <SectionHeading
+          eyebrow="FAQ"
+          title="Questions before you enroll."
+          text="Clear answers for learners, parents, colleges, and career switchers."
+        />
+        <div className="faq-grid">
+          {homeFaqs.map((faq) => (
+            <details key={faq.question}>
+              <summary>{faq.question}</summary>
+              <p>{faq.answer}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      <section id="about" className="site-section site-section--split">
+        <div>
+          <span className="site-eyebrow">About Us</span>
+          <h2>Joviq Technologies helps learners move from classroom knowledge to career proof.</h2>
+          <p>
+            The website presents programs, outcomes, mentors, reviews, pricing, and callback journeys. The LMS powers
+            authentication, role-based dashboards, user management, and future learning workflows.
+          </p>
+        </div>
+        <div className="about-list">
+          <article>
+            <MapPin size={20} />
+            <span>India-focused programs with global-ready project practice.</span>
+          </article>
+          <article>
+            <ShieldCheck size={20} />
+            <span>Admin, mentor, and student experiences separated with secure roles.</span>
+          </article>
+          <article>
+            <Zap size={20} />
+            <span>Built to grow into a full content-managed LMS website.</span>
           </article>
         </div>
       </section>
 
-      <section id="workspaces" className="split-section">
-        <div className="value-panel">
-          <span className="eyebrow">Role based LMS</span>
-          <h2>One platform, three focused workspaces.</h2>
-          <p>
-            Each user lands in a dedicated dashboard with the actions they need most, without mixing admin controls into
-            learning workflows.
-          </p>
-          <div className="role-cards">
-            <article>
-              <Building2 size={22} />
-              <strong>Admin</strong>
-              <span>Add mentors and students, review users, and manage access.</span>
-            </article>
-            <article>
-              <GraduationCap size={22} />
-              <strong>Mentor</strong>
-              <span>Track learners, review projects, and guide career preparation.</span>
-            </article>
-            <article>
-              <UserPlus size={22} />
-              <strong>Student</strong>
-              <span>Continue learning, submit work, view progress, and prepare for interviews.</span>
-            </article>
-          </div>
-          <div className="workspace-proof">
-            <CheckCircle2 size={20} />
-            <span>New registrations automatically enter as students after email OTP verification.</span>
+      <span id="auth" className="auth-anchor" aria-hidden="true" />
+      <section id="callback" className="site-section final-cta">
+        <div>
+          <span className="site-eyebrow">Final CTA</span>
+          <h2>Ready to choose your program?</h2>
+          <p>Request a callback, compare programs, or login to continue your LMS journey.</p>
+          <div className="final-cta__actions">
+            <a className="site-button site-button--primary" href="#programs">
+              Explore Programs <ArrowRight size={18} />
+            </a>
+            <button className="site-button site-button--light" type="button" onClick={() => scrollToAuth("login")}>
+              Login to LMS
+            </button>
           </div>
         </div>
-
-        <div id="auth" className="auth-card">
-          <div className="auth-card__tabs">
-            <button
-              className={["login", "forgot-password", "reset-password"].includes(mode) ? "is-active" : ""}
-              type="button"
-              onClick={() => selectMode("login")}
-            >
-              <LockKeyhole size={17} />
-              Login
-            </button>
-            <button
-              className={["register", "verify-email"].includes(mode) ? "is-active" : ""}
-              type="button"
-              onClick={() => selectMode("register")}
-            >
-              <UserPlus size={17} />
-              Register
-            </button>
+        <div className="final-cta__forms">
+          <CallbackForm />
+          <div className="final-cta__showcase" aria-hidden="true">
+            <span>Live LMS Preview</span>
+            <strong>Student path</strong>
+            <div>
+              <span style={{ width: "86%" }} />
+              <span style={{ width: "72%" }} />
+              <span style={{ width: "94%" }} />
+            </div>
+            <small>Program selected - Mentor assigned - Interview prep active</small>
           </div>
+        </div>
+      </section>
+
+      <SiteFooter />
+
+      <AuthDialog isOpen={isAuthDialogOpen} onClose={closeAuthDialog}>
+        <div className="auth-dialog__visual">
+          <div className="auth-dialog__badge">
+            <Sparkles size={18} />
+            Joviq LMS Access
+          </div>
+          <h2>{mode === "register" || mode === "verify-email" ? "Create your learning account." : "Welcome back to your workspace."}</h2>
+          <p>
+            Continue into role-based dashboards for students, mentors, and admins with secure access and project-driven
+            learning.
+          </p>
+          <div className="auth-dialog__metrics">
+            <span>Projects</span>
+            <strong>100+</strong>
+          </div>
+        </div>
+        <div className="auth-dialog__form">
+          <AuthTabs mode={mode} selectMode={selectMode} />
 
           {mode === "login" ? (
-            <form className="auth-form" onSubmit={handleLogin}>
-              <h2>Welcome back</h2>
-              <p>Login with your Joviq LMS account.</p>
-              <label>
-                Email
-                <input
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  maxLength={256}
-                  pattern={emailPattern}
-                  title="Enter a valid email address."
-                  required
-                />
-              </label>
-              <label>
-                Password
-                <PasswordInput name="password" autoComplete="current-password" required />
-              </label>
-              <button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Signing in" : "Login to dashboard"}
-                <ArrowRight size={18} />
-              </button>
-              <button className="auth-link-button" type="button" onClick={() => selectMode("forgot-password")}>
-                Forgot password?
-              </button>
-            </form>
+            <LoginForm isSubmitting={isSubmitting} onSubmit={handleLogin} onForgot={() => selectMode("forgot-password")} />
           ) : mode === "register" ? (
-            <form className="auth-form" onSubmit={handleRegister}>
-              <h2>Create student account</h2>
-              <p>After registration, an email OTP is sent and verified here.</p>
-              <label>
-                Full name
-                <input name="fullName" required />
-              </label>
-              <label>
-                Email
-                <input
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  maxLength={256}
-                  pattern={emailPattern}
-                  title="Enter a valid email address."
-                  required
-                />
-              </label>
-              <IndiaMobileInput label="Phone number" name="phoneNumber" required />
-              <label>
-                Password
-                <PasswordInput name="password" autoComplete="new-password" placeholder="Student@123" required />
-              </label>
-              <label>
-                Confirm password
-                <PasswordInput name="confirmPassword" autoComplete="new-password" placeholder="Student@123" required />
-              </label>
-              <label className="checkbox-row">
-                <input name="acceptedTerms" type="checkbox" required />
-                <span>I accept the terms, privacy policy, and refund policy.</span>
-              </label>
-              <button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Creating" : "Register as student"}
-                <ArrowRight size={18} />
-              </button>
-            </form>
+            <RegisterForm isSubmitting={isSubmitting} onSubmit={handleRegister} />
           ) : mode === "verify-email" ? (
-            <form className="auth-form" onSubmit={handleVerifyRegistrationOtp}>
-              <h2>Verify email OTP</h2>
-              <p>Enter the OTP sent to {pendingEmail || "your email"}.</p>
-              <label>
-                Email
-                <input name="email" type="email" value={pendingEmail} readOnly />
-              </label>
-              <label>
-                OTP
-                <OtpInput />
-              </label>
-              <button type="submit" disabled={isSubmitting || !pendingEmail}>
-                {isSubmitting ? "Verifying" : "Verify and activate"}
-                <MailCheck size={18} />
-              </button>
-              <button className="auth-secondary-button" type="button" onClick={resendRegistrationOtp} disabled={isSubmitting}>
-                <RefreshCw size={17} />
-                Resend OTP
-              </button>
-            </form>
+            <VerifyEmailForm
+              isSubmitting={isSubmitting}
+              pendingEmail={pendingEmail}
+              onSubmit={handleVerifyRegistrationOtp}
+              onResend={resendRegistrationOtp}
+            />
           ) : mode === "forgot-password" ? (
-            <form className="auth-form" onSubmit={handleForgotPassword}>
-              <h2>Forgot password</h2>
-              <p>Enter your registered email. We will send a password reset OTP.</p>
-              <label>
-                Email
-                <input
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  maxLength={256}
-                  pattern={emailPattern}
-                  title="Enter a valid email address."
-                  required
-                />
-              </label>
-              <button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Sending OTP" : "Send reset OTP"}
-                <KeyRound size={18} />
-              </button>
-              <button className="auth-link-button" type="button" onClick={() => selectMode("login")}>
-                Back to login
-              </button>
-            </form>
+            <ForgotPasswordForm isSubmitting={isSubmitting} onSubmit={handleForgotPassword} onBack={() => selectMode("login")} />
           ) : (
-            <form className="auth-form" onSubmit={handleResetPassword}>
-              <h2>Reset password</h2>
-              <p>Enter the OTP sent to {pendingResetEmail || "your email"} and choose a new password.</p>
-              <label>
-                Email
-                <input name="email" type="email" value={pendingResetEmail} readOnly />
-              </label>
-              <label>
-                OTP
-                <OtpInput />
-              </label>
-              <label>
-                New password
-                <PasswordInput name="newPassword" autoComplete="new-password" placeholder="Student@123" required />
-              </label>
-              <label>
-                Confirm new password
-                <PasswordInput name="confirmPassword" autoComplete="new-password" placeholder="Student@123" required />
-              </label>
-              <button type="submit" disabled={isSubmitting || !pendingResetEmail}>
-                {isSubmitting ? "Resetting" : "Reset password"}
-                <KeyRound size={18} />
-              </button>
-              <button className="auth-secondary-button" type="button" onClick={resendPasswordResetOtp} disabled={isSubmitting}>
-                <RefreshCw size={17} />
-                Resend OTP
-              </button>
-              <button className="auth-link-button" type="button" onClick={() => selectMode("login")}>
-                Back to login
-              </button>
-            </form>
+            <ResetPasswordForm
+              isSubmitting={isSubmitting}
+              pendingResetEmail={pendingResetEmail}
+              onSubmit={handleResetPassword}
+              onResend={resendPasswordResetOtp}
+              onBack={() => selectMode("login")}
+            />
           )}
 
           {message ? <div className={`auth-message auth-message--${message.tone}`}>{message.text}</div> : null}
         </div>
-      </section>
-
-      <footer className="landing-footer">
-        <strong>Joviq Technologies LMS</strong>
-        <span>Admin, mentor, and student learning workspaces.</span>
-      </footer>
+      </AuthDialog>
     </main>
+  );
+}
+
+function SectionHeading({ eyebrow, title, text }: { eyebrow: string; title: string; text: string }) {
+  return (
+    <div className="site-heading">
+      <div>
+        <span className="site-eyebrow">{eyebrow}</span>
+        <h2>{title}</h2>
+      </div>
+      <p>{text}</p>
+    </div>
+  );
+}
+
+function AuthDialog({
+  isOpen,
+  onClose,
+  children
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <div className="auth-dialog" role="presentation" onMouseDown={onClose}>
+      <section
+        className="auth-dialog__panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="auth-dialog-title"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <h2 id="auth-dialog-title" className="sr-only">
+          Joviq LMS access
+        </h2>
+        <button className="auth-dialog__close" type="button" onClick={onClose} aria-label="Close login dialog">
+          <X size={20} />
+        </button>
+        {children}
+      </section>
+    </div>
+  );
+}
+
+function DomainIcon({ domain }: { domain: string }) {
+  if (domain.includes("Computer")) {
+    return <Code2 size={24} />;
+  }
+
+  if (domain.includes("Electrical")) {
+    return <Cpu size={24} />;
+  }
+
+  if (domain.includes("Mechanical")) {
+    return <Building2 size={24} />;
+  }
+
+  return <BarChart3 size={24} />;
+}
+
+function FeatureCard({ icon, title, text }: { icon: ReactNode; title: string; text: string }) {
+  return (
+    <article className="feature-card">
+      <div>{icon}</div>
+      <h3>{title}</h3>
+      <p>{text}</p>
+    </article>
+  );
+}
+
+function LogoCloud({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div className="logo-cloud">
+      <span className="site-eyebrow">{title}</span>
+      <div>
+        {items.map((item) => (
+          <strong key={item}>{item}</strong>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CallbackForm() {
+  const [message, setMessage] = useState<AuthMessage>(null);
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const phoneNumber = toIndiaMobileNumber(form.get("phoneNumber"));
+
+    if (!phoneNumber) {
+      setMessage({ tone: "error", text: "Phone must be a valid India +91 mobile number with exactly 10 digits." });
+      return;
+    }
+
+    formElement.reset();
+    setMessage({ tone: "success", text: "Callback request captured for this website flow." });
+  }
+
+  return (
+    <form className="callback-card" onSubmit={handleSubmit}>
+      <div>
+        <span className="site-eyebrow">Request Callback</span>
+        <h3>Talk to a program advisor</h3>
+      </div>
+      <label>
+        Full name
+        <input name="fullName" placeholder="Your name" required />
+      </label>
+      <label>
+        Email
+        <input
+          name="email"
+          type="email"
+          autoComplete="email"
+          maxLength={256}
+          pattern={emailPattern}
+          placeholder="name@example.com"
+          required
+        />
+      </label>
+      <IndiaMobileInput label="Phone" name="phoneNumber" required />
+      <label>
+        Interested program
+        <select name="program" defaultValue="">
+          <option value="" disabled>
+            Select a program
+          </option>
+          {allPrograms.map((program) => (
+            <option key={program.slug} value={program.title}>
+              {program.title}
+            </option>
+          ))}
+        </select>
+      </label>
+      <button type="submit">
+        <Send size={18} />
+        Submit request
+      </button>
+      {message ? <div className={`auth-message auth-message--${message.tone}`}>{message.text}</div> : null}
+    </form>
+  );
+}
+
+function AuthTabs({ mode, selectMode }: { mode: AuthMode; selectMode: (mode: AuthMode) => void }) {
+  return (
+    <div className="auth-card__tabs">
+      <button
+        className={["login", "forgot-password", "reset-password"].includes(mode) ? "is-active" : ""}
+        type="button"
+        onClick={() => selectMode("login")}
+      >
+        <LockKeyhole size={17} />
+        Login
+      </button>
+      <button
+        className={["register", "verify-email"].includes(mode) ? "is-active" : ""}
+        type="button"
+        onClick={() => selectMode("register")}
+      >
+        <UserPlus size={17} />
+        Register
+      </button>
+    </div>
+  );
+}
+
+function LoginForm({
+  isSubmitting,
+  onSubmit,
+  onForgot
+}: {
+  isSubmitting: boolean;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onForgot: () => void;
+}) {
+  return (
+    <form className="auth-form" onSubmit={onSubmit}>
+      <h2>Login to LMS</h2>
+      <p>Continue to your Joviq dashboard.</p>
+      <label>
+        Email
+        <input name="email" type="email" autoComplete="email" maxLength={256} pattern={emailPattern} required />
+      </label>
+      <label>
+        Password
+        <PasswordInput name="password" autoComplete="current-password" required />
+      </label>
+      <button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? "Signing in" : "Login to dashboard"}
+        <ArrowRight size={18} />
+      </button>
+      <button className="auth-link-button" type="button" onClick={onForgot}>
+        Forgot password?
+      </button>
+    </form>
+  );
+}
+
+function RegisterForm({
+  isSubmitting,
+  onSubmit
+}: {
+  isSubmitting: boolean;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  return (
+    <form className="auth-form" onSubmit={onSubmit}>
+      <h2>Create student account</h2>
+      <p>Register and verify your email OTP.</p>
+      <label>
+        Full name
+        <input name="fullName" required />
+      </label>
+      <label>
+        Email
+        <input name="email" type="email" autoComplete="email" maxLength={256} pattern={emailPattern} required />
+      </label>
+      <IndiaMobileInput label="Phone number" name="phoneNumber" required />
+      <label>
+        Password
+        <PasswordInput name="password" autoComplete="new-password" placeholder="Student@123" required />
+      </label>
+      <label>
+        Confirm password
+        <PasswordInput name="confirmPassword" autoComplete="new-password" placeholder="Student@123" required />
+      </label>
+      <label className="checkbox-row">
+        <input name="acceptedTerms" type="checkbox" required />
+        <span>I accept the terms, privacy policy, and refund policy.</span>
+      </label>
+      <button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? "Creating" : "Register as student"}
+        <ArrowRight size={18} />
+      </button>
+    </form>
+  );
+}
+
+function VerifyEmailForm({
+  isSubmitting,
+  pendingEmail,
+  onSubmit,
+  onResend
+}: {
+  isSubmitting: boolean;
+  pendingEmail: string;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onResend: () => void;
+}) {
+  return (
+    <form className="auth-form" onSubmit={onSubmit}>
+      <h2>Verify email OTP</h2>
+      <p>Enter the OTP sent to {pendingEmail || "your email"}.</p>
+      <label>
+        Email
+        <input name="email" type="email" value={pendingEmail} readOnly />
+      </label>
+      <label>
+        OTP
+        <OtpInput />
+      </label>
+      <button type="submit" disabled={isSubmitting || !pendingEmail}>
+        {isSubmitting ? "Verifying" : "Verify and activate"}
+        <MailCheck size={18} />
+      </button>
+      <button className="auth-secondary-button" type="button" onClick={onResend} disabled={isSubmitting}>
+        <RefreshCw size={17} />
+        Resend OTP
+      </button>
+    </form>
+  );
+}
+
+function ForgotPasswordForm({
+  isSubmitting,
+  onSubmit,
+  onBack
+}: {
+  isSubmitting: boolean;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onBack: () => void;
+}) {
+  return (
+    <form className="auth-form" onSubmit={onSubmit}>
+      <h2>Forgot password</h2>
+      <p>Enter your registered email. We will send a password reset OTP.</p>
+      <label>
+        Email
+        <input name="email" type="email" autoComplete="email" maxLength={256} pattern={emailPattern} required />
+      </label>
+      <button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? "Sending OTP" : "Send reset OTP"}
+        <KeyRound size={18} />
+      </button>
+      <button className="auth-link-button" type="button" onClick={onBack}>
+        Back to login
+      </button>
+    </form>
+  );
+}
+
+function ResetPasswordForm({
+  isSubmitting,
+  pendingResetEmail,
+  onSubmit,
+  onResend,
+  onBack
+}: {
+  isSubmitting: boolean;
+  pendingResetEmail: string;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onResend: () => void;
+  onBack: () => void;
+}) {
+  return (
+    <form className="auth-form" onSubmit={onSubmit}>
+      <h2>Reset password</h2>
+      <p>Enter the OTP sent to {pendingResetEmail || "your email"} and choose a new password.</p>
+      <label>
+        Email
+        <input name="email" type="email" value={pendingResetEmail} readOnly />
+      </label>
+      <label>
+        OTP
+        <OtpInput />
+      </label>
+      <label>
+        New password
+        <PasswordInput name="newPassword" autoComplete="new-password" placeholder="Student@123" required />
+      </label>
+      <label>
+        Confirm new password
+        <PasswordInput name="confirmPassword" autoComplete="new-password" placeholder="Student@123" required />
+      </label>
+      <button type="submit" disabled={isSubmitting || !pendingResetEmail}>
+        {isSubmitting ? "Resetting" : "Reset password"}
+        <KeyRound size={18} />
+      </button>
+      <button className="auth-secondary-button" type="button" onClick={onResend} disabled={isSubmitting}>
+        <RefreshCw size={17} />
+        Resend OTP
+      </button>
+      <button className="auth-link-button" type="button" onClick={onBack}>
+        Back to login
+      </button>
+    </form>
   );
 }
 

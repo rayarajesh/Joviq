@@ -165,10 +165,11 @@ function AdminDashboard({ currentUserId }: { currentUserId?: string }) {
 
   async function createUser(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const formElement = event.currentTarget;
     setIsCreating(true);
     setMessage(null);
 
-    const form = new FormData(event.currentTarget);
+    const form = new FormData(formElement);
     const phoneNumber = toIndiaMobileNumber(form.get("phoneNumber"));
     if (!phoneNumber) {
       setIsCreating(false);
@@ -185,7 +186,7 @@ function AdminDashboard({ currentUserId }: { currentUserId?: string }) {
         temporaryPassword
       });
 
-      event.currentTarget.reset();
+      formElement.reset();
       setTemporaryPassword(generateTemporaryPassword());
       setMessage({ tone: "success", text: "User created successfully." });
       setPage(1);
