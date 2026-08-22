@@ -5,6 +5,7 @@ import type {
   AssessmentAttemptResponse,
   AssessmentResponse,
   AssignmentResponse,
+  AuditLogPage,
   AiInterviewAttemptResponse,
   CareerSupportResponse,
   CertificateResponse,
@@ -44,6 +45,7 @@ import type {
   SubmitAssessmentAttemptRequest,
   SubmissionResponse,
   SupportTicketResponse,
+  UpdateCertificateStatusRequest,
   UpdateEnrollmentStatusRequest,
   UpdatePaymentStatusRequest,
   VerifyPaymentRequest
@@ -223,6 +225,10 @@ export const adminLmsApi = {
     return request<ProgramCategoryResponse>("/api/v1/admin/lms/categories", { method: "POST", body });
   },
 
+  updateCategory(categoryId: string, body: CreateCategoryRequest) {
+    return request<ProgramCategoryResponse>(`/api/v1/admin/lms/categories/${categoryId}`, { method: "PUT", body });
+  },
+
   createProgram(body: CreateProgramRequest) {
     return request<ProgramDetailsResponse>("/api/v1/admin/lms/programs", { method: "POST", body });
   },
@@ -239,8 +245,16 @@ export const adminLmsApi = {
     return request<CurriculumModuleResponse>(`/api/v1/admin/lms/programs/${programId}/modules`, { method: "POST", body });
   },
 
+  updateModule(moduleId: string, body: CreateModuleRequest) {
+    return request<CurriculumModuleResponse>(`/api/v1/admin/lms/modules/${moduleId}`, { method: "PUT", body });
+  },
+
   createLesson(moduleId: string, body: CreateLessonRequest) {
     return request(`/api/v1/admin/lms/modules/${moduleId}/lessons`, { method: "POST", body });
+  },
+
+  updateLesson(lessonId: string, body: CreateLessonRequest) {
+    return request(`/api/v1/admin/lms/lessons/${lessonId}`, { method: "PUT", body });
   },
 
   getLiveClasses() {
@@ -251,12 +265,20 @@ export const adminLmsApi = {
     return request<LiveClassResponse>("/api/v1/admin/lms/live-classes", { method: "POST", body });
   },
 
+  updateLiveClass(liveClassId: string, body: CreateLiveClassRequest) {
+    return request<LiveClassResponse>(`/api/v1/admin/lms/live-classes/${liveClassId}`, { method: "PUT", body });
+  },
+
   getAssignments() {
     return request<AssignmentResponse[]>("/api/v1/admin/lms/assignments");
   },
 
   createAssignment(body: CreateAssignmentRequest) {
     return request<AssignmentResponse>("/api/v1/admin/lms/assignments", { method: "POST", body });
+  },
+
+  updateAssignment(assignmentId: string, body: CreateAssignmentRequest) {
+    return request<AssignmentResponse>(`/api/v1/admin/lms/assignments/${assignmentId}`, { method: "PUT", body });
   },
 
   getProjects() {
@@ -267,12 +289,20 @@ export const adminLmsApi = {
     return request<ProjectResponse>("/api/v1/admin/lms/projects", { method: "POST", body });
   },
 
+  updateProject(projectId: string, body: CreateProjectRequest) {
+    return request<ProjectResponse>(`/api/v1/admin/lms/projects/${projectId}`, { method: "PUT", body });
+  },
+
   getAssessments() {
     return request<AssessmentResponse[]>("/api/v1/admin/lms/assessments");
   },
 
   createAssessment(body: CreateAssessmentRequest) {
     return request<AssessmentResponse>("/api/v1/admin/lms/assessments", { method: "POST", body });
+  },
+
+  updateAssessment(assessmentId: string, body: CreateAssessmentRequest) {
+    return request<AssessmentResponse>(`/api/v1/admin/lms/assessments/${assessmentId}`, { method: "PUT", body });
   },
 
   getEnrollments() {
@@ -303,6 +333,10 @@ export const adminLmsApi = {
     return request<CouponResponse>("/api/v1/admin/lms/coupons", { method: "POST", body });
   },
 
+  updateCoupon(couponId: string, body: CreateCouponRequest) {
+    return request<CouponResponse>(`/api/v1/admin/lms/coupons/${couponId}`, { method: "PUT", body });
+  },
+
   getCertificates() {
     return request<CertificateResponse[]>("/api/v1/admin/lms/certificates");
   },
@@ -311,12 +345,20 @@ export const adminLmsApi = {
     return request<CertificateResponse>("/api/v1/admin/lms/certificates/issue", { method: "POST", body });
   },
 
+  updateCertificateStatus(certificateId: string, body: UpdateCertificateStatusRequest) {
+    return request<CertificateResponse>(`/api/v1/admin/lms/certificates/${certificateId}/status`, { method: "PATCH", body });
+  },
+
   getSupportTickets(page = 1, pageSize = 8) {
     return request<LmsSupportTicketPage>(`/api/v1/admin/lms/support/tickets${toQuery({ page, pageSize })}`);
   },
 
   getReports() {
     return request<AdminReportResponse>("/api/v1/admin/lms/reports");
+  },
+
+  getAuditLogs(page = 1, pageSize = 20, search = "") {
+    return request<AuditLogPage>(`/api/v1/admin/audit-logs${toQuery({ page, pageSize, search })}`);
   }
 };
 

@@ -721,6 +721,11 @@ public sealed class IssueCertificateRequest
     public string? AuthorizedSignatory { get; init; }
 }
 
+public sealed class UpdateCertificateStatusRequest
+{
+    public CertificateStatus Status { get; init; } = CertificateStatus.Issued;
+}
+
 public sealed class CreateSupportTicketRequest
 {
     public Guid? ProgramId { get; init; }

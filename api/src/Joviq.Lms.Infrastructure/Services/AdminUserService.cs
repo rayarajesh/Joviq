@@ -18,7 +18,8 @@ public sealed class AdminUserService(
     UserManager<ApplicationUser> userManager,
     ApplicationDbContext dbContext,
     IEmailSender emailSender,
-    IRefreshTokenService refreshTokenService) : IAdminUserService
+    IRefreshTokenService refreshTokenService,
+    IAuditLogService auditLog) : IAdminUserService
 {
     public async Task<PagedResult<AdminUserResponse>> GetUsersAsync(AdminUserListRequest request, CancellationToken cancellationToken)
     {
@@ -137,6 +138,9 @@ public sealed class AdminUserService(
             await dbContext.SaveChangesAsync(cancellationToken);
         }
 
+        auditLog.Add("Admin.User.Created", new { targetUserId = user.Id, request.Role }, user.Id, user.Email, user.PhoneNumber);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
         return ToResponse(user, await userManager.GetRolesAsync(user));
     }
 
@@ -162,6 +166,8 @@ public sealed class AdminUserService(
         }
 
         EnsureIdentitySucceeded(await userManager.UpdateAsync(user));
+        auditLog.Add("Admin.User.StatusUpdated", new { targetUserId = user.Id, status }, user.Id, user.Email, user.PhoneNumber);
+        await dbContext.SaveChangesAsync(cancellationToken);
         return ToResponse(user, await userManager.GetRolesAsync(user));
     }
 
@@ -178,6 +184,8 @@ public sealed class AdminUserService(
         var currentRoles = await userManager.GetRolesAsync(user);
         EnsureIdentitySucceeded(await userManager.RemoveFromRolesAsync(user, currentRoles));
         EnsureIdentitySucceeded(await userManager.AddToRolesAsync(user, request.Roles));
+        auditLog.Add("Admin.User.RolesUpdated", new { targetUserId = user.Id, previousRoles = currentRoles, nextRoles = request.Roles }, user.Id, user.Email, user.PhoneNumber);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         return ToResponse(user, await userManager.GetRolesAsync(user));
     }
@@ -191,6 +199,8 @@ public sealed class AdminUserService(
         user.LockoutEnd = DateTimeOffset.MaxValue;
         EnsureIdentitySucceeded(await userManager.UpdateAsync(user));
         await refreshTokenService.RevokeAllAsync(user.Id, null, "Account locked by admin.", cancellationToken);
+        auditLog.Add("Admin.User.Locked", new { targetUserId = user.Id }, user.Id, user.Email, user.PhoneNumber);
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     public async Task UnlockUserAsync(Guid userId, CancellationToken cancellationToken)
@@ -201,6 +211,8 @@ public sealed class AdminUserService(
         user.AccountStatus = AccountStatus.Active;
         user.LockoutEnd = null;
         EnsureIdentitySucceeded(await userManager.UpdateAsync(user));
+        auditLog.Add("Admin.User.Unlocked", new { targetUserId = user.Id }, user.Id, user.Email, user.PhoneNumber);
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     public async Task SendPasswordResetLinkAsync(Guid userId, CancellationToken cancellationToken)
@@ -219,6 +231,8 @@ public sealed class AdminUserService(
             "Reset your Joviq LMS password",
             $"Use this password reset token in the LMS reset-password screen: <strong>{WebUtility.HtmlEncode(token)}</strong>",
             cancellationToken);
+        auditLog.Add("Admin.User.PasswordResetLinkSent", new { targetUserId = user.Id }, user.Id, user.Email, user.PhoneNumber);
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<IReadOnlyList<SessionResponse>> GetSessionsAsync(Guid userId, CancellationToken cancellationToken)
@@ -239,14 +253,18 @@ public sealed class AdminUserService(
             .ToListAsync(cancellationToken);
     }
 
-    public Task RevokeSessionAsync(Guid userId, Guid sessionId, CancellationToken cancellationToken)
+    public async Task RevokeSessionAsync(Guid userId, Guid sessionId, CancellationToken cancellationToken)
     {
-        return refreshTokenService.RevokeSessionAsync(userId, sessionId, null, "Session revoked by admin.", cancellationToken);
+        await refreshTokenService.RevokeSessionAsync(userId, sessionId, null, "Session revoked by admin.", cancellationToken);
+        auditLog.Add("Admin.User.SessionRevoked", new { targetUserId = userId, sessionId }, userId);
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    public Task LogoutAllAsync(Guid userId, CancellationToken cancellationToken)
+    public async Task LogoutAllAsync(Guid userId, CancellationToken cancellationToken)
     {
-        return refreshTokenService.RevokeAllAsync(userId, null, "All sessions revoked by admin.", cancellationToken);
+        await refreshTokenService.RevokeAllAsync(userId, null, "All sessions revoked by admin.", cancellationToken);
+        auditLog.Add("Admin.User.AllSessionsRevoked", new { targetUserId = userId }, userId);
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     private static AdminUserResponse ToResponse(ApplicationUser user, IEnumerable<string> roles)

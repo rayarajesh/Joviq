@@ -98,12 +98,14 @@ public static class DependencyInjection
         services.AddScoped<IAdminUserService, AdminUserService>();
         services.AddScoped<ILmsPortalService, LmsPortalService>();
         services.AddScoped<IStudentOnboardingService, StudentOnboardingService>();
+        services.AddScoped<IAuditLogService, AuditLogService>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<IOtpService, OtpService>();
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
         services.AddScoped<ISmsSender, NoOpSmsSender>();
+        services.AddHostedService<AuditLogRetentionService>();
 
         return services;
     }

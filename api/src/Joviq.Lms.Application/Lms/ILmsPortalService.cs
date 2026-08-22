@@ -84,6 +84,8 @@ public interface ILmsPortalService
 
     Task<ProgramCategoryResponse> CreateCategoryAsync(CreateCategoryRequest request, CancellationToken cancellationToken);
 
+    Task<ProgramCategoryResponse> UpdateCategoryAsync(Guid categoryId, CreateCategoryRequest request, CancellationToken cancellationToken);
+
     Task<IReadOnlyList<ProgramSummaryResponse>> GetAdminProgramsAsync(CancellationToken cancellationToken);
 
     Task<ProgramDetailsResponse> CreateProgramAsync(CreateProgramRequest request, CancellationToken cancellationToken);
@@ -100,23 +102,35 @@ public interface ILmsPortalService
 
     Task<CurriculumModuleResponse> CreateModuleAsync(Guid programId, CreateModuleRequest request, CancellationToken cancellationToken);
 
+    Task<CurriculumModuleResponse> UpdateModuleAsync(Guid moduleId, CreateModuleRequest request, CancellationToken cancellationToken);
+
     Task<LessonResponse> CreateLessonAsync(Guid moduleId, CreateLessonRequest request, CancellationToken cancellationToken);
+
+    Task<LessonResponse> UpdateLessonAsync(Guid lessonId, CreateLessonRequest request, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<LiveClassResponse>> GetAdminLiveClassesAsync(CancellationToken cancellationToken);
 
     Task<LiveClassResponse> CreateLiveClassAsync(CreateLiveClassRequest request, CancellationToken cancellationToken);
 
+    Task<LiveClassResponse> UpdateLiveClassAsync(Guid liveClassId, CreateLiveClassRequest request, CancellationToken cancellationToken);
+
     Task<IReadOnlyList<AssignmentResponse>> GetAdminAssignmentsAsync(CancellationToken cancellationToken);
 
     Task<AssignmentResponse> CreateAssignmentAsync(CreateAssignmentRequest request, CancellationToken cancellationToken);
+
+    Task<AssignmentResponse> UpdateAssignmentAsync(Guid assignmentId, CreateAssignmentRequest request, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<ProjectResponse>> GetAdminProjectsAsync(CancellationToken cancellationToken);
 
     Task<ProjectResponse> CreateProjectAsync(CreateProjectRequest request, CancellationToken cancellationToken);
 
+    Task<ProjectResponse> UpdateProjectAsync(Guid projectId, CreateProjectRequest request, CancellationToken cancellationToken);
+
     Task<IReadOnlyList<AssessmentResponse>> GetAdminAssessmentsAsync(CancellationToken cancellationToken);
 
     Task<AssessmentResponse> CreateAssessmentAsync(CreateAssessmentRequest request, CancellationToken cancellationToken);
+
+    Task<AssessmentResponse> UpdateAssessmentAsync(Guid assessmentId, CreateAssessmentRequest request, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<EnrollmentResponse>> GetAdminEnrollmentsAsync(CancellationToken cancellationToken);
 
@@ -132,9 +146,13 @@ public interface ILmsPortalService
 
     Task<CouponResponse> CreateCouponAsync(CreateCouponRequest request, CancellationToken cancellationToken);
 
+    Task<CouponResponse> UpdateCouponAsync(Guid couponId, CreateCouponRequest request, CancellationToken cancellationToken);
+
     Task<IReadOnlyList<CertificateResponse>> GetAdminCertificatesAsync(CancellationToken cancellationToken);
 
     Task<CertificateResponse> IssueCertificateAsync(IssueCertificateRequest request, CancellationToken cancellationToken);
+
+    Task<CertificateResponse> UpdateCertificateStatusAsync(Guid certificateId, UpdateCertificateStatusRequest request, CancellationToken cancellationToken);
 
     Task<PagedResult<SupportTicketResponse>> GetSupportTicketsAsync(int page, int pageSize, CancellationToken cancellationToken);
 

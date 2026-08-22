@@ -5214,6 +5214,7 @@ button.hero-button {
 
 .lms-mini-form input,
 .lms-mini-form select,
+.lms-mini-form textarea,
 .support-ticket-form input,
 .support-ticket-form select,
 .support-ticket-form textarea,
@@ -5233,8 +5234,14 @@ button.hero-button {
   resize: vertical;
 }
 
+.lms-mini-form textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
 .lms-mini-form input:focus,
 .lms-mini-form select:focus,
+.lms-mini-form textarea:focus,
 .support-ticket-form input:focus,
 .support-ticket-form select:focus,
 .support-ticket-form textarea:focus,
@@ -5247,6 +5254,33 @@ button.hero-button {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+}
+
+.lms-mini-form--inline {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  align-items: end;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fbf6;
+  padding: 12px;
+}
+
+.lms-mini-form--inline .primary-action {
+  min-height: 44px;
+}
+
+.inline-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: #24302b;
+  font-weight: 900;
+}
+
+.inline-check input {
+  width: 18px;
+  min-height: 18px;
 }
 
 .lms-scroll-list,
@@ -5285,6 +5319,25 @@ button.hero-button {
   justify-content: space-between;
   gap: 12px;
   padding: 12px;
+}
+
+.lms-row-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.lms-list-item button,
+.lms-row-actions button {
+  min-height: 34px;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--green-dark);
+  padding: 0 10px;
+  font-weight: 900;
 }
 
 .lms-list-item strong,

@@ -15,11 +15,15 @@ namespace Joviq.Lms.Infrastructure.Services;
 
 public sealed class LmsPortalService(
     ApplicationDbContext dbContext,
-    IDateTimeProvider clock) : ILmsPortalService
+    IDateTimeProvider clock,
+    IAuditLogService auditLog) : ILmsPortalService
 {
     private const string DefaultThumbnailUrl = "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=82";
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private static readonly Regex SlugRegex = new("^[a-z0-9]+(?:-[a-z0-9]+)*$", RegexOptions.Compiled);
+
+    private void Audit(string eventType, object? metadata = null)
+        => auditLog.Add($"Lms.{eventType}", metadata);
 
     public async Task<IReadOnlyList<ProgramCategoryResponse>> GetCategoriesAsync(CancellationToken cancellationToken)
     {
@@ -136,6 +140,7 @@ public sealed class LmsPortalService(
         };
 
         dbContext.CallbackRequests.Add(entity);
+        Audit("Lead.CallbackCreated", new { entity.Id, entity.Email, entity.PhoneNumber, entity.InterestedProgram });
         await dbContext.SaveChangesAsync(cancellationToken);
         return new LeadCaptureResponse(entity.Id, entity.Status.ToString(), entity.CreatedAt);
     }
@@ -155,6 +160,7 @@ public sealed class LmsPortalService(
         };
 
         dbContext.Enquiries.Add(entity);
+        Audit("Lead.EnquiryCreated", new { entity.Id, entity.Email, entity.PhoneNumber, entity.Topic });
         await dbContext.SaveChangesAsync(cancellationToken);
         return new LeadCaptureResponse(entity.Id, entity.Status.ToString(), entity.CreatedAt);
     }
@@ -175,6 +181,7 @@ public sealed class LmsPortalService(
         };
 
         dbContext.CampusAmbassadorApplications.Add(entity);
+        Audit("Lead.CampusAmbassadorApplied", new { entity.Id, entity.Email, entity.PhoneNumber, entity.College, entity.City });
         await dbContext.SaveChangesAsync(cancellationToken);
         return new LeadCaptureResponse(entity.Id, entity.Status.ToString(), entity.CreatedAt);
     }
@@ -196,6 +203,7 @@ public sealed class LmsPortalService(
         };
 
         dbContext.CareerApplications.Add(entity);
+        Audit("Lead.CareerApplied", new { entity.Id, entity.Email, entity.PhoneNumber, entity.Role });
         await dbContext.SaveChangesAsync(cancellationToken);
         return new LeadCaptureResponse(entity.Id, entity.Status.ToString(), entity.CreatedAt);
     }
@@ -367,6 +375,7 @@ public sealed class LmsPortalService(
             ActionUrl = "/dashboard"
         });
 
+        Audit("Student.EnrollmentCreated", new { studentId, enrollment.Id, programId = program.Id, planId = plan?.Id });
         await dbContext.SaveChangesAsync(cancellationToken);
         enrollment.Program = program;
         enrollment.ProgramPlan = plan;
@@ -409,7 +418,7 @@ public sealed class LmsPortalService(
             EnrollmentId = enrollment.Id,
             ProgramId = enrollment.ProgramId,
             ProgramPlanId = enrollment.ProgramPlanId,
-            Gateway = "ManualDemo",
+            Gateway = "Manual",
             GatewayOrderId = $"joviq_order_{Guid.NewGuid():N}",
             Mode = request.Mode,
             Status = PaymentStatus.Pending,
@@ -417,6 +426,7 @@ public sealed class LmsPortalService(
         };
 
         dbContext.PaymentTransactions.Add(transaction);
+        Audit("Student.PaymentCheckoutCreated", new { studentId, transaction.Id, transaction.EnrollmentId, transaction.ProgramId, transaction.Mode, transaction.Amount });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapPayment(transaction);
     }
@@ -472,6 +482,7 @@ public sealed class LmsPortalService(
             });
         }
 
+        Audit("Student.PaymentVerified", new { studentId, transaction.Id, transaction.EnrollmentId, transaction.Amount, transaction.GatewayPaymentId });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapPayment(transaction);
     }
@@ -534,6 +545,7 @@ public sealed class LmsPortalService(
         progress.IsCompleted = request.ProgressPercentage >= 100;
         progress.CompletedAt = progress.IsCompleted ? clock.UtcNow : null;
 
+        Audit("Student.LessonProgressUpdated", new { studentId, lessonId, request.ProgressPercentage, progress.IsCompleted });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapLesson(lesson, enrollment, progress);
     }
@@ -648,6 +660,7 @@ public sealed class LmsPortalService(
         };
 
         dbContext.AssignmentSubmissions.Add(submission);
+        Audit("Student.AssignmentSubmitted", new { studentId, submissionId = submission.Id, assignmentId = assignment.Id, enrollmentId = enrollment.Id });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapAssignmentSubmission(submission);
     }
@@ -710,6 +723,7 @@ public sealed class LmsPortalService(
         };
 
         dbContext.ProjectSubmissions.Add(submission);
+        Audit("Student.ProjectSubmitted", new { studentId, submissionId = submission.Id, projectId = project.Id, enrollmentId = enrollment.Id });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapProjectSubmission(submission);
     }
@@ -750,6 +764,7 @@ public sealed class LmsPortalService(
         };
 
         dbContext.AssessmentAttempts.Add(attempt);
+        Audit("Student.AssessmentStarted", new { studentId, attemptId = attempt.Id, assessmentId = assessment.Id, enrollmentId = enrollment.Id });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapAssessmentAttempt(attempt);
     }
@@ -774,6 +789,7 @@ public sealed class LmsPortalService(
         attempt.ResultJson = OptionalJson(request.ResultJson, nameof(request.ResultJson));
         attempt.Status = AssessmentAttemptStatus.Submitted;
         attempt.SubmittedAt = clock.UtcNow;
+        Audit("Student.AssessmentSubmitted", new { studentId, attempt.Id, attempt.AssessmentId, request.Score });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapAssessmentAttempt(attempt);
     }
@@ -826,6 +842,7 @@ public sealed class LmsPortalService(
         };
 
         dbContext.AiInterviewAttempts.Add(attempt);
+        Audit("Student.AiInterviewStarted", new { studentId, attempt.Id, attempt.EnrollmentId, attempt.JobRole, attempt.Domain, attempt.InterviewType });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapAiInterviewAttempt(attempt);
     }
@@ -943,6 +960,7 @@ public sealed class LmsPortalService(
 
         notification.Status = NotificationStatus.Read;
         notification.ReadAt ??= clock.UtcNow;
+        Audit("Student.NotificationRead", new { studentId, notificationId });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapNotification(notification);
     }
@@ -968,6 +986,7 @@ public sealed class LmsPortalService(
         };
 
         dbContext.SupportTickets.Add(entity);
+        Audit("Support.TicketCreated", new { userId, entity.Id, entity.ProgramId, entity.Issue, entity.Priority });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapSupportTicket(entity);
     }
@@ -1001,9 +1020,24 @@ public sealed class LmsPortalService(
             callbacks);
     }
 
-    public Task<IReadOnlyList<ProgramCategoryResponse>> GetAdminCategoriesAsync(CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<ProgramCategoryResponse>> GetAdminCategoriesAsync(CancellationToken cancellationToken)
     {
-        return GetCategoriesAsync(cancellationToken);
+        var categories = await dbContext.LearningProgramCategories
+            .AsNoTracking()
+            .OrderBy(x => x.SortOrder)
+            .ThenBy(x => x.Name)
+            .ToListAsync(cancellationToken);
+        var programs = await GetAdminProgramsAsync(cancellationToken);
+
+        return categories
+            .Select(category => new ProgramCategoryResponse(
+                category.Id,
+                category.Name,
+                category.Slug,
+                category.Description,
+                category.SortOrder,
+                programs.Where(program => program.CategoryId == category.Id).ToList()))
+            .ToList();
     }
 
     public async Task<ProgramCategoryResponse> CreateCategoryAsync(
@@ -1027,6 +1061,31 @@ public sealed class LmsPortalService(
         };
 
         dbContext.LearningProgramCategories.Add(category);
+        Audit("Admin.CategoryCreated", new { category.Id, category.Name, category.Slug });
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new ProgramCategoryResponse(category.Id, category.Name, category.Slug, category.Description, category.SortOrder, []);
+    }
+
+    public async Task<ProgramCategoryResponse> UpdateCategoryAsync(
+        Guid categoryId,
+        CreateCategoryRequest request,
+        CancellationToken cancellationToken)
+    {
+        var category = await dbContext.LearningProgramCategories.FirstOrDefaultAsync(x => x.Id == categoryId, cancellationToken)
+            ?? throw new AppException("Program category was not found.", 404, "program_category_not_found");
+        var slug = NormalizeSlug(request.Slug);
+
+        if (await dbContext.LearningProgramCategories.AnyAsync(x => x.Id != categoryId && x.Slug == slug, cancellationToken))
+        {
+            throw new AppException("Category slug already exists.", 409, "category_slug_exists");
+        }
+
+        category.Name = RequiredText(request.Name, nameof(request.Name), 2, 120);
+        category.Slug = slug;
+        category.Description = RequiredText(request.Description, nameof(request.Description), 10, 600);
+        category.IsPublished = request.IsPublished;
+
+        Audit("Admin.CategoryUpdated", new { category.Id, category.Name, category.Slug, category.IsPublished });
         await dbContext.SaveChangesAsync(cancellationToken);
         return new ProgramCategoryResponse(category.Id, category.Name, category.Slug, category.Description, category.SortOrder, []);
     }
@@ -1052,6 +1111,7 @@ public sealed class LmsPortalService(
         program.SortOrder = await dbContext.LearningPrograms.CountAsync(x => x.CategoryId == request.CategoryId, cancellationToken) + 1;
 
         dbContext.LearningPrograms.Add(program);
+        Audit("Admin.ProgramCreated", new { program.Id, program.Title, program.Slug, program.CategoryId, program.Status });
         await dbContext.SaveChangesAsync(cancellationToken);
         return await GetProgramBySlugForAdminAsync(program.Slug, cancellationToken);
     }
@@ -1072,6 +1132,7 @@ public sealed class LmsPortalService(
         }
 
         ApplyProgramRequest(program, request);
+        Audit("Admin.ProgramUpdated", new { program.Id, program.Title, program.Slug, program.CategoryId, program.Status });
         await dbContext.SaveChangesAsync(cancellationToken);
         return await GetProgramBySlugForAdminAsync(program.Slug, cancellationToken);
     }
@@ -1082,6 +1143,7 @@ public sealed class LmsPortalService(
             ?? throw new AppException("Program was not found.", 404, "program_not_found");
 
         program.Status = ProgramStatus.Archived;
+        Audit("Admin.ProgramArchived", new { program.Id, program.Title, program.Slug });
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
@@ -1120,6 +1182,7 @@ public sealed class LmsPortalService(
         };
 
         dbContext.ProgramPlans.Add(plan);
+        Audit("Admin.ProgramPlanCreated", new { plan.Id, plan.ProgramId, plan.Code, plan.OfferPrice, plan.IsActive });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapPlan(plan);
     }
@@ -1144,6 +1207,7 @@ public sealed class LmsPortalService(
         plan.FeaturesJson = SerializeList(request.Features);
         plan.IsActive = request.IsActive;
 
+        Audit("Admin.ProgramPlanUpdated", new { plan.Id, plan.ProgramId, plan.Code, plan.OfferPrice, plan.IsActive });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapPlan(plan);
     }
@@ -1187,6 +1251,25 @@ public sealed class LmsPortalService(
         };
 
         dbContext.CurriculumModules.Add(module);
+        Audit("Admin.CurriculumModuleCreated", new { module.Id, module.ProgramId, module.Title });
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return MapCurriculumModule(module, null, new Dictionary<Guid, LessonProgress>());
+    }
+
+    public async Task<CurriculumModuleResponse> UpdateModuleAsync(
+        Guid moduleId,
+        CreateModuleRequest request,
+        CancellationToken cancellationToken)
+    {
+        var module = await dbContext.CurriculumModules
+            .Include(x => x.Lessons.OrderBy(lesson => lesson.SortOrder))
+            .FirstOrDefaultAsync(x => x.Id == moduleId, cancellationToken)
+            ?? throw new AppException("Curriculum module was not found.", 404, "module_not_found");
+
+        module.Title = RequiredText(request.Title, nameof(request.Title), 2, 180);
+        module.Description = RequiredText(request.Description, nameof(request.Description), 10, 1200);
+
+        Audit("Admin.CurriculumModuleUpdated", new { module.Id, module.ProgramId, module.Title });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapCurriculumModule(module, null, new Dictionary<Guid, LessonProgress>());
     }
@@ -1213,6 +1296,27 @@ public sealed class LmsPortalService(
         };
 
         dbContext.Lessons.Add(lesson);
+        Audit("Admin.LessonCreated", new { lesson.Id, lesson.ModuleId, module.ProgramId, lesson.Title, lesson.AccessLevel });
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return MapLesson(lesson, null, null);
+    }
+
+    public async Task<LessonResponse> UpdateLessonAsync(
+        Guid lessonId,
+        CreateLessonRequest request,
+        CancellationToken cancellationToken)
+    {
+        var lesson = await dbContext.Lessons.FirstOrDefaultAsync(x => x.Id == lessonId, cancellationToken)
+            ?? throw new AppException("Lesson was not found.", 404, "lesson_not_found");
+
+        lesson.Title = RequiredText(request.Title, nameof(request.Title), 2, 180);
+        lesson.Summary = RequiredText(request.Summary, nameof(request.Summary), 10, 1200);
+        lesson.VideoUrl = OptionalUrl(request.VideoUrl, nameof(request.VideoUrl));
+        lesson.NotesUrl = OptionalUrl(request.NotesUrl, nameof(request.NotesUrl));
+        lesson.DurationMinutes = request.DurationMinutes <= 0 ? 45 : request.DurationMinutes;
+        lesson.AccessLevel = request.AccessLevel;
+
+        Audit("Admin.LessonUpdated", new { lesson.Id, lesson.ModuleId, lesson.Title, lesson.AccessLevel });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapLesson(lesson, null, null);
     }
@@ -1235,8 +1339,24 @@ public sealed class LmsPortalService(
         await EnsureProgramExistsAsync(request.ProgramId, cancellationToken);
         var entity = CreateLiveClassEntity(request, request.MentorId);
         dbContext.LiveClasses.Add(entity);
+        Audit("Admin.LiveClassCreated", new { entity.Id, entity.ProgramId, entity.MentorId, entity.Title, entity.StartsAt, entity.EndsAt });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapLiveClass(entity);
+    }
+
+    public async Task<LiveClassResponse> UpdateLiveClassAsync(
+        Guid liveClassId,
+        CreateLiveClassRequest request,
+        CancellationToken cancellationToken)
+    {
+        await EnsureProgramExistsAsync(request.ProgramId, cancellationToken);
+        var liveClass = await dbContext.LiveClasses.FirstOrDefaultAsync(x => x.Id == liveClassId, cancellationToken)
+            ?? throw new AppException("Live class was not found.", 404, "live_class_not_found");
+
+        ApplyLiveClassRequest(liveClass, request, request.MentorId);
+        Audit("Admin.LiveClassUpdated", new { liveClass.Id, liveClass.ProgramId, liveClass.MentorId, liveClass.Title, liveClass.StartsAt, liveClass.EndsAt });
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return MapLiveClass(liveClass);
     }
 
     public async Task<IReadOnlyList<AssignmentResponse>> GetAdminAssignmentsAsync(CancellationToken cancellationToken)
@@ -1268,6 +1388,29 @@ public sealed class LmsPortalService(
         };
 
         dbContext.Assignments.Add(assignment);
+        Audit("Admin.AssignmentCreated", new { assignment.Id, assignment.ProgramId, assignment.Title, assignment.IsPublished });
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return MapAssignment(assignment, null);
+    }
+
+    public async Task<AssignmentResponse> UpdateAssignmentAsync(
+        Guid assignmentId,
+        CreateAssignmentRequest request,
+        CancellationToken cancellationToken)
+    {
+        await EnsureProgramExistsAsync(request.ProgramId, cancellationToken);
+        EnsureScore(request.MaxScore, nameof(request.MaxScore));
+        var assignment = await dbContext.Assignments.FirstOrDefaultAsync(x => x.Id == assignmentId, cancellationToken)
+            ?? throw new AppException("Assignment was not found.", 404, "assignment_not_found");
+
+        assignment.ProgramId = request.ProgramId;
+        assignment.Title = RequiredText(request.Title, nameof(request.Title), 2, 180);
+        assignment.Instructions = RequiredText(request.Instructions, nameof(request.Instructions), 10, 2500);
+        assignment.DueAt = request.DueAt;
+        assignment.MaxScore = request.MaxScore;
+        assignment.IsPublished = request.IsPublished;
+
+        Audit("Admin.AssignmentUpdated", new { assignment.Id, assignment.ProgramId, assignment.Title, assignment.IsPublished });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapAssignment(assignment, null);
     }
@@ -1301,6 +1444,29 @@ public sealed class LmsPortalService(
         };
 
         dbContext.Projects.Add(project);
+        Audit("Admin.ProjectCreated", new { project.Id, project.ProgramId, project.Title, project.IsPublished });
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return MapProject(project, null);
+    }
+
+    public async Task<ProjectResponse> UpdateProjectAsync(
+        Guid projectId,
+        CreateProjectRequest request,
+        CancellationToken cancellationToken)
+    {
+        await EnsureProgramExistsAsync(request.ProgramId, cancellationToken);
+        EnsureScore(request.MaxScore, nameof(request.MaxScore));
+        var project = await dbContext.Projects.FirstOrDefaultAsync(x => x.Id == projectId, cancellationToken)
+            ?? throw new AppException("Project was not found.", 404, "project_not_found");
+
+        project.ProgramId = request.ProgramId;
+        project.Title = RequiredText(request.Title, nameof(request.Title), 2, 180);
+        project.Description = RequiredText(request.Description, nameof(request.Description), 10, 2500);
+        project.RequiredArtifactsJson = SerializeList(request.RequiredArtifacts);
+        project.MaxScore = request.MaxScore;
+        project.IsPublished = request.IsPublished;
+
+        Audit("Admin.ProjectUpdated", new { project.Id, project.ProgramId, project.Title, project.IsPublished });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapProject(project, null);
     }
@@ -1336,6 +1502,31 @@ public sealed class LmsPortalService(
         };
 
         dbContext.Assessments.Add(assessment);
+        Audit("Admin.AssessmentCreated", new { assessment.Id, assessment.ProgramId, assessment.Title, assessment.IsAiPowered, assessment.IsPublished });
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return MapAssessment(assessment);
+    }
+
+    public async Task<AssessmentResponse> UpdateAssessmentAsync(
+        Guid assessmentId,
+        CreateAssessmentRequest request,
+        CancellationToken cancellationToken)
+    {
+        await EnsureProgramExistsAsync(request.ProgramId, cancellationToken);
+        EnsureScore(request.PassingPercentage, nameof(request.PassingPercentage));
+        var assessment = await dbContext.Assessments.FirstOrDefaultAsync(x => x.Id == assessmentId, cancellationToken)
+            ?? throw new AppException("Assessment was not found.", 404, "assessment_not_found");
+
+        assessment.ProgramId = request.ProgramId;
+        assessment.Title = RequiredText(request.Title, nameof(request.Title), 2, 180);
+        assessment.AssessmentType = RequiredText(request.AssessmentType, nameof(request.AssessmentType), 2, 80);
+        assessment.Instructions = RequiredText(request.Instructions, nameof(request.Instructions), 10, 2500);
+        assessment.DurationMinutes = request.DurationMinutes <= 0 ? 45 : request.DurationMinutes;
+        assessment.PassingPercentage = request.PassingPercentage;
+        assessment.IsAiPowered = request.IsAiPowered;
+        assessment.IsPublished = request.IsPublished;
+
+        Audit("Admin.AssessmentUpdated", new { assessment.Id, assessment.ProgramId, assessment.Title, assessment.IsAiPowered, assessment.IsPublished });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapAssessment(assessment);
     }
@@ -1369,6 +1560,7 @@ public sealed class LmsPortalService(
         enrollment.FullAccessUnlockedAt = request.Status == EnrollmentStatus.Active
             ? enrollment.FullAccessUnlockedAt ?? clock.UtcNow
             : enrollment.FullAccessUnlockedAt;
+        Audit("Admin.EnrollmentStatusUpdated", new { enrollment.Id, enrollment.StudentId, enrollment.ProgramId, enrollment.Status });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapEnrollment(enrollment);
     }
@@ -1410,6 +1602,7 @@ public sealed class LmsPortalService(
             }
         }
 
+        Audit("Admin.PaymentStatusUpdated", new { payment.Id, payment.StudentId, payment.EnrollmentId, payment.Status, payment.Amount });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapPayment(payment);
     }
@@ -1436,6 +1629,7 @@ public sealed class LmsPortalService(
             }
         }
 
+        Audit("Admin.PaymentRefunded", new { payment.Id, payment.StudentId, payment.EnrollmentId, payment.Amount, reason = request.Reason });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapPayment(payment);
     }
@@ -1473,6 +1667,34 @@ public sealed class LmsPortalService(
         };
 
         dbContext.Coupons.Add(coupon);
+        Audit("Admin.CouponCreated", new { coupon.Id, coupon.Code, coupon.DiscountValue, coupon.IsPercentage, coupon.IsActive });
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return MapCoupon(coupon);
+    }
+
+    public async Task<CouponResponse> UpdateCouponAsync(
+        Guid couponId,
+        CreateCouponRequest request,
+        CancellationToken cancellationToken)
+    {
+        var coupon = await dbContext.Coupons.FirstOrDefaultAsync(x => x.Id == couponId, cancellationToken)
+            ?? throw new AppException("Coupon was not found.", 404, "coupon_not_found");
+        var code = RequiredText(request.Code, nameof(request.Code), 2, 80).ToUpperInvariant();
+
+        if (await dbContext.Coupons.AnyAsync(x => x.Id != couponId && x.Code == code, cancellationToken))
+        {
+            throw new AppException("Coupon code already exists.", 409, "coupon_exists");
+        }
+
+        coupon.Code = code;
+        coupon.Description = RequiredText(request.Description, nameof(request.Description), 2, 500);
+        coupon.DiscountValue = request.DiscountValue;
+        coupon.IsPercentage = request.IsPercentage;
+        coupon.IsActive = request.IsActive;
+        coupon.StartsAt = request.StartsAt;
+        coupon.ExpiresAt = request.ExpiresAt;
+
+        Audit("Admin.CouponUpdated", new { coupon.Id, coupon.Code, coupon.DiscountValue, coupon.IsPercentage, coupon.IsActive });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapCoupon(coupon);
     }
@@ -1526,6 +1748,7 @@ public sealed class LmsPortalService(
             ActionUrl = "/dashboard"
         });
 
+        Audit("Admin.CertificateIssued", new { certificate.Id, certificate.StudentId, certificate.ProgramId, certificate.CertificateId, certificate.Type });
         await dbContext.SaveChangesAsync(cancellationToken);
         return new CertificateResponse(
             certificate.Id,
@@ -1540,6 +1763,22 @@ public sealed class LmsPortalService(
             certificate.VerificationUrl,
             certificate.QrCodeUrl,
             certificate.AuthorizedSignatory);
+    }
+
+    public async Task<CertificateResponse> UpdateCertificateStatusAsync(
+        Guid certificateId,
+        UpdateCertificateStatusRequest request,
+        CancellationToken cancellationToken)
+    {
+        var certificate = await dbContext.Certificates
+            .Include(x => x.Program)
+            .FirstOrDefaultAsync(x => x.Id == certificateId, cancellationToken)
+            ?? throw new AppException("Certificate was not found.", 404, "certificate_not_found");
+
+        certificate.Status = request.Status;
+        Audit("Admin.CertificateStatusUpdated", new { certificate.Id, certificate.StudentId, certificate.ProgramId, certificate.CertificateId, certificate.Status });
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return MapCertificate(certificate);
     }
 
     public async Task<PagedResult<SupportTicketResponse>> GetSupportTicketsAsync(
@@ -1578,6 +1817,7 @@ public sealed class LmsPortalService(
 
         ticket.Status = request.Status;
         ticket.AdminNotes = OptionalText(request.AdminNotes, 2500);
+        Audit("Support.TicketUpdated", new { ticket.Id, ticket.UserId, ticket.ProgramId, ticket.Status });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapSupportTicket(ticket);
     }
@@ -1675,6 +1915,7 @@ public sealed class LmsPortalService(
         await EnsureProgramExistsAsync(request.ProgramId, cancellationToken);
         var entity = CreateLiveClassEntity(request, mentorId);
         dbContext.LiveClasses.Add(entity);
+        Audit("Mentor.LiveClassCreated", new { mentorId, entity.Id, entity.ProgramId, entity.Title, entity.StartsAt, entity.EndsAt });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapLiveClass(entity);
     }
@@ -1709,6 +1950,7 @@ public sealed class LmsPortalService(
             ?? throw new AppException("Assignment submission was not found.", 404, "submission_not_found");
 
         ApplyReview(submission, mentorId, request);
+        Audit("Mentor.AssignmentReviewed", new { mentorId, submission.Id, submission.AssignmentId, request.Score, request.Status });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapAssignmentSubmission(submission);
     }
@@ -1723,6 +1965,7 @@ public sealed class LmsPortalService(
             ?? throw new AppException("Project submission was not found.", 404, "submission_not_found");
 
         ApplyReview(submission, mentorId, request);
+        Audit("Mentor.ProjectReviewed", new { mentorId, submission.Id, submission.ProjectId, request.Score, request.Status });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapProjectSubmission(submission);
     }
@@ -1762,6 +2005,7 @@ public sealed class LmsPortalService(
         attempt.ResultJson = OptionalJson(request.ResultJson, nameof(request.ResultJson));
         attempt.Status = AssessmentAttemptStatus.Evaluated;
         attempt.SubmittedAt ??= clock.UtcNow;
+        Audit("Mentor.AssessmentReviewed", new { mentorId, attempt.Id, attempt.AssessmentId, request.Score });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapAssessmentAttempt(attempt);
     }
@@ -2293,24 +2537,31 @@ public sealed class LmsPortalService(
 
     private static LiveClass CreateLiveClassEntity(CreateLiveClassRequest request, Guid? mentorId)
     {
+        var liveClass = new LiveClass
+        {
+            Id = Guid.NewGuid(),
+            Status = LiveClassStatus.Scheduled
+        };
+
+        ApplyLiveClassRequest(liveClass, request, mentorId);
+        return liveClass;
+    }
+
+    private static void ApplyLiveClassRequest(LiveClass liveClass, CreateLiveClassRequest request, Guid? mentorId)
+    {
         if (request.EndsAt <= request.StartsAt)
         {
             throw Validation(nameof(request.EndsAt), "Class end time must be after start time.");
         }
 
-        return new LiveClass
-        {
-            Id = Guid.NewGuid(),
-            ProgramId = request.ProgramId,
-            MentorId = mentorId ?? request.MentorId,
-            Title = RequiredText(request.Title, nameof(request.Title), 2, 180),
-            Description = RequiredText(request.Description, nameof(request.Description), 10, 1200),
-            StartsAt = request.StartsAt,
-            EndsAt = request.EndsAt,
-            JoinUrl = OptionalUrl(request.JoinUrl, nameof(request.JoinUrl)),
-            RecordingUrl = OptionalUrl(request.RecordingUrl, nameof(request.RecordingUrl)),
-            Status = LiveClassStatus.Scheduled
-        };
+        liveClass.ProgramId = request.ProgramId;
+        liveClass.MentorId = mentorId ?? request.MentorId;
+        liveClass.Title = RequiredText(request.Title, nameof(request.Title), 2, 180);
+        liveClass.Description = RequiredText(request.Description, nameof(request.Description), 10, 1200);
+        liveClass.StartsAt = request.StartsAt;
+        liveClass.EndsAt = request.EndsAt;
+        liveClass.JoinUrl = OptionalUrl(request.JoinUrl, nameof(request.JoinUrl));
+        liveClass.RecordingUrl = OptionalUrl(request.RecordingUrl, nameof(request.RecordingUrl));
     }
 
     private async Task EnsureCategoryExistsAsync(Guid categoryId, CancellationToken cancellationToken)

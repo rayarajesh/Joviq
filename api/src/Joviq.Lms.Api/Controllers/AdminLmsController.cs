@@ -38,6 +38,16 @@ public sealed class AdminLmsController(
         return Ok(ApiResponse<ProgramCategoryResponse>.Ok(result, "Program category created.", CorrelationId));
     }
 
+    [HttpPut("categories/{categoryId:guid}")]
+    public async Task<ActionResult<ApiResponse<ProgramCategoryResponse>>> UpdateCategory(
+        Guid categoryId,
+        CreateCategoryRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.UpdateCategoryAsync(categoryId, request, cancellationToken);
+        return Ok(ApiResponse<ProgramCategoryResponse>.Ok(result, "Program category updated.", CorrelationId));
+    }
+
     [HttpGet("programs")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<ProgramSummaryResponse>>>> GetPrograms(
         CancellationToken cancellationToken)
@@ -113,6 +123,16 @@ public sealed class AdminLmsController(
         return Ok(ApiResponse<CurriculumModuleResponse>.Ok(result, "Curriculum module created.", CorrelationId));
     }
 
+    [HttpPut("modules/{moduleId:guid}")]
+    public async Task<ActionResult<ApiResponse<CurriculumModuleResponse>>> UpdateModule(
+        Guid moduleId,
+        CreateModuleRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.UpdateModuleAsync(moduleId, request, cancellationToken);
+        return Ok(ApiResponse<CurriculumModuleResponse>.Ok(result, "Curriculum module updated.", CorrelationId));
+    }
+
     [HttpPost("modules/{moduleId:guid}/lessons")]
     public async Task<ActionResult<ApiResponse<LessonResponse>>> CreateLesson(
         Guid moduleId,
@@ -121,6 +141,16 @@ public sealed class AdminLmsController(
     {
         var result = await lmsPortalService.CreateLessonAsync(moduleId, request, cancellationToken);
         return Ok(ApiResponse<LessonResponse>.Ok(result, "Lesson created.", CorrelationId));
+    }
+
+    [HttpPut("lessons/{lessonId:guid}")]
+    public async Task<ActionResult<ApiResponse<LessonResponse>>> UpdateLesson(
+        Guid lessonId,
+        CreateLessonRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.UpdateLessonAsync(lessonId, request, cancellationToken);
+        return Ok(ApiResponse<LessonResponse>.Ok(result, "Lesson updated.", CorrelationId));
     }
 
     [HttpGet("live-classes")]
@@ -140,6 +170,16 @@ public sealed class AdminLmsController(
         return Ok(ApiResponse<LiveClassResponse>.Ok(result, "Live class created.", CorrelationId));
     }
 
+    [HttpPut("live-classes/{liveClassId:guid}")]
+    public async Task<ActionResult<ApiResponse<LiveClassResponse>>> UpdateLiveClass(
+        Guid liveClassId,
+        CreateLiveClassRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.UpdateLiveClassAsync(liveClassId, request, cancellationToken);
+        return Ok(ApiResponse<LiveClassResponse>.Ok(result, "Live class updated.", CorrelationId));
+    }
+
     [HttpGet("assignments")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<AssignmentResponse>>>> GetAssignments(
         CancellationToken cancellationToken)
@@ -155,6 +195,16 @@ public sealed class AdminLmsController(
     {
         var result = await lmsPortalService.CreateAssignmentAsync(request, cancellationToken);
         return Ok(ApiResponse<AssignmentResponse>.Ok(result, "Assignment created.", CorrelationId));
+    }
+
+    [HttpPut("assignments/{assignmentId:guid}")]
+    public async Task<ActionResult<ApiResponse<AssignmentResponse>>> UpdateAssignment(
+        Guid assignmentId,
+        CreateAssignmentRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.UpdateAssignmentAsync(assignmentId, request, cancellationToken);
+        return Ok(ApiResponse<AssignmentResponse>.Ok(result, "Assignment updated.", CorrelationId));
     }
 
     [HttpGet("projects")]
@@ -174,6 +224,16 @@ public sealed class AdminLmsController(
         return Ok(ApiResponse<ProjectResponse>.Ok(result, "Project created.", CorrelationId));
     }
 
+    [HttpPut("projects/{projectId:guid}")]
+    public async Task<ActionResult<ApiResponse<ProjectResponse>>> UpdateProject(
+        Guid projectId,
+        CreateProjectRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.UpdateProjectAsync(projectId, request, cancellationToken);
+        return Ok(ApiResponse<ProjectResponse>.Ok(result, "Project updated.", CorrelationId));
+    }
+
     [HttpGet("assessments")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<AssessmentResponse>>>> GetAssessments(
         CancellationToken cancellationToken)
@@ -189,6 +249,16 @@ public sealed class AdminLmsController(
     {
         var result = await lmsPortalService.CreateAssessmentAsync(request, cancellationToken);
         return Ok(ApiResponse<AssessmentResponse>.Ok(result, "Assessment created.", CorrelationId));
+    }
+
+    [HttpPut("assessments/{assessmentId:guid}")]
+    public async Task<ActionResult<ApiResponse<AssessmentResponse>>> UpdateAssessment(
+        Guid assessmentId,
+        CreateAssessmentRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.UpdateAssessmentAsync(assessmentId, request, cancellationToken);
+        return Ok(ApiResponse<AssessmentResponse>.Ok(result, "Assessment updated.", CorrelationId));
     }
 
     [HttpGet("enrollments")]
@@ -254,6 +324,16 @@ public sealed class AdminLmsController(
         return Ok(ApiResponse<CouponResponse>.Ok(result, "Coupon created.", CorrelationId));
     }
 
+    [HttpPut("coupons/{couponId:guid}")]
+    public async Task<ActionResult<ApiResponse<CouponResponse>>> UpdateCoupon(
+        Guid couponId,
+        CreateCouponRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.UpdateCouponAsync(couponId, request, cancellationToken);
+        return Ok(ApiResponse<CouponResponse>.Ok(result, "Coupon updated.", CorrelationId));
+    }
+
     [HttpGet("certificates")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<CertificateResponse>>>> GetCertificates(
         CancellationToken cancellationToken)
@@ -269,6 +349,16 @@ public sealed class AdminLmsController(
     {
         var result = await lmsPortalService.IssueCertificateAsync(request, cancellationToken);
         return Ok(ApiResponse<CertificateResponse>.Ok(result, "Certificate issued.", CorrelationId));
+    }
+
+    [HttpPatch("certificates/{certificateId:guid}/status")]
+    public async Task<ActionResult<ApiResponse<CertificateResponse>>> UpdateCertificateStatus(
+        Guid certificateId,
+        UpdateCertificateStatusRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.UpdateCertificateStatusAsync(certificateId, request, cancellationToken);
+        return Ok(ApiResponse<CertificateResponse>.Ok(result, "Certificate status updated.", CorrelationId));
     }
 
     [HttpGet("support/tickets")]

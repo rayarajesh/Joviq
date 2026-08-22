@@ -360,6 +360,18 @@ export type AdminReportResponse = {
   openSupportTickets: SupportTicketResponse[];
 };
 
+export type AuditLogResponse = {
+  id: string;
+  userId?: string;
+  eventType: string;
+  email?: string;
+  phone?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  metadataJson?: string;
+  createdAt: string;
+};
+
 export type LeadCaptureResponse = {
   id: string;
   status: string;
@@ -512,6 +524,10 @@ export type IssueCertificateRequest = {
   authorizedSignatory?: string;
 };
 
+export type UpdateCertificateStatusRequest = {
+  status: number;
+};
+
 export type CreateSupportTicketRequest = {
   programId?: string;
   name: string;
@@ -530,3 +546,4 @@ export type ReviewSubmissionRequest = {
 };
 
 export type LmsSupportTicketPage = PagedResult<SupportTicketResponse>;
+export type AuditLogPage = PagedResult<AuditLogResponse>;
