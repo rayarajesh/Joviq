@@ -5,6 +5,7 @@ using Joviq.Lms.Application;
 using Joviq.Lms.Application.Common.Interfaces;
 using Joviq.Lms.Infrastructure;
 using Joviq.Lms.Infrastructure.Identity;
+using Joviq.Lms.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi;
 
@@ -96,6 +97,7 @@ builder.Services.AddRateLimiter(options =>
 var app = builder.Build();
 
 await RoleSeeder.SeedRolesAsync(app.Services);
+await LmsSeedData.SeedAsync(app.Services);
 
 app.UseApiMiddleware();
 

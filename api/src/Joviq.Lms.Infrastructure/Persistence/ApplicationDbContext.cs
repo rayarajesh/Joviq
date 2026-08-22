@@ -20,6 +20,58 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
     public DbSet<StudentProfile> StudentProfiles => Set<StudentProfile>();
 
+    public DbSet<LearningProgramCategory> LearningProgramCategories => Set<LearningProgramCategory>();
+
+    public DbSet<LearningProgram> LearningPrograms => Set<LearningProgram>();
+
+    public DbSet<ProgramPlan> ProgramPlans => Set<ProgramPlan>();
+
+    public DbSet<CurriculumModule> CurriculumModules => Set<CurriculumModule>();
+
+    public DbSet<Lesson> Lessons => Set<Lesson>();
+
+    public DbSet<LessonResource> LessonResources => Set<LessonResource>();
+
+    public DbSet<LessonProgress> LessonProgress => Set<LessonProgress>();
+
+    public DbSet<Enrollment> Enrollments => Set<Enrollment>();
+
+    public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
+
+    public DbSet<Coupon> Coupons => Set<Coupon>();
+
+    public DbSet<LiveClass> LiveClasses => Set<LiveClass>();
+
+    public DbSet<Assignment> Assignments => Set<Assignment>();
+
+    public DbSet<AssignmentSubmission> AssignmentSubmissions => Set<AssignmentSubmission>();
+
+    public DbSet<Project> Projects => Set<Project>();
+
+    public DbSet<ProjectSubmission> ProjectSubmissions => Set<ProjectSubmission>();
+
+    public DbSet<Assessment> Assessments => Set<Assessment>();
+
+    public DbSet<AssessmentQuestion> AssessmentQuestions => Set<AssessmentQuestion>();
+
+    public DbSet<AssessmentAttempt> AssessmentAttempts => Set<AssessmentAttempt>();
+
+    public DbSet<AiInterviewAttempt> AiInterviewAttempts => Set<AiInterviewAttempt>();
+
+    public DbSet<Certificate> Certificates => Set<Certificate>();
+
+    public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
+
+    public DbSet<Notification> Notifications => Set<Notification>();
+
+    public DbSet<CallbackRequest> CallbackRequests => Set<CallbackRequest>();
+
+    public DbSet<Enquiry> Enquiries => Set<Enquiry>();
+
+    public DbSet<CampusAmbassadorApplication> CampusAmbassadorApplications => Set<CampusAmbassadorApplication>();
+
+    public DbSet<CareerApplication> CareerApplications => Set<CareerApplication>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);

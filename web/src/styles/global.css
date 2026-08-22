@@ -5119,3 +5119,446 @@ button.hero-button {
     width: 100%;
   }
 }
+
+.metric-grid--lms {
+  margin-top: -8px;
+}
+
+.lms-admin-panel,
+.mentor-review-panel,
+.student-marketplace,
+.student-program-hero,
+.payment-access-card,
+.learning-path-card,
+.work-submit-card,
+.lms-side-panel,
+.support-ticket-form {
+  animation: onboarding-rise 360ms ease both;
+}
+
+.lms-admin-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.92fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.lms-mini-form,
+.lms-list-panel {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.lms-mini-form h3,
+.lms-list-panel h3,
+.module-card h3,
+.mentor-review-card h3,
+.program-pick-card h3 {
+  margin: 0;
+}
+
+.lms-mini-form label,
+.support-ticket-form {
+  color: #24302b;
+  font-size: 0.88rem;
+  font-weight: 950;
+}
+
+.lms-mini-form label {
+  display: grid;
+  gap: 7px;
+}
+
+.lms-mini-form input,
+.lms-mini-form select,
+.support-ticket-form input,
+.support-ticket-form select,
+.support-ticket-form textarea,
+.submission-inline-form input {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #d2d9cf;
+  border-radius: 8px;
+  background: #fbfcf8;
+  color: var(--ink);
+  padding: 10px 12px;
+  outline: none;
+}
+
+.support-ticket-form textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.lms-mini-form input:focus,
+.lms-mini-form select:focus,
+.support-ticket-form input:focus,
+.support-ticket-form select:focus,
+.support-ticket-form textarea:focus,
+.submission-inline-form input:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.13);
+}
+
+.lms-form-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.lms-scroll-list,
+.mentor-review-list,
+.module-list,
+.submission-list,
+.lms-timeline,
+.notification-list,
+.payment-history {
+  display: grid;
+  gap: 10px;
+}
+
+.lms-scroll-list {
+  max-height: 380px;
+  overflow: auto;
+  padding-right: 3px;
+}
+
+.lms-list-item,
+.mentor-review-card,
+.module-card,
+.submission-list article,
+.lms-timeline article,
+.notification-list article,
+.payment-history article,
+.certificate-mini {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcf8;
+}
+
+.lms-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+}
+
+.lms-list-item strong,
+.lms-list-item span,
+.lms-list-item small,
+.mentor-review-card strong,
+.mentor-review-card span,
+.mentor-review-card p,
+.module-card p,
+.lesson-row span,
+.submission-list span,
+.lms-timeline span,
+.notification-list span,
+.certificate-mini span,
+.payment-history span,
+.payment-history small {
+  display: block;
+}
+
+.lms-list-item span,
+.mentor-review-card p,
+.module-card p,
+.lesson-row span,
+.submission-list span,
+.lms-timeline span,
+.notification-list span,
+.certificate-mini span,
+.payment-history span,
+.payment-history small {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.lms-list-item small {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #e8f7f2;
+  color: var(--green-dark);
+  padding: 6px 9px;
+  font-weight: 950;
+}
+
+.mentor-review-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px;
+}
+
+.mentor-review-card h3 {
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+
+.mentor-review-card .secondary-action,
+.program-pick-actions .primary-action,
+.program-pick-actions .secondary-action,
+.payment-actions .primary-action,
+.payment-actions .secondary-action {
+  width: auto;
+  min-width: 118px;
+  padding: 0 14px;
+}
+
+.student-lms-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.72fr);
+  gap: 14px;
+}
+
+.student-program-hero {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(15, 118, 110, 0.12), rgba(36, 83, 158, 0.1)),
+    #ffffff;
+}
+
+.student-program-hero h2 {
+  margin-top: 8px;
+  font-size: clamp(1.8rem, 4vw, 3.4rem);
+  line-height: 1;
+}
+
+.student-program-hero p {
+  max-width: 720px;
+}
+
+.student-progress-block {
+  display: grid;
+  flex: 0 0 190px;
+  min-height: 150px;
+  place-items: center;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  border-radius: 8px;
+  background: #e8f7f2;
+  padding: 18px;
+  text-align: center;
+}
+
+.student-progress-block strong {
+  color: var(--green-dark);
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.student-progress-block span {
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.program-pick-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.program-pick-card {
+  display: grid;
+  grid-template-rows: 132px minmax(0, 1fr) auto;
+  gap: 13px;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 16px 40px rgba(23, 33, 29, 0.08);
+}
+
+.program-pick-card img {
+  width: 100%;
+  height: 132px;
+  object-fit: cover;
+}
+
+.program-pick-card > div:not(.program-pick-actions) {
+  display: grid;
+  gap: 7px;
+  padding: 0 14px;
+}
+
+.program-pick-card span {
+  color: var(--gold);
+  font-size: 0.74rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.program-pick-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.program-pick-card strong {
+  color: var(--green-dark);
+}
+
+.program-pick-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 0 14px 14px;
+}
+
+.payment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.payment-history {
+  margin-top: 14px;
+}
+
+.payment-history article {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.learning-path-card,
+.work-submit-card {
+  min-width: 0;
+}
+
+.module-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.lesson-list {
+  display: grid;
+  gap: 8px;
+}
+
+.lesson-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 38px;
+  align-items: center;
+  gap: 10px;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 10px;
+}
+
+.lesson-row button,
+.submission-inline-form button {
+  display: grid;
+  min-width: 38px;
+  min-height: 38px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--green-dark);
+}
+
+.lesson-row strong,
+.submission-list strong {
+  overflow-wrap: anywhere;
+}
+
+.submission-list article {
+  display: grid;
+  gap: 10px;
+  padding: 13px;
+}
+
+.submission-inline-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px;
+  gap: 8px;
+}
+
+.lms-side-panel {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.lms-timeline article,
+.notification-list article,
+.certificate-mini {
+  padding: 12px;
+}
+
+.certificate-mini {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.certificate-mini svg {
+  color: var(--gold);
+}
+
+.support-ticket-form {
+  display: grid;
+  gap: 12px;
+}
+
+@media (max-width: 1180px) {
+  .program-pick-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .lms-admin-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 980px) {
+  .student-lms-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .student-program-hero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .student-progress-block {
+    flex-basis: auto;
+  }
+}
+
+@media (max-width: 680px) {
+  .program-pick-grid,
+  .program-pick-actions,
+  .lms-form-two,
+  .payment-history article {
+    grid-template-columns: 1fr;
+  }
+
+  .mentor-review-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .mentor-review-card .secondary-action,
+  .program-pick-actions .primary-action,
+  .program-pick-actions .secondary-action,
+  .payment-actions .primary-action,
+  .payment-actions .secondary-action {
+    width: 100%;
+  }
+}
