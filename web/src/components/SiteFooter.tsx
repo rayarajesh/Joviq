@@ -4,19 +4,20 @@ import { Link } from "react-router-dom";
 import { allPrograms, programCategories } from "../data/siteContent";
 
 const companyLinks = [
-  { label: "Home", href: "/#home" },
-  { label: "Features", href: "/#features" },
-  { label: "Campus Ambassador", href: "/#campus-ambassador" },
-  { label: "Reviews", href: "/#reviews" },
-  { label: "Careers", href: "/#careers" },
-  { label: "About Us", href: "/#about" }
+  { label: "Home", href: "/" },
+  { label: "Programs", href: "/programs" },
+  { label: "Features", href: "/features" },
+  { label: "Campus Ambassador", href: "/campus-ambassador" },
+  { label: "Reviews", href: "/reviews" },
+  { label: "Careers", href: "/careers" },
+  { label: "About Us", href: "/about" }
 ];
 
 const lmsLinks = [
-  { label: "Login to LMS", href: "/#auth" },
-  { label: "Program Search", href: "/#program-search" },
-  { label: "Pricing", href: "/#pricing" },
-  { label: "Request Callback", href: "/#callback" }
+  { label: "Login to LMS", href: "/login" },
+  { label: "Program Search", href: "/programs" },
+  { label: "Pricing", href: "/programs" },
+  { label: "Request Callback", href: "/request-callback" }
 ];
 
 export function SiteFooter() {
@@ -27,7 +28,7 @@ export function SiteFooter() {
       <div className="public-footer__inner">
         <section className="public-footer__top">
           <div className="public-footer__brand">
-            <Link className="public-footer__logo" to="/#home" aria-label="Joviq Technologies home">
+            <Link className="public-footer__logo" to="/" aria-label="Joviq Technologies home">
               <span>
                 <Sparkles size={24} />
               </span>
@@ -54,10 +55,10 @@ export function SiteFooter() {
             <span>Need help choosing a program?</span>
             <strong>Talk to a Joviq program advisor.</strong>
             <div>
-              <Link to="/#callback">
+              <Link to="/request-callback">
                 Request Callback <ArrowRight size={17} />
               </Link>
-              <Link to="/#auth">Login to LMS</Link>
+              <Link to="/login">Login to LMS</Link>
             </div>
           </div>
         </section>
@@ -73,7 +74,7 @@ export function SiteFooter() {
 
           <FooterColumn title="Domains">
             {programCategories.map((category) => (
-              <Link key={category.domain} to="/#programs">
+              <Link key={category.domain} to="/programs">
                 {category.domain}
               </Link>
             ))}
@@ -115,9 +116,9 @@ export function SiteFooter() {
         <section className="public-footer__bottom">
           <span>Copyright 2026 Joviq Technologies. All rights reserved.</span>
           <div>
-            <Link to="/#faq">FAQ</Link>
-            <Link to="/#callback">Callback</Link>
-            <Link to="/#programs">Programs</Link>
+            <Link to="/features">FAQ</Link>
+            <Link to="/request-callback">Callback</Link>
+            <Link to="/programs">Programs</Link>
           </div>
         </section>
       </div>

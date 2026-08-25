@@ -15,5 +15,6 @@ public sealed class ApplicationUserConfiguration : IEntityTypeConfiguration<Appl
         builder.Property(x => x.ProfilePhotoUrl).HasMaxLength(500);
         builder.Property(x => x.AccountStatus).HasConversion<string>().HasMaxLength(64);
         builder.Property(x => x.OnboardingStatus).HasConversion<string>().HasMaxLength(64);
+        builder.HasIndex(x => x.PhoneNumber).IsUnique().HasFilter("\"PhoneNumber\" IS NOT NULL AND \"PhoneNumber\" <> ''");
     }
 }

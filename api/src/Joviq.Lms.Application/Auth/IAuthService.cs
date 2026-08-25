@@ -8,6 +8,8 @@ public interface IAuthService
 
     Task<AuthTokenResponse> LoginAsync(LoginRequest request, RequestMetadata metadata, CancellationToken cancellationToken);
 
+    Task<AuthTokenResponse> ExternalLoginAsync(ExternalLoginRequest request, RequestMetadata metadata, CancellationToken cancellationToken);
+
     Task<AuthTokenResponse> RefreshAsync(string? refreshToken, RequestMetadata metadata, CancellationToken cancellationToken);
 
     Task LogoutAsync(Guid userId, Guid? sessionId, string? ipAddress, CancellationToken cancellationToken);

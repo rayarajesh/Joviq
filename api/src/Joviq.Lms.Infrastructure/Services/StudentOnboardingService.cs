@@ -85,6 +85,29 @@ public sealed class StudentOnboardingService(
         return BuildResponse(pair.User, pair.Profile);
     }
 
+    public async Task<StudentOnboardingResponse> SetProfilePhotoAsync(
+        Guid userId,
+        SetProfilePhotoRequest request,
+        CancellationToken cancellationToken)
+    {
+        var pair = await GetUserAndProfileAsync(userId, saveIfCreated: false, cancellationToken);
+
+        pair.User.ProfilePhotoUrl = RequiredTrim(request.ProfilePhotoUrl, nameof(request.ProfilePhotoUrl));
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return BuildResponse(pair.User, pair.Profile);
+    }
+
+    public async Task<StudentOnboardingResponse> DeleteProfilePhotoAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var pair = await GetUserAndProfileAsync(userId, saveIfCreated: false, cancellationToken);
+
+        pair.User.ProfilePhotoUrl = null;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return BuildResponse(pair.User, pair.Profile);
+    }
+
     public async Task<StudentOnboardingResponse> SetResumeAsync(
         Guid userId,
         SetResumeRequest request,
@@ -173,6 +196,7 @@ public sealed class StudentOnboardingService(
             user.FullName,
             user.Email ?? string.Empty,
             user.PhoneNumber,
+            user.ProfilePhotoUrl,
             user.EmailConfirmed,
             user.PhoneNumberConfirmed,
             user.OnboardingStatus.ToString(),

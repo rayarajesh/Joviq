@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using Joviq.Lms.Application.Auth;
 using Joviq.Lms.Application.Common.Interfaces;
@@ -9,7 +10,9 @@ using Joviq.Lms.Application.Users;
 using Joviq.Lms.Infrastructure.Identity;
 using Joviq.Lms.Infrastructure.Persistence;
 using Joviq.Lms.Infrastructure.Services;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.OAuth.Claims;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -26,6 +29,7 @@ public static class DependencyInjection
         services.Configure<RefreshTokenOptions>(configuration.GetSection(RefreshTokenOptions.SectionName));
         services.Configure<OtpOptions>(configuration.GetSection(OtpOptions.SectionName));
         services.Configure<EmailSettingsOptions>(configuration.GetSection(EmailSettingsOptions.SectionName));
+        services.Configure<ExternalAuthOptions>(configuration.GetSection(ExternalAuthOptions.SectionName));
 
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? "Host=localhost;Port=5432;Database=joviq_lms;Username=postgres;Password=postgres";
@@ -57,7 +61,7 @@ public static class DependencyInjection
         var jwtOptions = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
         var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey));
 
-        services
+        var authenticationBuilder = services
             .AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -82,6 +86,22 @@ public static class DependencyInjection
                     ClockSkew = TimeSpan.FromSeconds(30)
                 };
             });
+
+        var externalAuthOptions = configuration.GetSection(ExternalAuthOptions.SectionName).Get<ExternalAuthOptions>() ?? new ExternalAuthOptions();
+        if (!string.IsNullOrWhiteSpace(externalAuthOptions.Google.ClientId) &&
+            !string.IsNullOrWhiteSpace(externalAuthOptions.Google.ClientSecret))
+        {
+            authenticationBuilder.AddGoogle("Google", options =>
+            {
+                options.ClientId = externalAuthOptions.Google.ClientId;
+                options.ClientSecret = externalAuthOptions.Google.ClientSecret;
+                options.CallbackPath = externalAuthOptions.Google.CallbackPath;
+                options.SignInScheme = IdentityConstants.ExternalScheme;
+                options.SaveTokens = false;
+                options.ClaimActions.MapJsonKey("urn:google:picture", "picture", "url");
+                options.ClaimActions.MapJsonKey("urn:google:email_verified", "email_verified", ClaimValueTypes.Boolean);
+            });
+        }
 
         services.AddAuthorization(options =>
         {

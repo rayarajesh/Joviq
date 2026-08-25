@@ -4,6 +4,7 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   BriefcaseBusiness,
+  Camera,
   CheckCircle2,
   ExternalLink,
   FileText,
@@ -142,7 +143,7 @@ export function StudentOnboardingPage() {
   const [career, setCareer] = useState<CareerForm>(initialCareer);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [savingStep, setSavingStep] = useState<StepId | "complete" | null>(null);
+  const [savingStep, setSavingStep] = useState<StepId | "profile-photo" | "complete" | null>(null);
   const [message, setMessage] = useState<MessageState>(null);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
 
@@ -417,6 +418,26 @@ export function StudentOnboardingPage() {
     return "";
   }
 
+  function validateProfilePhotoFile(file: File) {
+    const allowedExtensions = [".jpg", ".jpeg", ".png", ".webp"];
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    const extension = file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")).toLowerCase() : "";
+
+    if (!allowedExtensions.includes(extension) || (file.type && !allowedTypes.includes(file.type))) {
+      return "Profile photo must be a JPG, PNG, or WebP image.";
+    }
+
+    if (file.size <= 0) {
+      return "Profile photo file is empty.";
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      return "Profile photo must be 2 MB or smaller.";
+    }
+
+    return "";
+  }
+
   function selectJobRole(role: string) {
     setCareer((current) => ({ ...current, targetJobRole: normalizeText(role) }));
     clearValidation(["targetJobRole"]);
@@ -481,6 +502,46 @@ export function StudentOnboardingPage() {
     setResumeFile(file);
     clearValidation(["resume"]);
     setMessage(null);
+  }
+
+  async function changeProfilePhoto(file: File | null) {
+    if (!file) {
+      return;
+    }
+
+    const error = validateProfilePhotoFile(file);
+    if (error) {
+      setMessage({ tone: "error", text: error });
+      return;
+    }
+
+    setSavingStep("profile-photo");
+    setMessage(null);
+
+    try {
+      const response = await studentOnboardingApi.uploadProfilePhoto(file);
+      hydrateProfile(response.data);
+      setMessage({ tone: "success", text: "Profile photo updated." });
+    } catch (error) {
+      setMessage({ tone: "error", text: formatApiError(error) });
+    } finally {
+      setSavingStep(null);
+    }
+  }
+
+  async function removeProfilePhoto() {
+    setSavingStep("profile-photo");
+    setMessage(null);
+
+    try {
+      const response = await studentOnboardingApi.deleteProfilePhoto();
+      hydrateProfile(response.data);
+      setMessage({ tone: "success", text: "Profile photo removed." });
+    } catch (error) {
+      setMessage({ tone: "error", text: formatApiError(error) });
+    } finally {
+      setSavingStep(null);
+    }
   }
 
   async function savePersonal(event: FormEvent<HTMLFormElement>) {
@@ -632,6 +693,7 @@ export function StudentOnboardingPage() {
 
   const completion = profile.completionPercentage;
   const accountName = profile.fullName;
+  const profilePhotoUrl = profile.profilePhotoUrl ? toApiFileUrl(profile.profilePhotoUrl) : "";
   const fieldClass = (field: string) => (validationErrors[field] ? "is-invalid" : undefined);
 
   return (
@@ -663,8 +725,42 @@ export function StudentOnboardingPage() {
       <section className="onboarding-shell">
         <aside className="onboarding-side">
           <div className="onboarding-account-card">
-            <div className="onboarding-avatar" aria-hidden="true">
-              {accountName.charAt(0).toUpperCase()}
+            <div className="onboarding-photo-block">
+              <div className={`onboarding-avatar ${profilePhotoUrl ? "has-photo" : ""}`}>
+                {profilePhotoUrl ? (
+                  <img src={profilePhotoUrl} alt={`${accountName} profile`} />
+                ) : (
+                  <span>{accountName.charAt(0).toUpperCase()}</span>
+                )}
+              </div>
+              <div className="onboarding-photo-actions">
+                <label className={`onboarding-photo-button ${savingStep === "profile-photo" ? "is-saving" : ""}`}>
+                  {savingStep === "profile-photo" ? <Loader2 className="spin" size={16} /> : <Camera size={16} />}
+                  Change photo
+                  <input
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={savingStep === "profile-photo"}
+                    type="file"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0] ?? null;
+                      event.target.value = "";
+                      void changeProfilePhoto(file);
+                    }}
+                  />
+                </label>
+                {profilePhotoUrl ? (
+                  <button
+                    className="onboarding-photo-remove"
+                    type="button"
+                    onClick={() => void removeProfilePhoto()}
+                    disabled={savingStep === "profile-photo"}
+                  >
+                    <X size={15} />
+                    Remove
+                  </button>
+                ) : null}
+                <small>JPG, PNG, or WebP up to 2 MB</small>
+              </div>
             </div>
             <div>
               <span className="eyebrow">Basic registration</span>

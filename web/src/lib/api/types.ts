@@ -23,4 +23,5 @@ export type RequestOptions = {
   body?: unknown;
   headers?: HeadersInit;
   accessToken?: string | null;
+  skipAuthRetry?: boolean;
 };

@@ -1,3 +1,4 @@
+import { env } from "../../../config/env";
 import { request } from "../../../lib/api/httpClient";
 import type {
   AdminUserResponse,
@@ -16,8 +17,51 @@ import type {
 } from "./authTypes";
 
 export const authApi = {
+  oauthStartUrl(
+    provider: "google",
+    options: {
+      returnUrl?: string;
+      acceptedTerms?: boolean;
+      allowSignUp?: boolean;
+      phoneNumber?: string;
+      rememberMe?: boolean;
+      termsVersion?: string;
+      privacyPolicyVersion?: string;
+      refundPolicyVersion?: string;
+    } = {}
+  ) {
+    const search = new URLSearchParams();
+    search.set("returnUrl", options.returnUrl ?? "/dashboard");
+    search.set("acceptedTerms", String(options.acceptedTerms ?? false));
+    search.set("allowSignUp", String(options.allowSignUp ?? false));
+    search.set("rememberMe", String(options.rememberMe ?? false));
+
+    if (options.phoneNumber) {
+      search.set("phoneNumber", options.phoneNumber);
+    }
+
+    if (options.termsVersion) {
+      search.set("termsVersion", options.termsVersion);
+    }
+
+    if (options.privacyPolicyVersion) {
+      search.set("privacyPolicyVersion", options.privacyPolicyVersion);
+    }
+
+    if (options.refundPolicyVersion) {
+      search.set("refundPolicyVersion", options.refundPolicyVersion);
+    }
+
+    return `${env.apiBaseUrl}/api/v1/auth/oauth/${provider}/start?${search.toString()}`;
+  },
+
   register(body: RegisterRequest) {
-    return request<RegisterResponse>("/api/v1/auth/register", { method: "POST", body });
+    return request<RegisterResponse>("/api/v1/auth/register", {
+      method: "POST",
+      body,
+      accessToken: null,
+      skipAuthRetry: true
+    });
   },
 
   login(body: {
@@ -26,11 +70,20 @@ export const authApi = {
     rememberMe: boolean;
     deviceName?: string;
   }) {
-    return request<AuthTokenResponse>("/api/v1/auth/login", { method: "POST", body });
+    return request<AuthTokenResponse>("/api/v1/auth/login", {
+      method: "POST",
+      body,
+      accessToken: null,
+      skipAuthRetry: true
+    });
   },
 
   refresh() {
-    return request<AuthTokenResponse>("/api/v1/auth/refresh", { method: "POST", accessToken: null });
+    return request<AuthTokenResponse>("/api/v1/auth/refresh", {
+      method: "POST",
+      accessToken: null,
+      skipAuthRetry: true
+    });
   },
 
   logout() {

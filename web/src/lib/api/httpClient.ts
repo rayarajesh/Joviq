@@ -14,6 +14,7 @@ export class ApiError extends Error {
 }
 
 let accessToken: string | null = null;
+let unauthorizedHandler: (() => Promise<string | null>) | null = null;
 
 export const tokenStore = {
   get: () => accessToken,
@@ -22,7 +23,15 @@ export const tokenStore = {
   }
 };
 
+export function setUnauthorizedHandler(handler: (() => Promise<string | null>) | null) {
+  unauthorizedHandler = handler;
+}
+
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
+  return send<T>(path, options, false);
+}
+
+async function send<T>(path: string, options: RequestOptions, hasRetried: boolean): Promise<ApiResponse<T>> {
   const headers = new Headers(options.headers);
   headers.set("Accept", "application/json");
 
@@ -52,6 +61,20 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   const payload = contentType.includes("application/json") ? await response.json() : null;
 
   if (!response.ok) {
+    if (
+      response.status === 401 &&
+      !hasRetried &&
+      !options.skipAuthRetry &&
+      options.accessToken !== null &&
+      token &&
+      unauthorizedHandler
+    ) {
+      const refreshedToken = await unauthorizedHandler();
+      if (refreshedToken) {
+        return send<T>(path, { ...options, accessToken: refreshedToken }, true);
+      }
+    }
+
     const problem = payload as ProblemDetails | null;
     const message = problem?.title ?? `Request failed with ${response.status}`;
     throw new ApiError(message, response.status, problem ?? undefined);

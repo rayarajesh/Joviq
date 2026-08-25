@@ -7,6 +7,7 @@ public sealed record StudentOnboardingResponse(
     string FullName,
     string Email,
     string? PhoneNumber,
+    string? ProfilePhotoUrl,
     bool EmailConfirmed,
     bool PhoneNumberConfirmed,
     string OnboardingStatus,
@@ -108,4 +109,10 @@ public sealed record SetResumeRequest
 
     [Range(1, 5 * 1024 * 1024)]
     public long ResumeSizeBytes { get; init; }
+}
+
+public sealed record SetProfilePhotoRequest
+{
+    [Required, MaxLength(500)]
+    public string ProfilePhotoUrl { get; init; } = string.Empty;
 }

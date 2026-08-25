@@ -10,6 +10,10 @@ public interface IStudentOnboardingService
 
     Task<StudentOnboardingResponse> UpdateCareerAsync(Guid userId, UpdateCareerDetailsRequest request, CancellationToken cancellationToken);
 
+    Task<StudentOnboardingResponse> SetProfilePhotoAsync(Guid userId, SetProfilePhotoRequest request, CancellationToken cancellationToken);
+
+    Task<StudentOnboardingResponse> DeleteProfilePhotoAsync(Guid userId, CancellationToken cancellationToken);
+
     Task<StudentOnboardingResponse> SetResumeAsync(Guid userId, SetResumeRequest request, CancellationToken cancellationToken);
 
     Task<StudentOnboardingResponse> DeleteResumeAsync(Guid userId, CancellationToken cancellationToken);

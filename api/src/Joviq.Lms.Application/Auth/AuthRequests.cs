@@ -38,10 +38,48 @@ public sealed record LoginRequest
     [Required, EmailAddress]
     public string Email { get; init; } = string.Empty;
 
-    [Required]
+    [Required, MaxLength(128)]
     public string Password { get; init; } = string.Empty;
 
     public bool RememberMe { get; init; }
+
+    [MaxLength(128)]
+    public string? DeviceName { get; init; }
+}
+
+public sealed record ExternalLoginRequest
+{
+    [Required, MaxLength(64)]
+    public string Provider { get; init; } = string.Empty;
+
+    [Required, MaxLength(256)]
+    public string ProviderKey { get; init; } = string.Empty;
+
+    [Required, EmailAddress, MaxLength(256)]
+    public string Email { get; init; } = string.Empty;
+
+    [MaxLength(160)]
+    public string? FullName { get; init; }
+
+    public bool EmailVerified { get; init; }
+
+    public bool RememberMe { get; init; } = true;
+
+    public bool AllowSignUp { get; init; }
+
+    public bool AcceptedTerms { get; init; }
+
+    [IndianMobileNumber, MaxLength(16)]
+    public string? PhoneNumber { get; init; }
+
+    [MaxLength(64)]
+    public string? TermsVersion { get; init; }
+
+    [MaxLength(64)]
+    public string? PrivacyPolicyVersion { get; init; }
+
+    [MaxLength(64)]
+    public string? RefundPolicyVersion { get; init; }
 
     [MaxLength(128)]
     public string? DeviceName { get; init; }

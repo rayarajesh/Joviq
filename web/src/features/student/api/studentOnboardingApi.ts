@@ -32,6 +32,22 @@ export const studentOnboardingApi = {
     });
   },
 
+  uploadProfilePhoto(file: File) {
+    const body = new FormData();
+    body.append("photo", file);
+
+    return request<StudentOnboardingResponse>("/api/v1/student/onboarding/profile-photo", {
+      method: "POST",
+      body
+    });
+  },
+
+  deleteProfilePhoto() {
+    return request<StudentOnboardingResponse>("/api/v1/student/onboarding/profile-photo", {
+      method: "DELETE"
+    });
+  },
+
   uploadResume(file: File) {
     const body = new FormData();
     body.append("resume", file);

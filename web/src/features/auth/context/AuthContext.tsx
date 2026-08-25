@@ -2,7 +2,9 @@ import { createContext, useCallback, useEffect, useMemo, useState } from "react"
 import type { ReactNode } from "react";
 import { authApi } from "../api/authApi";
 import type { AuthTokenResponse, UserSummary } from "../api/authTypes";
-import { tokenStore } from "../../../lib/api/httpClient";
+import { setUnauthorizedHandler, tokenStore } from "../../../lib/api/httpClient";
+
+let refreshInFlight: Promise<AuthTokenResponse> | null = null;
 
 type AuthContextValue = {
   accessToken: string | null;
@@ -45,9 +47,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const refresh = useCallback(async () => {
-    const response = await authApi.refresh();
-    applyAuthResponse(response.data);
-    return response.data;
+    refreshInFlight ??= authApi
+      .refresh()
+      .then((response) => {
+        applyAuthResponse(response.data);
+        return response.data;
+      })
+      .finally(() => {
+        refreshInFlight = null;
+      });
+
+    return refreshInFlight;
   }, [applyAuthResponse]);
 
   const loadMe = useCallback(async () => {
@@ -73,6 +83,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [clearAuth]);
 
   useEffect(() => {
+    setUnauthorizedHandler(async () => {
+      try {
+        const response = await refresh();
+        return response.accessToken ?? null;
+      } catch {
+        clearAuth();
+        return null;
+      }
+    });
+
+    return () => setUnauthorizedHandler(null);
+  }, [clearAuth, refresh]);
+
+  useEffect(() => {
+    if (window.location.pathname === "/auth/google/callback" || window.location.pathname === "/auth/callback") {
+      setIsBooting(false);
+      return;
+    }
+
     let mounted = true;
 
     refresh()

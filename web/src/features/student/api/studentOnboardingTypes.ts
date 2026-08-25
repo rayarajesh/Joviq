@@ -3,6 +3,7 @@ export type StudentOnboardingResponse = {
   fullName: string;
   email: string;
   phoneNumber?: string;
+  profilePhotoUrl?: string;
   emailConfirmed: boolean;
   phoneNumberConfirmed: boolean;
   onboardingStatus: string;

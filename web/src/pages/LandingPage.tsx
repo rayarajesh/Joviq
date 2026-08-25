@@ -9,10 +9,8 @@ import {
   BookOpenCheck,
   BriefcaseBusiness,
   Building2,
-  CalendarClock,
   CheckCircle2,
   ChevronRight,
-  ClipboardCheck,
   Code2,
   Cpu,
   Eye,
@@ -23,40 +21,28 @@ import {
   Lightbulb,
   LockKeyhole,
   MailCheck,
-  MapPin,
-  Menu,
-  MessageCircle,
   PhoneCall,
   RefreshCw,
   Search,
   Send,
   ShieldCheck,
   Sparkles,
-  Star,
   UserPlus,
   UsersRound,
-  X,
-  Zap
+  X
 } from "lucide-react";
 import { IndiaMobileInput } from "../components/IndiaMobileInput";
+import { PublicNavbar } from "../components/PublicNavbar";
 import { SiteFooter } from "../components/SiteFooter";
 import {
   allPrograms,
-  alumniCompanies,
-  hiringPartners,
   homeFaqs,
-  howItWorks,
-  keyStatistics,
-  mentors,
-  poweredBy,
   pricingPlans,
-  programCategories,
-  recognitions,
-  reviews,
-  successOutcomes
+  programCategories
 } from "../data/siteContent";
 import { authApi } from "../features/auth/api/authApi";
 import { useAuth } from "../features/auth/context/useAuth";
+import { isOAuthPopupMessage, normalizeOAuthReturnUrl, openOAuthPopup } from "../features/auth/oauthPopup";
 import { formatApiError } from "../lib/api/httpClient";
 import { toIndiaMobileNumber } from "../lib/validation/indiaMobile";
 
@@ -66,31 +52,129 @@ const emailPattern = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$";
 type AuthMessage = { tone: "success" | "error"; text: string } | null;
 type AuthMode = "login" | "register" | "verify-email" | "forgot-password" | "reset-password";
 
-const navItems = [
-  { label: "Home", href: "#home" },
-  { label: "Programs", href: "#programs" },
-  { label: "Features", href: "#features" },
-  { label: "Campus Ambassador", href: "#campus-ambassador" },
-  { label: "Reviews", href: "#reviews" },
-  { label: "Careers", href: "#careers" },
-  { label: "About Us", href: "#about" }
+const expertCompanies = ["Meta", "Apple", "Amazon", "Netflix", "Google", "Adobe", "Microsoft"];
+
+const enterpriseStack = [
+  "Cashfree Payments",
+  "Clerk",
+  "Google Cloud",
+  "Gemini",
+  "Meta",
+  "MongoDB",
+  "PostgreSQL",
+  "React"
 ];
 
-const projectHighlights = allPrograms
-  .flatMap((program) => program.projects.slice(0, 1).map((project) => ({ program: program.title, project })))
-  .slice(0, 8);
+const alumniWall = [
+  "Google",
+  "Amazon",
+  "NVIDIA",
+  "Accenture",
+  "Deloitte",
+  "Bosch",
+  "Jio",
+  "TCS",
+  "Tech Mahindra",
+  "Goldman Sachs",
+  "Oracle",
+  "Samsung",
+  "Infosys",
+  "Wipro",
+  "SAP",
+  "Capgemini",
+  "HCLTech",
+  "Cognizant",
+  "CGI",
+  "NTT DATA",
+  "Fractal",
+  "Publicis Sapient",
+  "Optum",
+  "Eurofins",
+  "Birlasoft",
+  "Rakuten",
+  "Societe Generale",
+  "ADP"
+];
+
+const outcomeStories = [
+  {
+    name: "Ananya Rao",
+    program: "CSE - 3rd Year",
+    badge: "Internship",
+    quote: "Portfolio and resume cleanup changed the way I explained my work.",
+    result: "Internship shortlist in 14 days"
+  },
+  {
+    name: "Ishita Sharma",
+    program: "IT - 4th Year",
+    badge: "Interview Win",
+    quote: "Rubric-based feedback taught me to explain projects with confidence.",
+    result: "Cracked 3 technical rounds"
+  },
+  {
+    name: "Karthik Iyer",
+    program: "ECE - Final Year",
+    badge: "Job Offer",
+    quote: "The interview became a walkthrough of the projects I had already built.",
+    result: "Offer after project deep-dive"
+  },
+  {
+    name: "Nikhil Shetty",
+    program: "Mechanical - 4th Year",
+    badge: "Interview Win",
+    quote: "I learned to present work with clarity and evidence.",
+    result: "Confidence in interview narration"
+  },
+  {
+    name: "Tanvi Joshi",
+    program: "CSE - Final Year",
+    badge: "Job Offer",
+    quote: "Expert reviews exposed weak spots before the real interview.",
+    result: "Converted final HR discussion"
+  },
+  {
+    name: "Sanjana Reddy",
+    program: "CSE - 3rd Year",
+    badge: "Internship",
+    quote: "Timed practice fixed my speed and project storytelling.",
+    result: "Shortlisted for internship tests"
+  }
+];
+
+const certificationProofs = [
+  "Outcome-based credential",
+  "Hiring trust built-in",
+  "Clean and shareable"
+];
+
+const roadmapSteps = ["Register", "Share goals", "Pick a program", "Payment & access", "Start learning"];
+
+function authModeFromHash(hash: string): AuthMode | null {
+  if (hash === "#auth-register" || hash === "#register") {
+    return "register";
+  }
+
+  if (hash === "#auth" || hash === "#auth-login" || hash === "#login") {
+    return "login";
+  }
+
+  return null;
+}
 
 export function LandingPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const auth = useAuth();
-  const [mode, setMode] = useState<AuthMode>("login");
+  const [mode, setMode] = useState<AuthMode>(() => authModeFromHash(location.hash) ?? "login");
   const [message, setMessage] = useState<AuthMessage>(null);
   const [pendingEmail, setPendingEmail] = useState("");
   const [pendingResetEmail, setPendingResetEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(location.hash === "#auth");
+  const [rememberMe, setRememberMe] = useState(false);
+  const [acceptedOAuthTerms, setAcceptedOAuthTerms] = useState(false);
+  const [oauthPhoneNumber, setOauthPhoneNumber] = useState("");
+  const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(authModeFromHash(location.hash) !== null);
+  const [isCallbackDialogOpen, setIsCallbackDialogOpen] = useState(false);
   const [heroParallax, setHeroParallax] = useState<Record<string, string>>({
     "--hero-bg-x": "50%",
     "--hero-bg-y": "50%",
@@ -130,12 +214,7 @@ export function LandingPage() {
     setMessage(null);
   }
 
-  function closeMenu() {
-    setIsMenuOpen(false);
-  }
-
   function scrollToAuth(nextMode: AuthMode) {
-    closeMenu();
     selectMode(nextMode);
     setIsAuthDialogOpen(true);
   }
@@ -146,10 +225,7 @@ export function LandingPage() {
   }
 
   function scrollToCallback() {
-    closeMenu();
-    window.requestAnimationFrame(() => {
-      document.getElementById("callback")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+    setIsCallbackDialogOpen(true);
   }
 
   function handleHeroPointerMove(event: MouseEvent<HTMLElement>) {
@@ -181,14 +257,103 @@ export function LandingPage() {
   }
 
   useEffect(() => {
-    if (location.hash === "#auth") {
-      selectMode("login");
+    const nextMode = authModeFromHash(location.hash);
+
+    if (nextMode) {
+      selectMode(nextMode);
       setIsAuthDialogOpen(true);
     }
   }, [location.hash]);
 
   useEffect(() => {
-    if (!isAuthDialogOpen) {
+    if (!location.hash || authModeFromHash(location.hash)) {
+      return;
+    }
+
+    const sectionId = decodeURIComponent(location.hash.slice(1));
+    const timer = window.setTimeout(() => {
+      document.getElementById(sectionId)?.scrollIntoView({ block: "start" });
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [location.hash]);
+
+  useEffect(() => {
+    const revealSelectors = [
+      ".site-hero__copy-block",
+      ".site-hero__dashboard",
+      ".program-search",
+      ".apt-section > .apt-pill",
+      ".apt-section h2",
+      ".apt-section p",
+      ".brand-grid strong",
+      ".recognition-stage > *",
+      ".official-partner",
+      ".process-stepper",
+      ".process-panel",
+      ".category-card",
+      ".outcome-story-grid article",
+      ".certificate-section > *",
+      ".pricing-grid article",
+      ".faq-showcase",
+      ".mini-split > *",
+      ".final-cta",
+      ".public-footer__top",
+      ".public-footer__grid"
+    ].join(",");
+
+    const elements = Array.from(document.querySelectorAll<HTMLElement>(revealSelectors));
+
+    if (!elements.length) {
+      return;
+    }
+
+    document.documentElement.classList.add("motion-ready");
+    elements.forEach((element, index) => {
+      element.classList.add("reveal-on-scroll");
+      element.style.setProperty("--reveal-delay", `${Math.min(index % 8, 6) * 55}ms`);
+    });
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { rootMargin: "0px 0px -12% 0px", threshold: 0.12 }
+    );
+
+    function isInsideViewport(element: HTMLElement) {
+      const rect = element.getBoundingClientRect();
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+
+      return rect.top < viewportHeight * 0.96 && rect.bottom > viewportHeight * 0.04;
+    }
+
+    elements.forEach((element) => {
+      if (isInsideViewport(element)) {
+        element.classList.add("is-visible");
+        return;
+      }
+
+      observer.observe(element);
+    });
+
+    return () => {
+      observer.disconnect();
+      elements.forEach((element) => {
+        element.classList.remove("reveal-on-scroll", "is-visible");
+        element.style.removeProperty("--reveal-delay");
+      });
+      document.documentElement.classList.remove("motion-ready");
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthDialogOpen && !isCallbackDialogOpen) {
       return;
     }
 
@@ -198,6 +363,7 @@ export function LandingPage() {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         closeAuthDialog();
+        setIsCallbackDialogOpen(false);
       }
     }
 
@@ -207,7 +373,7 @@ export function LandingPage() {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isAuthDialogOpen]);
+  }, [isAuthDialogOpen, isCallbackDialogOpen]);
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -221,7 +387,7 @@ export function LandingPage() {
       const response = await authApi.login({
         email,
         password: String(form.get("password") ?? ""),
-        rememberMe: true,
+        rememberMe: form.get("rememberMe") === "on",
         deviceName: "Joviq Web"
       });
 
@@ -232,6 +398,78 @@ export function LandingPage() {
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  function beginGoogleOAuth(allowSignUp: boolean) {
+    const phoneNumber = toIndiaMobileNumber(oauthPhoneNumber);
+
+    if (allowSignUp && !phoneNumber) {
+      setMessage({ tone: "error", text: "Phone must be a valid India +91 mobile number with exactly 10 digits." });
+      return;
+    }
+
+    if (allowSignUp && !acceptedOAuthTerms) {
+      setMessage({ tone: "error", text: "Terms and policies must be accepted." });
+      return;
+    }
+
+    const popup = openOAuthPopup(
+      authApi.oauthStartUrl("google", {
+        returnUrl: "/dashboard",
+        acceptedTerms: allowSignUp ? acceptedOAuthTerms : false,
+        allowSignUp,
+        phoneNumber: allowSignUp ? phoneNumber : undefined,
+        rememberMe,
+        termsVersion: policyVersion,
+        privacyPolicyVersion: policyVersion,
+        refundPolicyVersion: policyVersion
+      })
+    );
+
+    if (!popup) {
+      setMessage({ tone: "error", text: "Please allow pop-ups for this site to continue with Google." });
+      return;
+    }
+
+    setIsSubmitting(true);
+    setMessage({ tone: "success", text: "Complete Google sign-in in the popup window." });
+    popup.focus();
+
+    const popupClosedTimer = window.setInterval(() => {
+      if (popup.closed) {
+        window.clearInterval(popupClosedTimer);
+        window.removeEventListener("message", handleOAuthMessage);
+        setIsSubmitting(false);
+        setMessage({ tone: "error", text: "Google sign-in was closed before it finished." });
+      }
+    }, 600);
+
+    async function handleOAuthMessage(event: MessageEvent) {
+      if (!isOAuthPopupMessage(event)) {
+        return;
+      }
+
+      window.clearInterval(popupClosedTimer);
+      window.removeEventListener("message", handleOAuthMessage);
+
+      if (event.data.status === "error") {
+        setIsSubmitting(false);
+        setMessage({ tone: "error", text: event.data.error ?? "Google sign-in failed. Please try again." });
+        return;
+      }
+
+      try {
+        await auth.refresh();
+        closeAuthDialog();
+        navigate(normalizeOAuthReturnUrl(event.data.returnUrl));
+      } catch (error) {
+        setMessage({ tone: "error", text: formatApiError(error) });
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+
+    window.addEventListener("message", handleOAuthMessage);
   }
 
   async function handleRegister(event: FormEvent<HTMLFormElement>) {
@@ -385,61 +623,7 @@ export function LandingPage() {
 
   return (
     <main className="site-page">
-      <header className={`site-nav ${isMenuOpen ? "is-open" : ""}`}>
-        <a className="site-nav__brand" href="#home" onClick={closeMenu} aria-label="Joviq Technologies home">
-          <span className="site-nav__mark">
-            <Sparkles size={20} />
-          </span>
-          <span>
-            <strong>Joviq Technologies</strong>
-            <small>Website and LMS</small>
-          </span>
-        </a>
-
-        <nav className="site-nav__links" aria-label="Main menu">
-          {navItems.map((item) => (
-            <a key={item.href} href={item.href} onClick={closeMenu}>
-              {item.label}
-            </a>
-          ))}
-        </nav>
-
-        <div className="site-nav__actions">
-          <button type="button" onClick={() => scrollToAuth("login")}>
-            Login
-          </button>
-          <button className="is-primary" type="button" onClick={scrollToCallback}>
-            Request Callback
-          </button>
-        </div>
-
-        <button
-          className="site-nav__menu-button"
-          type="button"
-          aria-controls="site-mobile-menu"
-          aria-expanded={isMenuOpen}
-          aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
-          onClick={() => setIsMenuOpen((value) => !value)}
-        >
-          {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
-
-        <div id="site-mobile-menu" className="site-nav__mobile" aria-hidden={!isMenuOpen}>
-          {navItems.map((item) => (
-            <a key={item.href} href={item.href} onClick={closeMenu}>
-              {item.label}
-            </a>
-          ))}
-          <div className="site-nav__mobile-actions">
-            <button type="button" onClick={() => scrollToAuth("login")}>
-              Login
-            </button>
-            <button className="is-primary" type="button" onClick={scrollToCallback}>
-              Request Callback
-            </button>
-          </div>
-        </div>
-      </header>
+      <PublicNavbar />
 
       <section
         id="home"
@@ -453,50 +637,52 @@ export function LandingPage() {
           <div className="site-hero__copy-block">
             <div className="site-kicker">
               <Sparkles size={18} />
-              Industry-focused learning with real project outcomes
+              <span>Career-focused training / AI-powered LMS</span>
             </div>
-            <h1 id="site-title">Learn. Build. Get Certified. Get Hired.</h1>
+            <h1 id="site-title">Joviq Career Programs</h1>
             <p>
-              Industry-focused programs, real-time projects, expert mentors, AI assessments, certifications, and career
-              support for students and professionals.
+              Expert-led cohorts, AI-assisted checkpoints, mentor-reviewed projects, verified certifications, and
+              interview support for students and professionals.
             </p>
             <div className="site-hero__actions">
-              <a className="site-button site-button--primary" href="#programs">
+              <Link className="site-button site-button--primary" to="/programs">
                 Explore Programs <ArrowRight size={18} />
-              </a>
-              <button className="site-button site-button--light" type="button" onClick={scrollToCallback}>
-                Request Callback <PhoneCall size={18} />
-              </button>
-              <button className="site-button site-button--ghost" type="button" onClick={() => scrollToAuth("login")}>
+              </Link>
+              <Link className="site-button site-button--light" to="/request-callback">
+                Talk to Career Expert <PhoneCall size={18} />
+              </Link>
+              <Link className="site-button site-button--ghost" to="/login">
                 Login to LMS <LockKeyhole size={18} />
-              </button>
+              </Link>
             </div>
             <div className="site-hero__proof" aria-label="Website highlights">
-              <span>AI assessments</span>
-              <span>Expert mentors</span>
-              <span>Interview support</span>
+              <span>Expert-led cohorts</span>
+              <span>Internship-grade projects</span>
+              <span>Rubrics + certification</span>
             </div>
           </div>
 
           <div className="site-hero__dashboard" aria-hidden="true">
-            <div className="hero-dashboard-card hero-dashboard-card--main">
-              <div>
-                <span>Career Readiness</span>
-                <strong>92%</strong>
-              </div>
-              <div className="hero-progress">
-                <span style={{ width: "92%" }} />
+            <div className="hero-dashboard-card hero-dashboard-card--main hero-cohort-card">
+              <span>Next batch</span>
+              <strong>10 Sept</strong>
+              <small>Limited seats / live cohort</small>
+              <div className="hero-seat-meter">
+                <div>
+                  <span style={{ width: "68%" }} />
+                </div>
+                <small>12 seats left</small>
               </div>
             </div>
-            <div className="hero-dashboard-card">
-              <Lightbulb size={20} />
-              <strong>AI Assessment</strong>
-              <span>Adaptive quiz and project review</span>
-            </div>
-            <div className="hero-dashboard-card">
+            <div className="hero-dashboard-card hero-expert-card">
               <UsersRound size={20} />
-              <strong>Mentor Loop</strong>
-              <span>Weekly review and interview practice</span>
+              <strong>MAANG-style mentor loop</strong>
+              <span>Weekly reviews, portfolio fixes, and mock interviews.</span>
+            </div>
+            <div className="hero-dashboard-card hero-expert-card">
+              <Lightbulb size={20} />
+              <strong>AI practice engine</strong>
+              <span>Smart checkpoints, quizzes, and project feedback.</span>
             </div>
           </div>
         </div>
@@ -513,7 +699,7 @@ export function LandingPage() {
             <input
               value={programSearchQuery}
               onChange={(event) => setProgramSearchQuery(event.target.value)}
-              placeholder="Search Data Science, Generative AI, Full Stack, VLSI, Finance..."
+              placeholder="Search any Joviq program (AI, Full Stack, DevOps, Finance...)"
             />
           </label>
           <div className="program-search__results">
@@ -532,23 +718,134 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="site-section site-section--compact">
-        <div className="stat-strip">
-          {keyStatistics.map((stat) => (
-            <article key={stat.label}>
-              <strong>{stat.value}</strong>
-              <span>{stat.label}</span>
-            </article>
-          ))}
+      <section id="features" className="site-section apt-section apt-centered">
+        <span className="apt-pill">
+          <BriefcaseBusiness size={15} />
+          Expert Profile
+        </span>
+        <h2>
+          Learn from the <span>top 1% in the industry.</span>
+        </h2>
+        <p>Mentorship led by experienced engineers and operators from high-trust technology teams.</p>
+        <BrandGrid items={expertCompanies} tone="prime" />
+      </section>
+
+      <section id="about" className="apt-recognition">
+        <div className="apt-section apt-centered">
+          <span className="apt-pill apt-pill--dark">
+            <BadgeCheck size={15} />
+            Our Recognitions
+          </span>
+          <h2>
+            Trusted by the industry. <span>Recognized for outcomes.</span>
+          </h2>
+          <p>Project-first training, verified assessments, and quality-driven education services.</p>
+          <div className="recognition-stage">
+            <div className="certificate-sheet certificate-sheet--wide">
+              <span>Certificate of Recognition</span>
+              <strong>Joviq Technologies</strong>
+              <small>Project-first career learning model</small>
+            </div>
+            <div className="certificate-sheet">
+              <span>Quality Standard</span>
+              <strong>ISO Ready Process</strong>
+              <small>Review-driven learning operations</small>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section id="programs" className="site-section">
-        <SectionHeading
-          eyebrow="Program Categories"
-          title="Programs grouped by domain."
-          text="Choose a focused path in technology, core engineering, CAD, finance, marketing, analytics, or management."
-        />
+      <section className="site-section apt-section apt-centered">
+        <span className="apt-pill">
+          <Building2 size={15} />
+          Join the best
+        </span>
+        <h2>
+          Our <span>hiring partner</span>
+        </h2>
+        <p>Get connected with companies that trust structured curriculum and hire from reviewed talent pools.</p>
+        <div className="official-partner">OptimHire</div>
+      </section>
+
+      <section id="copilot" className="site-section apt-section apt-powered apt-centered">
+        <span className="apt-pill">
+          <ShieldCheck size={15} />
+          Powered by
+        </span>
+        <h2>
+          Enterprise-grade. <span>Secure & reliable.</span>
+        </h2>
+        <p>Built for stability, protected access, and uninterrupted learning workflows.</p>
+        <BrandGrid items={[...enterpriseStack, ...enterpriseStack]} tone="muted" />
+      </section>
+
+      <section className="site-section apt-section apt-process">
+        <div className="apt-centered">
+          <p className="process-note">Simple steps. Tight outcomes. Zero confusion.</p>
+          <Link className="site-button site-button--primary" to="/request-callback">
+            <PhoneCall size={18} />
+            Talk to Career Expert
+          </Link>
+        </div>
+        <div className="process-stepper">
+          {roadmapSteps.map((step, index) => (
+            <article key={step} className={index === 0 ? "is-active" : undefined}>
+              <span>{index + 1}</span>
+              <strong>{step}</strong>
+            </article>
+          ))}
+        </div>
+        <div className="process-panel">
+          <article>
+            <span className="apt-pill">
+              <UserPlus size={15} />
+              Step 01
+            </span>
+            <h3>Register</h3>
+            <ul>
+              <li>
+                <CheckCircle2 size={16} />
+                Quick signup
+              </li>
+              <li>
+                <CheckCircle2 size={16} />
+                No noise
+              </li>
+              <li>
+                <CheckCircle2 size={16} />
+                Start in minutes
+              </li>
+            </ul>
+          </article>
+          <article>
+            <span className="apt-pill">What happens here</span>
+            <h3>Create your account and set your starting point.</h3>
+            <div className="process-progress">
+              <span>Progress</span>
+              <strong>1/5</strong>
+              <div>
+                <span style={{ width: "20%" }} />
+              </div>
+            </div>
+            <div className="process-actions">
+              <button type="button">Back</button>
+              <button type="button">Next</button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="programs" className="site-section apt-section apt-programs">
+        <div className="apt-centered">
+          <span className="apt-pill">
+            <Layers3 size={15} />
+            Program Categories
+          </span>
+          <h2>
+            Choose a domain. <span>Build proof.</span>
+          </h2>
+          <p>Focused tracks across technology, core engineering, finance, marketing, analytics, and management.</p>
+        </div>
         <div className="category-grid">
           {programCategories.map((category) => (
             <article key={category.domain} className="category-card">
@@ -570,145 +867,124 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section id="features" className="site-section site-section--band">
-        <SectionHeading
-          eyebrow="Features"
-          title="A beautiful website connected to a serious LMS engine."
-          text="The public website sells the promise. The LMS dashboard manages users, learning activity, assessments, and access."
-        />
-        <div className="feature-grid">
-          <FeatureCard icon={<Layers3 size={24} />} title="Structured curriculum" text="Every program has overview, skills, curriculum, mode, assignments, assessment, certification, and outcomes." />
-          <FeatureCard icon={<UsersRound size={24} />} title="Expert mentors" text="Mentor review loops help learners improve project quality and explain their work confidently." />
-          <FeatureCard icon={<ClipboardCheck size={24} />} title="AI assessments" text="Quizzes, rubrics, and practical checkpoints keep learners aligned with career outcomes." />
-          <FeatureCard icon={<BriefcaseBusiness size={24} />} title="Career support" text="Resume reviews, mock interviews, project walkthroughs, and interview readiness tracking." />
-        </div>
+      <section className="site-section apt-section apt-alumni apt-centered">
+        <span className="apt-pill">
+          <GraduationCap size={15} />
+          Alumni Companies
+        </span>
+        <h2>
+          From Joviq to <span>top companies.</span>
+        </h2>
+        <p>Trust signals that matter: recognizable brands, reviewed projects, and real outcomes.</p>
+        <BrandGrid items={alumniWall} tone="logos" />
       </section>
 
-      <section className="site-section">
-        <SectionHeading
-          eyebrow="Expert Mentors"
-          title="Guided by people who know the work."
-          text="Mentors are organized around technology, core engineering, business, and career readiness."
-        />
-        <div className="mentor-grid">
-          {mentors.map((mentor) => (
-            <article key={mentor.name}>
+      <section id="reviews" className="site-section apt-section apt-outcomes apt-centered">
+        <span className="apt-pill">
+          <BookOpenCheck size={15} />
+          Interview-ready outcomes
+        </span>
+        <h2>
+          Internships that turn into <span>job offers.</span>
+        </h2>
+        <p>Strong projects, strict reviews, and interview practice that converts rounds.</p>
+        <Link className="site-button site-button--primary" to="/request-callback">
+          <PhoneCall size={18} />
+          Talk to Career Expert
+        </Link>
+        <div className="outcome-story-grid">
+          {outcomeStories.map((story) => (
+            <article key={story.name}>
               <div>
-                <GraduationCap size={24} />
+                <strong>{story.name}</strong>
+                <span>{story.program}</span>
+                <small>{story.badge}</small>
               </div>
-              <h3>{mentor.name}</h3>
-              <p>{mentor.role}</p>
+              <p>{story.quote}</p>
+              <footer>
+                <b>{story.result}</b>
+                <span>Verified</span>
+              </footer>
             </article>
           ))}
         </div>
       </section>
 
-      <section className="site-section site-section--split">
+      <section id="certifications" className="site-section apt-section certificate-section">
         <div>
-          <span className="site-eyebrow">Recognitions</span>
-          <h2>Built around skills that can be shown, reviewed, and discussed.</h2>
-        </div>
-        <div className="recognition-list">
-          {recognitions.map((item) => (
-            <article key={item}>
-              <BadgeCheck size={20} />
-              <span>{item}</span>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="site-section site-section--compact">
-        <LogoCloud title="Hiring Partners" items={hiringPartners} />
-      </section>
-
-      <section className="site-section site-section--compact">
-        <LogoCloud title="Technology / Powered By" items={poweredBy} />
-      </section>
-
-      <section className="site-section">
-        <SectionHeading
-          eyebrow="How It Works"
-          title="From program discovery to interview confidence."
-          text="A simple learning journey that keeps the learner moving toward portfolio and career readiness."
-        />
-        <div className="work-steps">
-          {howItWorks.map((step, index) => (
-            <article key={step.title}>
-              <strong>{String(index + 1).padStart(2, "0")}</strong>
-              <h3>{step.title}</h3>
-              <p>{step.text}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="site-section site-section--band">
-        <SectionHeading
-          eyebrow="Real-Time Projects"
-          title="Projects that make every program concrete."
-          text="Each program detail page includes 5 to 6 project examples. Here are sample outcomes across domains."
-        />
-        <div className="project-grid">
-          {projectHighlights.map((item) => (
-            <article key={`${item.program}-${item.project}`}>
-              <BookOpenCheck size={22} />
-              <strong>{item.project}</strong>
-              <span>{item.program}</span>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="site-section site-section--compact">
-        <LogoCloud title="Alumni Companies" items={alumniCompanies} />
-      </section>
-
-      <section className="site-section">
-        <SectionHeading
-          eyebrow="Student Success"
-          title="Interview outcomes are treated as part of the learning journey."
-          text="Learners practice the moments that matter: explaining projects, answering questions, and showing proof of skill."
-        />
-        <div className="outcome-grid">
-          {successOutcomes.map((outcome) => (
-            <article key={outcome}>
-              <CheckCircle2 size={20} />
-              <span>{outcome}</span>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="site-section site-section--split">
-        <div>
-          <span className="site-eyebrow">Certifications</span>
-          <h2>Certificates backed by projects, mentor reviews, and assessments.</h2>
+          <span className="apt-pill">
+            <Award size={15} />
+            Certification that signals proof
+          </span>
+          <h2>
+            Get certified. <span>Get hired.</span>
+          </h2>
           <p>
-            Completion is linked to real-time projects, assignments, assessment scores, and interview preparation
-            milestones.
+            Your certificate is tied to real deliverables, projects, expert checks, and rubric-based evaluation.
           </p>
+          <div className="proof-pills">
+            <span>Expert-reviewed</span>
+            <span>Rubric-scored</span>
+            <span>Shareable proof</span>
+          </div>
+          <div className="credential-list">
+            {certificationProofs.map((proof) => (
+              <article key={proof}>
+                <CheckCircle2 size={18} />
+                <div>
+                  <strong>{proof}</strong>
+                  <span>Issued after rubrics, project review, and mentor approval.</span>
+                </div>
+              </article>
+            ))}
+          </div>
+          <Link className="site-button site-button--primary" to="/request-callback">
+            <PhoneCall size={18} />
+            Talk to Career Expert
+          </Link>
         </div>
-        <div className="certificate-preview">
-          <Award size={46} />
-          <span>Joviq Technologies</span>
-          <strong>Career Program Certification</strong>
-          <small>Project reviewed - Assessment completed - Interview ready</small>
+        <div className="certificate-preview-card">
+          <span>Certificate Preview</span>
+          <strong>Training + expert-led cohort completion</strong>
+          <div className="certificate-document">
+            <small>Joviq Technologies</small>
+            <h3>Certificate of Training</h3>
+            <p>Issued for successful completion of project-based career learning.</p>
+            <div />
+          </div>
+          <footer>
+            <span>Training</span>
+            <span>Internship</span>
+            <span>Excellence</span>
+          </footer>
         </div>
       </section>
 
-      <section id="pricing" className="site-section">
-        <SectionHeading
-          eyebrow="Pricing"
-          title="Flexible pricing for foundation learning and career tracks."
-          text="Use pricing cards as a guide. Final program pricing can vary by duration, batch, and mentorship level."
-        />
+      <section id="pricing" className="site-section apt-section apt-centered">
+        <span className="apt-pill">
+          <Award size={15} />
+          Pricing
+        </span>
+        <h2>
+          Launch pricing. <span>Proven outcomes.</span>
+        </h2>
+        <p>Cohort seats are limited. Plans are built around projects, evaluations, and hiring readiness.</p>
         <div className="pricing-grid">
           {pricingPlans.map((plan) => (
             <article key={plan.name} className={plan.name === "Career Track" ? "is-featured" : undefined}>
               <span>{plan.name}</span>
               <h3>{plan.price}</h3>
               <p>{plan.description}</p>
+              <div className="pricing-meta">
+                <small>Next batch: 05 Sept</small>
+                <small>Limited slots</small>
+              </div>
+              <div className="pricing-actions">
+                <Link to="/request-callback">Proceed to Pay</Link>
+                <Link to="/request-callback">
+                  Talk to Career Expert
+                </Link>
+              </div>
               <ul>
                 {plan.features.map((feature) => (
                   <li key={feature}>
@@ -722,66 +998,17 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section id="reviews" className="site-section site-section--band">
-        <SectionHeading
-          eyebrow="Reviews"
-          title="Learners remember the project feedback."
-          text="Showcase student experience, interview confidence, and practical program outcomes."
-        />
-        <div className="review-grid">
-          {reviews.map((review) => (
-            <article key={review.name}>
-              <div className="review-stars" aria-label="Five star review">
-                {Array.from({ length: 5 }).map((_, index) => (
-                  <Star key={index} size={16} />
-                ))}
-              </div>
-              <p>{review.quote}</p>
-              <strong>{review.name}</strong>
-              <span>{review.program}</span>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section id="campus-ambassador" className="site-section site-section--split">
-        <div>
-          <span className="site-eyebrow">Campus Ambassador</span>
-          <h2>Represent Joviq in your college and grow with the community.</h2>
-          <p>
-            Campus ambassadors help conduct awareness drives, workshops, referral campaigns, and student learning
-            communities.
-          </p>
-        </div>
-        <div className="campus-panel">
-          <FeatureCard icon={<MessageCircle size={24} />} title="Community leadership" text="Host learning circles, program talks, and career readiness sessions." />
-          <FeatureCard icon={<Award size={24} />} title="Recognition" text="Earn certificates, recommendations, and performance-linked rewards." />
-        </div>
-      </section>
-
-      <section id="careers" className="site-section site-section--band">
-        <SectionHeading
-          eyebrow="Careers"
-          title="Join the team building practical career education."
-          text="Joviq can showcase mentor, trainer, counselor, business development, and operations openings here."
-        />
-        <div className="career-grid">
-          {["Mentor / Trainer", "Career Counselor", "Business Development Executive", "LMS Operations Associate"].map((role) => (
-            <article key={role}>
-              <BriefcaseBusiness size={22} />
-              <strong>{role}</strong>
-              <span>Open for driven people who care about learner outcomes.</span>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section id="faq" className="site-section">
-        <SectionHeading
-          eyebrow="FAQ"
-          title="Questions before you enroll."
-          text="Clear answers for learners, parents, colleges, and career switchers."
-        />
+      <section id="faq" className="site-section faq-showcase">
+        <aside>
+          <span>Got questions?</span>
+          <h2>Questions & Answers</h2>
+          <p>Clear answers on programs, projects, certificates, and career support.</p>
+          <div>
+            <span>Expert-led cohorts</span>
+            <span>Portfolio-grade projects</span>
+            <span>1-year content access</span>
+          </div>
+        </aside>
         <div className="faq-grid">
           {homeFaqs.map((faq) => (
             <details key={faq.question}>
@@ -792,57 +1019,19 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section id="about" className="site-section site-section--split">
-        <div>
-          <span className="site-eyebrow">About Us</span>
-          <h2>Joviq Technologies helps learners move from classroom knowledge to career proof.</h2>
-          <p>
-            The website presents programs, outcomes, mentors, reviews, pricing, and callback journeys. The LMS powers
-            authentication, role-based dashboards, user management, and future learning workflows.
-          </p>
-        </div>
-        <div className="about-list">
-          <article>
-            <MapPin size={20} />
-            <span>India-focused programs with global-ready project practice.</span>
-          </article>
-          <article>
-            <ShieldCheck size={20} />
-            <span>Admin, mentor, and student experiences separated with secure roles.</span>
-          </article>
-          <article>
-            <Zap size={20} />
-            <span>Built to grow into a full content-managed LMS website.</span>
-          </article>
-        </div>
-      </section>
-
       <span id="auth" className="auth-anchor" aria-hidden="true" />
       <section id="callback" className="site-section final-cta">
         <div>
-          <span className="site-eyebrow">Final CTA</span>
-          <h2>Ready to choose your program?</h2>
-          <p>Request a callback, compare programs, or login to continue your LMS journey.</p>
+          <span className="apt-pill apt-pill--dark">Next step</span>
+          <h2>Ready for real upskilling?</h2>
+          <p>You will train on real projects, learn how to position your work, and get evaluated through a project-first learning program.</p>
           <div className="final-cta__actions">
-            <a className="site-button site-button--primary" href="#programs">
-              Explore Programs <ArrowRight size={18} />
-            </a>
-            <button className="site-button site-button--light" type="button" onClick={() => scrollToAuth("login")}>
-              Login to LMS
-            </button>
-          </div>
-        </div>
-        <div className="final-cta__forms">
-          <CallbackForm />
-          <div className="final-cta__showcase" aria-hidden="true">
-            <span>Live LMS Preview</span>
-            <strong>Student path</strong>
-            <div>
-              <span style={{ width: "86%" }} />
-              <span style={{ width: "72%" }} />
-              <span style={{ width: "94%" }} />
-            </div>
-            <small>Program selected - Mentor assigned - Interview prep active</small>
+            <Link className="site-button site-button--primary" to="/request-callback">
+              Talk to Career Expert <PhoneCall size={18} />
+            </Link>
+            <Link className="site-button site-button--light" to="/login">
+              Need support? <ArrowRight size={18} />
+            </Link>
           </div>
         </div>
       </section>
@@ -869,9 +1058,24 @@ export function LandingPage() {
           <AuthTabs mode={mode} selectMode={selectMode} />
 
           {mode === "login" ? (
-            <LoginForm isSubmitting={isSubmitting} onSubmit={handleLogin} onForgot={() => selectMode("forgot-password")} />
+            <LoginForm
+              isSubmitting={isSubmitting}
+              rememberMe={rememberMe}
+              onRememberMeChange={setRememberMe}
+              onSubmit={handleLogin}
+              onForgot={() => selectMode("forgot-password")}
+              onGoogle={() => beginGoogleOAuth(false)}
+            />
           ) : mode === "register" ? (
-            <RegisterForm isSubmitting={isSubmitting} onSubmit={handleRegister} />
+            <RegisterForm
+              isSubmitting={isSubmitting}
+              oauthPhoneNumber={oauthPhoneNumber}
+              acceptedOAuthTerms={acceptedOAuthTerms}
+              onOAuthPhoneChange={setOauthPhoneNumber}
+              onAcceptedOAuthTermsChange={setAcceptedOAuthTerms}
+              onSubmit={handleRegister}
+              onGoogle={() => beginGoogleOAuth(true)}
+            />
           ) : mode === "verify-email" ? (
             <VerifyEmailForm
               isSubmitting={isSubmitting}
@@ -894,6 +1098,8 @@ export function LandingPage() {
           {message ? <div className={`auth-message auth-message--${message.tone}`}>{message.text}</div> : null}
         </div>
       </AuthDialog>
+
+      <CallbackDialog isOpen={isCallbackDialogOpen} onClose={() => setIsCallbackDialogOpen(false)} />
     </main>
   );
 }
@@ -983,6 +1189,43 @@ function LogoCloud({ title, items }: { title: string; items: string[] }) {
   );
 }
 
+function BrandGrid({ items, tone }: { items: string[]; tone: "prime" | "muted" | "logos" }) {
+  return (
+    <div className={`brand-grid brand-grid--${tone}`}>
+      {items.map((item, index) => (
+        <strong key={`${item}-${index}`}>{item}</strong>
+      ))}
+    </div>
+  );
+}
+
+function CallbackDialog({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <div className="callback-dialog" role="presentation" onMouseDown={onClose}>
+      <section
+        className="callback-dialog__panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="callback-dialog-title"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <button className="callback-dialog__close" type="button" onClick={onClose} aria-label="Close callback dialog">
+          <X size={18} />
+        </button>
+        <div className="callback-dialog__header">
+          <h2 id="callback-dialog-title">Get your best-fit program roadmap</h2>
+          <p>Share a few details. We will suggest the most relevant track.</p>
+        </div>
+        <CallbackForm />
+      </section>
+    </div>
+  );
+}
+
 function CallbackForm() {
   const [message, setMessage] = useState<AuthMessage>(null);
 
@@ -1004,31 +1247,27 @@ function CallbackForm() {
   return (
     <form className="callback-card" onSubmit={handleSubmit}>
       <div>
-        <span className="site-eyebrow">Request Callback</span>
-        <h3>Talk to a program advisor</h3>
+        <span className="site-eyebrow">Talk to Career Expert</span>
+        <h3>Get a personal roadmap</h3>
       </div>
       <label>
         Full name
         <input name="fullName" placeholder="Your name" required />
       </label>
-      <label>
-        Email
-        <input
-          name="email"
-          type="email"
-          autoComplete="email"
-          maxLength={256}
-          pattern={emailPattern}
-          placeholder="name@example.com"
-          required
-        />
-      </label>
       <IndiaMobileInput label="Phone" name="phoneNumber" required />
       <label>
-        Interested program
+        College / university
+        <input name="college" placeholder="College / university name" />
+      </label>
+      <label>
+        State
+        <input name="state" placeholder="State" />
+      </label>
+      <label>
+        Department / program interest
         <select name="program" defaultValue="">
           <option value="" disabled>
-            Select a program
+            Select a track
           </option>
           {allPrograms.map((program) => (
             <option key={program.slug} value={program.title}>
@@ -1071,17 +1310,27 @@ function AuthTabs({ mode, selectMode }: { mode: AuthMode; selectMode: (mode: Aut
 
 function LoginForm({
   isSubmitting,
+  rememberMe,
+  onRememberMeChange,
   onSubmit,
-  onForgot
+  onForgot,
+  onGoogle
 }: {
   isSubmitting: boolean;
+  rememberMe: boolean;
+  onRememberMeChange: (value: boolean) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onForgot: () => void;
+  onGoogle: () => void;
 }) {
   return (
     <form className="auth-form" onSubmit={onSubmit}>
       <h2>Login to LMS</h2>
       <p>Continue to your Joviq dashboard.</p>
+      <OAuthButton isSubmitting={isSubmitting} onClick={onGoogle} />
+      <div className="auth-divider">
+        <span>or</span>
+      </div>
       <label>
         Email
         <input name="email" type="email" autoComplete="email" maxLength={256} pattern={emailPattern} required />
@@ -1089,6 +1338,15 @@ function LoginForm({
       <label>
         Password
         <PasswordInput name="password" autoComplete="current-password" required />
+      </label>
+      <label className="checkbox-row">
+        <input
+          name="rememberMe"
+          type="checkbox"
+          checked={rememberMe}
+          onChange={(event) => onRememberMeChange(event.currentTarget.checked)}
+        />
+        <span>Keep me signed in on this device.</span>
       </label>
       <button type="submit" disabled={isSubmitting}>
         {isSubmitting ? "Signing in" : "Login to dashboard"}
@@ -1103,15 +1361,45 @@ function LoginForm({
 
 function RegisterForm({
   isSubmitting,
-  onSubmit
+  oauthPhoneNumber,
+  acceptedOAuthTerms,
+  onOAuthPhoneChange,
+  onAcceptedOAuthTermsChange,
+  onSubmit,
+  onGoogle
 }: {
   isSubmitting: boolean;
+  oauthPhoneNumber: string;
+  acceptedOAuthTerms: boolean;
+  onOAuthPhoneChange: (value: string) => void;
+  onAcceptedOAuthTermsChange: (value: boolean) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onGoogle: () => void;
 }) {
   return (
     <form className="auth-form" onSubmit={onSubmit}>
       <h2>Create student account</h2>
       <p>Register and verify your email OTP.</p>
+      <div className="auth-oauth-signup">
+        <IndiaMobileInput
+          label="Phone number for Google sign-up"
+          name="oauthPhoneNumber"
+          value={oauthPhoneNumber}
+          onChange={(event) => onOAuthPhoneChange(event.currentTarget.value)}
+        />
+        <label className="checkbox-row">
+          <input
+            type="checkbox"
+            checked={acceptedOAuthTerms}
+            onChange={(event) => onAcceptedOAuthTermsChange(event.currentTarget.checked)}
+          />
+          <span>I accept the terms, privacy policy, and refund policy.</span>
+        </label>
+        <OAuthButton isSubmitting={isSubmitting} onClick={onGoogle} />
+      </div>
+      <div className="auth-divider">
+        <span>or</span>
+      </div>
       <label>
         Full name
         <input name="fullName" required />
@@ -1123,11 +1411,11 @@ function RegisterForm({
       <IndiaMobileInput label="Phone number" name="phoneNumber" required />
       <label>
         Password
-        <PasswordInput name="password" autoComplete="new-password" placeholder="Student@123" required />
+        <PasswordInput name="password" autoComplete="new-password" placeholder="Student@123" enforceComplexity required />
       </label>
       <label>
         Confirm password
-        <PasswordInput name="confirmPassword" autoComplete="new-password" placeholder="Student@123" required />
+        <PasswordInput name="confirmPassword" autoComplete="new-password" placeholder="Student@123" enforceComplexity required />
       </label>
       <label className="checkbox-row">
         <input name="acceptedTerms" type="checkbox" required />
@@ -1138,6 +1426,15 @@ function RegisterForm({
         <ArrowRight size={18} />
       </button>
     </form>
+  );
+}
+
+function OAuthButton({ isSubmitting, onClick }: { isSubmitting: boolean; onClick: () => void }) {
+  return (
+    <button className="auth-secondary-button auth-oauth-button" type="button" onClick={onClick} disabled={isSubmitting}>
+      <ShieldCheck size={18} />
+      Continue with Google
+    </button>
   );
 }
 
@@ -1231,11 +1528,11 @@ function ResetPasswordForm({
       </label>
       <label>
         New password
-        <PasswordInput name="newPassword" autoComplete="new-password" placeholder="Student@123" required />
+        <PasswordInput name="newPassword" autoComplete="new-password" placeholder="Student@123" enforceComplexity required />
       </label>
       <label>
         Confirm new password
-        <PasswordInput name="confirmPassword" autoComplete="new-password" placeholder="Student@123" required />
+        <PasswordInput name="confirmPassword" autoComplete="new-password" placeholder="Student@123" enforceComplexity required />
       </label>
       <button type="submit" disabled={isSubmitting || !pendingResetEmail}>
         {isSubmitting ? "Resetting" : "Reset password"}
@@ -1256,11 +1553,13 @@ function PasswordInput({
   name,
   autoComplete,
   placeholder,
+  enforceComplexity = false,
   required
 }: {
   name: string;
   autoComplete?: string;
   placeholder?: string;
+  enforceComplexity?: boolean;
   required?: boolean;
 }) {
   const [isVisible, setIsVisible] = useState(false);
@@ -1273,8 +1572,13 @@ function PasswordInput({
         autoComplete={autoComplete}
         minLength={8}
         maxLength={128}
+        pattern={enforceComplexity ? "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9]).{8,128}$" : undefined}
         placeholder={placeholder}
-        title="Password must be at least 8 characters."
+        title={
+          enforceComplexity
+            ? "Password must be 8-128 characters and include uppercase, lowercase, number, and symbol."
+            : "Password must be at least 8 characters."
+        }
         required={required}
       />
       <button type="button" onClick={() => setIsVisible((value) => !value)} title="Show or hide password">

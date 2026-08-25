@@ -11,14 +11,12 @@ import {
   ClipboardCheck,
   GraduationCap,
   Layers3,
-  Menu,
   PhoneCall,
   Send,
-  Sparkles,
-  UserPlus,
-  X
+  UserPlus
 } from "lucide-react";
 import { IndiaMobileInput } from "../components/IndiaMobileInput";
+import { PublicNavbar } from "../components/PublicNavbar";
 import { SiteFooter } from "../components/SiteFooter";
 import { allPrograms, findProgramBySlug } from "../data/siteContent";
 import { toIndiaMobileNumber } from "../lib/validation/indiaMobile";
@@ -26,25 +24,14 @@ import { toIndiaMobileNumber } from "../lib/validation/indiaMobile";
 const emailPattern = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$";
 type FormMessage = { tone: "success" | "error"; text: string } | null;
 
-const navItems = [
-  { label: "Home", href: "/#home" },
-  { label: "Programs", href: "/#programs" },
-  { label: "Features", href: "/#features" },
-  { label: "Campus Ambassador", href: "/#campus-ambassador" },
-  { label: "Reviews", href: "/#reviews" },
-  { label: "Careers", href: "/#careers" },
-  { label: "About Us", href: "/#about" }
-];
-
 export function ProgramDetailsPage() {
   const { slug } = useParams();
   const program = findProgramBySlug(slug);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   if (!program) {
     return (
       <main className="program-detail-page">
-        <ProgramNav isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
+        <PublicNavbar />
         <section className="program-not-found">
           <span className="site-eyebrow">Program not found</span>
           <h1>Choose a program from the catalog.</h1>
@@ -64,39 +51,62 @@ export function ProgramDetailsPage() {
 
   return (
     <main className="program-detail-page">
-      <ProgramNav isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
+      <PublicNavbar />
 
       <section className="program-hero">
         <div className="program-hero__content">
-          <Link className="program-back-link" to="/#programs">
-            <ArrowLeft size={17} />
-            All programs
-          </Link>
-          <span className="site-eyebrow">{program.domain}</span>
-          <h1>{program.title}</h1>
-          <p>{program.shortDescription}</p>
-          <div className="program-hero__meta">
-            <span>
-              <CalendarClock size={17} />
-              {program.duration}
-            </span>
-            <span>
-              <GraduationCap size={17} />
-              {program.level}
-            </span>
-            <span>
-              <Award size={17} />
-              {program.certification}
-            </span>
+          <div className="program-hero__copy">
+            <Link className="program-back-link" to="/programs">
+              <ArrowLeft size={17} />
+              All programs
+            </Link>
+            <span className="site-eyebrow">{program.domain}</span>
+            <h1>{program.title}</h1>
+            <p>{program.shortDescription}</p>
+            <div className="program-hero__meta">
+              <span>
+                <CalendarClock size={17} />
+                {program.duration}
+              </span>
+              <span>
+                <GraduationCap size={17} />
+                {program.level}
+              </span>
+              <span>
+                <Award size={17} />
+                {program.certification}
+              </span>
+            </div>
+            <div className="program-hero__actions">
+              <a className="site-button site-button--primary" href="#enroll">
+                Enroll Now <ArrowRight size={18} />
+              </a>
+              <Link className="site-button site-button--light" to="/request-callback">
+                Talk to Career Expert <PhoneCall size={18} />
+              </Link>
+            </div>
           </div>
-          <div className="program-hero__actions">
-            <a className="site-button site-button--primary" href="#enroll">
-              Enroll Now <ArrowRight size={18} />
-            </a>
-            <a className="site-button site-button--light" href="/#callback">
-              Request Callback <PhoneCall size={18} />
-            </a>
-          </div>
+
+          <aside className="program-hero__card" aria-label="Program summary">
+            <span>Expert-led + LMS</span>
+            <strong>Next cohort</strong>
+            <div className="program-hero__date">10 Sept</div>
+            <div className="program-hero__card-grid">
+              <small>
+                <b>{program.curriculum.length}</b>
+                Modules
+              </small>
+              <small>
+                <b>{program.projects.length}</b>
+                Projects
+              </small>
+              <small>
+                <b>1 Year</b>
+                LMS access
+              </small>
+            </div>
+            <p>Includes curriculum roadmap, rubrics, projects, certification, and career support.</p>
+          </aside>
         </div>
       </section>
 
@@ -123,7 +133,7 @@ export function ProgramDetailsPage() {
       </section>
 
       <section className="program-section">
-        <ProgramHeading eyebrow="Real-Time Projects" title="Build practical projects for your portfolio." />
+        <ProgramHeading eyebrow="Project Blueprints" title="Build practical projects for your portfolio." />
         <div className="program-project-grid">
           {program.projects.map((project, index) => (
             <article key={project}>
@@ -180,70 +190,6 @@ export function ProgramDetailsPage() {
 
       <SiteFooter />
     </main>
-  );
-}
-
-function ProgramNav({
-  isMenuOpen,
-  setIsMenuOpen
-}: {
-  isMenuOpen: boolean;
-  setIsMenuOpen: (value: boolean | ((value: boolean) => boolean)) => void;
-}) {
-  function closeMenu() {
-    setIsMenuOpen(false);
-  }
-
-  return (
-    <header className={`site-nav program-nav ${isMenuOpen ? "is-open" : ""}`}>
-      <Link className="site-nav__brand" to="/#home" onClick={closeMenu} aria-label="Joviq Technologies home">
-        <span className="site-nav__mark">
-          <Sparkles size={20} />
-        </span>
-        <span>
-          <strong>Joviq Technologies</strong>
-          <small>Website and LMS</small>
-        </span>
-      </Link>
-      <nav className="site-nav__links" aria-label="Main menu">
-        {navItems.map((item) => (
-          <Link key={item.href} to={item.href} onClick={closeMenu}>
-            {item.label}
-          </Link>
-        ))}
-      </nav>
-      <div className="site-nav__actions">
-        <Link to="/#auth">Login</Link>
-        <Link className="is-primary" to="/#callback">
-          Request Callback
-        </Link>
-      </div>
-      <button
-        className="site-nav__menu-button"
-        type="button"
-        aria-controls="program-mobile-menu"
-        aria-expanded={isMenuOpen}
-        aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
-        onClick={() => setIsMenuOpen((value) => !value)}
-      >
-        {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
-      </button>
-      <div id="program-mobile-menu" className="site-nav__mobile" aria-hidden={!isMenuOpen}>
-        {navItems.map((item) => (
-          <Link key={item.href} to={item.href} onClick={closeMenu}>
-            {item.label}
-          </Link>
-        ))}
-        <div className="site-nav__mobile-actions">
-          <Link to="/#auth" onClick={closeMenu}>
-            Login
-          </Link>
-          <Link className="is-primary" to="/#callback" onClick={closeMenu}>
-            Request Callback
-          </Link>
-        </div>
-      </div>
-    </header>
   );
 }
 

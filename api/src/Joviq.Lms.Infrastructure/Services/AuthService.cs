@@ -12,12 +12,12 @@ using Joviq.Lms.Infrastructure.Persistence;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Joviq.Lms.Infrastructure.Services;
 
 public sealed class AuthService(
     UserManager<ApplicationUser> userManager,
-    SignInManager<ApplicationUser> signInManager,
     ApplicationDbContext dbContext,
     IJwtTokenService jwtTokenService,
     IRefreshTokenService refreshTokenService,
@@ -25,7 +25,8 @@ public sealed class AuthService(
     IEmailSender emailSender,
     ISmsSender smsSender,
     IDateTimeProvider clock,
-    IDataProtectionProvider dataProtectionProvider) : IAuthService
+    IDataProtectionProvider dataProtectionProvider,
+    ILogger<AuthService> logger) : IAuthService
 {
     private readonly IDataProtector _resetProtector = dataProtectionProvider.CreateProtector("joviq-lms-password-reset-v1");
 
@@ -87,17 +88,24 @@ public sealed class AuthService(
             metadata.IpAddress,
             cancellationToken);
 
-        await emailSender.SendAsync(
-            email,
-            "Verify your Joviq LMS account",
-            $"Your Joviq Technologies verification OTP is <strong>{code}</strong>. It expires soon.",
-            cancellationToken);
-
         AddAudit(user.Id, "EmailVerificationRequested", user.Email, user.PhoneNumber, metadata);
         await dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
-        return new RegisterResponse(user.Id, EmailVerificationRequired: true, PhoneVerificationRequired: true);
+        try
+        {
+            await emailSender.SendAsync(
+                email,
+                "Verify your Joviq LMS account",
+                $"Your Joviq Technologies verification OTP is <strong>{code}</strong>. It expires soon.",
+                cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(exception, "Failed to send registration verification email for user {UserId}.", user.Id);
+        }
+
+        return new RegisterResponse(user.Id, EmailVerificationRequired: true, PhoneVerificationRequired: false);
     }
 
     public async Task<AuthTokenResponse> LoginAsync(LoginRequest request, RequestMetadata metadata, CancellationToken cancellationToken)
@@ -111,20 +119,128 @@ public sealed class AuthService(
             throw new AppException("Invalid email or password.", 401, "invalid_credentials");
         }
 
-        EnsureCanLogin(user);
-
-        var result = await signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
-        if (!result.Succeeded)
+        if (await userManager.IsLockedOutAsync(user))
         {
+            AddAudit(user.Id, "LoginFailed", user.Email, user.PhoneNumber, metadata, new { reason = "locked_out" });
+            await dbContext.SaveChangesAsync(cancellationToken);
+            throw new AppException("Invalid email or password.", 401, "invalid_credentials");
+        }
+
+        if (!await userManager.CheckPasswordAsync(user, request.Password))
+        {
+            EnsureIdentitySucceeded(await userManager.AccessFailedAsync(user));
             AddAudit(user.Id, "LoginFailed", user.Email, user.PhoneNumber, metadata, new { reason = "bad_password" });
             await dbContext.SaveChangesAsync(cancellationToken);
             throw new AppException("Invalid email or password.", 401, "invalid_credentials");
         }
 
+        EnsureIdentitySucceeded(await userManager.ResetAccessFailedCountAsync(user));
+        EnsureCanLogin(user);
+
         user.LastLoginAt = clock.UtcNow;
         AddAudit(user.Id, "LoginSucceeded", user.Email, user.PhoneNumber, metadata);
 
         return await IssueTokenPairAsync(user, request.RememberMe, metadata with { DeviceName = request.DeviceName ?? metadata.DeviceName }, cancellationToken);
+    }
+
+    public async Task<AuthTokenResponse> ExternalLoginAsync(ExternalLoginRequest request, RequestMetadata metadata, CancellationToken cancellationToken)
+    {
+        var provider = NormalizeProvider(request.Provider);
+        var providerKey = request.ProviderKey.Trim();
+        var email = NormalizeEmail(request.Email);
+
+        if (string.IsNullOrWhiteSpace(providerKey))
+        {
+            throw new AppException("OAuth provider user id is missing.", 400, "external_provider_key_missing");
+        }
+
+        if (!request.EmailVerified)
+        {
+            throw new AppException("OAuth provider did not verify the email address.", 403, "external_email_not_verified");
+        }
+
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+        var user = await userManager.FindByLoginAsync(provider, providerKey);
+        if (user is null)
+        {
+            user = await userManager.FindByEmailAsync(email);
+
+            if (user is null)
+            {
+                if (!request.AllowSignUp)
+                {
+                    throw new AppException("No linked Google account was found. Please register first.", 401, "external_account_not_found");
+                }
+
+                if (!request.AcceptedTerms)
+                {
+                    throw new AppException("Terms and policies must be accepted.", 400, "terms_required");
+                }
+
+                var phone = NormalizeIndianPhone(request.PhoneNumber ?? string.Empty);
+                if (await dbContext.Users.AnyAsync(x => x.PhoneNumber == phone, cancellationToken))
+                {
+                    throw new AppException("Phone number is already registered.", 409, "phone_exists");
+                }
+
+                user = new ApplicationUser
+                {
+                    Id = Guid.NewGuid(),
+                    FullName = BuildExternalFullName(request),
+                    UserName = email,
+                    Email = email,
+                    PhoneNumber = phone,
+                    EmailConfirmed = true,
+                    AccountStatus = AccountStatus.Active,
+                    OnboardingStatus = OnboardingStatus.NotStarted
+                };
+
+                EnsureIdentitySucceeded(await userManager.CreateAsync(user));
+                EnsureIdentitySucceeded(await userManager.AddToRoleAsync(user, RoleNames.Student));
+
+                dbContext.UserConsents.Add(new UserConsent
+                {
+                    UserId = user.Id,
+                    TermsVersion = NormalizePolicyVersion(request.TermsVersion),
+                    PrivacyPolicyVersion = NormalizePolicyVersion(request.PrivacyPolicyVersion),
+                    RefundPolicyVersion = NormalizePolicyVersion(request.RefundPolicyVersion),
+                    AcceptedAt = clock.UtcNow,
+                    IpAddress = metadata.IpAddress,
+                    UserAgent = metadata.UserAgent
+                });
+
+                dbContext.StudentProfiles.Add(new StudentProfile { UserId = user.Id });
+                AddAudit(user.Id, "UserRegistered", user.Email, user.PhoneNumber, metadata, new { method = "oauth", provider });
+            }
+            else if (!user.EmailConfirmed)
+            {
+                user.EmailConfirmed = true;
+                if (user.AccountStatus == AccountStatus.PendingEmailVerification)
+                {
+                    user.AccountStatus = AccountStatus.Active;
+                }
+
+                AddAudit(user.Id, "EmailVerified", user.Email, user.PhoneNumber, metadata, new { method = "oauth", provider });
+            }
+
+            EnsureIdentitySucceeded(await userManager.AddLoginAsync(user, new UserLoginInfo(provider, providerKey, provider)));
+            AddAudit(user.Id, "ExternalLoginLinked", user.Email, user.PhoneNumber, metadata, new { provider });
+        }
+
+        EnsureCanLogin(user);
+
+        user.LastLoginAt = clock.UtcNow;
+        AddAudit(user.Id, "LoginSucceeded", user.Email, user.PhoneNumber, metadata, new { method = "oauth", provider });
+
+        var result = await IssueTokenPairAsync(
+            user,
+            request.RememberMe,
+            metadata with { DeviceName = request.DeviceName ?? metadata.DeviceName ?? $"{provider} OAuth" },
+            cancellationToken);
+
+        await transaction.CommitAsync(cancellationToken);
+        return result;
     }
 
     public async Task<AuthTokenResponse> RefreshAsync(string? refreshToken, RequestMetadata metadata, CancellationToken cancellationToken)
@@ -418,6 +534,7 @@ public sealed class AuthService(
             user.Email ?? string.Empty,
             user.EmailConfirmed,
             user.PhoneNumber,
+            user.ProfilePhotoUrl,
             user.PhoneNumberConfirmed,
             roles.ToList(),
             user.AccountStatus.ToString(),
@@ -505,6 +622,43 @@ public sealed class AuthService(
     private static string NormalizeEmail(string email)
     {
         return email.Trim().ToLowerInvariant();
+    }
+
+    private static string NormalizeProvider(string provider)
+    {
+        if (provider.Equals("Google", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Google";
+        }
+
+        throw new AppException("Unsupported OAuth provider.", 400, "unsupported_oauth_provider");
+    }
+
+    private static string BuildExternalFullName(ExternalLoginRequest request)
+    {
+        var fullName = request.FullName?.Trim();
+        if (!string.IsNullOrWhiteSpace(fullName))
+        {
+            return Truncate(fullName, 160);
+        }
+
+        var emailName = request.Email.Split('@', 2)[0]
+            .Replace('.', ' ')
+            .Replace('_', ' ')
+            .Replace('-', ' ')
+            .Trim();
+
+        return string.IsNullOrWhiteSpace(emailName) ? "Joviq Learner" : Truncate(emailName, 160);
+    }
+
+    private static string NormalizePolicyVersion(string? version)
+    {
+        return string.IsNullOrWhiteSpace(version) ? "oauth" : Truncate(version.Trim(), 64);
+    }
+
+    private static string Truncate(string value, int maxLength)
+    {
+        return value.Length <= maxLength ? value : value[..maxLength];
     }
 
     private static string NormalizeIndianPhone(string phone)

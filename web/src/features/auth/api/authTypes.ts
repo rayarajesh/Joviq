@@ -40,6 +40,7 @@ export type UserSummary = {
   email: string;
   emailConfirmed: boolean;
   phoneNumber?: string;
+  profilePhotoUrl?: string;
   phoneNumberConfirmed: boolean;
   roles: RoleName[];
   accountStatus: string;

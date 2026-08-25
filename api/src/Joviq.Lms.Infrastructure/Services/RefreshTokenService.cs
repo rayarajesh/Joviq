@@ -52,6 +52,12 @@ public sealed class RefreshTokenService(
 
         if (session.RevokedAt is not null)
         {
+            if (session.RevocationReason == "Rotated refresh token." &&
+                session.RevokedAt >= clock.UtcNow.AddSeconds(-30))
+            {
+                throw new AppException("Refresh token was already rotated.", 401, "refresh_token_already_rotated");
+            }
+
             await RevokeTokenFamilyAsync(session.RefreshTokenFamilyId, metadata.IpAddress, "Refresh token reuse detected.", cancellationToken);
             throw new AppException("Refresh token reuse detected. Please login again.", 401, "refresh_token_reuse");
         }

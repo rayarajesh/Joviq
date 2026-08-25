@@ -13,6 +13,7 @@ public sealed record UserSummaryResponse(
     string Email,
     bool EmailConfirmed,
     string? PhoneNumber,
+    string? ProfilePhotoUrl,
     bool PhoneNumberConfirmed,
     IReadOnlyList<string> Roles,
     string AccountStatus,
