@@ -88,6 +88,8 @@ public interface ILmsPortalService
 
     Task<IReadOnlyList<ProgramSummaryResponse>> GetAdminProgramsAsync(CancellationToken cancellationToken);
 
+    Task<ProgramDetailsResponse> GetAdminProgramAsync(Guid programId, CancellationToken cancellationToken);
+
     Task<ProgramDetailsResponse> CreateProgramAsync(CreateProgramRequest request, CancellationToken cancellationToken);
 
     Task<ProgramDetailsResponse> UpdateProgramAsync(Guid programId, UpdateProgramRequest request, CancellationToken cancellationToken);

@@ -1095,6 +1095,21 @@ public sealed class LmsPortalService(
         return GetProgramsAsync(new ProgramListRequest { IncludeDrafts = true }, cancellationToken);
     }
 
+    public async Task<ProgramDetailsResponse> GetAdminProgramAsync(Guid programId, CancellationToken cancellationToken)
+    {
+        var program = await dbContext.LearningPrograms
+            .AsNoTracking()
+            .Include(x => x.Category)
+            .Include(x => x.Plans)
+            .Include(x => x.Modules.OrderBy(module => module.SortOrder))
+                .ThenInclude(x => x.Lessons.OrderBy(lesson => lesson.SortOrder))
+                    .ThenInclude(x => x.Resources)
+            .FirstOrDefaultAsync(x => x.Id == programId, cancellationToken)
+            ?? throw new AppException("Program was not found.", 404, "program_not_found");
+
+        return await LoadAdminProgramDetailsAsync(program, cancellationToken);
+    }
+
     public async Task<ProgramDetailsResponse> CreateProgramAsync(
         CreateProgramRequest request,
         CancellationToken cancellationToken)
@@ -1111,6 +1126,7 @@ public sealed class LmsPortalService(
         program.SortOrder = await dbContext.LearningPrograms.CountAsync(x => x.CategoryId == request.CategoryId, cancellationToken) + 1;
 
         dbContext.LearningPrograms.Add(program);
+        AddDefaultProgramPlans(program);
         Audit("Admin.ProgramCreated", new { program.Id, program.Title, program.Slug, program.CategoryId, program.Status });
         await dbContext.SaveChangesAsync(cancellationToken);
         return await GetProgramBySlugForAdminAsync(program.Slug, cancellationToken);
@@ -2048,6 +2064,13 @@ public sealed class LmsPortalService(
             .FirstOrDefaultAsync(x => x.Slug == slug, cancellationToken)
             ?? throw new AppException("Program was not found.", 404, "program_not_found");
 
+        return await LoadAdminProgramDetailsAsync(program, cancellationToken);
+    }
+
+    private async Task<ProgramDetailsResponse> LoadAdminProgramDetailsAsync(
+        LearningProgram program,
+        CancellationToken cancellationToken)
+    {
         var projects = await dbContext.Projects.AsNoTracking().Where(x => x.ProgramId == program.Id).ToListAsync(cancellationToken);
         var assignments = await dbContext.Assignments.AsNoTracking().Where(x => x.ProgramId == program.Id).ToListAsync(cancellationToken);
         var assessments = await dbContext.Assessments.AsNoTracking().Where(x => x.ProgramId == program.Id).ToListAsync(cancellationToken);
@@ -2492,6 +2515,69 @@ public sealed class LmsPortalService(
             coupon.IsActive,
             coupon.StartsAt,
             coupon.ExpiresAt);
+    }
+
+    private static void AddDefaultProgramPlans(LearningProgram program)
+    {
+        var plans = new[]
+        {
+            new
+            {
+                Name = "Self-Paced",
+                Code = "SELF",
+                ActualPrice = 7999m,
+                OfferPrice = 3999m,
+                Features = new[]
+                {
+                    "Recorded Classes", "Complete Curriculum", "Assignments", "Projects",
+                    "Assessments", "LMS Access", "Certificate", "Basic Support"
+                }
+            },
+            new
+            {
+                Name = "Intermediate",
+                Code = "INTERMEDIATE",
+                ActualPrice = 9999m,
+                OfferPrice = 4999m,
+                Features = new[]
+                {
+                    "Live Sessions", "Mentor Support", "Project Reviews", "AI Assessment",
+                    "AI Interview", "Resume Review", "Interview Preparation", "Priority Support"
+                }
+            },
+            new
+            {
+                Name = "Master",
+                Code = "MASTER",
+                ActualPrice = 14999m,
+                OfferPrice = 9999m,
+                Features = new[]
+                {
+                    "Personal Mentor", "Additional Live Sessions", "Advanced Project Reviews", "Portfolio Development",
+                    "Resume Optimization", "Mock Interviews", "Technical Interview Preparation", "HR Interview Preparation",
+                    "Career / Placement Assistance", "Priority Support"
+                }
+            }
+        };
+
+        for (var index = 0; index < plans.Length; index++)
+        {
+            var plan = plans[index];
+            program.Plans.Add(new ProgramPlan
+            {
+                Id = Guid.NewGuid(),
+                ProgramId = program.Id,
+                Program = program,
+                Name = plan.Name,
+                Code = plan.Code,
+                ActualPrice = plan.ActualPrice,
+                OfferPrice = plan.OfferPrice,
+                ReserveAmount = 999m,
+                FeaturesJson = SerializeList(plan.Features),
+                IsActive = true,
+                SortOrder = index + 1
+            });
+        }
     }
 
     private static void ApplyProgramRequest(LearningProgram program, CreateProgramRequest request)

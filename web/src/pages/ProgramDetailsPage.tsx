@@ -1,4 +1,5 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -9,183 +10,289 @@ import {
   CalendarClock,
   CheckCircle2,
   ClipboardCheck,
+  Code2,
+  FolderKanban,
   GraduationCap,
-  Layers3,
+  Headphones,
+  Laptop,
   PhoneCall,
   Send,
-  UserPlus
+  ShieldCheck,
+  Sparkles,
+  Target,
+  UserPlus,
+  UsersRound,
+  Video,
+  WalletCards
 } from "lucide-react";
 import { IndiaMobileInput } from "../components/IndiaMobileInput";
 import { PublicNavbar } from "../components/PublicNavbar";
 import { SiteFooter } from "../components/SiteFooter";
-import { allPrograms, findProgramBySlug } from "../data/siteContent";
+import { allPrograms, defaultProgramPlans, findProgramBySlug } from "../data/siteContent";
+import type { Program, ProgramPlan } from "../data/siteContent";
+import { getProgramImage } from "../data/programVisuals";
+import { publicLmsApi } from "../features/lms/api/lmsApi";
+import type { ProgramDetailsResponse } from "../features/lms/api/lmsTypes";
 import { toIndiaMobileNumber } from "../lib/validation/indiaMobile";
 
 const emailPattern = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$";
 type FormMessage = { tone: "success" | "error"; text: string } | null;
 
+type DetailItem = { title: string; text: string };
+type CurriculumItem = DetailItem & { lessons: string[] };
+type ProjectItem = DetailItem & { artifacts: string[] };
+
+type ProgramViewModel = {
+  slug: string;
+  title: string;
+  domain: string;
+  shortDescription: string;
+  overview: string;
+  audience: string[];
+  skills: string[];
+  curriculum: CurriculumItem[];
+  duration: string;
+  mode: string;
+  mentor: string;
+  projects: ProjectItem[];
+  assignments: DetailItem[];
+  assessments: DetailItem[];
+  certification: string;
+  outcomes: string[];
+  interviewPrep: string[];
+  plans: ProgramPlan[];
+  faqs: { question: string; answer: string }[];
+  level: string;
+};
+
 export function ProgramDetailsPage() {
   const { slug } = useParams();
-  const program = findProgramBySlug(slug);
+  const localProgram = findProgramBySlug(slug);
+  const [remoteProgram, setRemoteProgram] = useState<ProgramDetailsResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(!localProgram);
+  const [selectedPlanCode, setSelectedPlanCode] = useState("INTERMEDIATE");
 
-  if (!program) {
+  useEffect(() => {
+    if (!slug) {
+      setIsLoading(false);
+      return;
+    }
+
+    let isCurrent = true;
+    setRemoteProgram(null);
+    setIsLoading(!localProgram);
+
+    void publicLmsApi
+      .getProgram(slug)
+      .then((response) => {
+        if (isCurrent) setRemoteProgram(response.data);
+      })
+      .catch(() => {
+        // Static catalog content keeps public pages available while the local API is offline.
+      })
+      .finally(() => {
+        if (isCurrent) setIsLoading(false);
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [localProgram, slug]);
+
+  const program = useMemo(() => buildProgramViewModel(localProgram, remoteProgram), [localProgram, remoteProgram]);
+
+  useEffect(() => {
+    if (!program?.plans.some((plan) => plan.code === selectedPlanCode)) {
+      setSelectedPlanCode(program?.plans[0]?.code ?? "INTERMEDIATE");
+    }
+  }, [program, selectedPlanCode]);
+
+  if (!program && isLoading) {
     return (
-      <main className="program-detail-page">
+      <main className="program-detail-page program-detail-v2">
         <PublicNavbar />
-        <section className="program-not-found">
-          <span className="site-eyebrow">Program not found</span>
-          <h1>Choose a program from the catalog.</h1>
-          <p>The program URL does not match the current Joviq catalog.</p>
-          <div className="program-suggestion-grid">
-            {allPrograms.slice(0, 6).map((item) => (
-              <Link key={item.slug} to={`/programs/${item.slug}`}>
-                {item.title}
-              </Link>
-            ))}
-          </div>
-        </section>
-        <SiteFooter />
+        <section className="pd-loading" aria-live="polite"><span /><strong>Loading program details</strong></section>
       </main>
     );
   }
 
+  if (!program) return <ProgramNotFound />;
+
+  const heroImage = getProgramImage(program.slug, program.domain);
+
+  function choosePlan(planCode: string) {
+    setSelectedPlanCode(planCode);
+    document.getElementById("enroll")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   return (
-    <main className="program-detail-page">
+    <main className="program-detail-page program-detail-v2">
       <PublicNavbar />
 
-      <section className="program-hero">
-        <div className="program-hero__content">
-          <div className="program-hero__copy">
-            <Link className="program-back-link" to="/programs">
-              <ArrowLeft size={17} />
-              All programs
-            </Link>
-            <span className="site-eyebrow">{program.domain}</span>
-            <h1>{program.title}</h1>
+      <section className="pd-hero" aria-labelledby="program-detail-title">
+        <img alt="" aria-hidden="true" className="pd-hero__image" src={heroImage} />
+        <div className="pd-hero__veil" aria-hidden="true" />
+        <div className="pd-hero__content">
+          <div className="pd-hero__copy">
+            <Link className="pd-back-link" to="/programs"><ArrowLeft size={17} /> All programs</Link>
+            <span className="pd-kicker"><Sparkles size={15} /> {program.domain}</span>
+            <h1 id="program-detail-title">{program.title}</h1>
             <p>{program.shortDescription}</p>
-            <div className="program-hero__meta">
-              <span>
-                <CalendarClock size={17} />
-                {program.duration}
-              </span>
-              <span>
-                <GraduationCap size={17} />
-                {program.level}
-              </span>
-              <span>
-                <Award size={17} />
-                {program.certification}
-              </span>
-            </div>
-            <div className="program-hero__actions">
-              <a className="site-button site-button--primary" href="#enroll">
-                Enroll Now <ArrowRight size={18} />
-              </a>
-              <Link className="site-button site-button--light" to="/request-callback">
-                Talk to Career Expert <PhoneCall size={18} />
-              </Link>
+            <div className="pd-hero__actions">
+              <a className="site-button site-button--primary" href="#pricing">Compare plans <ArrowRight size={18} /></a>
+              <Link className="site-button pd-button--glass" to="/request-callback">Talk to an expert <PhoneCall size={18} /></Link>
             </div>
           </div>
 
-          <aside className="program-hero__card" aria-label="Program summary">
-            <span>Expert-led + LMS</span>
-            <strong>Next cohort</strong>
-            <div className="program-hero__date">10 Sept</div>
-            <div className="program-hero__card-grid">
-              <small>
-                <b>{program.curriculum.length}</b>
-                Modules
-              </small>
-              <small>
-                <b>{program.projects.length}</b>
-                Projects
-              </small>
-              <small>
-                <b>1 Year</b>
-                LMS access
-              </small>
+          <div className="pd-hero__metrics" aria-label="Program highlights">
+            <Metric icon={<CalendarClock size={18} />} label="Duration" value={program.duration} />
+            <Metric icon={<Laptop size={18} />} label="Learning mode" value={program.mode} />
+            <Metric icon={<FolderKanban size={18} />} label="Portfolio work" value={`${program.projects.length} projects`} />
+            <Metric icon={<Award size={18} />} label="Outcome" value="Verified certificate" />
+          </div>
+        </div>
+      </section>
+
+      <nav className="pd-anchor-nav" aria-label="Program page sections">
+        <div>
+          <a href="#overview">Overview</a><a href="#skills">Skills</a><a href="#curriculum">Curriculum</a>
+          <a href="#projects">Projects</a><a href="#certification">Certification</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a>
+        </div>
+      </nav>
+
+      <section className="pd-section pd-overview" id="overview">
+        <div className="pd-section-heading">
+          <span>Program overview</span>
+          <h2>Build capability you can demonstrate, not just describe.</h2>
+        </div>
+        <div className="pd-overview__body">
+          <div className="pd-overview__statement">
+            <p>{program.overview}</p>
+            <div className="pd-overview__facts">
+              <span><CalendarClock size={18} /><small>Duration</small><strong>{program.duration}</strong></span>
+              <span><Video size={18} /><small>Learning mode</small><strong>{program.mode}</strong></span>
+              <span><GraduationCap size={18} /><small>Level</small><strong>{program.level}</strong></span>
+              <span><UsersRound size={18} /><small>Mentor</small><strong>Expert reviewed</strong></span>
             </div>
-            <p>Includes curriculum roadmap, rubrics, projects, certification, and career support.</p>
+          </div>
+          <aside className="pd-audience">
+            <div><UserPlus size={22} /><h3>Who should join</h3></div>
+            <ul>{program.audience.map((item) => <li key={item}><CheckCircle2 size={17} /> {item}</li>)}</ul>
           </aside>
         </div>
       </section>
 
-      <section className="program-overview-band">
-        <article>
-          <span className="site-eyebrow">Program Overview</span>
-          <h2>{program.overview}</h2>
-        </article>
-        <article>
-          <span className="site-eyebrow">Learning Mode</span>
-          <p>{program.mode}</p>
-        </article>
-        <article>
-          <span className="site-eyebrow">Mentor</span>
-          <p>{program.mentor}</p>
-        </article>
+      <section className="pd-skill-band" id="skills">
+        <div className="pd-skill-band__intro">
+          <span className="pd-kicker"><Code2 size={15} /> Skills you will learn</span>
+          <h2>A focused toolkit for real project work.</h2>
+          <p>Each skill is reinforced through assignments, assessments, and portfolio evidence.</p>
+        </div>
+        <div className="pd-skill-band__grid">
+          {program.skills.map((skill, index) => <span key={skill}><small>{String(index + 1).padStart(2, "0")}</small><strong>{skill}</strong></span>)}
+        </div>
       </section>
 
-      <section className="program-detail-grid">
-        <DetailPanel title="Who Should Join" icon={<UserPlus size={22} />} items={program.audience} />
-        <DetailPanel title="Skills You Will Learn" icon={<BadgeCheck size={22} />} items={program.skills} />
-        <DetailPanel title="Curriculum" icon={<Layers3 size={22} />} items={program.curriculum} />
-        <DetailPanel title="Assignments" icon={<ClipboardCheck size={22} />} items={program.assignments} />
-      </section>
-
-      <section className="program-section">
-        <ProgramHeading eyebrow="Project Blueprints" title="Build practical projects for your portfolio." />
-        <div className="program-project-grid">
-          {program.projects.map((project, index) => (
-            <article key={project}>
-              <strong>{String(index + 1).padStart(2, "0")}</strong>
-              <BookOpenCheck size={22} />
-              <h3>{project}</h3>
+      <section className="pd-section pd-curriculum" id="curriculum">
+        <div className="pd-section-heading pd-section-heading--split">
+          <div><span>Curriculum</span><h2>A clear path from foundations to career proof.</h2></div>
+          <p>{program.curriculum.length} structured modules with lessons, practice checkpoints, and reviewed outputs.</p>
+        </div>
+        <div className="pd-curriculum__list">
+          {program.curriculum.map((module, index) => (
+            <article key={module.title}>
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <div><h3>{module.title}</h3><p>{module.text}</p></div>
+              <ul>{module.lessons.map((lesson) => <li key={lesson}><BookOpenCheck size={15} /> {lesson}</li>)}</ul>
             </article>
           ))}
         </div>
       </section>
 
-      <section className="program-detail-grid">
-        <DetailPanel title="Assessments" icon={<CheckCircle2 size={22} />} items={program.assessments} />
-        <DetailPanel title="Career Outcomes" icon={<Award size={22} />} items={program.outcomes} />
-        <DetailPanel title="Interview Preparation" icon={<GraduationCap size={22} />} items={program.interviewPrep} />
-        <article className="program-panel program-panel--price">
-          <span className="site-eyebrow">Pricing</span>
-          <h3>{program.pricing}</h3>
-          <p>Includes guided learning, assignments, projects, assessment, certification, and career preparation.</p>
-        </article>
-      </section>
-
-      <section className="program-section">
-        <ProgramHeading eyebrow="Certification" title={program.certification} />
-        <div className="program-certificate-row">
-          <Award size={42} />
-          <div>
-            <strong>Joviq Technologies certification</strong>
-            <span>Issued after project completion, assignment review, assessment performance, and mentor approval.</span>
-          </div>
+      <section className="pd-projects" id="projects">
+        <div className="pd-projects__head">
+          <span className="pd-kicker"><FolderKanban size={15} /> Real-time projects</span>
+          <h2>Graduate with work worth opening in an interview.</h2>
+          <p>Every project includes clear deliverables, mentor review, and talking points for your portfolio.</p>
+        </div>
+        <div className="pd-projects__grid">
+          {program.projects.map((project, index) => (
+            <article key={project.title}>
+              <header><span>{String(index + 1).padStart(2, "0")}</span><BookOpenCheck size={21} /></header>
+              <h3>{project.title}</h3><p>{project.text}</p>
+              <div>{project.artifacts.slice(0, 3).map((artifact) => <small key={artifact}>{artifact}</small>)}</div>
+            </article>
+          ))}
         </div>
       </section>
 
-      <section className="program-section">
-        <ProgramHeading eyebrow="FAQ" title="Common questions about this program." />
-        <div className="faq-grid">
-          {program.faqs.map((faq) => (
-            <details key={faq.question}>
-              <summary>{faq.question}</summary>
-              <p>{faq.answer}</p>
+      <section className="pd-section pd-practice">
+        <div className="pd-section-heading"><span>Practice and evaluation</span><h2>Frequent checkpoints make progress visible.</h2></div>
+        <div className="pd-practice__grid">
+          <PracticeColumn icon={<ClipboardCheck size={23} />} items={program.assignments} title="Assignments" />
+          <PracticeColumn icon={<Target size={23} />} items={program.assessments} title="Assessments" />
+        </div>
+      </section>
+
+      <section className="pd-credential" id="certification">
+        <div className="pd-credential__mentor">
+          <span className="pd-kicker"><UsersRound size={15} /> Expert mentorship</span>
+          <h2>Review from someone who understands the work.</h2><p>{program.mentor}</p>
+          <div><Headphones size={20} /><span>Live guidance, project reviews, doubt support, and interview feedback.</span></div>
+        </div>
+        <div className="pd-credential__certificate">
+          <header><Award size={30} /><span>Verified achievement</span></header><small>Joviq Technologies</small>
+          <h3>{program.certification}</h3>
+          <p>Issued after the required projects, assignments, and assessments are successfully completed.</p>
+          <footer><ShieldCheck size={20} /><strong>Project-backed credential</strong></footer>
+        </div>
+      </section>
+
+      <section className="pd-section pd-career">
+        <div className="pd-career__outcomes">
+          <span>Career outcomes</span><h2>Know where this program can take you.</h2>
+          <div>{program.outcomes.map((outcome) => <strong key={outcome}><ArrowRight size={17} /> {outcome}</strong>)}</div>
+        </div>
+        <div className="pd-career__interview">
+          <span>Interview preparation</span><h3>Practice explaining the decisions behind your work.</h3>
+          <ul>{program.interviewPrep.map((item) => <li key={item}><BadgeCheck size={17} /> {item}</li>)}</ul>
+        </div>
+      </section>
+
+      <section className="pd-pricing" id="pricing">
+        <div className="pd-pricing__head">
+          <span className="pd-kicker"><WalletCards size={15} /> Program plans</span>
+          <h2>Choose the support level that fits your goal.</h2>
+          <p>Every plan provides structured learning and certification. Upgrade when you want deeper review and career support.</p>
+        </div>
+        <div className="pd-pricing__grid">
+          {program.plans.map((plan) => <PlanCard key={plan.code} onChoose={() => choosePlan(plan.code)} plan={plan} />)}
+        </div>
+        {remoteProgram ? <p className="pd-pricing__admin-note"><ShieldCheck size={15} /> Prices and features are managed per program from the Admin Panel.</p> : null}
+      </section>
+
+      <section className="pd-section pd-faq" id="faq">
+        <div className="pd-section-heading pd-section-heading--split">
+          <div><span>FAQ</span><h2>Questions before you enroll.</h2></div>
+          <p>Clear answers about eligibility, projects, certification, and career support.</p>
+        </div>
+        <div className="pd-faq__grid">
+          {program.faqs.map((faq, index) => (
+            <details key={faq.question} open={index === 0}>
+              <summary>{faq.question}<span>+</span></summary><p>{faq.answer}</p>
             </details>
           ))}
         </div>
       </section>
 
-      <section id="enroll" className="program-enroll-section">
-        <div>
-          <span className="site-eyebrow">Enroll Now</span>
-          <h2>Start your {program.title} journey.</h2>
-          <p>Send an enrollment request and the Joviq team can guide you through batch, pricing, and next steps.</p>
+      <section className="pd-enroll" id="enroll">
+        <div className="pd-enroll__copy">
+          <span className="pd-kicker"><Send size={15} /> Enroll now</span><h2>Start your {program.title} journey.</h2>
+          <p>Choose your plan and share your details. The Joviq team will confirm the batch, payment, and onboarding steps.</p>
+          <div><CheckCircle2 size={18} /> No hidden plan features</div><div><CheckCircle2 size={18} /> Guided onboarding</div>
+          <div><CheckCircle2 size={18} /> Secure LMS access</div>
         </div>
-        <EnrollForm programTitle={program.title} />
+        <EnrollForm onPlanChange={setSelectedPlanCode} plans={program.plans} programTitle={program.title} selectedPlanCode={selectedPlanCode} />
       </section>
 
       <SiteFooter />
@@ -193,34 +300,46 @@ export function ProgramDetailsPage() {
   );
 }
 
-function ProgramHeading({ eyebrow, title }: { eyebrow: string; title: string }) {
-  return (
-    <div className="program-heading">
-      <span className="site-eyebrow">{eyebrow}</span>
-      <h2>{title}</h2>
-    </div>
-  );
+function Metric({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  return <span>{icon}<small>{label}</small><strong>{value}</strong></span>;
 }
 
-function DetailPanel({ title, icon, items }: { title: string; icon: React.ReactNode; items: string[] }) {
+function PracticeColumn({ icon, items, title }: { icon: ReactNode; items: DetailItem[]; title: string }) {
   return (
-    <article className="program-panel">
-      <div>{icon}</div>
-      <h3>{title}</h3>
-      <ul>
-        {items.map((item) => (
-          <li key={item}>
-            <CheckCircle2 size={17} />
-            <span>{item}</span>
-          </li>
-        ))}
-      </ul>
+    <article>
+      <header>{icon}<h3>{title}</h3><span>{String(items.length).padStart(2, "0")}</span></header>
+      <div>{items.map((item) => <section key={item.title}><CheckCircle2 size={17} /><div><strong>{item.title}</strong><p>{item.text}</p></div></section>)}</div>
     </article>
   );
 }
 
-function EnrollForm({ programTitle }: { programTitle: string }) {
+function PlanCard({ onChoose, plan }: { onChoose: () => void; plan: ProgramPlan }) {
+  const isRecommended = plan.code === "INTERMEDIATE";
+  const includedPlan = plan.code === "INTERMEDIATE" ? "Everything in Self-Paced, plus" : plan.code === "MASTER" ? "Everything in Intermediate, plus" : null;
+  const savings = Math.max(0, plan.actualPrice - plan.offerPrice);
+
+  return (
+    <article className={isRecommended ? "is-recommended" : undefined}>
+      <header>
+        <div><span>{plan.name}</span><small>{isRecommended ? "Most popular" : plan.code === "MASTER" ? "Maximum support" : "Learn independently"}</small></div>
+        {isRecommended ? <BadgeCheck size={23} /> : null}
+      </header>
+      <div className="pd-plan-price"><del>{formatInr(plan.actualPrice)}</del><strong>{formatInr(plan.offerPrice)}</strong><span>Save {formatInr(savings)}</span></div>
+      {includedPlan ? <p className="pd-plan-includes">{includedPlan}</p> : null}
+      <ul>{plan.features.map((feature) => <li key={feature}><CheckCircle2 size={16} /> {feature}</li>)}</ul>
+      <button onClick={onChoose} type="button">Choose {plan.name}<ArrowRight size={17} /></button>
+    </article>
+  );
+}
+
+function EnrollForm({ onPlanChange, plans, programTitle, selectedPlanCode }: {
+  onPlanChange: (code: string) => void;
+  plans: ProgramPlan[];
+  programTitle: string;
+  selectedPlanCode: string;
+}) {
   const [message, setMessage] = useState<FormMessage>(null);
+  const selectedPlan = plans.find((plan) => plan.code === selectedPlanCode) ?? plans[0];
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -234,29 +353,168 @@ function EnrollForm({ programTitle }: { programTitle: string }) {
     }
 
     formElement.reset();
-    setMessage({ tone: "success", text: `Enrollment request captured for ${programTitle}.` });
+    setMessage({ tone: "success", text: `Enrollment request captured for ${programTitle} - ${selectedPlan?.name ?? "program plan"}.` });
   }
 
   return (
-    <form className="enroll-card" onSubmit={handleSubmit}>
-      <label>
-        Full name
-        <input name="fullName" placeholder="Your name" required />
-      </label>
-      <label>
-        Email
-        <input name="email" type="email" autoComplete="email" maxLength={256} pattern={emailPattern} required />
-      </label>
+    <form className="pd-enroll-form" onSubmit={handleSubmit}>
+      <div className="pd-enroll-form__summary"><span>Selected plan</span><strong>{selectedPlan?.name ?? "Choose a plan"}</strong><small>{selectedPlan ? formatInr(selectedPlan.offerPrice) : "Pricing unavailable"}</small></div>
+      <div className="pd-enroll-form__two">
+        <label>Full name<input name="fullName" placeholder="Your name" required /></label>
+        <label>Email<input name="email" type="email" autoComplete="email" maxLength={256} pattern={emailPattern} required /></label>
+      </div>
       <IndiaMobileInput label="Phone" name="phoneNumber" required />
       <label>
-        Program
-        <input name="program" value={programTitle} readOnly />
+        Plan
+        <select name="planCode" value={selectedPlanCode} onChange={(event) => onPlanChange(event.target.value)}>
+          {plans.map((plan) => <option key={plan.code} value={plan.code}>{plan.name} - {formatInr(plan.offerPrice)}</option>)}
+        </select>
       </label>
-      <button type="submit">
-        <Send size={18} />
-        Enroll Now
-      </button>
+      <input name="program" type="hidden" value={programTitle} />
+      <button type="submit"><Send size={18} /> Submit enrollment request</button>
       {message ? <div className={`auth-message auth-message--${message.tone}`}>{message.text}</div> : null}
     </form>
   );
+}
+
+function ProgramNotFound() {
+  return (
+    <main className="program-detail-page program-detail-v2">
+      <PublicNavbar />
+      <section className="program-not-found">
+        <span className="site-eyebrow">Program not found</span><h1>Choose a program from the catalog.</h1>
+        <p>The program URL does not match the current Joviq catalog.</p>
+        <div className="program-suggestion-grid">{allPrograms.slice(0, 6).map((item) => <Link key={item.slug} to={`/programs/${item.slug}`}>{item.title}</Link>)}</div>
+      </section>
+      <SiteFooter />
+    </main>
+  );
+}
+
+function buildProgramViewModel(local: Program | undefined, remote: ProgramDetailsResponse | null): ProgramViewModel | null {
+  if (!local && !remote) return null;
+
+  const title = remote?.title ?? local?.title ?? "Career Program";
+  const remoteCurriculum = remote?.curriculum.map((module) => ({
+    title: module.title,
+    text: module.description || `Build practical ${title} knowledge through guided lessons and checkpoints.`,
+    lessons: module.lessons.map((lesson) => lesson.title)
+  })) ?? [];
+  const localCurriculum = (local?.curriculum ?? []).map((module) => ({
+    title: module,
+    text: `Learn the essential concepts, workflows, and practical decisions behind ${module.toLowerCase()}.`,
+    lessons: ["Guided lesson", "Practice checkpoint", "Applied review"]
+  }));
+  const remoteProjects = remote?.projects.map((project) => ({ title: project.title, text: project.description, artifacts: project.requiredArtifacts })) ?? [];
+  const localProjects = (local?.projects ?? []).map((project) => ({
+    title: project,
+    text: `Create a portfolio-ready ${project.toLowerCase()} with clear deliverables and mentor feedback.`,
+    artifacts: ["Project output", "Documentation", "Interview walkthrough"]
+  }));
+  const projects = completeProjectExamples(remoteProjects.length ? remoteProjects : localProjects, title);
+  const curriculum = remoteCurriculum.length
+    ? remoteCurriculum
+    : localCurriculum.length
+      ? localCurriculum
+      : createFallbackCurriculum(title);
+  const remotePlans = remote?.plans.filter((plan) => plan.isActive).map((plan) => ({
+    id: plan.id,
+    name: plan.name,
+    code: plan.code,
+    actualPrice: plan.actualPrice,
+    offerPrice: plan.offerPrice,
+    reserveAmount: plan.reserveAmount,
+    features: plan.features,
+    isActive: plan.isActive
+  })) ?? [];
+
+  return {
+    slug: remote?.slug ?? local?.slug ?? "program",
+    title,
+    domain: remote?.categoryName ?? local?.domain ?? "Career Program",
+    shortDescription: remote?.shortDescription ?? local?.shortDescription ?? "Practical learning, reviewed projects, and career preparation.",
+    overview: remote?.overview ?? local?.overview ?? "Build practical capability through guided learning, projects, review, and assessment.",
+    audience: local?.audience ?? ["Students building career skills", "Fresh graduates preparing for roles", "Working professionals changing domains"],
+    skills: remote?.skills.length ? remote.skills : local?.skills.length ? local.skills : ["Core foundations", "Industry tools", "Applied problem solving", "Project delivery", "Quality review", "Interview communication"],
+    curriculum,
+    duration: remote?.duration ?? local?.duration ?? "8 to 16 weeks",
+    mode: remote?.learningMode ?? local?.mode ?? "Live and recorded online learning",
+    mentor: remote?.mentorSummary ?? local?.mentor ?? "Experienced domain mentor with project and interview review experience.",
+    projects,
+    assignments: remote?.assignments.length
+      ? remote.assignments.map((item) => ({ title: item.title, text: item.instructions }))
+      : local?.assignments.length
+        ? local.assignments.map((item) => ({ title: item, text: "A practical submission reviewed against a clear rubric." }))
+        : createFallbackAssignments(title),
+    assessments: remote?.assessments.length
+      ? remote.assessments.map((item) => ({ title: item.title, text: item.instructions }))
+      : local?.assessments.length
+        ? local.assessments.map((item) => ({ title: item, text: "Validate your understanding and receive focused improvement feedback." }))
+        : createFallbackAssessments(title),
+    certification: remote?.certificationName ?? local?.certification ?? `Joviq ${title} Certification`,
+    outcomes: remote?.outcomes.length ? remote.outcomes : local?.outcomes ?? [],
+    interviewPrep: local?.interviewPrep ?? ["Resume and portfolio review", "Project explanation practice", "Technical mock interview", "HR interview preparation"],
+    plans: remotePlans.length ? remotePlans : local?.plans ?? defaultProgramPlans,
+    faqs: remote?.faqs.length ? remote.faqs : local?.faqs.length ? local.faqs : createFallbackFaqs(title),
+    level: remote?.level ?? local?.level ?? "Beginner to job-ready"
+  };
+}
+
+function completeProjectExamples(projects: ProjectItem[], title: string) {
+  const result = projects.slice(0, 6);
+  const fallbackTitles = [
+    `${title} workflow build`,
+    `${title} industry case study`,
+    `${title} automation challenge`,
+    `${title} quality review`,
+    `${title} delivery simulation`,
+    `${title} portfolio capstone`
+  ];
+
+  for (const fallbackTitle of fallbackTitles) {
+    if (result.length >= 6) break;
+    if (result.some((project) => project.title.toLowerCase() === fallbackTitle.toLowerCase())) continue;
+    result.push({
+      title: fallbackTitle,
+      text: `Solve a realistic ${title.toLowerCase()} brief and defend the choices made during implementation.`,
+      artifacts: ["Working deliverable", "Decision log", "Portfolio walkthrough"]
+    });
+  }
+
+  return result;
+}
+
+function createFallbackCurriculum(title: string): CurriculumItem[] {
+  return ["Foundations", "Tools and workflows", "Guided practice", "Applied delivery", "Quality and review", "Career capstone"].map((module) => ({
+    title: `${title} ${module}`,
+    text: `Build confidence in ${module.toLowerCase()} through guided lessons and practical checkpoints.`,
+    lessons: ["Concept lesson", "Practice checkpoint", "Applied review"]
+  }));
+}
+
+function createFallbackAssignments(title: string): DetailItem[] {
+  return ["Foundations exercise", "Tool workflow submission", "Applied case assignment", "Portfolio documentation"].map((item) => ({
+    title: `${title} ${item}`,
+    text: "Submit practical work against a clear rubric and use the review to improve the next iteration."
+  }));
+}
+
+function createFallbackAssessments(title: string): DetailItem[] {
+  return ["Knowledge checkpoint", "Practical review", "Capstone presentation"].map((item) => ({
+    title: `${title} ${item}`,
+    text: "Validate technical understanding, execution quality, and the ability to explain key decisions."
+  }));
+}
+
+function createFallbackFaqs(title: string) {
+  return [
+    { question: `Do I need prior ${title} experience?`, answer: "No. The learning path begins with foundations and progresses into applied project work." },
+    { question: "Are projects included?", answer: "Yes. The program includes six portfolio-oriented project examples with clear deliverables." },
+    { question: "Will I receive a certificate?", answer: "Yes. Certification is issued after the required projects, assignments, and assessments are completed." },
+    { question: "Is interview preparation included?", answer: "Yes. Support varies by plan and can include portfolio review, mock interviews, and technical preparation." }
+  ];
+}
+
+function formatInr(amount: number) {
+  return `INR ${new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(amount)}`;
 }

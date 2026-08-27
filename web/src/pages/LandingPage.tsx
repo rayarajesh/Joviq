@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, FormEvent, MouseEvent, ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
+  ArrowLeft,
   ArrowRight,
   Award,
   BadgeCheck,
@@ -40,9 +41,9 @@ import {
   pricingPlans,
   programCategories
 } from "../data/siteContent";
+import { getProgramImage } from "../data/programVisuals";
 import { authApi } from "../features/auth/api/authApi";
 import { useAuth } from "../features/auth/context/useAuth";
-import { isOAuthPopupMessage, normalizeOAuthReturnUrl, openOAuthPopup } from "../features/auth/oauthPopup";
 import { formatApiError } from "../lib/api/httpClient";
 import { toIndiaMobileNumber } from "../lib/validation/indiaMobile";
 
@@ -52,48 +53,81 @@ const emailPattern = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$";
 type AuthMessage = { tone: "success" | "error"; text: string } | null;
 type AuthMode = "login" | "register" | "verify-email" | "forgot-password" | "reset-password";
 
-const expertCompanies = ["Meta", "Apple", "Amazon", "Netflix", "Google", "Adobe", "Microsoft"];
+type CompanyLogo = {
+  name: string;
+  src: string;
+  accent: string;
+};
 
-const enterpriseStack = [
-  "Cashfree Payments",
-  "Clerk",
-  "Google Cloud",
-  "Gemini",
-  "Meta",
-  "MongoDB",
-  "PostgreSQL",
-  "React"
+const expertCompanies: CompanyLogo[] = [
+  {
+    name: "Meta",
+    src: "/assets/company-logos/meta.svg",
+    accent: "#0866ff"
+  },
+  {
+    name: "Apple",
+    src: "/assets/company-logos/apple.svg",
+    accent: "#111827"
+  },
+  {
+    name: "Amazon",
+    src: "/assets/company-logos/amazon.svg",
+    accent: "#ff9900"
+  },
+  {
+    name: "Netflix",
+    src: "/assets/company-logos/netflix.svg",
+    accent: "#e50914"
+  },
+  {
+    name: "Google",
+    src: "/assets/company-logos/google.svg",
+    accent: "#4285f4"
+  },
+  {
+    name: "Adobe",
+    src: "/assets/company-logos/adobe.svg",
+    accent: "#fa0f00"
+  },
+  {
+    name: "Microsoft",
+    src: "/assets/company-logos/microsoft.png",
+    accent: "#00a4ef"
+  }
 ];
 
-const alumniWall = [
-  "Google",
-  "Amazon",
-  "NVIDIA",
-  "Accenture",
-  "Deloitte",
-  "Bosch",
-  "Jio",
-  "TCS",
-  "Tech Mahindra",
-  "Goldman Sachs",
-  "Oracle",
-  "Samsung",
-  "Infosys",
-  "Wipro",
-  "SAP",
-  "Capgemini",
-  "HCLTech",
-  "Cognizant",
-  "CGI",
-  "NTT DATA",
-  "Fractal",
-  "Publicis Sapient",
-  "Optum",
-  "Eurofins",
-  "Birlasoft",
-  "Rakuten",
-  "Societe Generale",
-  "ADP"
+const programDomains = ["All", ...programCategories.map((category) => category.domain)];
+
+const alumniWall: CompanyLogo[] = [
+  { name: "Google", src: "/assets/company-logos/google.svg", accent: "#4285f4" },
+  { name: "Amazon", src: "/assets/company-logos/amazon.svg", accent: "#ff9900" },
+  { name: "NVIDIA", src: "/assets/company-logos/nvidia.svg", accent: "#76b900" },
+  { name: "Accenture", src: "/assets/company-logos/accenture.svg", accent: "#a100ff" },
+  { name: "Deloitte", src: "/assets/company-logos/deloitte.svg", accent: "#86bc25" },
+  { name: "Bosch", src: "/assets/company-logos/bosch.svg", accent: "#e20015" },
+  { name: "Jio", src: "/assets/company-logos/jio.svg", accent: "#0f3cc9" },
+  { name: "TCS", src: "/assets/company-logos/tcs.svg", accent: "#c73c93" },
+  { name: "Tech Mahindra", src: "/assets/company-logos/tech-mahindra.svg", accent: "#e31837" },
+  { name: "Goldman Sachs", src: "/assets/company-logos/goldman-sachs.svg", accent: "#7399c6" },
+  { name: "Oracle", src: "/assets/company-logos/oracle.svg", accent: "#f80000" },
+  { name: "Samsung", src: "/assets/company-logos/samsung.svg", accent: "#1428a0" },
+  { name: "Infosys", src: "/assets/company-logos/infosys.svg", accent: "#007cc3" },
+  { name: "Wipro", src: "/assets/company-logos/wipro.svg", accent: "#7856a2" },
+  { name: "SAP", src: "/assets/company-logos/sap.svg", accent: "#0faaff" },
+  { name: "Capgemini", src: "/assets/company-logos/capgemini.svg", accent: "#0070ad" },
+  { name: "HCLTech", src: "/assets/company-logos/hcltech.svg", accent: "#0067d9" },
+  { name: "Cognizant", src: "/assets/company-logos/cognizant.svg", accent: "#000048" },
+  { name: "CGI", src: "/assets/company-logos/cgi.png", accent: "#e11937" },
+  { name: "NTT DATA", src: "/assets/company-logos/ntt-data.svg", accent: "#0065a8" },
+  { name: "Fractal", src: "/assets/company-logos/fractal.svg", accent: "#ef4b5f" },
+  { name: "Publicis Sapient", src: "/assets/company-logos/publicis-sapient.svg", accent: "#ff2e63" },
+  { name: "Optum", src: "/assets/company-logos/optum.svg", accent: "#f36c21" },
+  { name: "Eurofins", src: "/assets/company-logos/eurofins.png", accent: "#1254a0" },
+  { name: "Birlasoft", src: "/assets/company-logos/birlasoft.png", accent: "#d9262e" },
+  { name: "Rakuten", src: "/assets/company-logos/rakuten.svg", accent: "#bf0000" },
+  { name: "Societe Generale", src: "/assets/company-logos/societe-generale.svg", accent: "#e50a30" },
+  { name: "ADP", src: "/assets/company-logos/adp.svg", accent: "#d0271d" }
 ];
 
 const outcomeStories = [
@@ -102,52 +136,119 @@ const outcomeStories = [
     program: "CSE - 3rd Year",
     badge: "Internship",
     quote: "Portfolio and resume cleanup changed the way I explained my work.",
-    result: "Internship shortlist in 14 days"
+    result: "Internship shortlist in 14 days",
+    portraitPosition: "0% 0%",
+    accent: "#5b8cff"
   },
   {
     name: "Ishita Sharma",
     program: "IT - 4th Year",
     badge: "Interview Win",
     quote: "Rubric-based feedback taught me to explain projects with confidence.",
-    result: "Cracked 3 technical rounds"
+    result: "Cracked 3 technical rounds",
+    portraitPosition: "50% 0%",
+    accent: "#12a594"
   },
   {
     name: "Karthik Iyer",
     program: "ECE - Final Year",
     badge: "Job Offer",
     quote: "The interview became a walkthrough of the projects I had already built.",
-    result: "Offer after project deep-dive"
+    result: "Offer after project deep-dive",
+    portraitPosition: "100% 0%",
+    accent: "#f3a93b"
   },
   {
     name: "Nikhil Shetty",
     program: "Mechanical - 4th Year",
     badge: "Interview Win",
     quote: "I learned to present work with clarity and evidence.",
-    result: "Confidence in interview narration"
+    result: "Confidence in interview narration",
+    portraitPosition: "0% 100%",
+    accent: "#e36f45"
   },
   {
     name: "Tanvi Joshi",
     program: "CSE - Final Year",
     badge: "Job Offer",
     quote: "Expert reviews exposed weak spots before the real interview.",
-    result: "Converted final HR discussion"
+    result: "Converted final HR discussion",
+    portraitPosition: "50% 100%",
+    accent: "#61a66b"
   },
   {
     name: "Sanjana Reddy",
     program: "CSE - 3rd Year",
     badge: "Internship",
     quote: "Timed practice fixed my speed and project storytelling.",
-    result: "Shortlisted for internship tests"
+    result: "Shortlisted for internship tests",
+    portraitPosition: "100% 100%",
+    accent: "#ef7181"
   }
 ];
 
 const certificationProofs = [
-  "Outcome-based credential",
-  "Hiring trust built-in",
-  "Clean and shareable"
+  {
+    title: "Outcome-based credential",
+    description: "Issued after the required projects, assessments, and mentor review are complete."
+  },
+  {
+    title: "Unique verification record",
+    description: "Every issued certificate carries its own ID, status, and public verification route."
+  },
+  {
+    title: "Shareable career proof",
+    description: "Built for resumes, portfolios, and the conversations that happen during interviews."
+  }
 ];
 
-const roadmapSteps = ["Register", "Share goals", "Pick a program", "Payment & access", "Start learning"];
+const roadmapSteps = [
+  {
+    title: "Create your profile",
+    label: "Register",
+    duration: "2 min",
+    description: "Set up one learner profile with your background, current skills, and availability.",
+    outcome: "A clear starting point your mentors can act on.",
+    highlights: ["One simple account", "Current skills captured", "Preferences saved from day one"],
+    icon: UserPlus
+  },
+  {
+    title: "Set your direction",
+    label: "Share goals",
+    duration: "10 min",
+    description: "Tell us the role, skills, or career move you are working toward so your path has a real destination.",
+    outcome: "A focused learning goal instead of a generic course list.",
+    highlights: ["Role and skill priorities", "Timeline that fits your life", "Mentor-ready context"],
+    icon: Lightbulb
+  },
+  {
+    title: "Choose your program",
+    label: "Pick a track",
+    duration: "1 decision",
+    description: "Compare focused tracks by projects, difficulty, and career outcomes before choosing your best fit.",
+    outcome: "The right curriculum for the proof you need to build.",
+    highlights: ["Project-based comparison", "Clear skill progression", "Expert guidance available"],
+    icon: Layers3
+  },
+  {
+    title: "Unlock your workspace",
+    label: "Access",
+    duration: "Instant",
+    description: "Complete secure enrollment and open your learning workspace, schedule, and project resources.",
+    outcome: "Everything you need to begin, organized in one place.",
+    highlights: ["Secure checkout", "Immediate platform access", "Cohort schedule visible"],
+    icon: KeyRound
+  },
+  {
+    title: "Build job-ready proof",
+    label: "Start learning",
+    duration: "Week 1",
+    description: "Learn through guided projects, expert reviews, and feedback that improves both your work and your story.",
+    outcome: "Reviewed work you can confidently show in interviews.",
+    highlights: ["Hands-on project work", "Expert feedback loops", "Portfolio-ready evidence"],
+    icon: BookOpenCheck
+  }
+];
 
 function authModeFromHash(hash: string): AuthMode | null {
   if (hash === "#auth-register" || hash === "#register") {
@@ -175,6 +276,8 @@ export function LandingPage() {
   const [oauthPhoneNumber, setOauthPhoneNumber] = useState("");
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(authModeFromHash(location.hash) !== null);
   const [isCallbackDialogOpen, setIsCallbackDialogOpen] = useState(false);
+  const [activeRoadmapIndex, setActiveRoadmapIndex] = useState(0);
+  const programCarouselRef = useRef<HTMLDivElement>(null);
   const [heroParallax, setHeroParallax] = useState<Record<string, string>>({
     "--hero-bg-x": "50%",
     "--hero-bg-y": "50%",
@@ -185,15 +288,22 @@ export function LandingPage() {
     "--hero-line-x": "0px"
   });
   const [programSearchQuery, setProgramSearchQuery] = useState("");
+  const [activeProgramDomain, setActiveProgramDomain] = useState("All");
+  const activeRoadmapStep = roadmapSteps[activeRoadmapIndex];
+  const ActiveRoadmapIcon = activeRoadmapStep.icon;
 
   const searchResults = useMemo(() => {
     const query = programSearchQuery.trim().toLowerCase();
+    const domainPrograms =
+      activeProgramDomain === "All"
+        ? allPrograms
+        : allPrograms.filter((program) => program.domain === activeProgramDomain);
 
     if (!query) {
-      return allPrograms.slice(0, 8);
+      return domainPrograms;
     }
 
-    return allPrograms.filter((program) => {
+    return domainPrograms.filter((program) => {
       const searchable = [
         program.title,
         program.domain,
@@ -207,7 +317,7 @@ export function LandingPage() {
 
       return searchable.includes(query);
     });
-  }, [programSearchQuery]);
+  }, [activeProgramDomain, programSearchQuery]);
 
   function selectMode(nextMode: AuthMode) {
     setMode(nextMode);
@@ -256,6 +366,37 @@ export function LandingPage() {
     });
   }
 
+  function handleOutcomeCardMove(event: MouseEvent<HTMLElement>) {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - bounds.left) / bounds.width;
+    const y = (event.clientY - bounds.top) / bounds.height;
+
+    event.currentTarget.style.setProperty("--tilt-x", `${(0.5 - y) * 8}deg`);
+    event.currentTarget.style.setProperty("--tilt-y", `${(x - 0.5) * 10}deg`);
+    event.currentTarget.style.setProperty("--shine-x", `${x * 100}%`);
+    event.currentTarget.style.setProperty("--shine-y", `${y * 100}%`);
+  }
+
+  function resetOutcomeCard(event: MouseEvent<HTMLElement>) {
+    event.currentTarget.style.setProperty("--tilt-x", "0deg");
+    event.currentTarget.style.setProperty("--tilt-y", "0deg");
+    event.currentTarget.style.setProperty("--shine-x", "50%");
+    event.currentTarget.style.setProperty("--shine-y", "20%");
+  }
+
+  function scrollProgramCarousel(direction: -1 | 1) {
+    const carousel = programCarouselRef.current;
+
+    if (!carousel) {
+      return;
+    }
+
+    carousel.scrollBy({
+      left: direction * Math.max(carousel.clientWidth * 0.82, 280),
+      behavior: "smooth"
+    });
+  }
+
   useEffect(() => {
     const nextMode = authModeFromHash(location.hash);
 
@@ -288,7 +429,6 @@ export function LandingPage() {
       ".apt-section p",
       ".brand-grid strong",
       ".recognition-stage > *",
-      ".official-partner",
       ".process-stepper",
       ".process-panel",
       ".category-card",
@@ -297,7 +437,6 @@ export function LandingPage() {
       ".pricing-grid article",
       ".faq-showcase",
       ".mini-split > *",
-      ".final-cta",
       ".public-footer__top",
       ".public-footer__grid"
     ].join(",");
@@ -413,7 +552,9 @@ export function LandingPage() {
       return;
     }
 
-    const popup = openOAuthPopup(
+    setIsSubmitting(true);
+    setMessage({ tone: "success", text: "Redirecting to Google..." });
+    window.location.assign(
       authApi.oauthStartUrl("google", {
         returnUrl: "/dashboard",
         acceptedTerms: allowSignUp ? acceptedOAuthTerms : false,
@@ -425,51 +566,6 @@ export function LandingPage() {
         refundPolicyVersion: policyVersion
       })
     );
-
-    if (!popup) {
-      setMessage({ tone: "error", text: "Please allow pop-ups for this site to continue with Google." });
-      return;
-    }
-
-    setIsSubmitting(true);
-    setMessage({ tone: "success", text: "Complete Google sign-in in the popup window." });
-    popup.focus();
-
-    const popupClosedTimer = window.setInterval(() => {
-      if (popup.closed) {
-        window.clearInterval(popupClosedTimer);
-        window.removeEventListener("message", handleOAuthMessage);
-        setIsSubmitting(false);
-        setMessage({ tone: "error", text: "Google sign-in was closed before it finished." });
-      }
-    }, 600);
-
-    async function handleOAuthMessage(event: MessageEvent) {
-      if (!isOAuthPopupMessage(event)) {
-        return;
-      }
-
-      window.clearInterval(popupClosedTimer);
-      window.removeEventListener("message", handleOAuthMessage);
-
-      if (event.data.status === "error") {
-        setIsSubmitting(false);
-        setMessage({ tone: "error", text: event.data.error ?? "Google sign-in failed. Please try again." });
-        return;
-      }
-
-      try {
-        await auth.refresh();
-        closeAuthDialog();
-        navigate(normalizeOAuthReturnUrl(event.data.returnUrl));
-      } catch (error) {
-        setMessage({ tone: "error", text: formatApiError(error) });
-      } finally {
-        setIsSubmitting(false);
-      }
-    }
-
-    window.addEventListener("message", handleOAuthMessage);
   }
 
   async function handleRegister(event: FormEvent<HTMLFormElement>) {
@@ -627,337 +723,521 @@ export function LandingPage() {
 
       <section
         id="home"
-        className="site-hero"
+        className="site-hero site-hero--studio"
         aria-labelledby="site-title"
         onMouseMove={handleHeroPointerMove}
         onMouseLeave={resetHeroParallax}
         style={heroParallax as CSSProperties}
       >
+        <div className="hero-studio__signals" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </div>
+
         <div className="site-hero__content">
           <div className="site-hero__copy-block">
             <div className="site-kicker">
               <Sparkles size={18} />
-              <span>Career-focused training / AI-powered LMS</span>
+              <span>AI-powered learning / Expert-led outcomes</span>
             </div>
-            <h1 id="site-title">Joviq Career Programs</h1>
+            <h1 id="site-title">
+              <span>Joviq</span>
+              <span>Career Programs</span>
+            </h1>
             <p>
-              Expert-led cohorts, AI-assisted checkpoints, mentor-reviewed projects, verified certifications, and
-              interview support for students and professionals.
+              Learn by building real work. Get expert feedback at every milestone. Graduate with proof that makes your
+              skills easy to trust.
             </p>
             <div className="site-hero__actions">
               <Link className="site-button site-button--primary" to="/programs">
                 Explore Programs <ArrowRight size={18} />
               </Link>
               <Link className="site-button site-button--light" to="/request-callback">
-                Talk to Career Expert <PhoneCall size={18} />
-              </Link>
-              <Link className="site-button site-button--ghost" to="/login">
-                Login to LMS <LockKeyhole size={18} />
+                Talk to an advisor <PhoneCall size={18} />
               </Link>
             </div>
             <div className="site-hero__proof" aria-label="Website highlights">
-              <span>Expert-led cohorts</span>
-              <span>Internship-grade projects</span>
-              <span>Rubrics + certification</span>
+              <span>
+                <CheckCircle2 size={16} />
+                Live expert cohorts
+              </span>
+              <span>
+                <CheckCircle2 size={16} />
+                Mentor-reviewed projects
+              </span>
+              <span>
+                <CheckCircle2 size={16} />
+                Career support built in
+              </span>
             </div>
           </div>
 
-          <div className="site-hero__dashboard" aria-hidden="true">
-            <div className="hero-dashboard-card hero-dashboard-card--main hero-cohort-card">
-              <span>Next batch</span>
-              <strong>10 Sept</strong>
-              <small>Limited seats / live cohort</small>
-              <div className="hero-seat-meter">
+          <aside className="hero-command-bar" aria-label="Live cohort and program highlights">
+            <div className="hero-command-bar__cohort">
+              <span className="hero-command-bar__live">
+                <i aria-hidden="true" />
+                Admissions open
+              </span>
+              <div className="hero-command-bar__date">
+                <small>Next live cohort</small>
+                <strong>10 Sept</strong>
+              </div>
+              <div className="hero-command-bar__seats">
+                <span>
+                  <strong>12 seats left</strong>
+                  <small>Limited cohort</small>
+                </span>
                 <div>
                   <span style={{ width: "68%" }} />
                 </div>
-                <small>12 seats left</small>
               </div>
             </div>
-            <div className="hero-dashboard-card hero-expert-card">
-              <UsersRound size={20} />
-              <strong>MAANG-style mentor loop</strong>
-              <span>Weekly reviews, portfolio fixes, and mock interviews.</span>
+
+            <div className="hero-command-bar__metrics">
+              <div>
+                <Code2 size={20} />
+                <strong>{allPrograms.length}</strong>
+                <span>career programs</span>
+              </div>
+              <div>
+                <BriefcaseBusiness size={20} />
+                <strong>5-6</strong>
+                <span>projects per track</span>
+              </div>
+              <div>
+                <UsersRound size={20} />
+                <strong>Weekly</strong>
+                <span>expert reviews</span>
+              </div>
             </div>
-            <div className="hero-dashboard-card hero-expert-card">
-              <Lightbulb size={20} />
-              <strong>AI practice engine</strong>
-              <span>Smart checkpoints, quizzes, and project feedback.</span>
-            </div>
-          </div>
+          </aside>
         </div>
       </section>
 
-      <section id="program-search" className="site-section site-section--lift">
+      <section id="features" className="site-section apt-section expert-logo-section home-trust-strip">
+        <div className="home-trust-strip__intro">
+          <span className="apt-pill">
+            <UsersRound size={15} />
+            Industry-led mentorship
+          </span>
+          <h2>Learn with practitioners who have built for leading teams.</h2>
+          <p>Expert context, practical reviews, and standards shaped by real engineering and business environments.</p>
+        </div>
+        <BrandGrid items={expertCompanies} tone="prime" />
+      </section>
+
+      <section id="program-search" className="site-section program-search-section">
         <div className="program-search">
-          <div>
-            <span className="site-eyebrow">Program Search</span>
-            <h2>What do you want to learn?</h2>
-          </div>
+          <header className="program-search__header">
+            <span className="apt-pill">
+              <Search size={15} />
+              Program directory
+            </span>
+            <h2>Find Your Program</h2>
+            <p>Focused tracks built around practical projects, expert review, and career-ready proof.</p>
+          </header>
           <label className="program-search__field">
             <Search size={20} />
             <input
               value={programSearchQuery}
-              onChange={(event) => setProgramSearchQuery(event.target.value)}
+              aria-label="Search Joviq programs"
+              onChange={(event) => {
+                setProgramSearchQuery(event.target.value);
+                programCarouselRef.current?.scrollTo({ left: 0, behavior: "smooth" });
+              }}
               placeholder="Search any Joviq program (AI, Full Stack, DevOps, Finance...)"
             />
           </label>
-          <div className="program-search__results">
-            {searchResults.length ? (
-              searchResults.map((program) => (
-                <Link key={program.slug} to={`/programs/${program.slug}`}>
-                  <strong>{program.title}</strong>
-                  <span>{program.domain}</span>
-                  <ChevronRight size={16} />
-                </Link>
-              ))
-            ) : (
-              <p>No matching programs found.</p>
+
+          <div className="program-search__tabs" role="tablist" aria-label="Filter programs by category">
+            {programDomains.map((domain) => (
+              <button
+                aria-controls="program-search-results"
+                aria-selected={activeProgramDomain === domain}
+                className={activeProgramDomain === domain ? "is-active" : undefined}
+                key={domain}
+                onClick={() => {
+                  setActiveProgramDomain(domain);
+                  programCarouselRef.current?.scrollTo({ left: 0, behavior: "smooth" });
+                }}
+                role="tab"
+                type="button"
+              >
+                {domain}
+              </button>
+            ))}
+          </div>
+
+          <div className="program-search__carousel-shell">
+            {searchResults.length > 0 && (
+              <button
+                aria-label="View previous programs"
+                className="program-search__arrow program-search__arrow--previous"
+                onClick={() => scrollProgramCarousel(-1)}
+                type="button"
+              >
+                <ArrowLeft size={25} />
+              </button>
+            )}
+
+            <div
+              aria-live="polite"
+              className="program-search__viewport"
+              id="program-search-results"
+              ref={programCarouselRef}
+              role="tabpanel"
+            >
+              <div className="program-search__results">
+                {searchResults.length ? (
+                  searchResults.map((program, index) => (
+                    <Link className="program-showcase-card" key={program.slug} to={`/programs/${program.slug}`}>
+                      <span className="program-showcase-card__media">
+                        <img
+                          alt={`${program.title} program`}
+                          decoding="async"
+                          loading={index < 4 ? "eager" : "lazy"}
+                          src={getProgramImage(program.slug, program.domain)}
+                        />
+                      </span>
+                      <span className="program-showcase-card__body">
+                        <small>{program.domain}</small>
+                        <strong>{program.title}</strong>
+                        <span>{program.shortDescription}</span>
+                        <span className="program-showcase-card__action">Explore program</span>
+                      </span>
+                    </Link>
+                  ))
+                ) : (
+                  <p className="program-search__empty">No matching programs found. Try another skill or domain.</p>
+                )}
+              </div>
+            </div>
+
+            {searchResults.length > 0 && (
+              <button
+                aria-label="View more programs"
+                className="program-search__arrow program-search__arrow--next"
+                onClick={() => scrollProgramCarousel(1)}
+                type="button"
+              >
+                <ArrowRight size={25} />
+              </button>
             )}
           </div>
         </div>
       </section>
 
-      <section id="features" className="site-section apt-section apt-centered">
-        <span className="apt-pill">
-          <BriefcaseBusiness size={15} />
-          Expert Profile
-        </span>
-        <h2>
-          Learn from the <span>top 1% in the industry.</span>
-        </h2>
-        <p>Mentorship led by experienced engineers and operators from high-trust technology teams.</p>
-        <BrandGrid items={expertCompanies} tone="prime" />
-      </section>
+      <section id="journey" className="site-section apt-section apt-process">
+        <div className="process-intro">
+          <div className="process-intro__copy">
+            <span className="apt-pill">
+              <Sparkles size={15} />
+              Your Joviq journey
+            </span>
+            <h2>
+              From career goal to <span>proof you can show.</span>
+            </h2>
+            <p>Five focused milestones take you from your first decision to reviewed, interview-ready work.</p>
+          </div>
+          <Link className="site-button site-button--primary process-intro__cta" to="/request-callback">
+            <PhoneCall size={18} />
+            Talk to an advisor
+          </Link>
+        </div>
+        <div className="process-experience">
+          <nav className="process-stepper" aria-label="Your five-step Joviq journey">
+            {roadmapSteps.map((step, index) => {
+              const StepIcon = step.icon;
+              const isActive = index === activeRoadmapIndex;
 
-      <section id="about" className="apt-recognition">
-        <div className="apt-section apt-centered">
-          <span className="apt-pill apt-pill--dark">
-            <BadgeCheck size={15} />
-            Our Recognitions
-          </span>
-          <h2>
-            Trusted by the industry. <span>Recognized for outcomes.</span>
-          </h2>
-          <p>Project-first training, verified assessments, and quality-driven education services.</p>
-          <div className="recognition-stage">
-            <div className="certificate-sheet certificate-sheet--wide">
-              <span>Certificate of Recognition</span>
-              <strong>Joviq Technologies</strong>
-              <small>Project-first career learning model</small>
+              return (
+                <button
+                  aria-current={isActive ? "step" : undefined}
+                  className={isActive ? "is-active" : undefined}
+                  key={step.title}
+                  onClick={() => setActiveRoadmapIndex(index)}
+                  type="button"
+                >
+                  <span className="process-stepper__icon">
+                    <StepIcon size={21} />
+                  </span>
+                  <span className="process-stepper__copy">
+                    <small>
+                      Step {String(index + 1).padStart(2, "0")} / {step.duration}
+                    </small>
+                    <strong>{step.title}</strong>
+                  </span>
+                  <ChevronRight aria-hidden="true" size={18} />
+                </button>
+              );
+            })}
+          </nav>
+
+          <div className="process-panel" aria-live="polite">
+            <div className="process-panel__header">
+              <span className="process-panel__icon">
+                <ActiveRoadmapIcon size={27} />
+              </span>
+              <div>
+                <span className="process-panel__kicker">
+                  Step {String(activeRoadmapIndex + 1).padStart(2, "0")} / {activeRoadmapStep.label}
+                </span>
+                <h3>{activeRoadmapStep.title}</h3>
+              </div>
+              <span className="process-panel__duration">{activeRoadmapStep.duration}</span>
             </div>
-            <div className="certificate-sheet">
-              <span>Quality Standard</span>
-              <strong>ISO Ready Process</strong>
-              <small>Review-driven learning operations</small>
+
+            <p>{activeRoadmapStep.description}</p>
+
+            <div className="process-outcome">
+              <BadgeCheck size={24} />
+              <div>
+                <span>Your outcome</span>
+                <strong>{activeRoadmapStep.outcome}</strong>
+              </div>
+            </div>
+
+            <ul className="process-highlights">
+              {activeRoadmapStep.highlights.map((highlight) => (
+                <li key={highlight}>
+                  <CheckCircle2 size={17} />
+                  {highlight}
+                </li>
+              ))}
+            </ul>
+
+            <div className="process-panel__footer">
+              <div className="process-progress">
+                <span>Journey progress</span>
+                <strong>{Math.round(((activeRoadmapIndex + 1) / roadmapSteps.length) * 100)}%</strong>
+                <div className="process-progress__bar">
+                  <span style={{ width: `${((activeRoadmapIndex + 1) / roadmapSteps.length) * 100}%` }} />
+                </div>
+              </div>
+              <div className="process-actions">
+                <button
+                  aria-label="Previous journey step"
+                  disabled={activeRoadmapIndex === 0}
+                  onClick={() => setActiveRoadmapIndex((current) => Math.max(0, current - 1))}
+                  type="button"
+                >
+                  <ArrowLeft size={17} />
+                  Back
+                </button>
+                {activeRoadmapIndex === roadmapSteps.length - 1 ? (
+                  <Link to="/#program-search">
+                    Explore programs
+                    <ArrowRight size={17} />
+                  </Link>
+                ) : (
+                  <button
+                    className="is-primary"
+                    onClick={() => setActiveRoadmapIndex((current) => Math.min(roadmapSteps.length - 1, current + 1))}
+                    type="button"
+                  >
+                    Next step
+                    <ArrowRight size={17} />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="site-section apt-section apt-centered">
-        <span className="apt-pill">
-          <Building2 size={15} />
-          Join the best
-        </span>
-        <h2>
-          Our <span>hiring partner</span>
-        </h2>
-        <p>Get connected with companies that trust structured curriculum and hire from reviewed talent pools.</p>
-        <div className="official-partner">OptimHire</div>
-      </section>
-
-      <section id="copilot" className="site-section apt-section apt-powered apt-centered">
-        <span className="apt-pill">
-          <ShieldCheck size={15} />
-          Powered by
-        </span>
-        <h2>
-          Enterprise-grade. <span>Secure & reliable.</span>
-        </h2>
-        <p>Built for stability, protected access, and uninterrupted learning workflows.</p>
-        <BrandGrid items={[...enterpriseStack, ...enterpriseStack]} tone="muted" />
-      </section>
-
-      <section className="site-section apt-section apt-process">
-        <div className="apt-centered">
-          <p className="process-note">Simple steps. Tight outcomes. Zero confusion.</p>
-          <Link className="site-button site-button--primary" to="/request-callback">
-            <PhoneCall size={18} />
-            Talk to Career Expert
-          </Link>
-        </div>
-        <div className="process-stepper">
-          {roadmapSteps.map((step, index) => (
-            <article key={step} className={index === 0 ? "is-active" : undefined}>
-              <span>{index + 1}</span>
-              <strong>{step}</strong>
-            </article>
-          ))}
-        </div>
-        <div className="process-panel">
-          <article>
-            <span className="apt-pill">
-              <UserPlus size={15} />
-              Step 01
-            </span>
-            <h3>Register</h3>
-            <ul>
-              <li>
-                <CheckCircle2 size={16} />
-                Quick signup
-              </li>
-              <li>
-                <CheckCircle2 size={16} />
-                No noise
-              </li>
-              <li>
-                <CheckCircle2 size={16} />
-                Start in minutes
-              </li>
-            </ul>
-          </article>
-          <article>
-            <span className="apt-pill">What happens here</span>
-            <h3>Create your account and set your starting point.</h3>
-            <div className="process-progress">
-              <span>Progress</span>
-              <strong>1/5</strong>
-              <div>
-                <span style={{ width: "20%" }} />
-              </div>
-            </div>
-            <div className="process-actions">
-              <button type="button">Back</button>
-              <button type="button">Next</button>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <section id="programs" className="site-section apt-section apt-programs">
-        <div className="apt-centered">
-          <span className="apt-pill">
-            <Layers3 size={15} />
-            Program Categories
+      <section id="reviews" className="site-section apt-section apt-outcomes apt-centered outcomes-showcase">
+        <div className="outcomes-showcase__plane" aria-hidden="true" />
+        <div className="outcomes-showcase__intro">
+          <span className="apt-pill apt-pill--dark">
+            <BookOpenCheck size={15} />
+            Interview-ready outcomes
           </span>
           <h2>
-            Choose a domain. <span>Build proof.</span>
+            Build proof. Walk into interviews <span>ready.</span>
           </h2>
-          <p>Focused tracks across technology, core engineering, finance, marketing, analytics, and management.</p>
+          <p>Real project practice, direct expert feedback, and a career story you can explain with confidence.</p>
+          <div className="outcomes-showcase__proof" aria-label="Career preparation highlights">
+            <span><CheckCircle2 size={16} /> Portfolio proof</span>
+            <span><CheckCircle2 size={16} /> Expert reviews</span>
+            <span><CheckCircle2 size={16} /> Interview practice</span>
+          </div>
+          <div className="outcomes-showcase__actions">
+            <Link className="site-button site-button--primary" to="/request-callback">
+              Talk to an advisor
+              <ArrowRight size={18} />
+            </Link>
+            <Link className="site-button outcomes-showcase__secondary" to="/programs">
+              Explore programs
+            </Link>
+          </div>
         </div>
-        <div className="category-grid">
-          {programCategories.map((category) => (
-            <article key={category.domain} className="category-card">
-              <div className="category-card__top">
-                <DomainIcon domain={category.domain} />
-                <span>{category.programs.length} programs</span>
-              </div>
-              <h3>{category.domain}</h3>
-              <p>{category.description}</p>
-              <div className="category-card__programs">
-                {category.programs.map((program) => (
-                  <Link key={program.slug} to={`/programs/${program.slug}`}>
-                    {program.title}
-                  </Link>
-                ))}
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
 
-      <section className="site-section apt-section apt-alumni apt-centered">
-        <span className="apt-pill">
-          <GraduationCap size={15} />
-          Alumni Companies
-        </span>
-        <h2>
-          From Joviq to <span>top companies.</span>
-        </h2>
-        <p>Trust signals that matter: recognizable brands, reviewed projects, and real outcomes.</p>
-        <BrandGrid items={alumniWall} tone="logos" />
-      </section>
-
-      <section id="reviews" className="site-section apt-section apt-outcomes apt-centered">
-        <span className="apt-pill">
-          <BookOpenCheck size={15} />
-          Interview-ready outcomes
-        </span>
-        <h2>
-          Internships that turn into <span>job offers.</span>
-        </h2>
-        <p>Strong projects, strict reviews, and interview practice that converts rounds.</p>
-        <Link className="site-button site-button--primary" to="/request-callback">
-          <PhoneCall size={18} />
-          Talk to Career Expert
-        </Link>
-        <div className="outcome-story-grid">
+        <div className="outcome-story-grid outcome-story-stage">
           {outcomeStories.map((story) => (
-            <article key={story.name}>
-              <div>
-                <strong>{story.name}</strong>
-                <span>{story.program}</span>
-                <small>{story.badge}</small>
-              </div>
-              <p>{story.quote}</p>
+            <article
+              className="outcome-card-3d"
+              key={story.name}
+              onMouseLeave={resetOutcomeCard}
+              onMouseMove={handleOutcomeCardMove}
+              style={{
+                "--portrait-position": story.portraitPosition,
+                "--story-accent": story.accent
+              } as CSSProperties}
+            >
+              <div className="outcome-card-3d__shine" aria-hidden="true" />
+              <header className="outcome-card-3d__profile">
+                <span
+                  aria-label={`Illustrated profile of ${story.name}`}
+                  className="outcome-card-3d__portrait"
+                  role="img"
+                />
+                <span className="outcome-card-3d__identity">
+                  <strong>{story.name}</strong>
+                  <span>{story.program}</span>
+                </span>
+                <small>
+                  <BadgeCheck size={14} />
+                  {story.badge}
+                </small>
+              </header>
+              <blockquote>{story.quote}</blockquote>
               <footer>
-                <b>{story.result}</b>
-                <span>Verified</span>
+                <span>
+                  <small>Outcome</small>
+                  <b>{story.result}</b>
+                </span>
+                <em>
+                  <CheckCircle2 size={15} />
+                  Learner result
+                </em>
               </footer>
             </article>
           ))}
         </div>
+
+        <div className="outcomes-showcase__closing">
+          <div>
+            <span>Your next move</span>
+            <strong>Build the proof behind your next interview.</strong>
+          </div>
+          <Link className="site-button site-button--primary" to="/request-callback">
+            Talk to an advisor
+            <ArrowRight size={18} />
+          </Link>
+        </div>
       </section>
 
-      <section id="certifications" className="site-section apt-section certificate-section">
-        <div>
+      <section id="certifications" className="site-section apt-section certificate-section certificate-showcase">
+        <div className="certificate-showcase__copy">
           <span className="apt-pill">
             <Award size={15} />
             Certification that signals proof
           </span>
           <h2>
-            Get certified. <span>Get hired.</span>
+            Earn a credential <span>built on proof.</span>
           </h2>
           <p>
-            Your certificate is tied to real deliverables, projects, expert checks, and rubric-based evaluation.
+            Your certificate represents completed work, assessed skills, and expert-reviewed progress, not attendance
+            alone.
           </p>
           <div className="proof-pills">
             <span>Expert-reviewed</span>
             <span>Rubric-scored</span>
-            <span>Shareable proof</span>
+            <span>Digitally verifiable</span>
           </div>
           <div className="credential-list">
             {certificationProofs.map((proof) => (
-              <article key={proof}>
+              <article key={proof.title}>
                 <CheckCircle2 size={18} />
                 <div>
-                  <strong>{proof}</strong>
-                  <span>Issued after rubrics, project review, and mentor approval.</span>
+                  <strong>{proof.title}</strong>
+                  <span>{proof.description}</span>
                 </div>
               </article>
             ))}
           </div>
           <Link className="site-button site-button--primary" to="/request-callback">
-            <PhoneCall size={18} />
-            Talk to Career Expert
+            Plan my certification path
+            <ArrowRight size={18} />
           </Link>
         </div>
-        <div className="certificate-preview-card">
-          <span>Certificate Preview</span>
-          <strong>Training + expert-led cohort completion</strong>
-          <div className="certificate-document">
-            <small>Joviq Technologies</small>
-            <h3>Certificate of Training</h3>
-            <p>Issued for successful completion of project-based career learning.</p>
-            <div />
+
+        <div className="certificate-preview-card certificate-preview-stage">
+          <header className="certificate-preview-stage__header">
+            <div>
+              <span>Original certificate preview</span>
+              <strong>Training + expert-led cohort completion</strong>
+            </div>
+            <span>
+              <ShieldCheck size={16} />
+              Issued format
+            </span>
+          </header>
+
+          <div className="certificate-document certificate-original">
+            <header className="certificate-original__header">
+              <span className="certificate-original__brand">
+                <i><Sparkles size={19} /></i>
+                <span>
+                  <strong>Joviq Technologies</strong>
+                  <small>Website and LMS</small>
+                </span>
+              </span>
+              <span className="certificate-original__id">
+                <small>Certificate ID</small>
+                <strong>JOVIQ-YYYYMMDD-XXXXXXXX</strong>
+              </span>
+            </header>
+
+            <div className="certificate-original__content">
+              <small>This certifies that</small>
+              <strong className="certificate-original__learner">Learner Name</strong>
+              <span>has successfully completed the requirements for the</span>
+              <h3>Certificate of Training</h3>
+              <p>Issued for successful completion of project-based career learning.</p>
+            </div>
+
+            <footer className="certificate-original__footer">
+              <span className="certificate-original__signature">
+                <i />
+                <strong>Authorized Signatory</strong>
+                <small>Joviq Technologies</small>
+              </span>
+              <span className="certificate-original__seal" aria-label="Joviq verified seal">
+                <BadgeCheck size={28} />
+              </span>
+              <span className="certificate-original__verification">
+                <ShieldCheck size={18} />
+                <span>
+                  <strong>Digitally verifiable</strong>
+                  <small>Status and issue record</small>
+                </span>
+              </span>
+            </footer>
           </div>
-          <footer>
+
+          <footer className="certificate-preview-stage__types" aria-label="Available certificate types">
             <span>Training</span>
             <span>Internship</span>
+            <span>Project</span>
             <span>Excellence</span>
           </footer>
         </div>
+      </section>
+
+      <section className="site-section apt-section apt-alumni apt-centered alumni-showcase employer-landscape">
+        <div className="alumni-showcase__intro">
+          <span className="apt-pill">
+            <GraduationCap size={15} />
+            Employer landscape
+          </span>
+          <h2>
+            Build skills used across <span>leading teams.</span>
+          </h2>
+          <p>Career-ready capabilities for technology, engineering, finance, consulting, and product organizations.</p>
+        </div>
+        <BrandGrid items={alumniWall} tone="logos" />
       </section>
 
       <section id="pricing" className="site-section apt-section apt-centered">
@@ -966,9 +1246,9 @@ export function LandingPage() {
           Pricing
         </span>
         <h2>
-          Launch pricing. <span>Proven outcomes.</span>
+          Simple plans for <span>serious project work.</span>
         </h2>
-        <p>Cohort seats are limited. Plans are built around projects, evaluations, and hiring readiness.</p>
+        <p>Choose the support level that fits your learning goal, project depth, and career timeline.</p>
         <div className="pricing-grid">
           {pricingPlans.map((plan) => (
             <article key={plan.name} className={plan.name === "Career Track" ? "is-featured" : undefined}>
@@ -976,13 +1256,13 @@ export function LandingPage() {
               <h3>{plan.price}</h3>
               <p>{plan.description}</p>
               <div className="pricing-meta">
-                <small>Next batch: 05 Sept</small>
+                <small>Next batch: 10 Sept</small>
                 <small>Limited slots</small>
               </div>
               <div className="pricing-actions">
-                <Link to="/request-callback">Proceed to Pay</Link>
+                <Link to="/programs">View programs</Link>
                 <Link to="/request-callback">
-                  Talk to Career Expert
+                  Talk to an advisor
                 </Link>
               </div>
               <ul>
@@ -1020,21 +1300,6 @@ export function LandingPage() {
       </section>
 
       <span id="auth" className="auth-anchor" aria-hidden="true" />
-      <section id="callback" className="site-section final-cta">
-        <div>
-          <span className="apt-pill apt-pill--dark">Next step</span>
-          <h2>Ready for real upskilling?</h2>
-          <p>You will train on real projects, learn how to position your work, and get evaluated through a project-first learning program.</p>
-          <div className="final-cta__actions">
-            <Link className="site-button site-button--primary" to="/request-callback">
-              Talk to Career Expert <PhoneCall size={18} />
-            </Link>
-            <Link className="site-button site-button--light" to="/login">
-              Need support? <ArrowRight size={18} />
-            </Link>
-          </div>
-        </div>
-      </section>
 
       <SiteFooter />
 
@@ -1189,11 +1454,81 @@ function LogoCloud({ title, items }: { title: string; items: string[] }) {
   );
 }
 
-function BrandGrid({ items, tone }: { items: string[]; tone: "prime" | "muted" | "logos" }) {
+function BrandGrid({ items, tone }: { items: Array<string | CompanyLogo>; tone: "prime" | "muted" | "logos" }) {
+  if (tone === "prime") {
+    const logoItems = items.map((item) =>
+      typeof item === "string" ? { name: item, src: "", accent: "#075fcf" } : item
+    );
+    const scrollingItems = [...logoItems, ...logoItems];
+
+    return (
+      <div className="brand-grid brand-grid--prime" aria-label="Company logos from expert mentor backgrounds">
+        <div className="brand-grid__track">
+          {scrollingItems.map((item, index) => {
+            const isDuplicate = index >= logoItems.length;
+
+            return (
+              <strong
+                aria-hidden={isDuplicate}
+                className="brand-logo-card"
+                data-logo={item.name.toLowerCase()}
+                key={`${item.name}-${index}`}
+                style={{ "--brand-accent": item.accent } as CSSProperties}
+              >
+                {item.src ? (
+                  <img
+                    alt={isDuplicate ? "" : `${item.name} logo`}
+                    decoding="async"
+                    loading={isDuplicate ? "lazy" : "eager"}
+                    src={item.src}
+                  />
+                ) : (
+                  <span>{item.name}</span>
+                )}
+                <small>{item.name}</small>
+              </strong>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  if (tone === "logos") {
+    const logoItems = items.map((item) =>
+      typeof item === "string" ? { name: item, src: "", accent: "#075fcf" } : item
+    );
+
+    return (
+      <div className="brand-grid brand-grid--logos" role="list" aria-label="Company logos across the employer landscape">
+        {logoItems.map((item) => (
+          <div
+            className="alumni-logo-card"
+            data-logo={item.name.toLowerCase()}
+            key={item.name}
+            role="listitem"
+            style={{ "--brand-accent": item.accent } as CSSProperties}
+          >
+            <span className="alumni-logo-card__mark">
+              {item.src ? (
+                <img alt={`${item.name} logo`} decoding="async" loading="lazy" src={item.src} />
+              ) : (
+                <strong>{item.name}</strong>
+              )}
+            </span>
+            <span className="alumni-logo-card__name">{item.name}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className={`brand-grid brand-grid--${tone}`}>
       {items.map((item, index) => (
-        <strong key={`${item}-${index}`}>{item}</strong>
+        <strong key={`${typeof item === "string" ? item : item.name}-${index}`}>
+          {typeof item === "string" ? item : item.name}
+        </strong>
       ))}
     </div>
   );
@@ -1327,7 +1662,7 @@ function LoginForm({
     <form className="auth-form" onSubmit={onSubmit}>
       <h2>Login to LMS</h2>
       <p>Continue to your Joviq dashboard.</p>
-      <OAuthButton isSubmitting={isSubmitting} onClick={onGoogle} />
+      <OAuthButton isSubmitting={isSubmitting} onClick={onGoogle} label="Sign in with Google" />
       <div className="auth-divider">
         <span>or</span>
       </div>
@@ -1395,7 +1730,7 @@ function RegisterForm({
           />
           <span>I accept the terms, privacy policy, and refund policy.</span>
         </label>
-        <OAuthButton isSubmitting={isSubmitting} onClick={onGoogle} />
+        <OAuthButton isSubmitting={isSubmitting} onClick={onGoogle} label="Create account with Google" />
       </div>
       <div className="auth-divider">
         <span>or</span>
@@ -1429,11 +1764,19 @@ function RegisterForm({
   );
 }
 
-function OAuthButton({ isSubmitting, onClick }: { isSubmitting: boolean; onClick: () => void }) {
+function OAuthButton({
+  isSubmitting,
+  onClick,
+  label
+}: {
+  isSubmitting: boolean;
+  onClick: () => void;
+  label: string;
+}) {
   return (
     <button className="auth-secondary-button auth-oauth-button" type="button" onClick={onClick} disabled={isSubmitting}>
       <ShieldCheck size={18} />
-      Continue with Google
+      {label}
     </button>
   );
 }

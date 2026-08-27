@@ -7,16 +7,19 @@ using Joviq.Lms.Application.Common.Security;
 using Joviq.Lms.Application.Lms;
 using Joviq.Lms.Application.Students;
 using Joviq.Lms.Application.Users;
+using Joviq.Lms.Infrastructure.Authentication;
 using Joviq.Lms.Infrastructure.Identity;
 using Joviq.Lms.Infrastructure.Persistence;
 using Joviq.Lms.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OAuth.Claims;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Joviq.Lms.Infrastructure;
@@ -93,13 +96,48 @@ public static class DependencyInjection
         {
             authenticationBuilder.AddGoogle("Google", options =>
             {
-                options.ClientId = externalAuthOptions.Google.ClientId;
-                options.ClientSecret = externalAuthOptions.Google.ClientSecret;
-                options.CallbackPath = externalAuthOptions.Google.CallbackPath;
+                options.ClientId = externalAuthOptions.Google.ClientId.Trim();
+                options.ClientSecret = externalAuthOptions.Google.ClientSecret.Trim();
+                options.CallbackPath = string.IsNullOrWhiteSpace(externalAuthOptions.Google.CallbackPath)
+                    ? "/signin-google"
+                    : externalAuthOptions.Google.CallbackPath.Trim();
                 options.SignInScheme = IdentityConstants.ExternalScheme;
                 options.SaveTokens = false;
+                options.BackchannelHttpHandler = new GoogleOAuthBackchannelHandler(new SocketsHttpHandler
+                {
+                    ConnectTimeout = TimeSpan.FromSeconds(10),
+                    PooledConnectionIdleTimeout = TimeSpan.FromSeconds(30),
+                    PooledConnectionLifetime = TimeSpan.FromMinutes(3),
+                    AutomaticDecompression = System.Net.DecompressionMethods.All
+                });
+                options.BackchannelTimeout = TimeSpan.FromSeconds(60);
+                options.CorrelationCookie.HttpOnly = true;
+                options.CorrelationCookie.IsEssential = true;
+                options.CorrelationCookie.SameSite = SameSiteMode.None;
+                options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
                 options.ClaimActions.MapJsonKey("urn:google:picture", "picture", "url");
                 options.ClaimActions.MapJsonKey("urn:google:email_verified", "email_verified", ClaimValueTypes.Boolean);
+                options.Events.OnRemoteFailure = context =>
+                {
+                    var logger = context.HttpContext.RequestServices
+                        .GetRequiredService<ILoggerFactory>()
+                        .CreateLogger("Joviq.GoogleOAuth");
+                    logger.LogError(
+                        context.Failure,
+                        "Google OAuth remote callback failed for {Path}. CorrelationId: {CorrelationId}",
+                        context.Request.Path,
+                        context.HttpContext.TraceIdentifier);
+
+                    var message = GetGoogleOAuthFailureMessage(context.Failure);
+                    var redirectUrl = BuildGoogleOAuthFailureRedirect(
+                        externalAuthOptions,
+                        context.Properties,
+                        message);
+
+                    context.HandleResponse();
+                    context.Response.Redirect(redirectUrl);
+                    return Task.CompletedTask;
+                };
             });
         }
 
@@ -128,5 +166,83 @@ public static class DependencyInjection
         services.AddHostedService<AuditLogRetentionService>();
 
         return services;
+    }
+
+    private static string GetGoogleOAuthFailureMessage(Exception? failure)
+    {
+        var details = GetExceptionMessages(failure).ToLowerInvariant();
+
+        if (details.Contains("invalid_client") || details.Contains("unauthorized"))
+        {
+            return "Google sign-in configuration was rejected. Please verify the Google client ID and client secret.";
+        }
+
+        if (details.Contains("correlation") || details.Contains("state was missing") || details.Contains("state was invalid"))
+        {
+            return "The Google sign-in session expired or its cookie was blocked. Enable cookies and try again.";
+        }
+
+        if (details.Contains("access_denied") || details.Contains("access was denied"))
+        {
+            return "Google sign-in was cancelled.";
+        }
+
+        if (details.Contains("redirect_uri_mismatch"))
+        {
+            return "The Google sign-in redirect URL is not configured correctly.";
+        }
+
+        if (details.Contains("while sending the request") ||
+            details.Contains("transport connection") ||
+            details.Contains("forcibly closed") ||
+            details.Contains("socketexception"))
+        {
+            return "Google sign-in hit a temporary connection problem. Please try again.";
+        }
+
+        return "Google sign-in could not be completed. Please try again.";
+    }
+
+    private static string GetExceptionMessages(Exception? exception)
+    {
+        var messages = new List<string>();
+        while (exception is not null)
+        {
+            messages.Add(exception.Message);
+            exception = exception.InnerException;
+        }
+
+        return string.Join(' ', messages);
+    }
+
+    private static string BuildGoogleOAuthFailureRedirect(
+        ExternalAuthOptions options,
+        AuthenticationProperties? properties,
+        string message)
+    {
+        var callbackUrl = string.IsNullOrWhiteSpace(options.FrontendCallbackUrl)
+            ? "http://localhost:5173/auth/google/callback"
+            : options.FrontendCallbackUrl.Trim();
+        var returnUrl = NormalizeOAuthReturnUrl(
+            properties?.Items.TryGetValue("returnUrl", out var requestedReturnUrl) == true
+                ? requestedReturnUrl
+                : null);
+        var separator = callbackUrl.Contains('?') ? '&' : '?';
+
+        return $"{callbackUrl}{separator}returnUrl={Uri.EscapeDataString(returnUrl)}&error={Uri.EscapeDataString(message)}";
+    }
+
+    private static string NormalizeOAuthReturnUrl(string? returnUrl)
+    {
+        if (string.IsNullOrWhiteSpace(returnUrl) ||
+            !returnUrl.StartsWith('/') ||
+            returnUrl.StartsWith("//") ||
+            returnUrl.Contains('\r') ||
+            returnUrl.Contains('\n'))
+        {
+            return "/dashboard";
+        }
+
+        return returnUrl;
     }
 }

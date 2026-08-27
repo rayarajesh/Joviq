@@ -168,22 +168,36 @@ public static class LmsSeedData
         var plans = new[]
         {
             new PlanSeed("Self-Paced", "SELF", 7999m, 3999m, 999m, [
-                "Recorded lessons",
+                "Recorded Classes",
+                "Complete Curriculum",
                 "Assignments",
+                "Projects",
+                "Assessments",
+                "LMS Access",
                 "Certificate",
-                "Community access"
+                "Basic Support"
             ]),
             new PlanSeed("Intermediate", "INTERMEDIATE", 9999m, 4999m, 999m, [
-                "Live classes",
-                "Real-time projects",
-                "Mentor review",
-                "AI assessments"
+                "Live Sessions",
+                "Mentor Support",
+                "Project Reviews",
+                "AI Assessment",
+                "AI Interview",
+                "Resume Review",
+                "Interview Preparation",
+                "Priority Support"
             ]),
             new PlanSeed("Master", "MASTER", 14999m, 9999m, 999m, [
-                "Custom batches",
-                "Dedicated mentor",
-                "Progress reports",
-                "Placement coordination"
+                "Personal Mentor",
+                "Additional Live Sessions",
+                "Advanced Project Reviews",
+                "Portfolio Development",
+                "Resume Optimization",
+                "Mock Interviews",
+                "Technical Interview Preparation",
+                "HR Interview Preparation",
+                "Career / Placement Assistance",
+                "Priority Support"
             ])
         };
 

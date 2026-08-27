@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, lazy, Suspense, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -7,29 +7,40 @@ import {
   BriefcaseBusiness,
   Building2,
   CheckCircle2,
+  ChevronDown,
+  Clock3,
   Code2,
   Cpu,
+  FolderKanban,
   GraduationCap,
+  HeartHandshake,
   KeyRound,
   Layers3,
   Lightbulb,
   MailCheck,
+  Megaphone,
   PhoneCall,
+  Quote,
   RefreshCw,
+  Rocket,
   Search,
   Send,
   ShieldCheck,
   Sparkles,
+  Star,
+  Target,
+  Trophy,
   UserPlus,
   UsersRound,
-  Wrench
+  Wrench,
+  X
 } from "lucide-react";
 import { IndiaMobileInput } from "../components/IndiaMobileInput";
 import { PublicNavbar } from "../components/PublicNavbar";
+import type { RouteSceneVariant } from "../components/RouteScene3D";
 import { SiteFooter } from "../components/SiteFooter";
 import {
   allPrograms,
-  homeFaqs,
   keyStatistics,
   mentors,
   pricingPlans,
@@ -37,9 +48,9 @@ import {
   recognitions,
   reviews
 } from "../data/siteContent";
+import { getProgramImage } from "../data/programVisuals";
 import { authApi } from "../features/auth/api/authApi";
 import { useAuth } from "../features/auth/context/useAuth";
-import { isOAuthPopupMessage, normalizeOAuthReturnUrl, openOAuthPopup } from "../features/auth/oauthPopup";
 import { formatApiError } from "../lib/api/httpClient";
 import { toIndiaMobileNumber } from "../lib/validation/indiaMobile";
 
@@ -50,42 +61,85 @@ type PageHeroProps = {
   actions?: ReactNode;
 };
 
+type ImmersiveRouteHeroProps = {
+  accent: string;
+  actions?: ReactNode;
+  eyebrow: string;
+  metrics: Array<{ value: string; label: string }>;
+  text: string;
+  title: string;
+  variant: RouteSceneVariant;
+};
+
 type PageMessage = { tone: "success" | "error"; text: string } | null;
 type AuthPageMode = "login" | "register" | "verify-email";
 
 const policyVersion = "2026-08-20";
 const emailPattern = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$";
+const RouteScene3D = lazy(async () => {
+  const routeScene = await import("../components/RouteScene3D");
+  return { default: routeScene.RouteScene3D };
+});
 
 const featureGroups = [
   {
     icon: <Sparkles size={24} />,
     title: "AI learning support",
-    text: "AI assessments, interview practice, improvement suggestions, and role-based checkpoints."
+    text: "AI assessments, interview practice, improvement suggestions, and role-based checkpoints.",
+    signals: ["Adaptive checkpoints", "Interview practice", "Actionable feedback"]
   },
   {
     icon: <UsersRound size={24} />,
     title: "Mentor-led delivery",
-    text: "Live classes, mentor support, project reviews, mock interviews, and career guidance."
+    text: "Live classes, mentor support, project reviews, mock interviews, and career guidance.",
+    signals: ["Live cohorts", "Weekly reviews", "Career guidance"]
   },
   {
     icon: <Layers3 size={24} />,
     title: "Project-first LMS",
-    text: "Recorded classes, assignments, projects, assessments, progress tracking, and certification."
+    text: "Recorded classes, assignments, projects, assessments, progress tracking, and certification.",
+    signals: ["Real projects", "Clear rubrics", "Progress tracking"]
   },
   {
     icon: <ShieldCheck size={24} />,
     title: "Verified outcomes",
-    text: "Certificates, QR verification, portfolio proof, resume support, and interview readiness."
+    text: "Certificates, QR verification, portfolio proof, resume support, and interview readiness.",
+    signals: ["Verified records", "Portfolio proof", "Shareable outcomes"]
   }
 ];
 
 const ambassadorSteps = ["Apply", "Represent Joviq", "Host campus activities", "Earn recognition"];
-const careerRoles = ["HR", "Program Advisor", "Digital Marketing", "Full Stack Developer", "Operations", "Operations Executive"];
+const ambassadorBenefits = [
+  { icon: <Megaphone size={23} />, title: "Create momentum", text: "Bring useful career conversations, workshops, and learning opportunities to your campus." },
+  { icon: <UsersRound size={23} />, title: "Build your network", text: "Collaborate with student leaders, mentors, and the Joviq program team." },
+  { icon: <Trophy size={23} />, title: "Earn visible proof", text: "Turn consistent campus impact into certificates, rewards, and leadership evidence." }
+];
+const careerOpenings = [
+  { role: "HR", team: "People & Culture", text: "Build thoughtful hiring, onboarding, and employee experience systems." },
+  { role: "Program Advisor", team: "Learner Success", text: "Help learners choose the right program, plan, and career direction." },
+  { role: "Digital Marketing", team: "Growth", text: "Create campaigns, content, and measurable acquisition experiments." },
+  { role: "Full Stack Developer", team: "Product Engineering", text: "Build reliable LMS workflows across React, APIs, and data." },
+  { role: "Operations", team: "Program Operations", text: "Keep cohorts, mentor workflows, and learner delivery running clearly." },
+  { role: "Operations Executive", team: "Delivery", text: "Coordinate schedules, communication, records, and learner support." }
+];
 const aboutValues = ["Industry-focused education", "Project-first learning", "Mentor-reviewed outcomes", "Career preparation"];
+const reviewSignals = [
+  { icon: <FolderKanban size={22} />, title: "Portfolio evidence", text: "Work learners can demonstrate, explain, and improve." },
+  { icon: <UsersRound size={22} />, title: "Direct feedback", text: "Specific review loops instead of generic completion signals." },
+  { icon: <Target size={22} />, title: "Interview clarity", text: "Practice turning project decisions into confident answers." },
+  { icon: <ShieldCheck size={22} />, title: "Verified progress", text: "Assessment and certification connected to completed work." }
+];
+const programCatalogStats = [
+  { value: String(allPrograms.length), label: "Career programs" },
+  { value: String(programCategories.length), label: "Learning domains" },
+  { value: "5-6", label: "Projects per track" },
+  { value: "Weekly", label: "Mentor reviews" }
+];
 
 export function ProgramsPage() {
   const [query, setQuery] = useState("");
   const [activeDomain, setActiveDomain] = useState("All");
+  const [visibleCount, setVisibleCount] = useState(6);
 
   const filteredPrograms = useMemo(() => {
     const search = query.trim().toLowerCase();
@@ -107,44 +161,108 @@ export function ProgramsPage() {
     });
   }, [activeDomain, query]);
 
+  const visiblePrograms = filteredPrograms.slice(0, visibleCount);
+  const activeCategory = programCategories.find((category) => category.domain === activeDomain);
+
+  function selectDomain(domain: string) {
+    setActiveDomain(domain);
+    setVisibleCount(6);
+  }
+
+  function resetCatalog() {
+    setQuery("");
+    setActiveDomain("All");
+    setVisibleCount(6);
+  }
+
   return (
     <PublicPageShell>
-      <PageHero
-        eyebrow="Programs"
-        title="Choose the right career track."
-        text="Explore Joviq programs by domain, skill, and outcome. Every track is built around projects, assessment, certification, and career readiness."
-        actions={
-          <>
-            <Link className="site-button site-button--primary" to="/request-callback">
-              Request Callback <PhoneCall size={18} />
-            </Link>
-            <Link className="site-button site-button--light" to="/login">
-              Login to LMS <ArrowRight size={18} />
-            </Link>
-          </>
-        }
-      />
+      <section className="route-programs-hero" aria-labelledby="programs-page-title">
+        <div className="route-programs-hero__content">
+          <div className="route-programs-hero__copy">
+            <span className="apt-pill apt-pill--dark">
+              <Sparkles size={15} />
+              Joviq career programs
+            </span>
+            <h1 id="programs-page-title">
+              Career programs built for <span>real work.</span>
+            </h1>
+            <p>
+              Build practical projects, get direct expert feedback, and finish with proof you can explain in an
+              interview.
+            </p>
+            <div className="route-programs-hero__actions">
+              <a className="site-button site-button--primary" href="#program-catalog">
+                Explore programs <ArrowRight size={18} />
+              </a>
+              <Link className="site-button route-programs-hero__secondary" to="/request-callback">
+                Talk to an advisor <PhoneCall size={18} />
+              </Link>
+            </div>
+            <div className="route-programs-hero__proof" aria-label="Program experience highlights">
+              <span><CheckCircle2 size={16} /> Live mentor-led learning</span>
+              <span><CheckCircle2 size={16} /> Portfolio-grade projects</span>
+              <span><CheckCircle2 size={16} /> Verified certification</span>
+            </div>
+          </div>
 
-      <section className="route-section route-program-catalog">
+          <div className="route-programs-hero__metrics" aria-label="Program catalog statistics">
+            {programCatalogStats.map((stat) => (
+              <div key={stat.label}>
+                <strong>{stat.value}</strong>
+                <span>{stat.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="route-section route-program-catalog" id="program-catalog">
         <div className="route-toolbar">
+          <header className="route-toolbar__header">
+            <div>
+              <Search size={18} />
+              <span>Program finder</span>
+            </div>
+            <strong aria-live="polite">{filteredPrograms.length} matches</strong>
+          </header>
           <label className="route-search">
             <Search size={20} />
             <input
+              aria-label="Search career programs"
               value={query}
-              onChange={(event) => setQuery(event.currentTarget.value)}
+              onChange={(event) => {
+                setQuery(event.currentTarget.value);
+                setVisibleCount(6);
+              }}
               placeholder="Search AI, Full Stack, VLSI, Finance..."
             />
+            {query ? (
+              <button aria-label="Clear program search" onClick={() => setQuery("")} type="button">
+                <X size={17} />
+              </button>
+            ) : null}
           </label>
-          <div className="route-tabs" aria-label="Program domains">
-            <button className={activeDomain === "All" ? "is-active" : undefined} type="button" onClick={() => setActiveDomain("All")}>
+          <div className="route-tabs" aria-label="Program domains" role="tablist">
+            <button
+              aria-controls="program-catalog-results"
+              aria-selected={activeDomain === "All"}
+              className={activeDomain === "All" ? "is-active" : undefined}
+              onClick={() => selectDomain("All")}
+              role="tab"
+              type="button"
+            >
               All <span>{allPrograms.length}</span>
             </button>
             {programCategories.map((category) => (
               <button
+                aria-controls="program-catalog-results"
+                aria-selected={activeDomain === category.domain}
                 key={category.domain}
                 className={activeDomain === category.domain ? "is-active" : undefined}
+                role="tab"
                 type="button"
-                onClick={() => setActiveDomain(category.domain)}
+                onClick={() => selectDomain(category.domain)}
               >
                 {category.domain.replace("Computer Science & IT", "Computer Science")}
                 <span>{category.programs.length}</span>
@@ -153,19 +271,83 @@ export function ProgramsPage() {
           </div>
         </div>
 
-        <div className="route-program-grid">
-          {filteredPrograms.map((program) => (
-            <Link key={program.slug} to={`/programs/${program.slug}`}>
-              <span>
-                <ProgramIcon domain={program.domain} />
-              </span>
-              <strong>{program.title}</strong>
-              <small>{program.domain}</small>
-              <p>{program.shortDescription}</p>
-              <em>{program.duration}</em>
-            </Link>
-          ))}
+        <div className="route-program-results-head">
+          <div>
+            <span>{activeDomain === "All" ? "All career tracks" : activeDomain}</span>
+            <h2>{filteredPrograms.length} programs built around practical outcomes.</h2>
+          </div>
+          <p>
+            {activeCategory?.description ??
+              "Technology, core engineering, and management tracks designed around practical work and reviewed progress."}
+          </p>
         </div>
+
+        {visiblePrograms.length ? (
+          <>
+            <div className="route-program-grid route-program-grid--catalog" id="program-catalog-results" role="tabpanel">
+              {visiblePrograms.map((program, index) => (
+                <Link
+                  className="route-program-card"
+                  data-domain={program.domain}
+                  key={program.slug}
+                  to={`/programs/${program.slug}`}
+                >
+                  <div className="route-program-card__media">
+                    <img
+                      alt={`${program.title} program`}
+                      decoding="async"
+                      loading={index < 6 ? "eager" : "lazy"}
+                      src={getProgramImage(program.slug, program.domain)}
+                    />
+                    <span>
+                      <ProgramIcon domain={program.domain} />
+                      {program.domain}
+                    </span>
+                  </div>
+                  <div className="route-program-card__body">
+                    <div className="route-program-card__meta">
+                      <span>{program.level}</span>
+                      <em><Clock3 size={15} /> {program.duration}</em>
+                    </div>
+                    <strong>{program.title}</strong>
+                    <p>{program.shortDescription}</p>
+                    <div className="route-program-card__skills" aria-label={`${program.title} skills`}>
+                      {program.skills.slice(0, 3).map((skill) => <span key={skill}>{skill}</span>)}
+                    </div>
+                    <div className="route-program-card__footer">
+                      <span><FolderKanban size={16} /> {program.projects.length} projects</span>
+                      <b>View program <ArrowRight size={17} /></b>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            {visiblePrograms.length < filteredPrograms.length ? (
+              <button
+                className="route-program-more"
+                onClick={() => setVisibleCount((current) => current + 6)}
+                type="button"
+              >
+                <span>
+                  Show more programs
+                  <small>{filteredPrograms.length - visiblePrograms.length} remaining</small>
+                </span>
+                <ChevronDown size={20} />
+              </button>
+            ) : null}
+          </>
+        ) : (
+          <div className="route-program-empty" id="program-catalog-results" role="status">
+            <Search size={26} />
+            <h2>No matching programs found.</h2>
+            <p>Try another skill, role, or career domain.</p>
+            <button onClick={resetCatalog} type="button">
+              <RefreshCw size={17} />
+              Show all programs
+            </button>
+          </div>
+        )}
       </section>
     </PublicPageShell>
   );
@@ -174,44 +356,72 @@ export function ProgramsPage() {
 export function FeaturesPage() {
   return (
     <PublicPageShell>
-      <PageHero
-        eyebrow="Features"
-        title="Everything needed to learn, build, and prove skill."
-        text="Joviq combines LMS access, live delivery, projects, mentor review, AI practice, certification, and career support in one learning flow."
+      <ImmersiveRouteHero
+        accent="prove your skill."
+        eyebrow="The Joviq learning system"
+        metrics={[
+          { value: "One", label: "Connected workspace" },
+          { value: "AI", label: "Practice checkpoints" },
+          { value: "Weekly", label: "Mentor reviews" },
+          { value: "Verified", label: "Career proof" }
+        ]}
+        text="Live learning, practical projects, expert review, AI practice, and verified outcomes working together in one focused experience."
+        title="One workspace to learn, build, and"
+        variant="features"
         actions={
-          <Link className="site-button site-button--primary" to="/programs">
-            Explore Programs <ArrowRight size={18} />
-          </Link>
+          <>
+            <Link className="site-button site-button--primary" to="/programs">
+              Explore programs <ArrowRight size={18} />
+            </Link>
+            <Link className="site-button immersive-route-hero__secondary" to="/request-callback">
+              Talk to an advisor <PhoneCall size={18} />
+            </Link>
+          </>
         }
       />
 
-      <section className="route-section route-feature-grid">
-        {featureGroups.map((feature) => (
-          <article key={feature.title}>
-            <div>{feature.icon}</div>
-            <h2>{feature.title}</h2>
-            <p>{feature.text}</p>
-          </article>
-        ))}
+      <section className="route-experience-section route-feature-showcase">
+        <div className="route-section-lead">
+          <span>Connected learning experience</span>
+          <h2>Every feature moves the learner toward demonstrable work.</h2>
+          <p>Nothing sits in isolation. Classes lead to practice, practice becomes projects, and projects become career proof.</p>
+        </div>
+        <div className="route-feature-showcase__grid">
+          {featureGroups.map((feature, index) => (
+            <article key={feature.title}>
+              <header>
+                <span>{feature.icon}</span>
+                <small>0{index + 1}</small>
+              </header>
+              <h3>{feature.title}</h3>
+              <p>{feature.text}</p>
+              <ul>
+                {feature.signals.map((signal) => (
+                  <li key={signal}><CheckCircle2 size={15} /> {signal}</li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </div>
       </section>
 
-      <section className="route-section route-split-band">
-        <div>
-          <span className="apt-pill">
-            <BadgeCheck size={15} />
-            LMS capabilities
-          </span>
-          <h2>Clear progress from first class to certification.</h2>
-          <p>Students can track learning, classes, assignments, projects, assessments, AI practice, payments, certifications, and support from their dashboard.</p>
+      <section className="route-learning-flow">
+        <div className="route-learning-flow__intro">
+          <span className="apt-pill apt-pill--dark"><Layers3 size={15} /> One connected flow</span>
+          <h2>From the first lesson to proof you can share.</h2>
+          <p>One visible progression keeps classes, practice, projects, feedback, and certification aligned.</p>
+          <Link className="site-button site-button--primary" to="/programs">
+            Find your program <ArrowRight size={18} />
+          </Link>
         </div>
-        <ul>
-          {["Live classes", "Recorded classes", "Assignments", "Projects", "AI Assessment", "AI Interview", "Mentor Support", "Career Support", "Certificate Verification"].map((item) => (
-            <li key={item}>
-              <CheckCircle2 size={17} />
-              {item}
+        <ol className="route-learning-flow__steps">
+          {["Learn", "Practice", "Build", "Review", "Prove"].map((step, index) => (
+            <li key={step}>
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <strong>{step}</strong>
             </li>
           ))}
-        </ul>
+        </ol>
       </section>
     </PublicPageShell>
   );
@@ -220,25 +430,62 @@ export function FeaturesPage() {
 export function CampusAmbassadorPage() {
   return (
     <PublicPageShell>
-      <PageHero
-        eyebrow="Campus Ambassador"
-        title="Lead your campus learning community."
-        text="Represent Joviq in your college, organize awareness activities, help peers discover career programs, and earn recognition for meaningful outcomes."
+      <ImmersiveRouteHero
+        accent="visible leadership."
+        eyebrow="Joviq Campus Ambassador"
+        metrics={[
+          { value: "Lead", label: "Campus conversations" },
+          { value: "Host", label: "Learning activities" },
+          { value: "Connect", label: "Peers and mentors" },
+          { value: "Earn", label: "Proof and rewards" }
+        ]}
+        text="Represent Joviq, create useful career conversations, and turn real campus impact into leadership proof you can carry forward."
+        title="Turn campus energy into"
+        variant="ambassador"
         actions={
           <Link className="site-button site-button--primary" to="/request-callback">
-            Apply / Request Callback <ArrowRight size={18} />
+            Apply to lead <ArrowRight size={18} />
           </Link>
         }
       />
 
-      <section className="route-section route-process-grid">
-        {ambassadorSteps.map((step, index) => (
-          <article key={step}>
-            <span>{String(index + 1).padStart(2, "0")}</span>
-            <h2>{step}</h2>
-            <p>{index === 0 ? "Share your profile and campus details." : index === 1 ? "Promote programs, events, and student opportunities." : index === 2 ? "Run learning circles, workshops, and peer conversations." : "Receive certificates, rewards, and performance recognition."}</p>
-          </article>
-        ))}
+      <section className="route-experience-section ambassador-impact">
+        <div className="route-section-lead">
+          <span>Leadership through action</span>
+          <h2>Be useful on campus, not just visible.</h2>
+          <p>The role is built around creating genuine value for peers while developing communication, ownership, and community leadership.</p>
+        </div>
+        <div className="ambassador-impact__grid">
+          {ambassadorBenefits.map((benefit) => (
+            <article key={benefit.title}>
+              <span>{benefit.icon}</span>
+              <h3>{benefit.title}</h3>
+              <p>{benefit.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="ambassador-pathway">
+        <div className="ambassador-pathway__intro">
+          <span className="apt-pill apt-pill--dark"><Rocket size={15} /> Your pathway</span>
+          <h2>Four steps from application to recognized impact.</h2>
+          <p>A clear operating rhythm keeps the role practical, measurable, and easy to explain.</p>
+        </div>
+        <ol>
+          {ambassadorSteps.map((step, index) => (
+            <li key={step}>
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <div>
+                <strong>{step}</strong>
+                <p>{index === 0 ? "Share your profile, college, and leadership interests." : index === 1 ? "Introduce useful programs and opportunities with clarity." : index === 2 ? "Run learning circles, workshops, and peer conversations." : "Receive certificates, rewards, and evidence of contribution."}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+        <Link className="site-button site-button--primary" to="/request-callback">
+          Start your application <ArrowRight size={18} />
+        </Link>
       </section>
     </PublicPageShell>
   );
@@ -247,27 +494,65 @@ export function CampusAmbassadorPage() {
 export function ReviewsPage() {
   return (
     <PublicPageShell>
-      <PageHero
-        eyebrow="Reviews"
-        title="Student outcomes built through projects and reviews."
-        text="Learners value the practical project work, mentor feedback, interview preparation, and confidence they gain before applying for roles."
+      <ImmersiveRouteHero
+        accent="confidence."
+        eyebrow="Learner perspectives"
+        metrics={[
+          { value: "Build", label: "Portfolio projects" },
+          { value: "Review", label: "Expert feedback" },
+          { value: "Explain", label: "Interview practice" },
+          { value: "Improve", label: "Visible progress" }
+        ]}
+        text="Learners remember the moment their work became easier to explain, their portfolio became more credible, and interviews felt less uncertain."
+        title="The work changed. So did their"
+        variant="reviews"
+        actions={
+          <Link className="site-button site-button--primary" to="/programs">
+            Explore programs <ArrowRight size={18} />
+          </Link>
+        }
       />
 
-      <section className="route-section route-review-grid">
-        {reviews.map((review) => (
-          <article key={review.name}>
-            <span>{review.program}</span>
-            <p>"{review.quote}"</p>
-            <strong>{review.name}</strong>
-          </article>
-        ))}
-        {homeFaqs.slice(0, 3).map((faq) => (
-          <article key={faq.question}>
-            <span>FAQ</span>
-            <p>{faq.answer}</p>
-            <strong>{faq.question}</strong>
-          </article>
-        ))}
+      <section className="route-experience-section route-review-stories">
+        <div className="route-section-lead">
+          <span>Stories behind the progress</span>
+          <h2>Feedback is valuable when it changes the next attempt.</h2>
+          <p>These learner perspectives focus on the practical moments that made their work and communication stronger.</p>
+        </div>
+        <div className="route-review-stories__grid">
+          {reviews.map((review, index) => (
+            <article key={review.name}>
+              <header>
+                <span className="route-review-stories__avatar">{review.name.charAt(0)}</span>
+                <div>
+                  <strong>{review.name}</strong>
+                  <small>{review.program}</small>
+                </div>
+                <Quote size={25} />
+              </header>
+              <blockquote>{review.quote}</blockquote>
+              <footer>
+                <span><BadgeCheck size={15} /> Learner perspective</span>
+                <strong>{["Portfolio clarity", "Project confidence", "Practical confidence"][index]}</strong>
+              </footer>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="review-proof-band">
+        <div className="review-proof-band__intro">
+          <span className="apt-pill apt-pill--dark"><Star size={15} /> What creates confidence</span>
+          <h2>Proof, feedback, and practice working together.</h2>
+        </div>
+        <div className="review-proof-band__grid">
+          {reviewSignals.map((signal) => (
+            <article key={signal.title}>
+              <span>{signal.icon}</span>
+              <div><strong>{signal.title}</strong><p>{signal.text}</p></div>
+            </article>
+          ))}
+        </div>
       </section>
     </PublicPageShell>
   );
@@ -276,25 +561,58 @@ export function ReviewsPage() {
 export function CareersPage() {
   return (
     <PublicPageShell>
-      <PageHero
-        eyebrow="Careers"
-        title="Build practical career education with Joviq."
-        text="We are looking for people who care about learner outcomes, clear communication, operating discipline, and practical education."
+      <ImmersiveRouteHero
+        accent="better career outcomes."
+        eyebrow="Careers at Joviq"
+        metrics={[
+          { value: String(careerOpenings.length), label: "Open disciplines" },
+          { value: "Learner", label: "First decisions" },
+          { value: "Clear", label: "Operating ownership" },
+          { value: "Build", label: "Useful systems" }
+        ]}
+        text="Join a team that cares about clear communication, disciplined delivery, thoughtful technology, and learning that produces practical evidence."
+        title="Build the team behind"
+        variant="careers"
         actions={
           <Link className="site-button site-button--primary" to="/request-callback">
-            Contact Hiring Team <ArrowRight size={18} />
+            Contact the hiring team <ArrowRight size={18} />
           </Link>
         }
       />
 
-      <section className="route-section route-role-grid">
-        {careerRoles.map((role) => (
-          <article key={role}>
-            <BriefcaseBusiness size={22} />
-            <strong>{role}</strong>
-            <span>Open for outcome-focused team members.</span>
-          </article>
-        ))}
+      <section className="route-experience-section career-culture">
+        <div className="route-section-lead">
+          <span>How we work</span>
+          <h2>High standards, low noise, real ownership.</h2>
+          <p>We value people who can make progress visible, communicate early, and keep the learner experience at the center of decisions.</p>
+        </div>
+        <div className="career-culture__grid">
+          {[
+            { icon: <HeartHandshake size={23} />, title: "Learner empathy", text: "Understand the person behind the workflow and build with their reality in mind." },
+            { icon: <Target size={23} />, title: "Outcome ownership", text: "Take responsibility for work that is clear, measurable, and genuinely useful." },
+            { icon: <Rocket size={23} />, title: "Thoughtful momentum", text: "Move decisively, share context, and improve the system as the team learns." }
+          ].map((value) => (
+            <article key={value.title}><span>{value.icon}</span><h3>{value.title}</h3><p>{value.text}</p></article>
+          ))}
+        </div>
+      </section>
+
+      <section className="career-openings">
+        <div className="career-openings__intro">
+          <span className="apt-pill apt-pill--dark"><BriefcaseBusiness size={15} /> Open disciplines</span>
+          <h2>Find where your strengths can make a difference.</h2>
+          <p>Current areas where Joviq is interested in meeting outcome-focused people.</p>
+        </div>
+        <div className="career-openings__grid">
+          {careerOpenings.map((opening) => (
+            <article key={opening.role}>
+              <header><span>{opening.team}</span><small>Opportunity</small></header>
+              <h3>{opening.role}</h3>
+              <p>{opening.text}</p>
+              <Link to="/request-callback">Contact hiring <ArrowRight size={17} /></Link>
+            </article>
+          ))}
+        </div>
       </section>
     </PublicPageShell>
   );
@@ -303,31 +621,35 @@ export function CareersPage() {
 export function AboutPage() {
   return (
     <PublicPageShell>
-      <PageHero
+      <ImmersiveRouteHero
+        accent="proof."
         eyebrow="About Joviq Technologies"
-        title="A career-focused learning ecosystem."
-        text="Joviq Technologies combines training, real-time projects, mentorship, AI-powered assessments, certification, and career preparation for students and professionals."
+        metrics={keyStatistics}
+        text="Joviq connects training, practical projects, expert review, AI-supported practice, certification, and career preparation into one focused learning ecosystem."
+        title="Learning becomes valuable when it produces"
+        variant="about"
         actions={
           <Link className="site-button site-button--primary" to="/programs">
-            View Programs <ArrowRight size={18} />
+            View programs <ArrowRight size={18} />
           </Link>
         }
       />
 
-      <section className="route-section route-about-grid">
-        <article>
-          <span>Who we are</span>
-          <h2>We help learners move from training to job-ready proof.</h2>
+      <section className="route-experience-section about-story">
+        <div className="about-story__statement">
+          <span>Why Joviq exists</span>
+          <h2>To close the gap between finishing a course and being able to show real capability.</h2>
+        </div>
+        <div className="about-story__copy">
           <p>Our model focuses on practical projects, structured review, LMS-driven progress, and clear career preparation rather than passive course watching.</p>
-        </article>
-        <div>
-          {aboutValues.map((value) => (
-            <span key={value}>{value}</span>
-          ))}
+          <p>Every part of the experience is designed to help learners understand what they built, improve it with feedback, and communicate that work with confidence.</p>
+          <div>
+            {aboutValues.map((value) => <span key={value}><CheckCircle2 size={15} /> {value}</span>)}
+          </div>
         </div>
       </section>
 
-      <section className="route-section route-metric-grid">
+      <section className="about-metrics">
         {keyStatistics.map((stat) => (
           <article key={stat.label}>
             <strong>{stat.value}</strong>
@@ -336,25 +658,30 @@ export function AboutPage() {
         ))}
       </section>
 
-      <section className="route-section route-feature-grid">
-        {mentors.map((mentor) => (
-          <article key={mentor.name}>
-            <div>
-              <GraduationCap size={24} />
-            </div>
-            <h2>{mentor.name}</h2>
-            <p>{mentor.role}</p>
-          </article>
-        ))}
+      <section className="route-experience-section about-mentors">
+        <div className="route-section-lead">
+          <span>Expert context</span>
+          <h2>Different disciplines, one review standard.</h2>
+          <p>Learners get guidance from people who understand the technical work and the career conversation around it.</p>
+        </div>
+        <div className="about-mentors__grid">
+          {mentors.map((mentor, index) => (
+            <article key={mentor.name}>
+              <header><GraduationCap size={23} /><span>0{index + 1}</span></header>
+              <h3>{mentor.name}</h3>
+              <p>{mentor.role}</p>
+            </article>
+          ))}
+        </div>
       </section>
 
-      <section className="route-section route-proof-list">
-        {recognitions.map((item) => (
-          <span key={item}>
-            <ShieldCheck size={17} />
-            {item}
-          </span>
-        ))}
+      <section className="about-principles">
+        <div><span className="apt-pill apt-pill--dark"><ShieldCheck size={15} /> How we operate</span><h2>Practical by design.</h2></div>
+        <div className="about-principles__list">
+          {recognitions.map((item, index) => (
+            <span key={item}><small>0{index + 1}</small>{item}</span>
+          ))}
+        </div>
       </section>
     </PublicPageShell>
   );
@@ -502,7 +829,9 @@ export function LoginPage() {
       return;
     }
 
-    const popup = openOAuthPopup(
+    setIsSubmitting(true);
+    setMessage({ tone: "success", text: "Redirecting to Google..." });
+    window.location.assign(
       authApi.oauthStartUrl("google", {
         returnUrl: "/dashboard",
         acceptedTerms: allowSignUp ? acceptedOAuthTerms : false,
@@ -514,50 +843,6 @@ export function LoginPage() {
         refundPolicyVersion: policyVersion
       })
     );
-
-    if (!popup) {
-      setMessage({ tone: "error", text: "Please allow pop-ups for this site to continue with Google." });
-      return;
-    }
-
-    setIsSubmitting(true);
-    setMessage({ tone: "success", text: "Complete Google sign-in in the popup window." });
-    popup.focus();
-
-    const popupClosedTimer = window.setInterval(() => {
-      if (popup.closed) {
-        window.clearInterval(popupClosedTimer);
-        window.removeEventListener("message", handleOAuthMessage);
-        setIsSubmitting(false);
-        setMessage({ tone: "error", text: "Google sign-in was closed before it finished." });
-      }
-    }, 600);
-
-    async function handleOAuthMessage(event: MessageEvent) {
-      if (!isOAuthPopupMessage(event)) {
-        return;
-      }
-
-      window.clearInterval(popupClosedTimer);
-      window.removeEventListener("message", handleOAuthMessage);
-
-      if (event.data.status === "error") {
-        setIsSubmitting(false);
-        setMessage({ tone: "error", text: event.data.error ?? "Google sign-in failed. Please try again." });
-        return;
-      }
-
-      try {
-        await auth.refresh();
-        navigate(normalizeOAuthReturnUrl(event.data.returnUrl));
-      } catch (error) {
-        setMessage({ tone: "error", text: formatApiError(error) });
-      } finally {
-        setIsSubmitting(false);
-      }
-    }
-
-    window.addEventListener("message", handleOAuthMessage);
   }
 
   return (
@@ -593,7 +878,7 @@ export function LoginPage() {
                 disabled={isSubmitting}
               >
                 <ShieldCheck size={18} />
-                Continue with Google
+                Sign in with Google
               </button>
               <div className="auth-divider">
                 <span>or</span>
@@ -639,7 +924,7 @@ export function LoginPage() {
                   disabled={isSubmitting}
                 >
                   <ShieldCheck size={18} />
-                  Continue with Google
+                  Create account with Google
                 </button>
               </div>
               <div className="auth-divider">
@@ -704,6 +989,39 @@ function PublicPageShell({ children }: { children: ReactNode }) {
       {children}
       <SiteFooter />
     </main>
+  );
+}
+
+function ImmersiveRouteHero({ accent, actions, eyebrow, metrics, text, title, variant }: ImmersiveRouteHeroProps) {
+  return (
+    <section className={`immersive-route-hero immersive-route-hero--${variant}`}>
+      <Suspense fallback={null}>
+        <RouteScene3D variant={variant} />
+      </Suspense>
+      <div aria-hidden="true" className="immersive-route-hero__veil" />
+      <div className="immersive-route-hero__content">
+        <div className="immersive-route-hero__copy">
+          <span className="apt-pill apt-pill--dark">
+            <Sparkles size={15} />
+            {eyebrow}
+          </span>
+          <h1>
+            {title} <span>{accent}</span>
+          </h1>
+          <p>{text}</p>
+          {actions ? <div className="immersive-route-hero__actions">{actions}</div> : null}
+        </div>
+
+        <div className="immersive-route-hero__metrics" aria-label="Page highlights">
+          {metrics.map((metric) => (
+            <div key={metric.label}>
+              <strong>{metric.value}</strong>
+              <span>{metric.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 

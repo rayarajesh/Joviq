@@ -4,7 +4,6 @@ import { ChevronDown, ExternalLink, Menu, Sparkles, X } from "lucide-react";
 import { ProgramsMegaMenu } from "./ProgramsMegaMenu";
 
 const publicNavItems = [
-  { label: "Home", to: "/" },
   { label: "Programs", to: "/programs", hasMegaMenu: true },
   { label: "Features", to: "/features" },
   { label: "Campus Ambassador", to: "/campus-ambassador" },

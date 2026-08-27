@@ -298,7 +298,7 @@ public sealed class AuthController(
         {
             HttpOnly = true,
             Secure = true,
-            SameSite = SameSiteMode.Lax,
+            SameSite = SameSiteMode.None,
             Path = "/",
             Expires = result.RefreshTokenExpiresAt
         });
@@ -309,7 +309,7 @@ public sealed class AuthController(
         Response.Cookies.Delete(_refreshTokenOptions.CookieName, new CookieOptions
         {
             Secure = true,
-            SameSite = SameSiteMode.Lax,
+            SameSite = SameSiteMode.None,
             Path = "/"
         });
     }

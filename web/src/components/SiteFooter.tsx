@@ -15,8 +15,8 @@ const companyLinks = [
 
 const lmsLinks = [
   { label: "Login to LMS", href: "/login" },
-  { label: "Program Search", href: "/programs" },
-  { label: "Pricing", href: "/programs" },
+  { label: "Program Search", href: "/#program-search" },
+  { label: "Pricing", href: "/#pricing" },
   { label: "Request Callback", href: "/request-callback" }
 ];
 
@@ -90,7 +90,7 @@ export function SiteFooter() {
 
           <FooterColumn title="LMS">
             {lmsLinks.map((link) => (
-              <Link key={link.href} to={link.href}>
+              <Link key={`${link.href}-${link.label}`} to={link.href}>
                 {link.label}
               </Link>
             ))}
@@ -116,7 +116,7 @@ export function SiteFooter() {
         <section className="public-footer__bottom">
           <span>Copyright 2026 Joviq Technologies. All rights reserved.</span>
           <div>
-            <Link to="/features">FAQ</Link>
+            <Link to="/#faq">FAQ</Link>
             <Link to="/request-callback">Callback</Link>
             <Link to="/programs">Programs</Link>
           </div>

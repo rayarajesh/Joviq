@@ -419,6 +419,16 @@ export type CreateProgramRequest = {
   status: number;
 };
 
+export type CreatePlanRequest = {
+  name: string;
+  code: string;
+  actualPrice: number;
+  offerPrice: number;
+  reserveAmount: number;
+  features: string[];
+  isActive: boolean;
+};
+
 export type CreateCategoryRequest = {
   name: string;
   slug: string;

@@ -1,6 +1,6 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import type { ComponentType } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Award,
   BarChart3,
@@ -26,7 +26,6 @@ import {
   LifeBuoy,
   ListChecks,
   Lock,
-  LogOut,
   Mail,
   PlayCircle,
   RefreshCw,
@@ -71,6 +70,8 @@ import type {
   MentorReviewQueueResponse,
   PaymentTransactionResponse,
   ProgramCategoryResponse,
+  ProgramDetailsResponse,
+  ProgramPlanResponse,
   ProgramSummaryResponse,
   ProjectResponse,
   RecordedClassResponse,
@@ -79,6 +80,7 @@ import type {
   SubmissionResponse,
   SupportTicketResponse
 } from "../features/lms/api/lmsTypes";
+import { defaultProgramPlans } from "../data/siteContent";
 import { formatApiError } from "../lib/api/httpClient";
 import { toIndiaMobileNumber } from "../lib/validation/indiaMobile";
 
@@ -122,12 +124,17 @@ const dashboardNavItems: Record<PrimaryRole, string[]> = {
     "Mentor Support",
     "Career Support",
     "Payments",
-    "Notifications",
-    "Profile",
-    "Certificates",
-    "Support"
+    "Certificates"
   ]
 };
+
+const studentNavGroups = [
+  { label: "Workspace", items: ["Overview", "My Program", "Continue Learning"] },
+  { label: "Classes", items: ["Live Classes", "Recorded Classes"] },
+  { label: "Practice and proof", items: ["Assignments", "Projects", "Assessments", "AI Assessment", "AI Interview"] },
+  { label: "Guidance", items: ["Mentor Support", "Career Support"] },
+  { label: "Account", items: ["Payments", "Certificates"] }
+];
 
 const moduleIconMap: Record<string, ComponentType<{ size?: number }>> = {
   Overview: LayoutDashboard,
@@ -159,23 +166,35 @@ const moduleIconMap: Record<string, ComponentType<{ size?: number }>> = {
 
 export function DashboardPage() {
   const auth = useAuth();
-  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const roles = auth.user?.roles ?? [];
   const primaryRole: PrimaryRole = roles.includes("Admin") ? "Admin" : roles.includes("Mentor") ? "Mentor" : "Student";
-  const [activeModule, setActiveModule] = useState("Overview");
+  const requestedModule = searchParams.get("section");
+  const canOpenRequestedModule = requestedModule
+    && (dashboardNavItems[primaryRole].includes(requestedModule) || (primaryRole === "Student" && requestedModule === "Support"));
+  const initialModule = canOpenRequestedModule
+    ? requestedModule
+    : "Overview";
+  const [activeModule, setActiveModule] = useState(initialModule);
 
   useEffect(() => {
-    setActiveModule("Overview");
-  }, [primaryRole]);
+    setActiveModule(initialModule);
+  }, [initialModule, primaryRole]);
 
-  async function logout() {
-    await auth.logout();
-    navigate("/");
+  function selectModule(module: string) {
+    setActiveModule(module);
+    const nextSearchParams = new URLSearchParams(searchParams);
+    if (module === "Overview") {
+      nextSearchParams.delete("section");
+    } else {
+      nextSearchParams.set("section", module);
+    }
+    setSearchParams(nextSearchParams, { replace: true });
   }
 
   return (
     <main className="dashboard-shell">
-      <DashboardSidebar activeModule={activeModule} onModuleChange={setActiveModule} role={primaryRole} />
+      <DashboardSidebar activeModule={activeModule} onModuleChange={selectModule} role={primaryRole} />
       <section className="dashboard-main">
         <header className="dashboard-header">
           <div>
@@ -183,10 +202,6 @@ export function DashboardPage() {
             <h1>{activeModule}</h1>
             <p>{auth.user?.fullName} - {auth.user?.email}</p>
           </div>
-          <button className="ghost-button" type="button" onClick={logout}>
-            <LogOut size={18} />
-            Logout
-          </button>
         </header>
 
         {primaryRole === "Admin" ? <AdminDashboard activeModule={activeModule} currentUserId={auth.user?.id} /> : null}
@@ -207,30 +222,40 @@ function DashboardSidebar({
   role: PrimaryRole;
 }) {
   const navItems = dashboardNavItems[role];
+  const navGroups = role === "Student"
+    ? studentNavGroups
+    : [{ label: "Workspace", items: navItems }];
   return (
-    <aside className="dashboard-sidebar">
-      <div className="sidebar-brand">
-        <Sparkles size={21} />
-        <div>
-          <strong>Joviq</strong>
-          <span>{role} workspace</span>
+    <aside className={`dashboard-sidebar dashboard-sidebar--${role.toLowerCase()}`}>
+      {role !== "Student" ? (
+        <div className="sidebar-brand">
+          <Sparkles size={21} />
+          <div>
+            <strong>Joviq</strong>
+            <span>{role} workspace</span>
+          </div>
         </div>
-      </div>
+      ) : null}
       <nav className="sidebar-nav" aria-label="Dashboard navigation">
-        {navItems.map((item) => {
-          const Icon = moduleIconMap[item] ?? BarChart3;
-          return (
-          <button
-            className={activeModule === item ? "is-active" : ""}
-            key={item}
-            type="button"
-            onClick={() => onModuleChange(item)}
-          >
-            <Icon size={18} />
-            {item}
-          </button>
-          );
-        })}
+        {navGroups.map((group) => (
+          <div className="sidebar-nav__group" key={group.label}>
+            <span className="sidebar-nav__label">{group.label}</span>
+            {group.items.map((item) => {
+              const Icon = moduleIconMap[item] ?? BarChart3;
+              return (
+                <button
+                  className={activeModule === item ? "is-active" : ""}
+                  key={item}
+                  type="button"
+                  onClick={() => onModuleChange(item)}
+                >
+                  <Icon size={17} />
+                  <span>{item}</span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </nav>
     </aside>
   );
@@ -745,6 +770,8 @@ function AdminLmsPanel({
   onRefresh: () => Promise<void>;
 }) {
   const [isCreatingProgram, setIsCreatingProgram] = useState(false);
+  const [isPlanEditorLoading, setIsPlanEditorLoading] = useState(false);
+  const [planEditorProgram, setPlanEditorProgram] = useState<ProgramDetailsResponse | null>(null);
 
   async function createProgram(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -795,6 +822,75 @@ function AdminLmsPanel({
       onMessage({ tone: "error", text: formatApiError(error) });
     } finally {
       setIsCreatingProgram(false);
+    }
+  }
+
+  async function openPlanEditor(program: ProgramSummaryResponse) {
+    setIsPlanEditorLoading(true);
+    onMessage(null);
+
+    try {
+      const response = await adminLmsApi.getProgram(program.id);
+      setPlanEditorProgram(response.data);
+    } catch (error) {
+      onMessage({ tone: "error", text: formatApiError(error) });
+    } finally {
+      setIsPlanEditorLoading(false);
+    }
+  }
+
+  async function updateProgramPlan(event: FormEvent<HTMLFormElement>, plan: ProgramPlanResponse) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+
+    try {
+      await adminLmsApi.updatePlan(plan.id, {
+        name: String(form.get("name") ?? "").trim(),
+        code: String(form.get("code") ?? "").trim(),
+        actualPrice: Number(form.get("actualPrice") ?? 0),
+        offerPrice: Number(form.get("offerPrice") ?? 0),
+        reserveAmount: Number(form.get("reserveAmount") ?? 0),
+        features: parseMultilineList(String(form.get("features") ?? "")),
+        isActive: form.get("isActive") === "on"
+      });
+      onMessage({ tone: "success", text: `${plan.name} plan updated.` });
+      if (planEditorProgram) {
+        const response = await adminLmsApi.getProgram(planEditorProgram.id);
+        setPlanEditorProgram(response.data);
+      }
+      await onRefresh();
+    } catch (error) {
+      onMessage({ tone: "error", text: formatApiError(error) });
+    }
+  }
+
+  async function restoreMissingPlans() {
+    if (!planEditorProgram) return;
+
+    const existingCodes = new Set(planEditorProgram.plans.map((plan) => plan.code));
+    const missingPlans = defaultProgramPlans.filter((plan) => !existingCodes.has(plan.code));
+
+    if (missingPlans.length === 0) {
+      onMessage({ tone: "success", text: "All three plans are already configured." });
+      return;
+    }
+
+    try {
+      await Promise.all(missingPlans.map((plan) => adminLmsApi.createPlan(planEditorProgram.id, {
+        name: plan.name,
+        code: plan.code,
+        actualPrice: plan.actualPrice,
+        offerPrice: plan.offerPrice,
+        reserveAmount: plan.reserveAmount,
+        features: plan.features,
+        isActive: true
+      })));
+      const response = await adminLmsApi.getProgram(planEditorProgram.id);
+      setPlanEditorProgram(response.data);
+      onMessage({ tone: "success", text: "Missing program plans restored." });
+      await onRefresh();
+    } catch (error) {
+      onMessage({ tone: "error", text: formatApiError(error) });
     }
   }
 
@@ -1274,15 +1370,91 @@ function AdminLmsPanel({
           <section className="lms-list-panel">
             <h3>Catalog</h3>
             <div className="lms-scroll-list">
-              {programs.slice(0, 10).map((program) => (
+              {programs.map((program) => (
                 <article key={program.id} className="lms-list-item">
                   <div>
                     <strong>{program.title}</strong>
                     <span>{program.categoryName} - {program.duration}</span>
                   </div>
-                  <small>{program.status}</small>
+                  <div className="lms-row-actions">
+                    <small>{program.status}</small>
+                    <button
+                      type="button"
+                      disabled={isPlanEditorLoading}
+                      onClick={() => void openPlanEditor(program)}
+                    >
+                      {isPlanEditorLoading ? "Loading" : "Manage plans"}
+                    </button>
+                  </div>
                 </article>
               ))}
+            </div>
+          </section>
+        ) : null}
+
+        {activeModule === "Programs" && planEditorProgram ? (
+          <section className="lms-list-panel lms-list-panel--wide admin-plan-editor">
+            <div className="admin-plan-editor__header">
+              <div>
+                <span>Pricing and access</span>
+                <h3>{planEditorProgram.title}</h3>
+                <p>Changes here are shown on this program's public details page.</p>
+              </div>
+              <button type="button" onClick={() => void restoreMissingPlans()}>
+                <RotateCcw size={16} />
+                Restore missing plans
+              </button>
+            </div>
+
+            <div className="admin-plan-editor__grid">
+              {planEditorProgram.plans.map((plan) => (
+                <form
+                  key={`${plan.id}-${plan.actualPrice}-${plan.offerPrice}-${plan.features.join("|")}-${plan.isActive}`}
+                  className="lms-mini-form admin-plan-form"
+                  onSubmit={(event) => void updateProgramPlan(event, plan)}
+                >
+                  <div className="admin-plan-form__title">
+                    <strong>{plan.name}</strong>
+                    <span>{plan.code}</span>
+                  </div>
+                  <div className="lms-form-two">
+                    <label>
+                      Plan name
+                      <input name="name" defaultValue={plan.name} required />
+                    </label>
+                    <label>
+                      Plan code
+                      <input name="code" defaultValue={plan.code} required />
+                    </label>
+                  </div>
+                  <div className="lms-form-two">
+                    <label>
+                      Actual price (INR)
+                      <input name="actualPrice" type="number" min="0" defaultValue={plan.actualPrice} required />
+                    </label>
+                    <label>
+                      Offer price (INR)
+                      <input name="offerPrice" type="number" min="0" defaultValue={plan.offerPrice} required />
+                    </label>
+                  </div>
+                  <label>
+                    Enrollment amount (INR)
+                    <input name="reserveAmount" type="number" min="0" defaultValue={plan.reserveAmount} required />
+                  </label>
+                  <label>
+                    Features (one per line)
+                    <textarea name="features" defaultValue={plan.features.join("\n")} required />
+                  </label>
+                  <label className="inline-check">
+                    <input name="isActive" type="checkbox" defaultChecked={plan.isActive} />
+                    Show this plan publicly
+                  </label>
+                  <button className="primary-action" type="submit">Save plan</button>
+                </form>
+              ))}
+              {planEditorProgram.plans.length === 0 ? (
+                <div className="table-state">No plans configured. Use Restore missing plans to create all three.</div>
+              ) : null}
             </div>
           </section>
         ) : null}
@@ -2796,6 +2968,13 @@ function formatCurrency(value: number) {
 function parseCommaList(value: string) {
   return value
     .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function parseMultilineList(value: string) {
+  return value
+    .split(/\r?\n|,/)
     .map((item) => item.trim())
     .filter(Boolean);
 }

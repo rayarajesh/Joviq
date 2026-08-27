@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { useLocation } from "react-router-dom";
+import { ScrollToTopButton } from "../components/ScrollToTopButton";
 import { AuthProvider } from "../features/auth/context/AuthContext";
 import { DashboardPage } from "../pages/DashboardPage";
 import { LandingPage } from "../pages/LandingPage";
@@ -24,6 +25,7 @@ export function App() {
     <BrowserRouter>
       <AuthProvider>
         <HashScroll />
+        <ScrollToTopButton />
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/programs" element={<ProgramsPage />} />

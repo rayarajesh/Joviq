@@ -17,9 +17,21 @@ export type Program = {
   outcomes: string[];
   interviewPrep: string[];
   pricing: string;
+  plans: ProgramPlan[];
   faqs: { question: string; answer: string }[];
   tags: string[];
   level: string;
+};
+
+export type ProgramPlan = {
+  id?: string;
+  name: string;
+  code: "SELF" | "INTERMEDIATE" | "MASTER" | string;
+  actualPrice: number;
+  offerPrice: number;
+  reserveAmount: number;
+  features: string[];
+  isActive: boolean;
 };
 
 export type ProgramCategory = {
@@ -43,9 +55,71 @@ const commonFaqs = [
   }
 ];
 
-function createProgram(program: Program): Program {
+export const defaultProgramPlans: ProgramPlan[] = [
+  {
+    name: "Self-Paced",
+    code: "SELF",
+    actualPrice: 7999,
+    offerPrice: 3999,
+    reserveAmount: 999,
+    features: [
+      "Recorded Classes",
+      "Complete Curriculum",
+      "Assignments",
+      "Projects",
+      "Assessments",
+      "LMS Access",
+      "Certificate",
+      "Basic Support"
+    ],
+    isActive: true
+  },
+  {
+    name: "Intermediate",
+    code: "INTERMEDIATE",
+    actualPrice: 9999,
+    offerPrice: 4999,
+    reserveAmount: 999,
+    features: [
+      "Live Sessions",
+      "Mentor Support",
+      "Project Reviews",
+      "AI Assessment",
+      "AI Interview",
+      "Resume Review",
+      "Interview Preparation",
+      "Priority Support"
+    ],
+    isActive: true
+  },
+  {
+    name: "Master",
+    code: "MASTER",
+    actualPrice: 14999,
+    offerPrice: 9999,
+    reserveAmount: 999,
+    features: [
+      "Personal Mentor",
+      "Additional Live Sessions",
+      "Advanced Project Reviews",
+      "Portfolio Development",
+      "Resume Optimization",
+      "Mock Interviews",
+      "Technical Interview Preparation",
+      "HR Interview Preparation",
+      "Career / Placement Assistance",
+      "Priority Support"
+    ],
+    isActive: true
+  }
+];
+
+type ProgramSeed = Omit<Program, "plans"> & { plans?: ProgramPlan[] };
+
+function createProgram(program: ProgramSeed): Program {
   return {
     ...program,
+    plans: (program.plans ?? defaultProgramPlans).map((plan) => ({ ...plan, features: [...plan.features] })),
     faqs: program.faqs.length ? program.faqs : commonFaqs
   };
 }

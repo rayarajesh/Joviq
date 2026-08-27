@@ -56,6 +56,15 @@ public sealed class AdminLmsController(
         return Ok(ApiResponse<IReadOnlyList<ProgramSummaryResponse>>.Ok(result, "Admin programs loaded.", CorrelationId));
     }
 
+    [HttpGet("programs/{programId:guid}")]
+    public async Task<ActionResult<ApiResponse<ProgramDetailsResponse>>> GetProgram(
+        Guid programId,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.GetAdminProgramAsync(programId, cancellationToken);
+        return Ok(ApiResponse<ProgramDetailsResponse>.Ok(result, "Admin program loaded.", CorrelationId));
+    }
+
     [HttpPost("programs")]
     public async Task<ActionResult<ApiResponse<ProgramDetailsResponse>>> CreateProgram(
         CreateProgramRequest request,

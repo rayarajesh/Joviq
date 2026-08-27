@@ -40,6 +40,23 @@ Swagger opens at:
 https://localhost:7001/swagger
 ```
 
+## Google Sign-In
+
+Create an OAuth 2.0 **Web application** in Google Cloud and add this exact authorized redirect URI:
+
+```text
+https://localhost:7001/signin-google
+```
+
+Keep credentials outside committed settings. For local development, set them with user secrets:
+
+```bash
+dotnet user-secrets set "ExternalAuth:Google:ClientId" "YOUR_CLIENT_ID" --project src/Joviq.Lms.Api
+dotnet user-secrets set "ExternalAuth:Google:ClientSecret" "YOUR_CLIENT_SECRET" --project src/Joviq.Lms.Api
+```
+
+The client ID and secret must come from the same Google OAuth client. Restart the API after changing either value. If the local HTTPS certificate is not trusted, run `dotnet dev-certs https --trust` once.
+
 ## PostgreSQL
 
 Default development connection:

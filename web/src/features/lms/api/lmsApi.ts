@@ -19,6 +19,7 @@ import type {
   CreateLiveClassRequest,
   CreateModuleRequest,
   CreatePaymentCheckoutRequest,
+  CreatePlanRequest,
   CreateProjectRequest,
   CreateProgramRequest,
   CreateSupportTicketRequest,
@@ -34,6 +35,7 @@ import type {
   ProgramCategoryResponse,
   ProgramDetailsResponse,
   ProgramListParams,
+  ProgramPlanResponse,
   ProgramSummaryResponse,
   ProjectResponse,
   RecordedClassResponse,
@@ -217,6 +219,10 @@ export const adminLmsApi = {
     return request<ProgramSummaryResponse[]>("/api/v1/admin/lms/programs");
   },
 
+  getProgram(programId: string) {
+    return request<ProgramDetailsResponse>(`/api/v1/admin/lms/programs/${programId}`);
+  },
+
   getCategories() {
     return request<ProgramCategoryResponse[]>("/api/v1/admin/lms/categories");
   },
@@ -231,6 +237,14 @@ export const adminLmsApi = {
 
   createProgram(body: CreateProgramRequest) {
     return request<ProgramDetailsResponse>("/api/v1/admin/lms/programs", { method: "POST", body });
+  },
+
+  createPlan(programId: string, body: CreatePlanRequest) {
+    return request<ProgramPlanResponse>(`/api/v1/admin/lms/programs/${programId}/plans`, { method: "POST", body });
+  },
+
+  updatePlan(planId: string, body: CreatePlanRequest) {
+    return request<ProgramPlanResponse>(`/api/v1/admin/lms/plans/${planId}`, { method: "PUT", body });
   },
 
   deleteProgram(programId: string) {

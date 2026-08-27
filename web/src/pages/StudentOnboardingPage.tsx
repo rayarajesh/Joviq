@@ -521,6 +521,7 @@ export function StudentOnboardingPage() {
     try {
       const response = await studentOnboardingApi.uploadProfilePhoto(file);
       hydrateProfile(response.data);
+      await auth.loadMe();
       setMessage({ tone: "success", text: "Profile photo updated." });
     } catch (error) {
       setMessage({ tone: "error", text: formatApiError(error) });
@@ -536,6 +537,7 @@ export function StudentOnboardingPage() {
     try {
       const response = await studentOnboardingApi.deleteProfilePhoto();
       hydrateProfile(response.data);
+      await auth.loadMe();
       setMessage({ tone: "success", text: "Profile photo removed." });
     } catch (error) {
       setMessage({ tone: "error", text: formatApiError(error) });
