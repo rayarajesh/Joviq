@@ -71,7 +71,7 @@ const domainFeatures: DomainFeatureItem[] = [
     icon: <CalendarClock size={28} />,
     title: "Live + Recorded Classes",
     text: "Attend live classes and watch recordings anytime",
-    bullets: ["Live interactive classes", "Recorded videos", "Expert instructors"]
+    bullets: ["Live interactive sessions", "Recorded classes", "Industry-relevant curriculum"]
   },
   {
     icon: <CalendarClock size={28} />,
@@ -83,13 +83,13 @@ const domainFeatures: DomainFeatureItem[] = [
     icon: <UsersRound size={28} />,
     title: "Hands-on Projects",
     text: "Work on real industry-level problems",
-    bullets: ["Real-world scenarios", "Mentor project guidance", "Project walkthroughs"]
+    bullets: ["Hands-on experience", "Real-time projects", "Personal mentor support"]
   },
   {
     icon: <Video size={28} />,
     title: "Certification",
     text: "Receive QR-verified certificate after completion",
-    bullets: ["Industry-recognised", "Easy to share", "Includes capstone evaluations"]
+    bullets: ["Industry-recognised", "QR-verified certification", "Includes capstone evaluations"]
   },
   {
     icon: <Headphones size={28} />,
@@ -101,7 +101,7 @@ const domainFeatures: DomainFeatureItem[] = [
     icon: <CheckCircle2 size={28} />,
     title: "Placement Support",
     text: "Resume, interview prep & job assistance",
-    bullets: ["Resume Review", "Mock Interviews", "Job Readiness Plan"]
+    bullets: ["Interview assistance", "Placement support", "Job readiness plan"]
   }
 ];
 
@@ -377,16 +377,20 @@ function PracticeColumn({ icon, items, title }: { icon: ReactNode; items: Detail
 
 function PlanCard({ onChoose, plan }: { onChoose: () => void; plan: ProgramPlan }) {
   const isRecommended = plan.code === "INTERMEDIATE";
-  const includedPlan = plan.code === "INTERMEDIATE" ? "Everything in Self-Paced, plus" : plan.code === "MASTER" ? "Everything in Intermediate, plus" : null;
+  const includedPlan = plan.code === "INTERMEDIATE" ? "Everything in Launch, plus" : plan.code === "MASTER" ? "Everything in Elevate, plus" : null;
   const savings = Math.max(0, plan.actualPrice - plan.offerPrice);
 
   return (
     <article className={isRecommended ? "is-recommended" : undefined}>
       <header>
-        <div><span>{plan.name}</span><small>{isRecommended ? "Most popular" : plan.code === "MASTER" ? "Maximum support" : "Learn independently"}</small></div>
+        <div><span>{plan.name}</span><small>{isRecommended ? "Most popular" : plan.code === "MASTER" ? "Maximum support" : "Strong start"}</small></div>
         {isRecommended ? <BadgeCheck size={23} /> : null}
       </header>
-      <div className="pd-plan-price"><del>{formatInr(plan.actualPrice)}</del><strong>{formatInr(plan.offerPrice)}</strong><span>Save {formatInr(savings)}</span></div>
+      <div className="pd-plan-price">
+        {savings > 0 ? <del>{formatInr(plan.actualPrice)}</del> : null}
+        <strong>{formatInr(plan.offerPrice)}</strong>
+        {savings > 0 ? <span>Save {formatInr(savings)}</span> : null}
+      </div>
       {includedPlan ? <p className="pd-plan-includes">{includedPlan}</p> : null}
       <ul>{plan.features.map((feature) => <li key={feature}><CheckCircle2 size={16} /> {feature}</li>)}</ul>
       <button onClick={onChoose} type="button">Choose {plan.name}<ArrowRight size={17} /></button>
@@ -474,11 +478,14 @@ function buildProgramViewModel(local: Program | undefined, remote: ProgramDetail
     artifacts: ["Project output", "Documentation", "Interview walkthrough"]
   }));
   const projects = completeProjectExamples(remoteProjects.length ? remoteProjects : localProjects, title);
-  const curriculum = remoteCurriculum.length
-    ? remoteCurriculum
-    : localCurriculum.length
-      ? localCurriculum
-      : createFallbackCurriculum(title);
+  const curriculum = completeCurriculum(
+    remoteCurriculum.length
+      ? remoteCurriculum
+      : localCurriculum.length
+        ? localCurriculum
+        : createFallbackCurriculum(title),
+    title
+  );
   const remotePlans = remote?.plans.filter((plan) => plan.isActive).map((plan) => ({
     id: plan.id,
     name: plan.name,
@@ -546,11 +553,53 @@ function completeProjectExamples(projects: ProjectItem[], title: string) {
   return result;
 }
 
+function completeCurriculum(curriculum: CurriculumItem[], title: string) {
+  const result = curriculum.slice(0, 10);
+  const fallbackModules = [
+    "Foundations",
+    "Tool setup",
+    "Core workflows",
+    "Guided lab practice",
+    "Industry case study",
+    "Real-time project build",
+    "Review and optimization",
+    "Documentation and handoff",
+    "Interview preparation",
+    "Capstone presentation"
+  ];
+
+  for (const fallbackModule of fallbackModules) {
+    if (result.length >= 10) break;
+    const moduleTitle = `${title} ${fallbackModule}`;
+    if (result.some((module) => module.title.toLowerCase() === moduleTitle.toLowerCase())) continue;
+    result.push({
+      title: moduleTitle,
+      text: `Build practical ${title.toLowerCase()} ability through focused content, tool practice, and reviewed output.`,
+      lessons: createModuleLessons(title, fallbackModule)
+    });
+  }
+
+  return result.map((module) => ({
+    ...module,
+    lessons: module.lessons.length >= 4 ? module.lessons.slice(0, 5) : createModuleLessons(title, module.title)
+  }));
+}
+
+function createModuleLessons(title: string, module: string) {
+  return [
+    `${title} concepts`,
+    `${module} tools and workflows`,
+    "Guided practical exercise",
+    "Industry use case review",
+    "Mentor feedback checkpoint"
+  ];
+}
+
 function createFallbackCurriculum(title: string): CurriculumItem[] {
   return ["Foundations", "Tools and workflows", "Guided practice", "Applied delivery", "Quality and review", "Career capstone"].map((module) => ({
     title: `${title} ${module}`,
     text: `Build confidence in ${module.toLowerCase()} through guided lessons and practical checkpoints.`,
-    lessons: ["Concept lesson", "Practice checkpoint", "Applied review"]
+    lessons: createModuleLessons(title, module)
   }));
 }
 

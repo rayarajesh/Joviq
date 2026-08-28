@@ -57,58 +57,64 @@ const commonFaqs = [
 
 export const defaultProgramPlans: ProgramPlan[] = [
   {
-    name: "Self-Paced",
+    name: "Launch",
     code: "SELF",
-    actualPrice: 7999,
-    offerPrice: 3999,
+    actualPrice: 4000,
+    offerPrice: 4000,
     reserveAmount: 999,
     features: [
+      "16 Live Sessions",
       "Recorded Classes",
-      "Complete Curriculum",
-      "Assignments",
-      "Projects",
-      "Assessments",
-      "LMS Access",
-      "Certificate",
-      "Basic Support"
+      "Hands-on Learning",
+      "Real-Time Project",
+      "Doubt-Solving Support",
+      "Basic Mentor Support",
+      "Interview Assistance",
+      "6 Months LMS Access",
+      "QR-Verified Certification"
     ],
     isActive: true
   },
   {
-    name: "Intermediate",
+    name: "Elevate",
     code: "INTERMEDIATE",
-    actualPrice: 9999,
-    offerPrice: 4999,
+    actualPrice: 5000,
+    offerPrice: 5000,
     reserveAmount: 999,
     features: [
-      "Live Sessions",
-      "Mentor Support",
-      "Project Reviews",
-      "AI Assessment",
-      "AI Interview",
-      "Resume Review",
-      "Interview Preparation",
-      "Priority Support"
+      "22 Live Sessions",
+      "Recorded Classes",
+      "Hands-on Learning",
+      "Real-Time Projects",
+      "Personal Mentor Support",
+      "Doubt-Solving Support",
+      "Mentor Guidance & Review",
+      "Interview Preparation & Assistance",
+      "Placement Support",
+      "6 Months LMS Access",
+      "QR-Verified Certification"
     ],
     isActive: true
   },
   {
-    name: "Master",
+    name: "Mastery",
     code: "MASTER",
-    actualPrice: 14999,
-    offerPrice: 9999,
+    actualPrice: 10000,
+    offerPrice: 10000,
     reserveAmount: 999,
     features: [
-      "Personal Mentor",
-      "Additional Live Sessions",
-      "Advanced Project Reviews",
-      "Portfolio Development",
-      "Resume Optimization",
-      "Mock Interviews",
-      "Technical Interview Preparation",
-      "HR Interview Preparation",
-      "Career / Placement Assistance",
-      "Priority Support"
+      "28 Live Sessions",
+      "Recorded Classes",
+      "Advanced Hands-on Learning",
+      "Multiple Real-Time Projects",
+      "Personal Mentor Support",
+      "Detailed Mentor Review",
+      "Doubt-Solving Support",
+      "Advanced Interview Preparation",
+      "Placement Assistance & Support",
+      "Career Guidance",
+      "6 Months LMS Access",
+      "QR-Verified Certification"
     ],
     isActive: true
   }
@@ -116,9 +122,30 @@ export const defaultProgramPlans: ProgramPlan[] = [
 
 type ProgramSeed = Omit<Program, "plans"> & { plans?: ProgramPlan[] };
 
+const curriculumExpansionModules = [
+  "Tool setup and workspace workflow",
+  "Guided practice lab",
+  "Industry case study",
+  "Project planning and documentation",
+  "Quality review and optimization",
+  "Portfolio-ready capstone"
+];
+
+function ensureTenModuleCurriculum(title: string, curriculum: string[]) {
+  const modules = [...curriculum];
+
+  for (const module of curriculumExpansionModules) {
+    if (modules.length >= 10) break;
+    modules.push(`${title} ${module}`);
+  }
+
+  return modules.slice(0, 10);
+}
+
 function createProgram(program: ProgramSeed): Program {
   return {
     ...program,
+    curriculum: ensureTenModuleCurriculum(program.title, program.curriculum),
     plans: (program.plans ?? defaultProgramPlans).map((plan) => ({ ...plan, features: [...plan.features] })),
     faqs: program.faqs.length ? program.faqs : commonFaqs
   };
@@ -596,6 +623,80 @@ const managementPrograms = [
   })
 ];
 
+const uiUxPrograms = [
+  createProgram({
+    slug: "ui-ux-design",
+    title: "UI/UX Design",
+    domain: "UI/UX Design",
+    shortDescription: "User research, wireframes, visual design, prototypes, testing, and portfolio case studies.",
+    overview: "A practical UI/UX program for learners who want to design clean digital products, understand users, build interactive prototypes, and present job-ready case studies.",
+    audience: ["Design beginners", "Frontend learners moving into product design", "Students building a UX portfolio", "Career switchers targeting UI/UX roles"],
+    skills: ["User research", "Information architecture", "Wireframing", "Figma", "Prototyping", "Usability testing", "Design systems"],
+    curriculum: [
+      "UI/UX foundations",
+      "User research and personas",
+      "Information architecture",
+      "Wireframing and user flows",
+      "Visual design principles",
+      "Figma components and variants",
+      "Interactive prototyping",
+      "Usability testing",
+      "Design systems and handoff",
+      "Portfolio case study"
+    ],
+    duration: "10 weeks",
+    mode: "Live design studio sessions with recorded access and critique reviews",
+    mentor: "Product design mentor with UX research, interface design, and portfolio review experience",
+    projects: ["Mobile app onboarding redesign", "SaaS dashboard UX case study", "E-commerce checkout prototype", "Portfolio website design", "Design system starter kit", "Usability test report"],
+    assignments: ["Persona worksheet", "Wireframe review", "Prototype submission", "Case study draft"],
+    assessments: ["Design critique", "Prototype walkthrough", "Portfolio review", "Mentor viva"],
+    certification: "UI/UX Design QR-Verified Certification",
+    outcomes: ["UI/UX designer intern", "Product design trainee", "UX research assistant", "Visual designer fresher"],
+    interviewPrep: ["Portfolio storytelling", "Design challenge practice", "UX process Q&A", "Mock design interview"],
+    pricing: "Launch from INR 4,000",
+    faqs: [],
+    tags: ["UX", "UI", "Figma", "Prototype"],
+    level: "Beginner to Intermediate"
+  })
+];
+
+const solidWorksCreoPrograms = [
+  createProgram({
+    slug: "solidworks-creo",
+    title: "SolidWorks & Creo",
+    domain: "SolidWorks & Creo",
+    shortDescription: "Parametric CAD modeling, assemblies, drawings, surfaces, and mechanical design portfolio work.",
+    overview: "A combined CAD track that helps mechanical learners build confidence in SolidWorks and Creo through part modeling, assemblies, drawing standards, and manufacturable design projects.",
+    audience: ["Mechanical engineering students", "Diploma learners", "CAD beginners", "Design fresher candidates"],
+    skills: ["SolidWorks", "Creo", "Parametric modeling", "Assemblies", "Manufacturing drawings", "Design intent", "Portfolio presentation"],
+    curriculum: [
+      "CAD fundamentals and interface setup",
+      "Sketching constraints and design intent",
+      "SolidWorks part modeling",
+      "Creo parametric modeling",
+      "Assembly constraints and mechanisms",
+      "Engineering drawings and GD&T basics",
+      "Sheet metal and surface modeling intro",
+      "Design validation and revisions",
+      "Manufacturing-ready documentation",
+      "Mechanical CAD portfolio capstone"
+    ],
+    duration: "10 weeks",
+    mode: "CAD lab training with live mentor review and recorded practice access",
+    mentor: "Mechanical CAD mentor with product modeling and drawing review experience",
+    projects: ["Gearbox assembly", "Pump casing model", "Sheet metal enclosure", "Fixture design", "Consumer product housing", "Manufacturing drawing set"],
+    assignments: ["Sketch constraint task", "SolidWorks part model", "Creo assembly task", "Drawing sheet review"],
+    assessments: ["CAD file review", "Assembly constraints test", "Drawing accuracy check", "Portfolio viva"],
+    certification: "SolidWorks & Creo QR-Verified Certification",
+    outcomes: ["CAD designer trainee", "Mechanical design intern", "Drafting associate", "Product modeling assistant"],
+    interviewPrep: ["CAD tool Q&A", "Drawing standards discussion", "Design intent explanation", "Portfolio walkthrough"],
+    pricing: "Launch from INR 4,000",
+    faqs: [],
+    tags: ["SolidWorks", "Creo", "CAD", "Mechanical"],
+    level: "Beginner to Intermediate"
+  })
+];
+
 export const programCategories: ProgramCategory[] = [
   {
     domain: "Computer Science & IT",
@@ -613,6 +714,16 @@ export const programCategories: ProgramCategory[] = [
     programs: mechanicalPrograms
   },
   {
+    domain: "UI/UX Design",
+    description: "Research, wireframing, prototyping, usability testing, and design portfolio readiness.",
+    programs: uiUxPrograms
+  },
+  {
+    domain: "SolidWorks & Creo",
+    description: "Combined CAD modeling, assembly, drawing, and mechanical design portfolio training.",
+    programs: solidWorksCreoPrograms
+  },
+  {
     domain: "Management",
     description: "Business, finance, analytics, marketing, HR, and global management career tracks.",
     programs: managementPrograms
@@ -628,7 +739,7 @@ export function findProgramBySlug(slug: string | undefined) {
 export const keyStatistics = [
   { value: "20+", label: "Career programs" },
   { value: "100+", label: "Real-time project ideas" },
-  { value: "4", label: "Learning domains" },
+  { value: "6", label: "Learning domains" },
   { value: "1:1", label: "Mentor review loops" }
 ];
 
@@ -697,22 +808,22 @@ export const successOutcomes = [
 
 export const pricingPlans = [
   {
-    name: "Foundation",
-    price: "From INR 9,999",
-    description: "For learners who want structured basics and guided practice.",
-    features: ["Live classes", "Assignments", "Certificate", "Community access"]
+    name: "Launch",
+    price: "INR 4,000",
+    description: "For learners who want live structure, recordings, hands-on learning, and basic mentor support.",
+    features: ["16 live sessions", "Real-time project", "Interview assistance", "6 months LMS access"]
   },
   {
-    name: "Career Track",
-    price: "From INR 19,999",
-    description: "For learners who want projects, mentor reviews, and interview support.",
-    features: ["Real-time projects", "Mentor review", "AI assessments", "Interview preparation"]
+    name: "Elevate",
+    price: "INR 5,000",
+    description: "For learners who want personal mentor support, deeper project review, and placement readiness.",
+    features: ["22 live sessions", "Personal mentor support", "Mentor guidance & review", "Placement support"]
   },
   {
-    name: "Premium",
-    price: "Request quote",
-    description: "For teams, colleges, and learners needing deeper guided outcomes.",
-    features: ["Custom batches", "Dedicated mentor", "Progress reports", "Placement coordination"]
+    name: "Mastery",
+    price: "INR 10,000",
+    description: "For learners who want advanced hands-on projects, detailed mentor review, and full career guidance.",
+    features: ["28 live sessions", "Multiple real-time projects", "Advanced interview prep", "Career guidance"]
   }
 ];
 
