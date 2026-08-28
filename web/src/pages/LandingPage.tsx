@@ -10,6 +10,7 @@ import {
   BookOpenCheck,
   BriefcaseBusiness,
   Building2,
+  CalendarClock,
   CheckCircle2,
   ChevronRight,
   Code2,
@@ -205,6 +206,50 @@ const certificationProofs = [
   }
 ];
 
+const certificateTypes = [
+  { label: "Training", icon: GraduationCap, title: "Certificate of Training" },
+  { label: "Internship", icon: BriefcaseBusiness, title: "Certificate of Internship" },
+  { label: "Project", icon: Code2, title: "Certificate of Project" },
+  { label: "Excellence", icon: Award, title: "Certificate of Excellence" }
+];
+
+const certificateProgress = [
+  {
+    label: "Enroll",
+    action: "Choose your program and complete registration.",
+    proof: "Your learner profile and batch access are created."
+  },
+  {
+    label: "Learn",
+    action: "Attend live sessions and use recorded classes for revision.",
+    proof: "Module progress, quizzes, and practice work are tracked."
+  },
+  {
+    label: "Build",
+    action: "Complete hands-on tasks and submit real project work.",
+    proof: "Portfolio artifacts and project documentation are prepared."
+  },
+  {
+    label: "Review",
+    action: "Get mentor feedback, improve submissions, and clear assessments.",
+    proof: "Rubric scores and expert review notes validate your skills."
+  },
+  {
+    label: "Certified",
+    action: "Receive your QR-verified certificate after completion approval.",
+    proof: "Certificate ID, status, and verification route become shareable."
+  }
+];
+
+const pricingLabels = ["Basic", "Standard", "Pro"];
+const pricingArtLabels = ["play", "mentor", "target"];
+const pricingBenefits = [
+  { title: "Expert Mentors", text: "Learn from industry professionals.", icon: ShieldCheck },
+  { title: "Project-Based Learning", text: "Build real-world projects and portfolios.", icon: Award },
+  { title: "Placement Support", text: "Resume, mock interviews & job assistance.", icon: BarChart3 },
+  { title: "Lifetime Access", text: "Access recordings & resources whenever you need.", icon: PhoneCall }
+];
+
 const roadmapSteps = [
   {
     title: "Create your profile",
@@ -280,6 +325,8 @@ export function LandingPage() {
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(authModeFromHash(location.hash) !== null);
   const [isCallbackDialogOpen, setIsCallbackDialogOpen] = useState(false);
   const [activeRoadmapIndex, setActiveRoadmapIndex] = useState(0);
+  const [activeCertificateType, setActiveCertificateType] = useState(0);
+  const [activeCertificateStep, setActiveCertificateStep] = useState(1);
   const programCarouselRef = useRef<HTMLDivElement>(null);
   const programTabsRef = useRef<HTMLDivElement>(null);
   const [heroParallax, setHeroParallax] = useState<Record<string, string>>({
@@ -1240,21 +1287,21 @@ export function LandingPage() {
             Certification that signals proof
           </span>
           <h2>
-            Earn a credential <span>built on proof.</span>
+            Earn a Credential <span>Built on Proof.</span>
           </h2>
           <p>
-            Your certificate represents completed work, assessed skills, and expert-reviewed progress, not attendance
+            Your certificate represents completed work, assessed skills, and expert-reviewed progress - not attendance
             alone.
           </p>
           <div className="proof-pills">
-            <span>Expert-reviewed</span>
-            <span>Rubric-scored</span>
-            <span>Digitally verifiable</span>
+            <span><UsersRound size={15} /> Expert-reviewed</span>
+            <span><BookOpenCheck size={15} /> Rubric-scored</span>
+            <span><ShieldCheck size={15} /> Digitally verifiable</span>
           </div>
           <div className="credential-list">
             {certificationProofs.map((proof) => (
               <article key={proof.title}>
-                <CheckCircle2 size={18} />
+                <span className="credential-list__icon"><BadgeCheck size={26} /></span>
                 <div>
                   <strong>{proof.title}</strong>
                   <span>{proof.description}</span>
@@ -1268,17 +1315,36 @@ export function LandingPage() {
           </Link>
         </div>
 
-        <div className="certificate-preview-card certificate-preview-stage">
+        <div className="certificate-preview-card certificate-preview-stage" aria-label="Interactive certificate preview">
+          <div className="certificate-orbit" aria-hidden="true" />
           <header className="certificate-preview-stage__header">
             <div>
               <span>Original certificate preview</span>
-              <strong>Training + expert-led cohort completion</strong>
             </div>
             <span>
               <ShieldCheck size={16} />
-              Issued format
+              Issued & Verified
+              <i />
             </span>
           </header>
+
+          <button
+            className="certificate-floating-badge certificate-floating-badge--verified"
+            onClick={() => setActiveCertificateStep(4)}
+            type="button"
+          >
+            <ShieldCheck size={28} />
+            <span>Verified<br />Credential</span>
+          </button>
+
+          <button
+            className="certificate-floating-badge certificate-floating-badge--chain"
+            onClick={() => setActiveCertificateStep(4)}
+            type="button"
+          >
+            <Code2 size={29} />
+            <span>Blockchain<br />Secured</span>
+          </button>
 
           <div className="certificate-document certificate-original">
             <header className="certificate-original__header">
@@ -1291,7 +1357,7 @@ export function LandingPage() {
               </span>
               <span className="certificate-original__id">
                 <small>Certificate ID</small>
-                <strong>JOVIQ-YYYYMMDD-XXXXXXXX</strong>
+                <strong>JOVIQ-2024-TRN-8X7F3A</strong>
               </span>
             </header>
 
@@ -1299,7 +1365,7 @@ export function LandingPage() {
               <small>This certifies that</small>
               <strong className="certificate-original__learner">Learner Name</strong>
               <span>has successfully completed the requirements for the</span>
-              <h3>Certificate of Training</h3>
+              <h3>{certificateTypes[activeCertificateType].title}</h3>
               <p>Issued for successful completion of project-based career learning.</p>
             </div>
 
@@ -1313,21 +1379,56 @@ export function LandingPage() {
                 <BadgeCheck size={28} />
               </span>
               <span className="certificate-original__verification">
-                <ShieldCheck size={18} />
+                <span className="certificate-qr" aria-hidden="true" />
                 <span>
                   <strong>Digitally verifiable</strong>
-                  <small>Status and issue record</small>
+                  <small>Status and issue recorded</small>
                 </span>
               </span>
             </footer>
           </div>
 
           <footer className="certificate-preview-stage__types" aria-label="Available certificate types">
-            <span>Training</span>
-            <span>Internship</span>
-            <span>Project</span>
-            <span>Excellence</span>
+            {certificateTypes.map((type, index) => {
+              const Icon = type.icon;
+              return (
+                <button
+                  aria-pressed={activeCertificateType === index}
+                  className={activeCertificateType === index ? "is-active" : undefined}
+                  key={type.label}
+                  onClick={() => setActiveCertificateType(index)}
+                  type="button"
+                >
+                  <Icon size={25} />
+                  {type.label}
+                </button>
+              );
+            })}
           </footer>
+
+          <div className="certificate-progress" aria-label="Certification progress">
+            {certificateProgress.map((step, index) => (
+              <button
+                aria-pressed={activeCertificateStep === index}
+                className={activeCertificateStep === index ? "is-active" : undefined}
+                key={step.label}
+                onClick={() => setActiveCertificateStep(index)}
+                type="button"
+              >
+                <span />
+                <strong>{step.label}</strong>
+              </button>
+            ))}
+          </div>
+
+          <article className="certificate-step-guide" aria-live="polite">
+            <span>Step {activeCertificateStep + 1}</span>
+            <div>
+              <h3>{certificateProgress[activeCertificateStep].label}</h3>
+              <p>{certificateProgress[activeCertificateStep].action}</p>
+            </div>
+            <strong>{certificateProgress[activeCertificateStep].proof}</strong>
+          </article>
         </div>
       </section>
 
@@ -1347,26 +1448,46 @@ export function LandingPage() {
 
       <section id="pricing" className="site-section apt-section apt-centered">
         <span className="apt-pill">
-          <Award size={15} />
+          <ShieldCheck size={15} />
           Pricing
         </span>
         <h2>
-          Simple plans for <span>serious project work.</span>
+          Simple Plans for <span>Serious Project Work.</span>
         </h2>
         <p>Choose the support level that fits your learning goal, project depth, and career timeline.</p>
+        <div className="pricing-orbit pricing-orbit--left" aria-hidden="true"><GraduationCap size={25} /></div>
+        <div className="pricing-orbit pricing-orbit--right" aria-hidden="true"><Rocket size={25} /></div>
         <div className="pricing-grid">
-          {pricingPlans.map((plan) => (
-            <article key={plan.name} className={plan.name === "Career Track" ? "is-featured" : undefined}>
-              <span>{plan.name}</span>
-              <h3>{plan.price}</h3>
-              <p>{plan.description}</p>
+          {pricingPlans.map((plan, index) => (
+            <article
+              key={plan.name}
+              className={`${plan.name === "Elevate" ? "is-featured" : ""} pricing-card--${pricingArtLabels[index]}`}
+            >
+              <div className="pricing-card__head">
+                <span>{pricingLabels[index]}</span>
+                {plan.name === "Elevate" ? <strong>Most popular</strong> : null}
+              </div>
+              <div className="pricing-card__body">
+                <div>
+                  <h3>{plan.price.replace("INR", "\u20b9")}</h3>
+                  <p>{plan.description}</p>
+                </div>
+                <div className="pricing-card-art" aria-hidden="true">
+                  <span />
+                  <i />
+                </div>
+              </div>
               <div className="pricing-meta">
-                <small>Next batch: 10 Sept</small>
-                <small>Limited slots</small>
+                <small><CalendarClock size={18} /> Next batch:<br /><b>10 Sept</b></small>
+                <small><UsersRound size={18} /> Limited<br /><b>slots</b></small>
               </div>
               <div className="pricing-actions">
-                <Link to="/programs">View programs</Link>
+                <Link to="/programs">
+                  View programs
+                  <ArrowRight size={17} />
+                </Link>
                 <Link to="/request-callback">
+                  <PhoneCall size={17} />
                   Talk to an advisor
                 </Link>
               </div>
@@ -1380,6 +1501,20 @@ export function LandingPage() {
               </ul>
             </article>
           ))}
+        </div>
+        <div className="pricing-benefits" aria-label="Pricing benefits">
+          {pricingBenefits.map((benefit) => {
+            const Icon = benefit.icon;
+            return (
+              <article key={benefit.title}>
+                <span><Icon size={27} /></span>
+                <div>
+                  <strong>{benefit.title}</strong>
+                  <p>{benefit.text}</p>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
 
