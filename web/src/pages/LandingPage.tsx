@@ -24,6 +24,7 @@ import {
   MailCheck,
   PhoneCall,
   RefreshCw,
+  Rocket,
   Search,
   Send,
   ShieldCheck,
@@ -63,6 +64,11 @@ type CompanyLogo = {
 
 const expertCompanies: CompanyLogo[] = [
   {
+    name: "Microsoft",
+    src: "/assets/company-logos/microsoft.png",
+    accent: "#00a4ef"
+  },
+  {
     name: "Meta",
     src: "/assets/company-logos/meta.svg",
     accent: "#0866ff"
@@ -91,11 +97,6 @@ const expertCompanies: CompanyLogo[] = [
     name: "Adobe",
     src: "/assets/company-logos/adobe.svg",
     accent: "#fa0f00"
-  },
-  {
-    name: "Microsoft",
-    src: "/assets/company-logos/microsoft.png",
-    accent: "#00a4ef"
   }
 ];
 
@@ -280,6 +281,7 @@ export function LandingPage() {
   const [isCallbackDialogOpen, setIsCallbackDialogOpen] = useState(false);
   const [activeRoadmapIndex, setActiveRoadmapIndex] = useState(0);
   const programCarouselRef = useRef<HTMLDivElement>(null);
+  const programTabsRef = useRef<HTMLDivElement>(null);
   const [heroParallax, setHeroParallax] = useState<Record<string, string>>({
     "--hero-bg-x": "50%",
     "--hero-bg-y": "50%",
@@ -293,6 +295,14 @@ export function LandingPage() {
   const [activeProgramDomain, setActiveProgramDomain] = useState("All");
   const activeRoadmapStep = roadmapSteps[activeRoadmapIndex];
   const ActiveRoadmapIcon = activeRoadmapStep.icon;
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setActiveRoadmapIndex((current) => (current + 1) % roadmapSteps.length);
+    }, 6000);
+
+    return () => window.clearInterval(interval);
+  }, []);
 
   const searchResults = useMemo(() => {
     const query = programSearchQuery.trim().toLowerCase();
@@ -398,6 +408,28 @@ export function LandingPage() {
       behavior: "smooth"
     });
   }
+
+  function scrollProgramTabs(direction: -1 | 1) {
+    const tabs = programTabsRef.current;
+
+    if (!tabs) {
+      return;
+    }
+
+    const nextPosition = tabs.scrollLeft + direction * Math.max(tabs.clientWidth * 0.65, 220);
+    const isAtEnd = direction === 1 && nextPosition >= tabs.scrollWidth - tabs.clientWidth - 4;
+    const isAtStart = direction === -1 && nextPosition <= 4;
+
+    tabs.scrollTo({
+      left: isAtEnd ? 0 : isAtStart ? tabs.scrollWidth : nextPosition,
+      behavior: "smooth"
+    });
+  }
+
+  useEffect(() => {
+    const interval = window.setInterval(() => scrollProgramTabs(1), 3500);
+    return () => window.clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const nextMode = authModeFromHash(location.hash);
@@ -839,16 +871,30 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section id="features" className="site-section apt-section expert-logo-section home-trust-strip">
-        <div className="home-trust-strip__intro">
+      <section id="features" className="site-section mentor-showcase">
+        <div className="mentor-showcase__intro">
           <span className="apt-pill">
             <UsersRound size={15} />
             Industry-led mentorship
           </span>
-          <h2>Learn with practitioners who have built for leading teams.</h2>
-          <p>Expert context, practical reviews, and standards shaped by real engineering and business environments.</p>
+          <h2>
+            Learn from experts
+            <br />
+            who build <span>what&apos;s next.</span>
+          </h2>
+          <p>Real-world knowledge, practical reviews, and industry standards shaped by leaders at top global companies.</p>
         </div>
-        <BrandGrid items={expertCompanies} tone="prime" />
+        <div className="mentor-showcase__carousel" aria-label="Companies represented by Joviq mentors">
+          <BrandGrid items={expertCompanies} tone="prime" />
+          <span className="mentor-showcase__next" aria-hidden="true">
+            <ArrowRight size={20} />
+          </span>
+          <div className="mentor-showcase__dots" aria-hidden="true">
+            {expertCompanies.slice(0, 5).map((company, index) => (
+              <span className={index === 0 ? "is-active" : undefined} key={company.name} />
+            ))}
+          </div>
+        </div>
       </section>
 
       <section id="program-search" className="site-section program-search-section">
@@ -858,9 +904,30 @@ export function LandingPage() {
               <Search size={15} />
               Program directory
             </span>
-            <h2>Find Your Program</h2>
-            <p>Focused tracks built around practical projects, expert review, and career-ready proof.</p>
+            <h2>
+              Find the Program
+              <br />
+              That <span>Moves You Forward</span>
+            </h2>
+            <p>Explore career-focused tracks designed with real projects, expert review, and industry-ready skills.</p>
           </header>
+          <aside className="program-search__stats" aria-label="Joviq program highlights">
+            <div>
+              <span className="program-search__stat-icon"><Rocket size={20} /></span>
+              <strong>20+</strong>
+              <small>Career Programs</small>
+            </div>
+            <div>
+              <span className="program-search__stat-icon"><UsersRound size={20} /></span>
+              <strong>5K+</strong>
+              <small>Active Learners</small>
+            </div>
+            <div>
+              <span className="program-search__stat-icon"><Star size={20} /></span>
+              <strong>4.8/5</strong>
+              <small>Learner Rating</small>
+            </div>
+          </aside>
           <label className="program-search__field">
             <Search size={20} />
             <input
@@ -874,23 +941,42 @@ export function LandingPage() {
             />
           </label>
 
-          <div className="program-search__tabs" role="tablist" aria-label="Filter programs by category">
-            {programDomains.map((domain) => (
-              <button
-                aria-controls="program-search-results"
-                aria-selected={activeProgramDomain === domain}
-                className={activeProgramDomain === domain ? "is-active" : undefined}
-                key={domain}
-                onClick={() => {
-                  setActiveProgramDomain(domain);
-                  programCarouselRef.current?.scrollTo({ left: 0, behavior: "smooth" });
-                }}
-                role="tab"
-                type="button"
-              >
-                {domain}
-              </button>
-            ))}
+          <div className="program-search__tabs-shell">
+            <button
+              aria-label="Scroll program categories left"
+              className="program-search__tabs-arrow"
+              onClick={() => scrollProgramTabs(-1)}
+              type="button"
+            >
+              <ArrowLeft size={17} />
+            </button>
+            <div className="program-search__tabs" ref={programTabsRef} role="tablist" aria-label="Filter programs by category">
+              {programDomains.map((domain) => (
+                <button
+                  aria-controls="program-search-results"
+                  aria-selected={activeProgramDomain === domain}
+                  className={activeProgramDomain === domain ? "is-active" : undefined}
+                  key={domain}
+                  onClick={() => {
+                    setActiveProgramDomain(domain);
+                    programCarouselRef.current?.scrollTo({ left: 0, behavior: "smooth" });
+                  }}
+                  role="tab"
+                  type="button"
+                >
+                  {domain !== "All" ? <DomainIcon domain={domain} /> : null}
+                  {domain}
+                </button>
+              ))}
+            </div>
+            <button
+              aria-label="Scroll program categories right"
+              className="program-search__tabs-arrow"
+              onClick={() => scrollProgramTabs(1)}
+              type="button"
+            >
+              <ArrowRight size={17} />
+            </button>
           </div>
 
           <div className="program-search__carousel-shell">
@@ -928,7 +1014,7 @@ export function LandingPage() {
                         <small>{program.domain}</small>
                         <strong>{program.title}</strong>
                         <span>{program.shortDescription}</span>
-                        <span className="program-showcase-card__action">Explore program</span>
+                        <span className="program-showcase-card__action">Explore program <ArrowRight size={18} /></span>
                       </span>
                     </Link>
                   ))
@@ -1081,11 +1167,6 @@ export function LandingPage() {
             Build proof. Walk into interviews <span>ready.</span>
           </h2>
           <p>Real project practice, direct expert feedback, and a career story you can explain with confidence.</p>
-          <div className="outcomes-showcase__proof" aria-label="Career preparation highlights">
-            <span><CheckCircle2 size={16} /> Portfolio proof</span>
-            <span><CheckCircle2 size={16} /> Expert reviews</span>
-            <span><CheckCircle2 size={16} /> Interview practice</span>
-          </div>
           <div className="outcomes-showcase__actions">
             <Link className="site-button site-button--primary" to="/request-callback">
               Talk to an advisor

@@ -1,122 +1,94 @@
 import type { ReactNode } from "react";
-import { ArrowRight, BookOpenCheck, GraduationCap, Mail, MapPin, PhoneCall, ShieldCheck } from "lucide-react";
+import { Mail, MapPin, PhoneCall } from "lucide-react";
 import { Link } from "react-router-dom";
 import { BrandLogo } from "./BrandLogo";
-import { allPrograms, programCategories } from "../data/siteContent";
 
-const companyLinks = [
+const platformLinks = [
   { label: "Home", href: "/" },
-  { label: "Programs", href: "/programs" },
-  { label: "Features", href: "/features" },
+  { label: "Open Support Ticket", href: "/request-callback" },
+  { label: "Joviq LMS", href: "/login" },
   { label: "Campus Ambassador", href: "/campus-ambassador" },
-  { label: "Reviews", href: "/reviews" },
-  { label: "Careers", href: "/careers" },
-  { label: "About Us", href: "/about" }
 ];
 
-const lmsLinks = [
-  { label: "Login to LMS", href: "/login" },
-  { label: "Program Search", href: "/#program-search" },
-  { label: "Pricing", href: "/#pricing" },
-  { label: "Request Callback", href: "/request-callback" }
+const legalLinks = [
+  { label: "Privacy Policy", href: "/privacy-policy" },
+  { label: "Refund Policy", href: "/refund-policy" },
+  { label: "Certification Refund Policy", href: "/certification-refund-policy" },
+  { label: "Return Policy", href: "/return-policy" },
+  { label: "Terms & Conditions", href: "/terms" }
+];
+
+const companyLinks = [
+  { label: "About Us", href: "/about" },
+  { label: "College Collaboration", href: "/request-callback" },
+  { label: "Review", href: "/reviews" }
+];
+
+const socialLinks = [
+  { label: "Instagram", shortLabel: "IG", href: "https://instagram.com" },
+  { label: "LinkedIn", shortLabel: "in", href: "https://linkedin.com" },
+  { label: "YouTube", shortLabel: "YT", href: "https://youtube.com" },
+  { label: "Facebook", shortLabel: "f", href: "https://facebook.com" }
 ];
 
 export function SiteFooter() {
-  const featuredPrograms = allPrograms.slice(0, 8);
-
   return (
     <footer className="public-footer">
       <div className="public-footer__inner">
-        <section className="public-footer__top">
+        <section className="public-footer__grid" aria-label="Footer navigation">
           <div className="public-footer__brand">
             <Link className="public-footer__logo" to="/" aria-label="Joviq Technologies home">
               <BrandLogo />
             </Link>
-            <p>Learn. Build. Get Certified. Get Hired.</p>
-            <div className="public-footer__badges">
-              <span>
-                <BookOpenCheck size={16} />
-                Project-first learning
-              </span>
-              <span>
-                <GraduationCap size={16} />
-                Expert mentors
-              </span>
-              <span>
-                <ShieldCheck size={16} />
-                Role based LMS
-              </span>
-            </div>
           </div>
 
-          <div className="public-footer__cta">
-            <span>Need help choosing a program?</span>
-            <strong>Talk to a Joviq program advisor.</strong>
-            <div>
-              <Link to="/request-callback">
-                Request Callback <ArrowRight size={17} />
-              </Link>
-              <Link to="/login">Login to LMS</Link>
-            </div>
-          </div>
-        </section>
-
-        <section className="public-footer__grid" aria-label="Footer navigation">
-          <FooterColumn title="Featured Programs">
-            {featuredPrograms.map((program) => (
-              <Link key={program.slug} to={`/programs/${program.slug}`}>
-                {program.title}
-              </Link>
+          <FooterColumn title="Explore Platform">
+            {platformLinks.map((link) => (
+              <Link key={link.href} to={link.href}>{link.label}</Link>
             ))}
           </FooterColumn>
 
-          <FooterColumn title="Domains">
-            {programCategories.map((category) => (
-              <Link key={category.domain} to="/programs">
-                {category.domain}
-              </Link>
+          <FooterColumn title="Legal">
+            {legalLinks.map((link) => (
+              <Link key={link.href} to={link.href}>{link.label}</Link>
             ))}
           </FooterColumn>
 
           <FooterColumn title="Company">
             {companyLinks.map((link) => (
-              <Link key={link.href} to={link.href}>
-                {link.label}
-              </Link>
+              <Link key={link.href} to={link.href}>{link.label}</Link>
             ))}
           </FooterColumn>
 
-          <FooterColumn title="LMS">
-            {lmsLinks.map((link) => (
-              <Link key={`${link.href}-${link.label}`} to={link.href}>
-                {link.label}
-              </Link>
-            ))}
-          </FooterColumn>
+          <div className="public-footer__social">
+            <h3>Social Media</h3>
+            <div>
+              {socialLinks.map(({ href, label, shortLabel }) => (
+                <a key={label} href={href} aria-label={label} target="_blank" rel="noreferrer">
+                  {shortLabel}
+                </a>
+              ))}
+            </div>
+          </div>
 
           <div className="public-footer__contact">
-            <h3>Contact</h3>
+            <h3>Contact Info</h3>
             <p>
               <PhoneCall size={17} />
-              Admissions support through callback
+              <span><strong>Phone:</strong> +91 63605 84578</span>
             </p>
             <p>
               <Mail size={17} />
-              Program guidance and enrollment help
+              <span><strong>Email:</strong> info@joviq.com</span>
             </p>
             <p>
               <MapPin size={17} />
-              India-focused online learning
+              <span>
+                <strong>Address:</strong>
+                BHIVE Premium Workspace - No.J12, AKR Tech Park, A & B Block, 7th Mile Hosur Rd,
+                Krishna Reddy Industrial Area, Bengaluru, Karnataka 560068
+              </span>
             </p>
-          </div>
-        </section>
-
-        <section className="public-footer__bottom">
-          <span>Copyright 2026 Joviq Technologies. All rights reserved.</span>
-          <div>
-            <Link to="/#faq">FAQ</Link>
-            <Link to="/request-callback">Callback</Link>
-            <Link to="/programs">Programs</Link>
           </div>
         </section>
       </div>

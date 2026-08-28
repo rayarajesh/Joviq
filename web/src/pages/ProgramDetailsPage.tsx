@@ -41,6 +41,7 @@ type FormMessage = { tone: "success" | "error"; text: string } | null;
 type DetailItem = { title: string; text: string };
 type CurriculumItem = DetailItem & { lessons: string[] };
 type ProjectItem = DetailItem & { artifacts: string[] };
+type DomainFeatureItem = { icon: ReactNode; title: string; text: string; bullets: string[] };
 
 type ProgramViewModel = {
   slug: string;
@@ -64,6 +65,45 @@ type ProgramViewModel = {
   faqs: { question: string; answer: string }[];
   level: string;
 };
+
+const domainFeatures: DomainFeatureItem[] = [
+  {
+    icon: <CalendarClock size={28} />,
+    title: "Live + Recorded Classes",
+    text: "Attend live classes and watch recordings anytime",
+    bullets: ["Live interactive classes", "Recorded videos", "Expert instructors"]
+  },
+  {
+    icon: <CalendarClock size={28} />,
+    title: "6 Months LMS Access",
+    text: "Access videos, files, quizzes & resources anytime",
+    bullets: ["Complete materials", "Self-paced learning", "Extra downloadable files"]
+  },
+  {
+    icon: <UsersRound size={28} />,
+    title: "Hands-on Projects",
+    text: "Work on real industry-level problems",
+    bullets: ["Real-world scenarios", "Mentor project guidance", "Project walkthroughs"]
+  },
+  {
+    icon: <Video size={28} />,
+    title: "Certification",
+    text: "Receive QR-verified certificate after completion",
+    bullets: ["Industry-recognised", "Easy to share", "Includes capstone evaluations"]
+  },
+  {
+    icon: <Headphones size={28} />,
+    title: "Doubt Solving",
+    text: "Ask doubts anytime via LMS or chat",
+    bullets: ["Mentor-led doubt solving", "Fast response time", "Detailed explanations"]
+  },
+  {
+    icon: <CheckCircle2 size={28} />,
+    title: "Placement Support",
+    text: "Resume, interview prep & job assistance",
+    bullets: ["Resume Review", "Mock Interviews", "Job Readiness Plan"]
+  }
+];
 
 export function ProgramDetailsPage() {
   const { slug } = useParams();
@@ -184,12 +224,25 @@ export function ProgramDetailsPage() {
 
       <section className="pd-skill-band" id="skills">
         <div className="pd-skill-band__intro">
-          <span className="pd-kicker"><Code2 size={15} /> Skills you will learn</span>
-          <h2>A focused toolkit for real project work.</h2>
-          <p>Each skill is reinforced through assignments, assessments, and portfolio evidence.</p>
+          <span className="pd-kicker"><Code2 size={15} /> Domain Features</span>
+          <h2>Domain Features</h2>
+          <p>Everything you need - structured learning, real projects, mentor support & certification.</p>
         </div>
         <div className="pd-skill-band__grid">
-          {program.skills.map((skill, index) => <span key={skill}><small>{String(index + 1).padStart(2, "0")}</small><strong>{skill}</strong></span>)}
+          {domainFeatures.map((feature) => (
+            <article key={feature.title}>
+              <span className="pd-feature-card__icon">{feature.icon}</span>
+              <div>
+                <h3>{feature.title}</h3>
+                <p>{feature.text}</p>
+              </div>
+              <ul>
+                {feature.bullets.map((bullet) => (
+                  <li key={bullet}><CheckCircle2 size={17} /> {bullet}</li>
+                ))}
+              </ul>
+            </article>
+          ))}
         </div>
       </section>
 
@@ -211,16 +264,25 @@ export function ProgramDetailsPage() {
 
       <section className="pd-projects" id="projects">
         <div className="pd-projects__head">
-          <span className="pd-kicker"><FolderKanban size={15} /> Real-time projects</span>
-          <h2>Graduate with work worth opening in an interview.</h2>
-          <p>Every project includes clear deliverables, mentor review, and talking points for your portfolio.</p>
+          <span className="pd-kicker"><FolderKanban size={15} /> Real-world projects</span>
+          <h2>Real-World Hands-On Projects</h2>
+          <p>Build strong industry-ready skills with practical experience.</p>
         </div>
         <div className="pd-projects__grid">
           {program.projects.map((project, index) => (
             <article key={project.title}>
-              <header><span>{String(index + 1).padStart(2, "0")}</span><BookOpenCheck size={21} /></header>
-              <h3>{project.title}</h3><p>{project.text}</p>
-              <div>{project.artifacts.slice(0, 3).map((artifact) => <small key={artifact}>{artifact}</small>)}</div>
+              <header><span>{index + 1}</span></header>
+              <h3>{project.title}</h3>
+              <p>{project.text}</p>
+              <details open={index === 0}>
+                <summary>View Details</summary>
+                <div>
+                  <strong>Key Features</strong>
+                  <ul>{project.artifacts.slice(0, 4).map((artifact) => <li key={artifact}>{artifact}</li>)}</ul>
+                  <strong>Technologies</strong>
+                  <ul>{program.skills.slice(0, 4).map((skill) => <li key={skill}>{skill}</li>)}</ul>
+                </div>
+              </details>
             </article>
           ))}
         </div>
