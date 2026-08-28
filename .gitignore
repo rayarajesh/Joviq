@@ -3,6 +3,7 @@ obj/
 .vs/
 .vscode/
 .dotnet/
+api/.nuget-packages/
 *.user
 *.suo
 *.userosscache

@@ -62,7 +62,7 @@ The client ID and secret must come from the same Google OAuth client. Restart th
 Default development connection:
 
 ```text
-Host=localhost;Port=5432;Database=Joviq;Username=postgres;Password=CHANGE_ME
+Host=localhost;Port=5432;Database=Joviq;Username=postgres;Password=s
 ```
 
 Change it in `src/Joviq.Lms.Api/appsettings.Development.json`.
@@ -74,7 +74,7 @@ To create the first admin automatically on startup, set:
 ```json
 "SeedAdmin": {
   "Email": "admin@joviq.com",
-  "Password": "CHANGE_ME",
+  "Password": "s",
   "FullName": "Joviq Admin"
 }
 ```

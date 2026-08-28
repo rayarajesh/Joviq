@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
-import { ArrowRight, BookOpenCheck, GraduationCap, Mail, MapPin, PhoneCall, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, BookOpenCheck, GraduationCap, Mail, MapPin, PhoneCall, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
+import { BrandLogo } from "./BrandLogo";
 import { allPrograms, programCategories } from "../data/siteContent";
 
 const companyLinks = [
@@ -29,10 +30,7 @@ export function SiteFooter() {
         <section className="public-footer__top">
           <div className="public-footer__brand">
             <Link className="public-footer__logo" to="/" aria-label="Joviq Technologies home">
-              <span>
-                <Sparkles size={24} />
-              </span>
-              <strong>Joviq Technologies</strong>
+              <BrandLogo />
             </Link>
             <p>Learn. Build. Get Certified. Get Hired.</p>
             <div className="public-footer__badges">

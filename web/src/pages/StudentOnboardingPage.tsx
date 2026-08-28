@@ -21,6 +21,7 @@ import {
   UserRound,
   X
 } from "lucide-react";
+import { BrandLogo } from "../components/BrandLogo";
 import { env } from "../config/env";
 import { studentOnboardingApi } from "../features/student/api/studentOnboardingApi";
 import type {
@@ -703,7 +704,7 @@ export function StudentOnboardingPage() {
       <section className="onboarding-hero">
         <div className="onboarding-hero__content">
           <Link className="onboarding-back-link" to="/">
-            Joviq Technologies
+            <BrandLogo />
           </Link>
           <span className="eyebrow">Student onboarding</span>
           <h1>Complete your student profile.</h1>

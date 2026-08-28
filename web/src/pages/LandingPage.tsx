@@ -28,10 +28,12 @@ import {
   Send,
   ShieldCheck,
   Sparkles,
+  Star,
   UserPlus,
   UsersRound,
   X
 } from "lucide-react";
+import { BrandLogo } from "../components/BrandLogo";
 import { IndiaMobileInput } from "../components/IndiaMobileInput";
 import { PublicNavbar } from "../components/PublicNavbar";
 import { SiteFooter } from "../components/SiteFooter";
@@ -739,54 +741,76 @@ export function LandingPage() {
           <div className="site-hero__copy-block">
             <div className="site-kicker">
               <Sparkles size={18} />
-              <span>AI-powered learning / Expert-led outcomes</span>
+              <span>AI-powered learning. Expert-led outcomes.</span>
             </div>
             <h1 id="site-title">
-              <span>Joviq</span>
-              <span>Career Programs</span>
+              <span>Learn Today.</span>
+              <span>Lead Tomorrow.</span>
             </h1>
+            <div className="hero-title-accent" aria-hidden="true" />
             <p>
-              Learn by building real work. Get expert feedback at every milestone. Graduate with proof that makes your
-              skills easy to trust.
+              Real projects. Expert mentors. Career support. Everything you need to go from learner to leader.
             </p>
             <div className="site-hero__actions">
               <Link className="site-button site-button--primary" to="/programs">
                 Explore Programs <ArrowRight size={18} />
               </Link>
               <Link className="site-button site-button--light" to="/request-callback">
-                Talk to an advisor <PhoneCall size={18} />
+                Talk to an Advisor <PhoneCall size={18} />
               </Link>
             </div>
             <div className="site-hero__proof" aria-label="Website highlights">
               <span>
                 <CheckCircle2 size={16} />
-                Live expert cohorts
+                Live Expert Cohorts
               </span>
               <span>
                 <CheckCircle2 size={16} />
-                Mentor-reviewed projects
+                Mentor Reviewed Projects
               </span>
               <span>
                 <CheckCircle2 size={16} />
-                Career support built in
+                Career Support
               </span>
             </div>
           </div>
 
+          <aside className="hero-rating-card" aria-label="Learner trust signals">
+            <div>
+              <BadgeCheck size={25} />
+              <small>Projects Completed</small>
+              <strong>24+</strong>
+              <span>Hands-on Projects</span>
+            </div>
+            <div>
+              <Star size={25} />
+              <small>Learner Rating</small>
+              <strong>4.9/5</strong>
+              <span>From 1000+ reviews</span>
+            </div>
+            <div>
+              <UsersRound size={25} />
+              <small>Learners Trust Joviq</small>
+              <strong>2,500+</strong>
+              <span>And growing</span>
+            </div>
+          </aside>
+
           <aside className="hero-command-bar" aria-label="Live cohort and program highlights">
             <div className="hero-command-bar__cohort">
               <span className="hero-command-bar__live">
-                <i aria-hidden="true" />
+                <GraduationCap size={28} />
                 Admissions open
               </span>
               <div className="hero-command-bar__date">
                 <small>Next live cohort</small>
-                <strong>10 Sept</strong>
+                <strong>10 Sept 2025</strong>
+                <span>Enroll before seats fill up.</span>
               </div>
               <div className="hero-command-bar__seats">
                 <span>
-                  <strong>12 seats left</strong>
-                  <small>Limited cohort</small>
+                  <small>Limited seats left</small>
+                  <strong>12 Seats Left</strong>
                 </span>
                 <div>
                   <span style={{ width: "68%" }} />
@@ -797,18 +821,18 @@ export function LandingPage() {
             <div className="hero-command-bar__metrics">
               <div>
                 <Code2 size={20} />
-                <strong>{allPrograms.length}</strong>
-                <span>career programs</span>
+                <strong>20+</strong>
+                <span>Career Programs</span>
               </div>
               <div>
                 <BriefcaseBusiness size={20} />
                 <strong>5-6</strong>
-                <span>projects per track</span>
+                <span>Projects Per Track</span>
               </div>
               <div>
-                <UsersRound size={20} />
+                <Star size={20} />
                 <strong>Weekly</strong>
-                <span>expert reviews</span>
+                <span>Expert Reviews</span>
               </div>
             </div>
           </aside>
@@ -1178,7 +1202,7 @@ export function LandingPage() {
           <div className="certificate-document certificate-original">
             <header className="certificate-original__header">
               <span className="certificate-original__brand">
-                <i><Sparkles size={19} /></i>
+                <i><BrandLogo compact /></i>
                 <span>
                   <strong>Joviq Technologies</strong>
                   <small>Website and LMS</small>

@@ -41,6 +41,7 @@ import {
   Zap,
   UsersRound
 } from "lucide-react";
+import { BrandLogo } from "../components/BrandLogo";
 import { IndiaMobileInput } from "../components/IndiaMobileInput";
 import { adminUsersApi } from "../features/auth/api/authApi";
 import type {
@@ -229,7 +230,7 @@ function DashboardSidebar({
     <aside className={`dashboard-sidebar dashboard-sidebar--${role.toLowerCase()}`}>
       {role !== "Student" ? (
         <div className="sidebar-brand">
-          <Sparkles size={21} />
+          <BrandLogo compact />
           <div>
             <strong>Joviq</strong>
             <span>{role} workspace</span>

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 640" role="img" aria-labelledby="title desc">
+  <title id="title">Joviq Technologies</title>
+  <desc id="desc">Joviq Technologies violet monogram and wordmark.</desc>
+  <defs>
+    <linearGradient id="joviqMark" x1="260" y1="40" x2="660" y2="430" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#201b59"/>
+      <stop offset="0.56" stop-color="#504b91"/>
+      <stop offset="1" stop-color="#6c67ae"/>
+    </linearGradient>
+    <linearGradient id="joviqText" x1="130" y1="410" x2="770" y2="555" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4d4a93"/>
+      <stop offset="1" stop-color="#6863a7"/>
+    </linearGradient>
+  </defs>
+  <g fill="url(#joviqMark)" transform="translate(105 4) scale(0.86)">
+    <path d="M350 42h92c119 0 216 96 216 215 0 61-26 119-70 159l-49-54c25-28 39-65 39-105 0-77-60-137-136-137h-20v154c0 103-82 187-185 187-82 0-151-48-180-119l76-3c22 29 60 46 104 46 65 0 124-45 124-113V42Z"/>
+    <path d="M516 360l53-50 119 131-53 50-119-131Z"/>
+  </g>
+  <text x="450" y="552" fill="url(#joviqText)" font-family="Montserrat, Eurostile, Arial, sans-serif" font-size="132" font-weight="500" letter-spacing="14" text-anchor="middle">JOVIQ</text>
+  <text x="450" y="616" fill="#625da2" font-family="Montserrat, Arial, sans-serif" font-size="38" font-weight="400" letter-spacing="26" text-anchor="middle">Technologies</text>
+</svg>

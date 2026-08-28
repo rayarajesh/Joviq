@@ -35,7 +35,7 @@ public static class DependencyInjection
         services.Configure<ExternalAuthOptions>(configuration.GetSection(ExternalAuthOptions.SectionName));
 
         var connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? "Host=localhost;Port=5432;Database=joviq_lms;Username=postgres;Password=postgres";
+            ?? "Host=localhost;Port=5432;Database=joviq_lms;Username=postgres;Password=s";
 
         services.AddDbContext<ApplicationDbContext>(options =>
         {

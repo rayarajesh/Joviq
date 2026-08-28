@@ -19,7 +19,7 @@ public sealed class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Ap
             .Build();
 
         var connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? "Host=localhost;Port=5432;Database=joviq_lms;Username=postgres;Password=postgres";
+            ?? "Host=localhost;Port=5432;Database=joviq_lms;Username=postgres;Password=s";
 
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseNpgsql(connectionString)

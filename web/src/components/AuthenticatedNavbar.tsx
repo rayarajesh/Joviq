@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bell, Check, ChevronDown, LayoutDashboard, LifeBuoy, LogOut, Sparkles, UserRound } from "lucide-react";
+import { Bell, Check, ChevronDown, LayoutDashboard, LifeBuoy, LogOut, UserRound } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { BrandLogo } from "./BrandLogo";
 import { env } from "../config/env";
 import { useAuth } from "../features/auth/context/useAuth";
 import { studentLmsApi } from "../features/lms/api/lmsApi";
@@ -114,7 +115,7 @@ export function AuthenticatedNavbar() {
     <header className="auth-nav">
       <div className="auth-nav__inner">
         <Link className="auth-nav__brand" to="/dashboard" aria-label="Joviq workspace">
-          <span><Sparkles size={18} /></span>
+          <BrandLogo compact />
           <div>
             <strong>Joviq Technologies</strong>
             <small>{user.roles[0] ?? "Member"} workspace</small>

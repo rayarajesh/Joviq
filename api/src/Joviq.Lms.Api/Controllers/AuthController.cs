@@ -20,11 +20,13 @@ public sealed class AuthController(
     IOptions<RefreshTokenOptions> refreshTokenOptions,
     IOptions<ExternalAuthOptions> externalAuthOptions,
     IAuthenticationSchemeProvider authenticationSchemeProvider,
+    IWebHostEnvironment hostEnvironment,
     ILogger<AuthController> logger)
     : ApiControllerBase(currentUser)
 {
     private readonly RefreshTokenOptions _refreshTokenOptions = refreshTokenOptions.Value;
     private readonly ExternalAuthOptions _externalAuthOptions = externalAuthOptions.Value;
+    private readonly bool _isDevelopment = hostEnvironment.IsDevelopment();
 
     [HttpPost("register")]
     [AllowAnonymous]
@@ -297,8 +299,8 @@ public sealed class AuthController(
         Response.Cookies.Append(_refreshTokenOptions.CookieName, result.RefreshToken, new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.None,
+            Secure = !_isDevelopment,
+            SameSite = _isDevelopment ? SameSiteMode.Lax : SameSiteMode.None,
             Path = "/",
             Expires = result.RefreshTokenExpiresAt
         });
@@ -308,8 +310,8 @@ public sealed class AuthController(
     {
         Response.Cookies.Delete(_refreshTokenOptions.CookieName, new CookieOptions
         {
-            Secure = true,
-            SameSite = SameSiteMode.None,
+            Secure = !_isDevelopment,
+            SameSite = _isDevelopment ? SameSiteMode.Lax : SameSiteMode.None,
             Path = "/"
         });
     }
