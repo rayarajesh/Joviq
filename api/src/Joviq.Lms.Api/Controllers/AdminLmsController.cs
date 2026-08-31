@@ -1,6 +1,7 @@
 using Joviq.Lms.Application.Common.Interfaces;
 using Joviq.Lms.Application.Common.Models;
 using Joviq.Lms.Application.Lms;
+using Joviq.Lms.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -316,6 +317,22 @@ public sealed class AdminLmsController(
         return Ok(ApiResponse<PaymentTransactionResponse>.Ok(result, "Payment refunded.", CorrelationId));
     }
 
+    [HttpGet("refunds")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<PaymentTransactionResponse>>>> GetRefunds(
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.GetAdminRefundsAsync(cancellationToken);
+        return Ok(ApiResponse<IReadOnlyList<PaymentTransactionResponse>>.Ok(result, "Refunds loaded.", CorrelationId));
+    }
+
+    [HttpGet("ai-features")]
+    public async Task<ActionResult<ApiResponse<AdminAiFeatureSummaryResponse>>> GetAiFeatures(
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.GetAdminAiFeaturesAsync(cancellationToken);
+        return Ok(ApiResponse<AdminAiFeatureSummaryResponse>.Ok(result, "AI features loaded.", CorrelationId));
+    }
+
     [HttpGet("coupons")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<CouponResponse>>>> GetCoupons(
         CancellationToken cancellationToken)
@@ -388,6 +405,91 @@ public sealed class AdminLmsController(
     {
         var result = await lmsPortalService.UpdateSupportTicketAsync(ticketId, request, cancellationToken);
         return Ok(ApiResponse<SupportTicketResponse>.Ok(result, "Support ticket updated.", CorrelationId));
+    }
+
+    [HttpGet("content")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<AdminContentItemResponse>>>> GetContent(
+        [FromQuery] AdminContentType? contentType,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.GetAdminContentAsync(contentType, cancellationToken);
+        return Ok(ApiResponse<IReadOnlyList<AdminContentItemResponse>>.Ok(result, "Admin content loaded.", CorrelationId));
+    }
+
+    [HttpPost("content")]
+    public async Task<ActionResult<ApiResponse<AdminContentItemResponse>>> CreateContent(
+        CreateAdminContentItemRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.CreateAdminContentAsync(request, cancellationToken);
+        return Ok(ApiResponse<AdminContentItemResponse>.Ok(result, "Admin content created.", CorrelationId));
+    }
+
+    [HttpPut("content/{contentId:guid}")]
+    public async Task<ActionResult<ApiResponse<AdminContentItemResponse>>> UpdateContent(
+        Guid contentId,
+        CreateAdminContentItemRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.UpdateAdminContentAsync(contentId, request, cancellationToken);
+        return Ok(ApiResponse<AdminContentItemResponse>.Ok(result, "Admin content updated.", CorrelationId));
+    }
+
+    [HttpGet("leads")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<AdminLeadResponse>>>> GetLeads(
+        [FromQuery] string? leadType,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.GetAdminLeadsAsync(leadType, cancellationToken);
+        return Ok(ApiResponse<IReadOnlyList<AdminLeadResponse>>.Ok(result, "Leads loaded.", CorrelationId));
+    }
+
+    [HttpPatch("leads/{leadType}/{leadId:guid}/status")]
+    public async Task<ActionResult<ApiResponse<AdminLeadResponse>>> UpdateLeadStatus(
+        string leadType,
+        Guid leadId,
+        UpdateLeadStatusRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.UpdateAdminLeadStatusAsync(leadType, leadId, request, cancellationToken);
+        return Ok(ApiResponse<AdminLeadResponse>.Ok(result, "Lead status updated.", CorrelationId));
+    }
+
+    [HttpGet("notifications")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<AdminNotificationResponse>>>> GetNotifications(
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.GetAdminNotificationsAsync(cancellationToken);
+        return Ok(ApiResponse<IReadOnlyList<AdminNotificationResponse>>.Ok(result, "Notifications loaded.", CorrelationId));
+    }
+
+    [HttpPost("notifications")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<AdminNotificationResponse>>>> CreateNotification(
+        CreateAdminNotificationRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.CreateAdminNotificationAsync(request, cancellationToken);
+        return Ok(ApiResponse<IReadOnlyList<AdminNotificationResponse>>.Ok(result, "Notification sent.", CorrelationId));
+    }
+
+    [HttpGet("settings")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<AdminSettingResponse>>>> GetSettings(
+        [FromQuery] string? category,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.GetAdminSettingsAsync(category, cancellationToken);
+        return Ok(ApiResponse<IReadOnlyList<AdminSettingResponse>>.Ok(result, "Settings loaded.", CorrelationId));
+    }
+
+    [HttpPut("settings/{category}/{key}")]
+    public async Task<ActionResult<ApiResponse<AdminSettingResponse>>> UpsertSetting(
+        string category,
+        string key,
+        UpsertAdminSettingRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.UpsertAdminSettingAsync(category, key, request, cancellationToken);
+        return Ok(ApiResponse<AdminSettingResponse>.Ok(result, "Setting saved.", CorrelationId));
     }
 
     [HttpGet("reports")]

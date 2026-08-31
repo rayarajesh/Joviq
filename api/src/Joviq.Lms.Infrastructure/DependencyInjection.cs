@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text;
+using Joviq.Lms.Application.Assets;
 using Joviq.Lms.Application.Auth;
 using Joviq.Lms.Application.Common.Interfaces;
 using Joviq.Lms.Application.Common.Options;
@@ -11,6 +12,7 @@ using Joviq.Lms.Infrastructure.Authentication;
 using Joviq.Lms.Infrastructure.Identity;
 using Joviq.Lms.Infrastructure.Persistence;
 using Joviq.Lms.Infrastructure.Services;
+using Joviq.Lms.Infrastructure.Services.Assets;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OAuth.Claims;
@@ -33,6 +35,7 @@ public static class DependencyInjection
         services.Configure<OtpOptions>(configuration.GetSection(OtpOptions.SectionName));
         services.Configure<EmailSettingsOptions>(configuration.GetSection(EmailSettingsOptions.SectionName));
         services.Configure<ExternalAuthOptions>(configuration.GetSection(ExternalAuthOptions.SectionName));
+        services.Configure<AssetStorageOptions>(configuration.GetSection(AssetStorageOptions.SectionName));
 
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? "Host=localhost;Port=5432;Database=joviq_lms;Username=postgres;Password=s";
@@ -153,6 +156,7 @@ public static class DependencyInjection
         services.AddDataProtection();
 
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IAssetService, AssetService>();
         services.AddScoped<IAdminUserService, AdminUserService>();
         services.AddScoped<ILmsPortalService, LmsPortalService>();
         services.AddScoped<IStudentOnboardingService, StudentOnboardingService>();
@@ -164,6 +168,16 @@ public static class DependencyInjection
         services.AddScoped<IEmailSender, SmtpEmailSender>();
         services.AddScoped<ISmsSender, NoOpSmsSender>();
         services.AddHostedService<AuditLogRetentionService>();
+
+        var assetStorageOptions = configuration.GetSection(AssetStorageOptions.SectionName).Get<AssetStorageOptions>() ?? new AssetStorageOptions();
+        if (assetStorageOptions.Provider.Equals("AwsS3", StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddSingleton<IAssetStorageProvider, AwsS3AssetStorageProvider>();
+        }
+        else
+        {
+            services.AddSingleton<IAssetStorageProvider, LocalAssetStorageProvider>();
+        }
 
         return services;
     }

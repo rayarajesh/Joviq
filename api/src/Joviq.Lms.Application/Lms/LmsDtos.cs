@@ -349,6 +349,65 @@ public sealed record AdminReportResponse(
     IReadOnlyList<PaymentTransactionResponse> RecentPayments,
     IReadOnlyList<SupportTicketResponse> OpenSupportTickets);
 
+public sealed record AdminContentItemResponse(
+    Guid Id,
+    string ContentType,
+    string Title,
+    string Slug,
+    string? Summary,
+    string? Body,
+    string? ImageUrl,
+    string? ExternalUrl,
+    string MetadataJson,
+    string Status,
+    bool IsFeatured,
+    int SortOrder,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt);
+
+public sealed record AdminLeadResponse(
+    Guid Id,
+    string LeadType,
+    string FullName,
+    string Email,
+    string PhoneNumber,
+    string? Subject,
+    string? Secondary,
+    string? Message,
+    string Status,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt);
+
+public sealed record AdminNotificationResponse(
+    Guid Id,
+    Guid UserId,
+    string? UserName,
+    string? UserEmail,
+    string Title,
+    string Body,
+    string? ActionUrl,
+    string Status,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? ReadAt);
+
+public sealed record AdminSettingResponse(
+    Guid Id,
+    string Category,
+    string Key,
+    string Value,
+    string? Description,
+    bool IsSecret,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt);
+
+public sealed record AdminAiFeatureSummaryResponse(
+    int AiAssessments,
+    int AiAssessmentAttempts,
+    int AiInterviewAttempts,
+    int CompletedAiInterviews,
+    decimal AverageAssessmentScore,
+    decimal AverageInterviewScore);
+
 public sealed class ProgramListRequest
 {
     public string? Search { get; init; }
@@ -637,6 +696,64 @@ public sealed class UpdatePaymentStatusRequest
 public sealed class RefundPaymentRequest
 {
     public string? Reason { get; init; }
+}
+
+public sealed class CreateAdminContentItemRequest
+{
+    public AdminContentType ContentType { get; init; } = AdminContentType.WebsiteContent;
+
+    public string Title { get; init; } = string.Empty;
+
+    public string? Slug { get; init; }
+
+    public string? Summary { get; init; }
+
+    public string? Body { get; init; }
+
+    public string? ImageUrl { get; init; }
+
+    public string? ExternalUrl { get; init; }
+
+    public string? MetadataJson { get; init; }
+
+    public AdminContentStatus Status { get; init; } = AdminContentStatus.Draft;
+
+    public bool IsFeatured { get; init; }
+
+    public int SortOrder { get; init; }
+}
+
+public sealed class UpdateLeadStatusRequest
+{
+    public LeadStatus Status { get; init; }
+
+    public string? Notes { get; init; }
+}
+
+public sealed class CreateAdminNotificationRequest
+{
+    public Guid? UserId { get; init; }
+
+    public string Title { get; init; } = string.Empty;
+
+    public string Body { get; init; } = string.Empty;
+
+    public string? ActionUrl { get; init; }
+
+    public bool SendToAllUsers { get; init; }
+
+    public bool SendToAllStudents { get; init; }
+
+    public bool SendToAllMentors { get; init; }
+}
+
+public sealed class UpsertAdminSettingRequest
+{
+    public string Value { get; init; } = string.Empty;
+
+    public string? Description { get; init; }
+
+    public bool IsSecret { get; init; }
 }
 
 public sealed class VerifyPaymentRequest

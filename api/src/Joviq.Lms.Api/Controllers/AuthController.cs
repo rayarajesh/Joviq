@@ -299,8 +299,8 @@ public sealed class AuthController(
         Response.Cookies.Append(_refreshTokenOptions.CookieName, result.RefreshToken, new CookieOptions
         {
             HttpOnly = true,
-            Secure = !_isDevelopment,
-            SameSite = _isDevelopment ? SameSiteMode.Lax : SameSiteMode.None,
+            Secure = UseSecureRefreshCookie,
+            SameSite = UseSecureRefreshCookie ? SameSiteMode.None : SameSiteMode.Lax,
             Path = "/",
             Expires = result.RefreshTokenExpiresAt
         });
@@ -310,11 +310,13 @@ public sealed class AuthController(
     {
         Response.Cookies.Delete(_refreshTokenOptions.CookieName, new CookieOptions
         {
-            Secure = !_isDevelopment,
-            SameSite = _isDevelopment ? SameSiteMode.Lax : SameSiteMode.None,
+            Secure = UseSecureRefreshCookie,
+            SameSite = UseSecureRefreshCookie ? SameSiteMode.None : SameSiteMode.Lax,
             Path = "/"
         });
     }
+
+    private bool UseSecureRefreshCookie => !_isDevelopment || Request.IsHttps;
 
     private string BuildFrontendCallbackUrl(string? returnUrl, string? error = null)
     {

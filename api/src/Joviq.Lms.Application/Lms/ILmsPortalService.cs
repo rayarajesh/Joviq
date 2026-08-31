@@ -1,4 +1,5 @@
 using Joviq.Lms.Application.Common.Models;
+using Joviq.Lms.Domain.Enums;
 
 namespace Joviq.Lms.Application.Lms;
 
@@ -144,6 +145,10 @@ public interface ILmsPortalService
 
     Task<PaymentTransactionResponse> RefundPaymentAsync(Guid paymentId, RefundPaymentRequest request, CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<PaymentTransactionResponse>> GetAdminRefundsAsync(CancellationToken cancellationToken);
+
+    Task<AdminAiFeatureSummaryResponse> GetAdminAiFeaturesAsync(CancellationToken cancellationToken);
+
     Task<IReadOnlyList<CouponResponse>> GetCouponsAsync(CancellationToken cancellationToken);
 
     Task<CouponResponse> CreateCouponAsync(CreateCouponRequest request, CancellationToken cancellationToken);
@@ -159,6 +164,24 @@ public interface ILmsPortalService
     Task<PagedResult<SupportTicketResponse>> GetSupportTicketsAsync(int page, int pageSize, CancellationToken cancellationToken);
 
     Task<SupportTicketResponse> UpdateSupportTicketAsync(Guid ticketId, UpdateSupportTicketRequest request, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<AdminContentItemResponse>> GetAdminContentAsync(AdminContentType? contentType, CancellationToken cancellationToken);
+
+    Task<AdminContentItemResponse> CreateAdminContentAsync(CreateAdminContentItemRequest request, CancellationToken cancellationToken);
+
+    Task<AdminContentItemResponse> UpdateAdminContentAsync(Guid contentId, CreateAdminContentItemRequest request, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<AdminLeadResponse>> GetAdminLeadsAsync(string? leadType, CancellationToken cancellationToken);
+
+    Task<AdminLeadResponse> UpdateAdminLeadStatusAsync(string leadType, Guid leadId, UpdateLeadStatusRequest request, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<AdminNotificationResponse>> GetAdminNotificationsAsync(CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<AdminNotificationResponse>> CreateAdminNotificationAsync(CreateAdminNotificationRequest request, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<AdminSettingResponse>> GetAdminSettingsAsync(string? category, CancellationToken cancellationToken);
+
+    Task<AdminSettingResponse> UpsertAdminSettingAsync(string category, string key, UpsertAdminSettingRequest request, CancellationToken cancellationToken);
 
     Task<MentorDashboardResponse> GetMentorDashboardAsync(Guid mentorId, CancellationToken cancellationToken);
 

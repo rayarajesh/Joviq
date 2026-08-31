@@ -100,3 +100,51 @@ public enum NotificationStatus
     Read = 2,
     Archived = 3
 }
+
+public enum AdminContentType
+{
+    WebsiteContent = 1,
+    Testimonial = 2,
+    Review = 3,
+    HiringPartner = 4
+}
+
+public enum AdminContentStatus
+{
+    Draft = 1,
+    Published = 2,
+    Archived = 3
+}
+
+public enum AssetType
+{
+    Image = 1,
+    Video = 2,
+    Document = 3,
+    Other = 4
+}
+
+public enum AssetPurpose
+{
+    General = 1,
+    ProgramThumbnail = 2,
+    LessonVideo = 3,
+    LessonResource = 4,
+    AssignmentSubmission = 5,
+    ProjectSubmission = 6,
+    SupportAttachment = 7,
+    UserProfile = 8
+}
+
+public enum AssetVisibility
+{
+    Public = 1,
+    Private = 2
+}
+
+public enum AssetStatus
+{
+    PendingUpload = 1,
+    Ready = 2,
+    Deleted = 3
+}

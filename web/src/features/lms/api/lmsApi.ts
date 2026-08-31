@@ -1,6 +1,12 @@
 import { request } from "../../../lib/api/httpClient";
 import type {
+  AdminAiFeatureSummaryResponse,
+  AdminContentItemResponse,
+  AdminContentType,
+  AdminLeadResponse,
+  AdminNotificationResponse,
   AdminReportResponse,
+  AdminSettingResponse,
   AdminLmsSummaryResponse,
   AssessmentAttemptResponse,
   AssessmentResponse,
@@ -10,6 +16,8 @@ import type {
   CareerSupportResponse,
   CertificateResponse,
   CouponResponse,
+  CreateAdminContentItemRequest,
+  CreateAdminNotificationRequest,
   CreateAssessmentRequest,
   CreateAssignmentRequest,
   CreateCategoryRequest,
@@ -47,9 +55,11 @@ import type {
   SubmitAssessmentAttemptRequest,
   SubmissionResponse,
   SupportTicketResponse,
+  UpdateLeadStatusRequest,
   UpdateCertificateStatusRequest,
   UpdateEnrollmentStatusRequest,
   UpdatePaymentStatusRequest,
+  UpsertAdminSettingRequest,
   VerifyPaymentRequest
 } from "./lmsTypes";
 
@@ -339,6 +349,14 @@ export const adminLmsApi = {
     return request<PaymentTransactionResponse>(`/api/v1/admin/lms/refunds${toQuery({ paymentId })}`, { method: "POST", body });
   },
 
+  getRefunds() {
+    return request<PaymentTransactionResponse[]>("/api/v1/admin/lms/refunds");
+  },
+
+  getAiFeatures() {
+    return request<AdminAiFeatureSummaryResponse>("/api/v1/admin/lms/ai-features");
+  },
+
   getCoupons() {
     return request<CouponResponse[]>("/api/v1/admin/lms/coupons");
   },
@@ -365,6 +383,49 @@ export const adminLmsApi = {
 
   getSupportTickets(page = 1, pageSize = 8) {
     return request<LmsSupportTicketPage>(`/api/v1/admin/lms/support/tickets${toQuery({ page, pageSize })}`);
+  },
+
+  updateSupportTicket(ticketId: string, body: { status: number; adminNotes?: string }) {
+    return request<SupportTicketResponse>(`/api/v1/admin/lms/support/tickets/${ticketId}`, { method: "PATCH", body });
+  },
+
+  getContent(contentType?: AdminContentType) {
+    return request<AdminContentItemResponse[]>(`/api/v1/admin/lms/content${toQuery({ contentType })}`);
+  },
+
+  createContent(body: CreateAdminContentItemRequest) {
+    return request<AdminContentItemResponse>("/api/v1/admin/lms/content", { method: "POST", body });
+  },
+
+  updateContent(contentId: string, body: CreateAdminContentItemRequest) {
+    return request<AdminContentItemResponse>(`/api/v1/admin/lms/content/${contentId}`, { method: "PUT", body });
+  },
+
+  getLeads(leadType?: string) {
+    return request<AdminLeadResponse[]>(`/api/v1/admin/lms/leads${toQuery({ leadType })}`);
+  },
+
+  updateLeadStatus(leadType: string, leadId: string, body: UpdateLeadStatusRequest) {
+    return request<AdminLeadResponse>(`/api/v1/admin/lms/leads/${leadType}/${leadId}/status`, { method: "PATCH", body });
+  },
+
+  getNotifications() {
+    return request<AdminNotificationResponse[]>("/api/v1/admin/lms/notifications");
+  },
+
+  createNotification(body: CreateAdminNotificationRequest) {
+    return request<AdminNotificationResponse[]>("/api/v1/admin/lms/notifications", { method: "POST", body });
+  },
+
+  getSettings(category?: string) {
+    return request<AdminSettingResponse[]>(`/api/v1/admin/lms/settings${toQuery({ category })}`);
+  },
+
+  upsertSetting(category: string, key: string, body: UpsertAdminSettingRequest) {
+    return request<AdminSettingResponse>(
+      `/api/v1/admin/lms/settings/${encodeURIComponent(category)}/${encodeURIComponent(key)}`,
+      { method: "PUT", body }
+    );
   },
 
   getReports() {

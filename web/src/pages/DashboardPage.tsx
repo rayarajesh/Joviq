@@ -53,7 +53,13 @@ import type {
 import { useAuth } from "../features/auth/context/useAuth";
 import { adminLmsApi, mentorLmsApi, publicLmsApi, studentLmsApi } from "../features/lms/api/lmsApi";
 import type {
+  AdminAiFeatureSummaryResponse,
+  AdminContentItemResponse,
+  AdminContentType,
+  AdminLeadResponse,
   AdminReportResponse,
+  AdminNotificationResponse,
+  AdminSettingResponse,
   AdminLmsSummaryResponse,
   AssessmentAttemptResponse,
   AssessmentResponse,
@@ -65,6 +71,7 @@ import type {
   CouponResponse,
   CurriculumModuleResponse,
   EnrollmentResponse,
+  LessonResponse,
   LiveClassResponse,
   MentorDashboardResponse,
   MentorLearnerResponse,
@@ -94,21 +101,34 @@ const emailPattern = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$";
 const dashboardNavItems: Record<PrimaryRole, string[]> = {
   Admin: [
     "Overview",
+    "Students",
+    "Mentors",
     "Users",
     "Categories",
     "Programs",
     "Curriculum",
+    "Lessons",
     "Live Classes",
-    "Assignments",
     "Projects",
+    "Assignments",
     "Assessments",
+    "AI Features",
     "Enrollments",
     "Payments",
+    "Refunds",
     "Coupons",
     "Certificates",
-    "Support",
-    "Audit Logs",
-    "Reports"
+    "Website Content",
+    "Testimonials",
+    "Reviews",
+    "Hiring Partners",
+    "Campus Ambassadors",
+    "Careers",
+    "Support Tickets",
+    "Notifications",
+    "Reports",
+    "Settings",
+    "Audit Logs"
   ],
   Mentor: ["Overview", "Learners", "Reviews", "Live Classes", "Projects", "Assessments", "Support"],
   Student: [
@@ -137,30 +157,52 @@ const studentNavGroups = [
   { label: "Account", items: ["Payments", "Certificates"] }
 ];
 
+const adminNavGroups = [
+  { label: "Command", items: ["Overview", "Reports", "Settings", "Audit Logs"] },
+  { label: "People", items: ["Students", "Mentors", "Users"] },
+  { label: "Learning", items: ["Categories", "Programs", "Curriculum", "Lessons", "Live Classes"] },
+  { label: "Practice", items: ["Projects", "Assignments", "Assessments", "AI Features"] },
+  { label: "Finance", items: ["Enrollments", "Payments", "Refunds", "Coupons", "Certificates"] },
+  { label: "Growth", items: ["Website Content", "Testimonials", "Reviews", "Hiring Partners", "Campus Ambassadors", "Careers"] },
+  { label: "Communication", items: ["Support Tickets", "Notifications"] }
+];
+
 const moduleIconMap: Record<string, ComponentType<{ size?: number }>> = {
   Overview: LayoutDashboard,
+  Students: GraduationCap,
+  Mentors: BriefcaseBusiness,
   Users: UsersRound,
   Categories: Layers3,
   Programs: BookOpen,
   Curriculum: Layers3,
+  Lessons: PlayCircle,
   "Live Classes": CalendarClock,
   "Recorded Classes": PlayCircle,
   Assignments: ListChecks,
   Projects: FolderKanban,
   Assessments: FileCheck2,
+  "AI Features": Sparkles,
   "AI Assessment": Sparkles,
   "AI Interview": BriefcaseBusiness,
   "Mentor Support": Headphones,
   "Career Support": Trophy,
   Enrollments: GraduationCap,
   Payments: CreditCard,
+  Refunds: RotateCcw,
   Coupons: CircleDollarSign,
   Certificates: Award,
+  "Website Content": Layers3,
+  Testimonials: Trophy,
+  "Hiring Partners": BriefcaseBusiness,
+  "Campus Ambassadors": UsersRound,
+  Careers: BriefcaseBusiness,
   Notifications: Bell,
   Profile: ShieldCheck,
   Support: LifeBuoy,
+  "Support Tickets": LifeBuoy,
   "Audit Logs": ShieldCheck,
   Reports: BarChart3,
+  Settings: ShieldCheck,
   Reviews: FileCheck2,
   Learners: GraduationCap
 };
@@ -225,7 +267,9 @@ function DashboardSidebar({
   const navItems = dashboardNavItems[role];
   const navGroups = role === "Student"
     ? studentNavGroups
-    : [{ label: "Workspace", items: navItems }];
+    : role === "Admin"
+      ? adminNavGroups
+      : [{ label: "Workspace", items: navItems }];
   return (
     <aside className={`dashboard-sidebar dashboard-sidebar--${role.toLowerCase()}`}>
       {role !== "Student" ? (
@@ -264,6 +308,8 @@ function DashboardSidebar({
 
 function AdminDashboard({ activeModule, currentUserId }: { activeModule: string; currentUserId?: string }) {
   const [users, setUsers] = useState<AdminUserResponse[]>([]);
+  const [students, setStudents] = useState<AdminUserResponse[]>([]);
+  const [mentors, setMentors] = useState<AdminUserResponse[]>([]);
   const [summary, setSummary] = useState<AdminUserSummaryResponse | null>(null);
   const [lmsSummary, setLmsSummary] = useState<AdminLmsSummaryResponse | null>(null);
   const [lmsPrograms, setLmsPrograms] = useState<ProgramSummaryResponse[]>([]);
@@ -275,8 +321,14 @@ function AdminDashboard({ activeModule, currentUserId }: { activeModule: string;
   const [adminAssessments, setAdminAssessments] = useState<AssessmentResponse[]>([]);
   const [adminEnrollments, setAdminEnrollments] = useState<EnrollmentResponse[]>([]);
   const [adminPayments, setAdminPayments] = useState<PaymentTransactionResponse[]>([]);
+  const [adminRefunds, setAdminRefunds] = useState<PaymentTransactionResponse[]>([]);
   const [adminCoupons, setAdminCoupons] = useState<CouponResponse[]>([]);
   const [adminCertificates, setAdminCertificates] = useState<CertificateResponse[]>([]);
+  const [adminAiFeatures, setAdminAiFeatures] = useState<AdminAiFeatureSummaryResponse | null>(null);
+  const [adminContent, setAdminContent] = useState<AdminContentItemResponse[]>([]);
+  const [adminLeads, setAdminLeads] = useState<AdminLeadResponse[]>([]);
+  const [adminNotifications, setAdminNotifications] = useState<AdminNotificationResponse[]>([]);
+  const [adminSettings, setAdminSettings] = useState<AdminSettingResponse[]>([]);
   const [adminReports, setAdminReports] = useState<AdminReportResponse | null>(null);
   const [auditLogs, setAuditLogs] = useState<AuditLogResponse[]>([]);
   const [supportTickets, setSupportTickets] = useState<SupportTicketResponse[]>([]);
@@ -322,6 +374,8 @@ function AdminDashboard({ activeModule, currentUserId }: { activeModule: string;
       const [
         summaryResponse,
         usersResponse,
+        studentsResponse,
+        mentorsResponse,
         lmsSummaryResponse,
         lmsProgramsResponse,
         categoriesResponse,
@@ -333,8 +387,14 @@ function AdminDashboard({ activeModule, currentUserId }: { activeModule: string;
         assessmentsResponse,
         enrollmentsResponse,
         paymentsResponse,
+        refundsResponse,
         couponsResponse,
         certificatesResponse,
+        aiFeaturesResponse,
+        contentResponse,
+        leadsResponse,
+        notificationsResponse,
+        settingsResponse,
         reportsResponse,
         auditLogsResponse
       ] = await Promise.all([
@@ -345,6 +405,8 @@ function AdminDashboard({ activeModule, currentUserId }: { activeModule: string;
           page,
           pageSize
         }),
+        adminUsersApi.getUsers({ role: "Student", page: 1, pageSize: 50 }),
+        adminUsersApi.getUsers({ role: "Mentor", page: 1, pageSize: 50 }),
         adminLmsApi.getSummary(),
         adminLmsApi.getPrograms(),
         adminLmsApi.getCategories(),
@@ -356,14 +418,22 @@ function AdminDashboard({ activeModule, currentUserId }: { activeModule: string;
         adminLmsApi.getAssessments(),
         adminLmsApi.getEnrollments(),
         adminLmsApi.getPayments(),
+        adminLmsApi.getRefunds(),
         adminLmsApi.getCoupons(),
         adminLmsApi.getCertificates(),
+        adminLmsApi.getAiFeatures(),
+        adminLmsApi.getContent(),
+        adminLmsApi.getLeads(),
+        adminLmsApi.getNotifications(),
+        adminLmsApi.getSettings(),
         adminLmsApi.getReports(),
         adminLmsApi.getAuditLogs(1, 20)
       ]);
 
       setSummary(summaryResponse.data);
       setUsers(usersResponse.data.items);
+      setStudents(studentsResponse.data.items);
+      setMentors(mentorsResponse.data.items);
       setLmsSummary(lmsSummaryResponse.data);
       setLmsPrograms(lmsProgramsResponse.data);
       setProgramCategories(categoriesResponse.data);
@@ -375,8 +445,14 @@ function AdminDashboard({ activeModule, currentUserId }: { activeModule: string;
       setAdminAssessments(assessmentsResponse.data);
       setAdminEnrollments(enrollmentsResponse.data);
       setAdminPayments(paymentsResponse.data);
+      setAdminRefunds(refundsResponse.data);
       setAdminCoupons(couponsResponse.data);
       setAdminCertificates(certificatesResponse.data);
+      setAdminAiFeatures(aiFeaturesResponse.data);
+      setAdminContent(contentResponse.data);
+      setAdminLeads(leadsResponse.data);
+      setAdminNotifications(notificationsResponse.data);
+      setAdminSettings(settingsResponse.data);
       setAdminReports(reportsResponse.data);
       setAuditLogs(auditLogsResponse.data.items);
       setTotalPages(Math.max(usersResponse.data.totalPages, 1));
@@ -709,19 +785,27 @@ function AdminDashboard({ activeModule, currentUserId }: { activeModule: string;
 
       <AdminLmsPanel
         activeModule={activeModule}
+        adminAiFeatures={adminAiFeatures}
         adminAssessments={adminAssessments}
         adminAssignments={adminAssignments}
         adminCertificates={adminCertificates}
+        adminContent={adminContent}
         adminCoupons={adminCoupons}
         adminCurriculum={adminCurriculum}
         adminEnrollments={adminEnrollments}
+        adminLeads={adminLeads}
         adminLiveClasses={adminLiveClasses}
+        adminNotifications={adminNotifications}
         adminPayments={adminPayments}
         adminProjects={adminProjects}
+        adminRefunds={adminRefunds}
         adminReports={adminReports}
+        adminSettings={adminSettings}
         auditLogs={auditLogs}
         categories={programCategories}
+        mentors={mentors}
         programs={lmsPrograms}
+        students={students}
         summary={lmsSummary}
         supportTickets={supportTickets}
         onMessage={setMessage}
@@ -733,38 +817,54 @@ function AdminDashboard({ activeModule, currentUserId }: { activeModule: string;
 
 function AdminLmsPanel({
   activeModule,
+  adminAiFeatures,
   adminAssessments,
   adminAssignments,
   adminCertificates,
+  adminContent,
   adminCoupons,
   adminCurriculum,
   adminEnrollments,
+  adminLeads,
   adminLiveClasses,
+  adminNotifications,
   adminPayments,
   adminProjects,
+  adminRefunds,
   adminReports,
+  adminSettings,
   auditLogs,
   categories,
+  mentors,
   programs,
+  students,
   summary,
   supportTickets,
   onMessage,
   onRefresh
 }: {
   activeModule: string;
+  adminAiFeatures: AdminAiFeatureSummaryResponse | null;
   adminAssessments: AssessmentResponse[];
   adminAssignments: AssignmentResponse[];
   adminCertificates: CertificateResponse[];
+  adminContent: AdminContentItemResponse[];
   adminCoupons: CouponResponse[];
   adminCurriculum: CurriculumModuleResponse[];
   adminEnrollments: EnrollmentResponse[];
+  adminLeads: AdminLeadResponse[];
   adminLiveClasses: LiveClassResponse[];
+  adminNotifications: AdminNotificationResponse[];
   adminPayments: PaymentTransactionResponse[];
   adminProjects: ProjectResponse[];
+  adminRefunds: PaymentTransactionResponse[];
   adminReports: AdminReportResponse | null;
+  adminSettings: AdminSettingResponse[];
   auditLogs: AuditLogResponse[];
   categories: ProgramCategoryResponse[];
+  mentors: AdminUserResponse[];
   programs: ProgramSummaryResponse[];
+  students: AdminUserResponse[];
   summary: AdminLmsSummaryResponse | null;
   supportTickets: SupportTicketResponse[];
   onMessage: (message: MessageState) => void;
@@ -1259,8 +1359,265 @@ function AdminLmsPanel({
     }
   }
 
+  async function createLesson(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const moduleId = String(form.get("moduleId") ?? "");
+
+    try {
+      await adminLmsApi.createLesson(moduleId, {
+        title: String(form.get("title") ?? "").trim(),
+        summary: String(form.get("summary") ?? "").trim(),
+        videoUrl: String(form.get("videoUrl") ?? "").trim() || undefined,
+        notesUrl: String(form.get("notesUrl") ?? "").trim() || undefined,
+        durationMinutes: Number(form.get("durationMinutes") ?? 45),
+        accessLevel: Number(form.get("accessLevel") ?? 3)
+      });
+      formElement.reset();
+      onMessage({ tone: "success", text: "Lesson created." });
+      await onRefresh();
+    } catch (error) {
+      onMessage({ tone: "error", text: formatApiError(error) });
+    }
+  }
+
+  async function editLesson(lesson: LessonResponse) {
+    const title = window.prompt("Lesson title", lesson.title);
+    if (title === null) {
+      return;
+    }
+
+    const summaryText = window.prompt("Lesson summary", lesson.summary);
+    if (summaryText === null) {
+      return;
+    }
+
+    try {
+      await adminLmsApi.updateLesson(lesson.id, {
+        title,
+        summary: summaryText,
+        videoUrl: lesson.videoUrl,
+        notesUrl: lesson.notesUrl,
+        durationMinutes: lesson.durationMinutes,
+        accessLevel: accessLevelValue(lesson.accessLevel)
+      });
+      onMessage({ tone: "success", text: "Lesson updated." });
+      await onRefresh();
+    } catch (error) {
+      onMessage({ tone: "error", text: formatApiError(error) });
+    }
+  }
+
+  async function refundPayment(payment: PaymentTransactionResponse) {
+    const reason = window.prompt("Refund reason", "Student refund request");
+    if (reason === null) {
+      return;
+    }
+
+    try {
+      await adminLmsApi.refundPayment(payment.id, { reason: reason.trim() || undefined });
+      onMessage({ tone: "success", text: "Payment refunded." });
+      await onRefresh();
+    } catch (error) {
+      onMessage({ tone: "error", text: formatApiError(error) });
+    }
+  }
+
+  async function updateEnrollment(enrollment: EnrollmentResponse, status: number) {
+    try {
+      await adminLmsApi.updateEnrollmentStatus(enrollment.id, {
+        status,
+        lockedReason: status === 2 ? undefined : "Updated by admin."
+      });
+      onMessage({ tone: "success", text: "Enrollment updated." });
+      await onRefresh();
+    } catch (error) {
+      onMessage({ tone: "error", text: formatApiError(error) });
+    }
+  }
+
+  async function createAiAssessment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+
+    try {
+      await adminLmsApi.createAssessment({
+        programId: String(form.get("programId") ?? ""),
+        title: String(form.get("title") ?? "").trim(),
+        assessmentType: String(form.get("assessmentType") ?? "AI Evaluation").trim(),
+        instructions: String(form.get("instructions") ?? "").trim(),
+        durationMinutes: Number(form.get("durationMinutes") ?? 45),
+        passingPercentage: Number(form.get("passingPercentage") ?? 70),
+        isAiPowered: true,
+        isPublished: form.get("isPublished") === "on"
+      });
+      formElement.reset();
+      onMessage({ tone: "success", text: "AI assessment created." });
+      await onRefresh();
+    } catch (error) {
+      onMessage({ tone: "error", text: formatApiError(error) });
+    }
+  }
+
+  async function createContent(event: FormEvent<HTMLFormElement>, contentType: AdminContentType) {
+    event.preventDefault();
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const title = String(form.get("title") ?? "").trim();
+
+    try {
+      await adminLmsApi.createContent({
+        contentType,
+        title,
+        slug: String(form.get("slug") ?? "").trim() || undefined,
+        summary: String(form.get("summary") ?? "").trim() || undefined,
+        body: String(form.get("body") ?? "").trim() || undefined,
+        imageUrl: String(form.get("imageUrl") ?? "").trim() || undefined,
+        externalUrl: String(form.get("externalUrl") ?? "").trim() || undefined,
+        metadataJson: String(form.get("metadataJson") ?? "").trim() || "{}",
+        status: Number(form.get("status") ?? 2) as 1 | 2 | 3,
+        isFeatured: form.get("isFeatured") === "on",
+        sortOrder: Number(form.get("sortOrder") ?? 0)
+      });
+      formElement.reset();
+      onMessage({ tone: "success", text: `${contentModuleTitle(contentType)} saved.` });
+      await onRefresh();
+    } catch (error) {
+      onMessage({ tone: "error", text: formatApiError(error) });
+    }
+  }
+
+  async function editContent(item: AdminContentItemResponse) {
+    const title = window.prompt("Title", item.title);
+    if (title === null) {
+      return;
+    }
+
+    const summaryText = window.prompt("Summary", item.summary ?? "");
+    if (summaryText === null) {
+      return;
+    }
+
+    try {
+      await adminLmsApi.updateContent(item.id, {
+        contentType: contentTypeValue(item.contentType),
+        title,
+        slug: item.slug,
+        summary: summaryText || undefined,
+        body: item.body,
+        imageUrl: item.imageUrl,
+        externalUrl: item.externalUrl,
+        metadataJson: item.metadataJson,
+        status: contentStatusValue(item.status),
+        isFeatured: item.isFeatured,
+        sortOrder: item.sortOrder
+      });
+      onMessage({ tone: "success", text: "Content updated." });
+      await onRefresh();
+    } catch (error) {
+      onMessage({ tone: "error", text: formatApiError(error) });
+    }
+  }
+
+  async function updateLeadStatus(lead: AdminLeadResponse, status: number) {
+    try {
+      await adminLmsApi.updateLeadStatus(lead.leadType, lead.id, { status });
+      onMessage({ tone: "success", text: "Lead status updated." });
+      await onRefresh();
+    } catch (error) {
+      onMessage({ tone: "error", text: formatApiError(error) });
+    }
+  }
+
+  async function updateSupportTicket(ticket: SupportTicketResponse, status: number) {
+    const adminNotes = window.prompt("Admin notes", ticket.adminNotes ?? "");
+    if (adminNotes === null) {
+      return;
+    }
+
+    try {
+      await adminLmsApi.updateSupportTicket(ticket.id, {
+        status,
+        adminNotes: adminNotes.trim() || undefined
+      });
+      onMessage({ tone: "success", text: "Support ticket updated." });
+      await onRefresh();
+    } catch (error) {
+      onMessage({ tone: "error", text: formatApiError(error) });
+    }
+  }
+
+  async function createNotification(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const target = String(form.get("target") ?? "Students");
+    const userId = String(form.get("userId") ?? "");
+
+    if (target === "User" && !userId) {
+      onMessage({ tone: "error", text: "Choose a user for the notification." });
+      return;
+    }
+
+    try {
+      await adminLmsApi.createNotification({
+        userId: target === "User" ? userId : undefined,
+        title: String(form.get("title") ?? "").trim(),
+        body: String(form.get("body") ?? "").trim(),
+        actionUrl: String(form.get("actionUrl") ?? "").trim() || undefined,
+        sendToAllUsers: target === "All",
+        sendToAllStudents: target === "Students",
+        sendToAllMentors: target === "Mentors"
+      });
+      formElement.reset();
+      onMessage({ tone: "success", text: "Notification sent." });
+      await onRefresh();
+    } catch (error) {
+      onMessage({ tone: "error", text: formatApiError(error) });
+    }
+  }
+
+  async function saveSetting(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const category = String(form.get("category") ?? "").trim();
+    const key = String(form.get("key") ?? "").trim();
+
+    try {
+      await adminLmsApi.upsertSetting(category, key, {
+        value: String(form.get("value") ?? "").trim(),
+        description: String(form.get("description") ?? "").trim() || undefined,
+        isSecret: form.get("isSecret") === "on"
+      });
+      formElement.reset();
+      onMessage({ tone: "success", text: "Setting saved." });
+      await onRefresh();
+    } catch (error) {
+      onMessage({ tone: "error", text: formatApiError(error) });
+    }
+  }
+
+  const contentType = adminContentTypeForModule(activeModule);
+  const leadType = adminLeadTypeForModule(activeModule);
+  const visibleContent = contentType
+    ? adminContent.filter((item) => item.contentType === contentTypeName(contentType))
+    : [];
+  const visibleLeads = leadType
+    ? adminLeads.filter((lead) => lead.leadType === leadType)
+    : [];
+  const lessons = adminCurriculum.flatMap((module) =>
+    module.lessons.map((lesson) => ({
+      ...lesson,
+      moduleTitle: module.title,
+      programTitle: programs.find((program) => program.id === module.programId)?.title ?? "Program"
+    }))
+  );
+
   const showPrograms = activeModule === "Overview" || activeModule === "Programs";
-  const showSupport = activeModule === "Overview" || activeModule === "Support";
+  const showSupport = activeModule === "Overview" || activeModule === "Support" || activeModule === "Support Tickets";
   const showModule = (module: string) => activeModule === module;
 
   if (activeModule === "Users") {
@@ -1281,6 +1638,14 @@ function AdminLmsPanel({
       </div>
 
       <div className="lms-admin-grid">
+        {showModule("Students") ? (
+          <AdminPeoplePanel title="Students" users={students} emptyText="No student accounts yet." />
+        ) : null}
+
+        {showModule("Mentors") ? (
+          <AdminPeoplePanel title="Mentors" users={mentors} emptyText="No mentor accounts yet." />
+        ) : null}
+
         {showModule("Categories") ? (
           <form className="lms-mini-form" onSubmit={createCategory}>
             <h3>Create category</h3>
@@ -1493,6 +1858,48 @@ function AdminLmsPanel({
           </section>
         ) : null}
 
+        {showModule("Lessons") ? (
+          <section className="lms-list-panel lms-list-panel--wide">
+            <h3>Lessons</h3>
+            <form className="lms-mini-form lms-mini-form--inline" onSubmit={createLesson}>
+              <select name="moduleId" required>
+                <option value="">Choose module</option>
+                {adminCurriculum.map((module) => (
+                  <option key={module.id} value={module.id}>
+                    {programs.find((program) => program.id === module.programId)?.title ?? "Program"} - {module.title}
+                  </option>
+                ))}
+              </select>
+              <input name="title" placeholder="Lesson title" required />
+              <input name="summary" placeholder="Lesson summary" required />
+              <input name="durationMinutes" type="number" min="1" defaultValue="45" />
+              <select name="accessLevel" defaultValue="3">
+                <option value="1">Preview</option>
+                <option value="2">Reserved</option>
+                <option value="3">Full</option>
+              </select>
+              <input name="videoUrl" placeholder="Video URL" />
+              <input name="notesUrl" placeholder="Notes URL" />
+              <button className="primary-action" type="submit">Create lesson</button>
+            </form>
+            <div className="lms-scroll-list">
+              {lessons.length === 0 ? <div className="table-state">No lessons yet.</div> : null}
+              {lessons.map((lesson) => (
+                <article key={lesson.id} className="lms-list-item">
+                  <div>
+                    <strong>{lesson.title}</strong>
+                    <span>{lesson.programTitle} - {lesson.moduleTitle} - {lesson.durationMinutes} min</span>
+                  </div>
+                  <div className="lms-row-actions">
+                    <small>{lesson.accessLevel}</small>
+                    <button type="button" onClick={() => void editLesson(lesson)}>Edit</button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
         {showModule("Live Classes") ? (
           <section className="lms-list-panel lms-list-panel--wide">
             <h3>Live class schedule</h3>
@@ -1648,6 +2055,65 @@ function AdminLmsPanel({
           </section>
         ) : null}
 
+        {showModule("AI Features") ? (
+          <section className="lms-list-panel lms-list-panel--wide">
+            <h3>AI Features</h3>
+            <div className="module-stat-strip">
+              <article>
+                <span>AI assessments</span>
+                <strong>{adminAiFeatures?.aiAssessments ?? 0}</strong>
+              </article>
+              <article>
+                <span>AI attempts</span>
+                <strong>{adminAiFeatures?.aiAssessmentAttempts ?? 0}</strong>
+              </article>
+              <article>
+                <span>AI interviews</span>
+                <strong>{adminAiFeatures?.aiInterviewAttempts ?? 0}</strong>
+              </article>
+              <article>
+                <span>Avg score</span>
+                <strong>{adminAiFeatures?.averageAssessmentScore ?? 0}%</strong>
+              </article>
+            </div>
+            <form className="lms-mini-form lms-mini-form--inline" onSubmit={createAiAssessment}>
+              <select name="programId" required>
+                <option value="">Choose program</option>
+                {programs.map((program) => (
+                  <option key={program.id} value={program.id}>{program.title}</option>
+                ))}
+              </select>
+              <input name="title" placeholder="AI assessment title" required />
+              <input name="assessmentType" defaultValue="AI Evaluation" required />
+              <input name="instructions" placeholder="Instructions" required />
+              <input name="durationMinutes" type="number" min="5" defaultValue="45" />
+              <input name="passingPercentage" type="number" min="1" max="100" defaultValue="70" />
+              <label className="inline-check">
+                <input name="isPublished" type="checkbox" defaultChecked />
+                Published
+              </label>
+              <button className="primary-action" type="submit">Create AI assessment</button>
+            </form>
+            <div className="lms-scroll-list">
+              {adminAssessments.filter((assessment) => assessment.isAiPowered).length === 0 ? (
+                <div className="table-state">No AI assessments yet.</div>
+              ) : null}
+              {adminAssessments.filter((assessment) => assessment.isAiPowered).map((assessment) => (
+                <article key={assessment.id} className="lms-list-item">
+                  <div>
+                    <strong>{assessment.title}</strong>
+                    <span>{assessment.assessmentType} - {assessment.durationMinutes} min</span>
+                  </div>
+                  <div className="lms-row-actions">
+                    <small>{assessment.isPublished ? "Published" : "Draft"}</small>
+                    <button type="button" onClick={() => void editAssessment(assessment)}>Edit</button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
         {showModule("Enrollments") ? (
           <section className="lms-list-panel lms-list-panel--wide">
             <h3>Enrollments</h3>
@@ -1659,7 +2125,15 @@ function AdminLmsPanel({
                     <strong>{enrollment.programTitle}</strong>
                     <span>{formatCurrency(enrollment.paidAmount)} paid of {formatCurrency(enrollment.totalAmount)}</span>
                   </div>
-                  <small>{enrollment.status}</small>
+                  <div className="lms-row-actions">
+                    <small>{enrollment.status}</small>
+                    {enrollment.status !== "Active" ? (
+                      <button type="button" onClick={() => void updateEnrollment(enrollment, 2)}>Activate</button>
+                    ) : null}
+                    {enrollment.status !== "Cancelled" ? (
+                      <button type="button" onClick={() => void updateEnrollment(enrollment, 4)}>Cancel</button>
+                    ) : null}
+                  </div>
                 </article>
               ))}
             </div>
@@ -1682,7 +2156,28 @@ function AdminLmsPanel({
                     {payment.status !== "Verified" ? (
                       <button type="button" onClick={() => void verifyPayment(payment)}>Verify</button>
                     ) : null}
+                    {payment.status === "Verified" ? (
+                      <button type="button" onClick={() => void refundPayment(payment)}>Refund</button>
+                    ) : null}
                   </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {showModule("Refunds") ? (
+          <section className="lms-list-panel lms-list-panel--wide">
+            <h3>Refunds</h3>
+            <div className="lms-scroll-list">
+              {adminRefunds.length === 0 ? <div className="table-state">No refunds yet.</div> : null}
+              {adminRefunds.map((payment) => (
+                <article key={payment.id} className="lms-list-item">
+                  <div>
+                    <strong>{formatCurrency(payment.amount)}</strong>
+                    <span>{payment.mode} - {formatDate(payment.createdAt)}</span>
+                  </div>
+                  <small>{payment.status}</small>
                 </article>
               ))}
             </div>
@@ -1747,8 +2242,80 @@ function AdminLmsPanel({
           </section>
         ) : null}
 
+        {contentType ? (
+          <section className="lms-list-panel lms-list-panel--wide">
+            <h3>{activeModule}</h3>
+            <form className="lms-mini-form lms-mini-form--inline" onSubmit={(event) => void createContent(event, contentType)}>
+              <input name="title" placeholder={`${activeModule} title`} required />
+              <input name="slug" placeholder="slug" />
+              <input name="summary" placeholder="Short summary" />
+              <input name="imageUrl" placeholder="Image URL" />
+              <input name="externalUrl" placeholder="External URL" />
+              <textarea name="body" placeholder="Details" />
+              <textarea name="metadataJson" defaultValue="{}" />
+              <input name="sortOrder" type="number" min="0" placeholder="Sort" />
+              <select name="status" defaultValue="2">
+                <option value="1">Draft</option>
+                <option value="2">Published</option>
+                <option value="3">Archived</option>
+              </select>
+              <label className="inline-check">
+                <input name="isFeatured" type="checkbox" />
+                Featured
+              </label>
+              <button className="primary-action" type="submit">Save content</button>
+            </form>
+            <div className="lms-scroll-list">
+              {visibleContent.length === 0 ? <div className="table-state">No {activeModule.toLowerCase()} yet.</div> : null}
+              {visibleContent.map((item) => (
+                <article key={item.id} className="lms-list-item">
+                  <div>
+                    <strong>{item.title}</strong>
+                    <span>{item.summary || item.slug}</span>
+                  </div>
+                  <div className="lms-row-actions">
+                    <small>{item.isFeatured ? `Featured - ${item.status}` : item.status}</small>
+                    <button type="button" onClick={() => void editContent(item)}>Edit</button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {leadType ? (
+          <section className="lms-list-panel lms-list-panel--wide">
+            <h3>{activeModule}</h3>
+            <div className="lms-scroll-list">
+              {visibleLeads.length === 0 ? <div className="table-state">No records yet.</div> : null}
+              {visibleLeads.map((lead) => (
+                <article key={lead.id} className="lms-list-item">
+                  <div>
+                    <strong>{lead.fullName}</strong>
+                    <span>{lead.email} - {lead.phoneNumber}</span>
+                    <span>{[lead.subject, lead.secondary].filter(Boolean).join(" - ")}</span>
+                    {lead.message ? <span>{lead.message}</span> : null}
+                  </div>
+                  <div className="lms-row-actions">
+                    <small>{lead.status}</small>
+                    {lead.status !== "Contacted" ? (
+                      <button type="button" onClick={() => void updateLeadStatus(lead, 2)}>Contacted</button>
+                    ) : null}
+                    {lead.status !== "Qualified" ? (
+                      <button type="button" onClick={() => void updateLeadStatus(lead, 3)}>Qualified</button>
+                    ) : null}
+                    {lead.status !== "Converted" ? (
+                      <button type="button" onClick={() => void updateLeadStatus(lead, 4)}>Converted</button>
+                    ) : null}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
         {showSupport ? (
-          <section className="lms-list-panel">
+          <section className={activeModule === "Overview" ? "lms-list-panel" : "lms-list-panel lms-list-panel--wide"}>
             <h3>Support queue</h3>
             <div className="lms-scroll-list">
               {supportTickets.length === 0 ? <div className="table-state">No support tickets yet.</div> : null}
@@ -1757,8 +2324,85 @@ function AdminLmsPanel({
                   <div>
                     <strong>{ticket.issue}</strong>
                     <span>{ticket.name} - {formatDate(ticket.createdAt)}</span>
+                    {ticket.adminNotes ? <span>{ticket.adminNotes}</span> : null}
                   </div>
-                  <small>{ticket.status}</small>
+                  <div className="lms-row-actions">
+                    <small>{ticket.status}</small>
+                    {ticket.status !== "InProgress" ? (
+                      <button type="button" onClick={() => void updateSupportTicket(ticket, 2)}>Start</button>
+                    ) : null}
+                    {ticket.status !== "Resolved" ? (
+                      <button type="button" onClick={() => void updateSupportTicket(ticket, 4)}>Resolve</button>
+                    ) : null}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {showModule("Notifications") ? (
+          <section className="lms-list-panel lms-list-panel--wide">
+            <h3>Notifications</h3>
+            <form className="lms-mini-form lms-mini-form--inline" onSubmit={createNotification}>
+              <select name="target" defaultValue="Students">
+                <option value="Students">All students</option>
+                <option value="Mentors">All mentors</option>
+                <option value="All">All users</option>
+                <option value="User">One user</option>
+              </select>
+              <select name="userId">
+                <option value="">Choose user</option>
+                {[...students, ...mentors].map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.fullName} - {user.email}
+                  </option>
+                ))}
+              </select>
+              <input name="title" placeholder="Title" required />
+              <input name="body" placeholder="Message" required />
+              <input name="actionUrl" placeholder="/dashboard" />
+              <button className="primary-action" type="submit">Send notification</button>
+            </form>
+            <div className="lms-scroll-list">
+              {adminNotifications.length === 0 ? <div className="table-state">No notifications yet.</div> : null}
+              {adminNotifications.map((notification) => (
+                <article key={notification.id} className="lms-list-item">
+                  <div>
+                    <strong>{notification.title}</strong>
+                    <span>{notification.body}</span>
+                    <span>{notification.userName ?? "User"} - {notification.userEmail ?? notification.userId}</span>
+                  </div>
+                  <small>{notification.status}</small>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {showModule("Settings") ? (
+          <section className="lms-list-panel lms-list-panel--wide">
+            <h3>Settings</h3>
+            <form className="lms-mini-form lms-mini-form--inline" onSubmit={saveSetting}>
+              <input name="category" placeholder="Category" required />
+              <input name="key" placeholder="Key" required />
+              <input name="value" placeholder="Value" required />
+              <input name="description" placeholder="Description" />
+              <label className="inline-check">
+                <input name="isSecret" type="checkbox" />
+                Secret
+              </label>
+              <button className="primary-action" type="submit">Save setting</button>
+            </form>
+            <div className="lms-scroll-list">
+              {adminSettings.length === 0 ? <div className="table-state">No settings saved yet.</div> : null}
+              {adminSettings.map((setting) => (
+                <article key={setting.id} className="lms-list-item">
+                  <div>
+                    <strong>{setting.category}.{setting.key}</strong>
+                    <span>{setting.description || setting.value}</span>
+                  </div>
+                  <small>{setting.isSecret ? "Secret" : "Visible"}</small>
                 </article>
               ))}
             </div>
@@ -1814,6 +2458,52 @@ function AdminLmsPanel({
             </div>
           </section>
         ) : null}
+      </div>
+    </section>
+  );
+}
+
+function AdminPeoplePanel({
+  title,
+  users,
+  emptyText
+}: {
+  title: string;
+  users: AdminUserResponse[];
+  emptyText: string;
+}) {
+  return (
+    <section className="lms-list-panel lms-list-panel--wide">
+      <h3>{title}</h3>
+      <div className="module-stat-strip">
+        <article>
+          <span>Total</span>
+          <strong>{users.length}</strong>
+        </article>
+        <article>
+          <span>Active</span>
+          <strong>{users.filter((user) => user.accountStatus === "Active").length}</strong>
+        </article>
+        <article>
+          <span>Onboarded</span>
+          <strong>{users.filter((user) => user.onboardingStatus === "Completed").length}</strong>
+        </article>
+      </div>
+      <div className="lms-scroll-list">
+        {users.length === 0 ? <div className="table-state">{emptyText}</div> : null}
+        {users.map((user) => (
+          <article key={user.id} className="lms-list-item">
+            <div>
+              <strong>{user.fullName}</strong>
+              <span>{user.email}</span>
+              <span>{formatPhoneForDisplay(user.phoneNumber)?.text ?? "Phone missing"}</span>
+            </div>
+            <div className="lms-row-actions">
+              <small>{formatStatusLabel(user.accountStatus)}</small>
+              <small>{user.onboardingStatus}</small>
+            </div>
+          </article>
+        ))}
       </div>
     </section>
   );
@@ -2409,8 +3099,8 @@ function StudentDashboard({ activeModule }: { activeModule: string }) {
         <section className="dashboard-card student-program-hero">
           <div>
             <span className="eyebrow">Profile</span>
-            <h2>Complete your student onboarding profile.</h2>
-            <p>Keep personal, academic, resume, LinkedIn, GitHub, portfolio, skills, and target role details ready for mentors and career support.</p>
+            <h2>Keep your student profile fresh.</h2>
+            <p>Add personal, academic, resume, LinkedIn, GitHub, portfolio, skills, and target role details whenever they are ready.</p>
           </div>
           <button className="primary-action" type="button" onClick={() => navigate("/student/onboarding")}>
             <UserPlus size={18} />
@@ -3005,6 +3695,53 @@ function toSlug(value: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .replace(/-{2,}/g, "-");
+}
+
+function adminContentTypeForModule(module: string): AdminContentType | null {
+  if (module === "Website Content") return 1;
+  if (module === "Testimonials") return 2;
+  if (module === "Reviews") return 3;
+  if (module === "Hiring Partners") return 4;
+  return null;
+}
+
+function contentTypeName(contentType: AdminContentType) {
+  if (contentType === 1) return "WebsiteContent";
+  if (contentType === 2) return "Testimonial";
+  if (contentType === 3) return "Review";
+  return "HiringPartner";
+}
+
+function contentModuleTitle(contentType: AdminContentType) {
+  if (contentType === 1) return "Website content";
+  if (contentType === 2) return "Testimonial";
+  if (contentType === 3) return "Review";
+  return "Hiring partner";
+}
+
+function contentTypeValue(contentType: string): AdminContentType {
+  if (contentType === "Testimonial") return 2;
+  if (contentType === "Review") return 3;
+  if (contentType === "HiringPartner") return 4;
+  return 1;
+}
+
+function contentStatusValue(status: string): 1 | 2 | 3 {
+  if (status === "Published") return 2;
+  if (status === "Archived") return 3;
+  return 1;
+}
+
+function adminLeadTypeForModule(module: string) {
+  if (module === "Campus Ambassadors") return "CampusAmbassador";
+  if (module === "Careers") return "Career";
+  return null;
+}
+
+function accessLevelValue(accessLevel: string) {
+  if (accessLevel === "Preview") return 1;
+  if (accessLevel === "Reserved") return 2;
+  return 3;
 }
 
 function formatPhoneForDisplay(phone?: string) {

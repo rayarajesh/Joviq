@@ -17,7 +17,6 @@ public sealed class StudentOnboardingService(
     IDateTimeProvider clock) : IStudentOnboardingService
 {
     private const int RequiredFieldCount = 15;
-    private const int MinimumSkillCount = 3;
     private const int MaximumSkillCount = 15;
 
     private static readonly Regex NameLikeRegex = new("^[A-Za-z][A-Za-z .'-]*$", RegexOptions.Compiled);
@@ -38,10 +37,10 @@ public sealed class StudentOnboardingService(
     {
         var pair = await GetUserAndProfileAsync(userId, saveIfCreated: false, cancellationToken);
 
-        pair.User.DateOfBirth = ParseDateOfBirth(request.DateOfBirth);
-        pair.User.Address = ValidateRequiredLength(request.Address, nameof(request.Address), minLength: 8, maxLength: 500);
-        pair.User.City = ValidateNameLike(request.City, nameof(request.City));
-        pair.User.State = ValidateNameLike(request.State, nameof(request.State));
+        pair.User.DateOfBirth = ParseOptionalDateOfBirth(request.DateOfBirth);
+        pair.User.Address = ValidateOptionalLength(request.Address, nameof(request.Address), minLength: 3, maxLength: 500);
+        pair.User.City = ValidateOptionalNameLike(request.City, nameof(request.City));
+        pair.User.State = ValidateOptionalNameLike(request.State, nameof(request.State));
         MarkInProgress(pair.User);
 
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -55,11 +54,11 @@ public sealed class StudentOnboardingService(
     {
         var pair = await GetUserAndProfileAsync(userId, saveIfCreated: false, cancellationToken);
 
-        pair.Profile.College = ValidateRequiredLength(request.College, nameof(request.College), minLength: 2, maxLength: 200);
-        pair.Profile.Degree = ValidateRequiredLength(request.Degree, nameof(request.Degree), minLength: 2, maxLength: 120);
-        pair.Profile.Branch = ValidateRequiredLength(request.Branch, nameof(request.Branch), minLength: 2, maxLength: 120);
-        pair.Profile.GraduationYear = ValidateGraduationYear(request.GraduationYear);
-        pair.Profile.CgpaOrPercentage = ValidateCgpaOrPercentage(request.CgpaOrPercentage);
+        pair.Profile.College = ValidateOptionalLength(request.College, nameof(request.College), minLength: 2, maxLength: 200);
+        pair.Profile.Degree = ValidateOptionalLength(request.Degree, nameof(request.Degree), minLength: 2, maxLength: 120);
+        pair.Profile.Branch = ValidateOptionalLength(request.Branch, nameof(request.Branch), minLength: 2, maxLength: 120);
+        pair.Profile.GraduationYear = ValidateOptionalGraduationYear(request.GraduationYear);
+        pair.Profile.CgpaOrPercentage = ValidateOptionalCgpaOrPercentage(request.CgpaOrPercentage);
         MarkInProgress(pair.User);
 
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -74,11 +73,11 @@ public sealed class StudentOnboardingService(
         var pair = await GetUserAndProfileAsync(userId, saveIfCreated: false, cancellationToken);
         var skills = NormalizeSkills(request.Skills);
 
-        pair.Profile.TargetJobRole = ValidateCareerText(request.TargetJobRole, nameof(request.TargetJobRole), minLength: 2, maxLength: 80, RoleRegex);
+        pair.Profile.TargetJobRole = ValidateOptionalCareerText(request.TargetJobRole, nameof(request.TargetJobRole), minLength: 2, maxLength: 80, RoleRegex);
         pair.Profile.SkillsJson = JsonSerializer.Serialize(skills);
-        pair.Profile.LinkedInUrl = ValidateUrlForHost(request.LinkedInUrl, nameof(request.LinkedInUrl), "linkedin.com");
-        pair.Profile.GitHubUrl = ValidateUrlForHost(request.GitHubUrl, nameof(request.GitHubUrl), "github.com");
-        pair.Profile.PortfolioUrl = ValidateHttpUrl(request.PortfolioUrl, nameof(request.PortfolioUrl));
+        pair.Profile.LinkedInUrl = ValidateOptionalUrlForHost(request.LinkedInUrl, nameof(request.LinkedInUrl), "linkedin.com");
+        pair.Profile.GitHubUrl = ValidateOptionalUrlForHost(request.GitHubUrl, nameof(request.GitHubUrl), "github.com");
+        pair.Profile.PortfolioUrl = ValidateOptionalHttpUrl(request.PortfolioUrl, nameof(request.PortfolioUrl));
         MarkInProgress(pair.User);
 
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -135,7 +134,7 @@ public sealed class StudentOnboardingService(
         pair.Profile.ResumeContentType = null;
         pair.Profile.ResumeSizeBytes = null;
         pair.Profile.ResumeUploadedAt = null;
-        pair.User.OnboardingStatus = OnboardingStatus.InProgress;
+        MarkInProgress(pair.User);
 
         await dbContext.SaveChangesAsync(cancellationToken);
         return BuildResponse(pair.User, pair.Profile);
@@ -144,15 +143,6 @@ public sealed class StudentOnboardingService(
     public async Task<StudentOnboardingResponse> CompleteAsync(Guid userId, CancellationToken cancellationToken)
     {
         var pair = await GetUserAndProfileAsync(userId, saveIfCreated: false, cancellationToken);
-        var missingFields = GetMissingFields(pair.User, pair.Profile);
-
-        if (missingFields.Count > 0)
-        {
-            throw new ValidationAppException(new Dictionary<string, string[]>
-            {
-                ["Profile"] = [$"Complete these fields before continuing: {string.Join(", ", missingFields)}."]
-            });
-        }
 
         EnsureProfileDataIsValid(pair.User, pair.Profile);
 
@@ -255,9 +245,15 @@ public sealed class StudentOnboardingService(
         return missing;
     }
 
-    private DateTimeOffset ParseDateOfBirth(string value)
+    private DateTimeOffset? ParseOptionalDateOfBirth(string? value)
     {
-        if (!DateOnly.TryParseExact(value.Trim(), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+        var trimmed = NormalizeOptionalText(value);
+        if (trimmed is null)
+        {
+            return null;
+        }
+
+        if (!DateOnly.TryParseExact(trimmed, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
         {
             throw new AppException("Date of birth must use yyyy-MM-dd format.", 400, "invalid_date_of_birth");
         }
@@ -281,10 +277,16 @@ public sealed class StudentOnboardingService(
         return new DateTimeOffset(date.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
     }
 
-    private int ValidateGraduationYear(int graduationYear)
+    private int? ValidateOptionalGraduationYear(int? graduationYear)
     {
+        if (!graduationYear.HasValue)
+        {
+            return null;
+        }
+
+        var year = graduationYear.Value;
         var maxGraduationYear = clock.UtcNow.Year + 8;
-        if (graduationYear < 2000 || graduationYear > maxGraduationYear)
+        if (year < 2000 || year > maxGraduationYear)
         {
             throw new ValidationAppException(new Dictionary<string, string[]>
             {
@@ -292,24 +294,16 @@ public sealed class StudentOnboardingService(
             });
         }
 
-        return graduationYear;
+        return year;
     }
 
-    private static List<string> NormalizeSkills(IEnumerable<string> skills)
+    private static List<string> NormalizeSkills(IEnumerable<string>? skills)
     {
-        var normalized = skills
+        var normalized = (skills ?? [])
             .Select(skill => skill.Trim())
             .Where(skill => !string.IsNullOrWhiteSpace(skill))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
-
-        if (normalized.Count < MinimumSkillCount)
-        {
-            throw new ValidationAppException(new Dictionary<string, string[]>
-            {
-                [nameof(UpdateCareerDetailsRequest.Skills)] = [$"Add at least {MinimumSkillCount} skills."]
-            });
-        }
 
         if (normalized.Count > MaximumSkillCount || normalized.Any(skill => !IsCareerTokenValid(skill, minLength: 2, maxLength: 40, SkillRegex)))
         {
@@ -322,9 +316,14 @@ public sealed class StudentOnboardingService(
         return normalized;
     }
 
-    private static string ValidateRequiredLength(string value, string fieldName, int minLength, int maxLength)
+    private static string? ValidateOptionalLength(string? value, string fieldName, int minLength, int maxLength)
     {
-        var trimmed = RequiredTrim(value, fieldName);
+        var trimmed = NormalizeOptionalText(value);
+        if (trimmed is null)
+        {
+            return null;
+        }
+
         if (trimmed.Length < minLength || trimmed.Length > maxLength)
         {
             throw new ValidationAppException(new Dictionary<string, string[]>
@@ -336,9 +335,14 @@ public sealed class StudentOnboardingService(
         return trimmed;
     }
 
-    private static string ValidateNameLike(string value, string fieldName)
+    private static string? ValidateOptionalNameLike(string? value, string fieldName)
     {
-        var trimmed = ValidateRequiredLength(value, fieldName, minLength: 2, maxLength: 120);
+        var trimmed = ValidateOptionalLength(value, fieldName, minLength: 2, maxLength: 120);
+        if (trimmed is null)
+        {
+            return null;
+        }
+
         if (!NameLikeRegex.IsMatch(trimmed))
         {
             throw new ValidationAppException(new Dictionary<string, string[]>
@@ -350,9 +354,14 @@ public sealed class StudentOnboardingService(
         return trimmed;
     }
 
-    private static string ValidateCareerText(string value, string fieldName, int minLength, int maxLength, Regex pattern)
+    private static string? ValidateOptionalCareerText(string? value, string fieldName, int minLength, int maxLength, Regex pattern)
     {
-        var trimmed = ValidateRequiredLength(value, fieldName, minLength, maxLength);
+        var trimmed = ValidateOptionalLength(value, fieldName, minLength, maxLength);
+        if (trimmed is null)
+        {
+            return null;
+        }
+
         if (!IsCareerTokenValid(trimmed, minLength, maxLength, pattern))
         {
             throw new ValidationAppException(new Dictionary<string, string[]>
@@ -364,9 +373,14 @@ public sealed class StudentOnboardingService(
         return trimmed;
     }
 
-    private static string ValidateCgpaOrPercentage(string value)
+    private static string? ValidateOptionalCgpaOrPercentage(string? value)
     {
-        var trimmed = RequiredTrim(value, nameof(UpdateAcademicDetailsRequest.CgpaOrPercentage));
+        var trimmed = NormalizeOptionalText(value);
+        if (trimmed is null)
+        {
+            return null;
+        }
+
         var match = ScoreRegex.Match(trimmed);
         if (!match.Success || !decimal.TryParse(match.Groups[1].Value, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var score))
         {
@@ -397,9 +411,14 @@ public sealed class StudentOnboardingService(
         }
     }
 
-    private static string ValidateHttpUrl(string value, string fieldName)
+    private static string? ValidateOptionalHttpUrl(string? value, string fieldName)
     {
-        var trimmed = RequiredTrim(value, fieldName);
+        var trimmed = NormalizeOptionalText(value);
+        if (trimmed is null)
+        {
+            return null;
+        }
+
         if (!Uri.TryCreate(trimmed, UriKind.Absolute, out var uri) ||
             (uri.Scheme is not "http" and not "https") ||
             string.IsNullOrWhiteSpace(uri.Host) ||
@@ -411,9 +430,14 @@ public sealed class StudentOnboardingService(
         return trimmed;
     }
 
-    private static string ValidateUrlForHost(string value, string fieldName, string expectedHost)
+    private static string? ValidateOptionalUrlForHost(string? value, string fieldName, string expectedHost)
     {
-        var trimmed = ValidateHttpUrl(value, fieldName);
+        var trimmed = ValidateOptionalHttpUrl(value, fieldName);
+        if (trimmed is null)
+        {
+            return null;
+        }
+
         var host = new Uri(trimmed).Host.ToLowerInvariant();
         if (host != expectedHost && !host.EndsWith($".{expectedHost}", StringComparison.OrdinalIgnoreCase))
         {
@@ -425,20 +449,20 @@ public sealed class StudentOnboardingService(
 
     private void EnsureProfileDataIsValid(ApplicationUser user, StudentProfile profile)
     {
-        _ = ParseDateOfBirth(FormatDate(user.DateOfBirth) ?? string.Empty);
-        _ = ValidateRequiredLength(user.Address ?? string.Empty, nameof(UpdatePersonalDetailsRequest.Address), minLength: 8, maxLength: 500);
-        _ = ValidateNameLike(user.City ?? string.Empty, nameof(UpdatePersonalDetailsRequest.City));
-        _ = ValidateNameLike(user.State ?? string.Empty, nameof(UpdatePersonalDetailsRequest.State));
-        _ = ValidateRequiredLength(profile.College ?? string.Empty, nameof(UpdateAcademicDetailsRequest.College), minLength: 2, maxLength: 200);
-        _ = ValidateRequiredLength(profile.Degree ?? string.Empty, nameof(UpdateAcademicDetailsRequest.Degree), minLength: 2, maxLength: 120);
-        _ = ValidateRequiredLength(profile.Branch ?? string.Empty, nameof(UpdateAcademicDetailsRequest.Branch), minLength: 2, maxLength: 120);
-        _ = ValidateGraduationYear(profile.GraduationYear ?? 0);
-        _ = ValidateCgpaOrPercentage(profile.CgpaOrPercentage ?? string.Empty);
-        _ = ValidateCareerText(profile.TargetJobRole ?? string.Empty, nameof(UpdateCareerDetailsRequest.TargetJobRole), minLength: 2, maxLength: 80, RoleRegex);
+        _ = ParseOptionalDateOfBirth(FormatDate(user.DateOfBirth));
+        _ = ValidateOptionalLength(user.Address, nameof(UpdatePersonalDetailsRequest.Address), minLength: 3, maxLength: 500);
+        _ = ValidateOptionalNameLike(user.City, nameof(UpdatePersonalDetailsRequest.City));
+        _ = ValidateOptionalNameLike(user.State, nameof(UpdatePersonalDetailsRequest.State));
+        _ = ValidateOptionalLength(profile.College, nameof(UpdateAcademicDetailsRequest.College), minLength: 2, maxLength: 200);
+        _ = ValidateOptionalLength(profile.Degree, nameof(UpdateAcademicDetailsRequest.Degree), minLength: 2, maxLength: 120);
+        _ = ValidateOptionalLength(profile.Branch, nameof(UpdateAcademicDetailsRequest.Branch), minLength: 2, maxLength: 120);
+        _ = ValidateOptionalGraduationYear(profile.GraduationYear);
+        _ = ValidateOptionalCgpaOrPercentage(profile.CgpaOrPercentage);
+        _ = ValidateOptionalCareerText(profile.TargetJobRole, nameof(UpdateCareerDetailsRequest.TargetJobRole), minLength: 2, maxLength: 80, RoleRegex);
         _ = NormalizeSkills(ReadSkills(profile.SkillsJson));
-        _ = ValidateUrlForHost(profile.LinkedInUrl ?? string.Empty, nameof(UpdateCareerDetailsRequest.LinkedInUrl), "linkedin.com");
-        _ = ValidateUrlForHost(profile.GitHubUrl ?? string.Empty, nameof(UpdateCareerDetailsRequest.GitHubUrl), "github.com");
-        _ = ValidateHttpUrl(profile.PortfolioUrl ?? string.Empty, nameof(UpdateCareerDetailsRequest.PortfolioUrl));
+        _ = ValidateOptionalUrlForHost(profile.LinkedInUrl, nameof(UpdateCareerDetailsRequest.LinkedInUrl), "linkedin.com");
+        _ = ValidateOptionalUrlForHost(profile.GitHubUrl, nameof(UpdateCareerDetailsRequest.GitHubUrl), "github.com");
+        _ = ValidateOptionalHttpUrl(profile.PortfolioUrl, nameof(UpdateCareerDetailsRequest.PortfolioUrl));
     }
 
     private static bool IsCareerTokenValid(string value, int minLength, int maxLength, Regex pattern)
@@ -483,6 +507,16 @@ public sealed class StudentOnboardingService(
         }
 
         return trimmed;
+    }
+
+    private static string? NormalizeOptionalText(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        return Regex.Replace(value.Trim(), @"\s+", " ");
     }
 
     private static string? FormatDate(DateTimeOffset? date)

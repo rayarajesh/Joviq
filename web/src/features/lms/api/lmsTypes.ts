@@ -360,6 +360,73 @@ export type AdminReportResponse = {
   openSupportTickets: SupportTicketResponse[];
 };
 
+export type AdminContentType = 1 | 2 | 3 | 4;
+export type AdminContentStatus = 1 | 2 | 3;
+
+export type AdminContentItemResponse = {
+  id: string;
+  contentType: string;
+  title: string;
+  slug: string;
+  summary?: string;
+  body?: string;
+  imageUrl?: string;
+  externalUrl?: string;
+  metadataJson: string;
+  status: string;
+  isFeatured: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt?: string;
+};
+
+export type AdminLeadResponse = {
+  id: string;
+  leadType: string;
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  subject?: string;
+  secondary?: string;
+  message?: string;
+  status: string;
+  createdAt: string;
+  updatedAt?: string;
+};
+
+export type AdminNotificationResponse = {
+  id: string;
+  userId: string;
+  userName?: string;
+  userEmail?: string;
+  title: string;
+  body: string;
+  actionUrl?: string;
+  status: string;
+  createdAt: string;
+  readAt?: string;
+};
+
+export type AdminSettingResponse = {
+  id: string;
+  category: string;
+  key: string;
+  value: string;
+  description?: string;
+  isSecret: boolean;
+  createdAt: string;
+  updatedAt?: string;
+};
+
+export type AdminAiFeatureSummaryResponse = {
+  aiAssessments: number;
+  aiAssessmentAttempts: number;
+  aiInterviewAttempts: number;
+  completedAiInterviews: number;
+  averageAssessmentScore: number;
+  averageInterviewScore: number;
+};
+
 export type AuditLogResponse = {
   id: string;
   userId?: string;
@@ -503,6 +570,41 @@ export type UpdatePaymentStatusRequest = {
 
 export type RefundPaymentRequest = {
   reason?: string;
+};
+
+export type CreateAdminContentItemRequest = {
+  contentType: AdminContentType;
+  title: string;
+  slug?: string;
+  summary?: string;
+  body?: string;
+  imageUrl?: string;
+  externalUrl?: string;
+  metadataJson?: string;
+  status: AdminContentStatus;
+  isFeatured?: boolean;
+  sortOrder?: number;
+};
+
+export type UpdateLeadStatusRequest = {
+  status: number;
+  notes?: string;
+};
+
+export type CreateAdminNotificationRequest = {
+  userId?: string;
+  title: string;
+  body: string;
+  actionUrl?: string;
+  sendToAllUsers?: boolean;
+  sendToAllStudents?: boolean;
+  sendToAllMentors?: boolean;
+};
+
+export type UpsertAdminSettingRequest = {
+  value: string;
+  description?: string;
+  isSecret?: boolean;
 };
 
 export type SubmitAssessmentAttemptRequest = {

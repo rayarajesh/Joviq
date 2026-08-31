@@ -495,3 +495,37 @@ public sealed class CareerApplicationConfiguration : IEntityTypeConfiguration<Ca
         builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(64);
     }
 }
+
+public sealed class AdminContentItemConfiguration : IEntityTypeConfiguration<AdminContentItem>
+{
+    public void Configure(EntityTypeBuilder<AdminContentItem> builder)
+    {
+        builder.ToTable("admin_content_items");
+        builder.HasKey(x => x.Id);
+        builder.HasIndex(x => new { x.ContentType, x.Slug }).IsUnique();
+        builder.HasIndex(x => new { x.ContentType, x.Status, x.SortOrder });
+        builder.Property(x => x.ContentType).HasConversion<string>().HasMaxLength(64);
+        builder.Property(x => x.Title).HasMaxLength(180).IsRequired();
+        builder.Property(x => x.Slug).HasMaxLength(180).IsRequired();
+        builder.Property(x => x.Summary).HasMaxLength(800);
+        builder.Property(x => x.Body).HasMaxLength(6000);
+        builder.Property(x => x.ImageUrl).HasMaxLength(500);
+        builder.Property(x => x.ExternalUrl).HasMaxLength(500);
+        builder.Property(x => x.MetadataJson).HasColumnType("jsonb");
+        builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(64);
+    }
+}
+
+public sealed class AdminSettingConfiguration : IEntityTypeConfiguration<AdminSetting>
+{
+    public void Configure(EntityTypeBuilder<AdminSetting> builder)
+    {
+        builder.ToTable("admin_settings");
+        builder.HasKey(x => x.Id);
+        builder.HasIndex(x => new { x.Category, x.Key }).IsUnique();
+        builder.Property(x => x.Category).HasMaxLength(80).IsRequired();
+        builder.Property(x => x.Key).HasMaxLength(120).IsRequired();
+        builder.Property(x => x.Value).HasMaxLength(4000).IsRequired();
+        builder.Property(x => x.Description).HasMaxLength(500);
+    }
+}

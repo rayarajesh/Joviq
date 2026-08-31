@@ -47,24 +47,24 @@ export type ResumeDetails = {
 };
 
 export type UpdatePersonalDetailsRequest = {
-  dateOfBirth: string;
-  address: string;
-  city: string;
-  state: string;
+  dateOfBirth?: string | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
 };
 
 export type UpdateAcademicDetailsRequest = {
-  college: string;
-  degree: string;
-  branch: string;
-  graduationYear: number;
-  cgpaOrPercentage: string;
+  college?: string | null;
+  degree?: string | null;
+  branch?: string | null;
+  graduationYear?: number | null;
+  cgpaOrPercentage?: string | null;
 };
 
 export type UpdateCareerDetailsRequest = {
-  targetJobRole: string;
+  targetJobRole?: string | null;
   skills: string[];
-  linkedInUrl: string;
-  gitHubUrl: string;
-  portfolioUrl: string;
+  linkedInUrl?: string | null;
+  gitHubUrl?: string | null;
+  portfolioUrl?: string | null;
 };

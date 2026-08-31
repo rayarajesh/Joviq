@@ -47,53 +47,52 @@ public sealed record ResumeDetailsResponse(
 
 public sealed record UpdatePersonalDetailsRequest
 {
-    [Required, RegularExpression(@"^\d{4}-\d{2}-\d{2}$")]
-    public string DateOfBirth { get; init; } = string.Empty;
+    public string? DateOfBirth { get; init; }
 
-    [Required, MinLength(8), MaxLength(500)]
-    public string Address { get; init; } = string.Empty;
+    [MaxLength(500)]
+    public string? Address { get; init; }
 
-    [Required, MinLength(2), MaxLength(120)]
-    public string City { get; init; } = string.Empty;
+    [MaxLength(120)]
+    public string? City { get; init; }
 
-    [Required, MinLength(2), MaxLength(120)]
-    public string State { get; init; } = string.Empty;
+    [MaxLength(120)]
+    public string? State { get; init; }
 }
 
 public sealed record UpdateAcademicDetailsRequest
 {
-    [Required, MinLength(2), MaxLength(200)]
-    public string College { get; init; } = string.Empty;
+    [MaxLength(200)]
+    public string? College { get; init; }
 
-    [Required, MinLength(2), MaxLength(120)]
-    public string Degree { get; init; } = string.Empty;
+    [MaxLength(120)]
+    public string? Degree { get; init; }
 
-    [Required, MinLength(2), MaxLength(120)]
-    public string Branch { get; init; } = string.Empty;
+    [MaxLength(120)]
+    public string? Branch { get; init; }
 
     [Range(2000, 2100)]
-    public int GraduationYear { get; init; }
+    public int? GraduationYear { get; init; }
 
-    [Required, MaxLength(32)]
-    public string CgpaOrPercentage { get; init; } = string.Empty;
+    [MaxLength(32)]
+    public string? CgpaOrPercentage { get; init; }
 }
 
 public sealed record UpdateCareerDetailsRequest
 {
-    [Required, MinLength(2), MaxLength(80)]
-    public string TargetJobRole { get; init; } = string.Empty;
+    [MaxLength(80)]
+    public string? TargetJobRole { get; init; }
 
-    [MinLength(3), MaxLength(15)]
+    [MaxLength(15)]
     public IReadOnlyList<string> Skills { get; init; } = [];
 
-    [Required, Url, MaxLength(500)]
-    public string LinkedInUrl { get; init; } = string.Empty;
+    [MaxLength(500)]
+    public string? LinkedInUrl { get; init; }
 
-    [Required, Url, MaxLength(500)]
-    public string GitHubUrl { get; init; } = string.Empty;
+    [MaxLength(500)]
+    public string? GitHubUrl { get; init; }
 
-    [Required, Url, MaxLength(500)]
-    public string PortfolioUrl { get; init; } = string.Empty;
+    [MaxLength(500)]
+    public string? PortfolioUrl { get; init; }
 }
 
 public sealed record SetResumeRequest

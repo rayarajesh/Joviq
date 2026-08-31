@@ -7486,8 +7486,8 @@ button.hero-button {
   min-height: 100vh;
   overflow-x: hidden;
   background:
-    linear-gradient(180deg, rgba(232, 241, 239, 0.96), rgba(246, 247, 250, 0.96)),
-    #f5f7f3;
+    linear-gradient(180deg, rgba(248, 250, 249, 0.98) 0%, rgba(243, 244, 251, 0.98) 48%, rgba(238, 246, 244, 0.98) 100%),
+    #f7faf8;
   color: var(--ink);
 }
 
@@ -7529,17 +7529,17 @@ button.hero-button {
 .onboarding-hero {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
-  align-items: end;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  align-items: center;
   gap: 26px;
-  min-height: 430px;
-  padding: 34px max(28px, calc((100vw - 1180px) / 2)) 78px;
+  min-height: 370px;
+  padding: 30px max(28px, calc((100vw - 1180px) / 2)) 72px;
   color: #ffffff;
   background-image:
-    linear-gradient(110deg, rgba(6, 24, 26, 0.94), rgba(8, 46, 50, 0.72), rgba(11, 26, 24, 0.36)),
+    linear-gradient(112deg, rgba(21, 18, 61, 0.94), rgba(42, 47, 85, 0.74), rgba(10, 54, 58, 0.42)),
     url("https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1800&q=80");
-  background-attachment: fixed;
-  background-position: center;
+  background-attachment: scroll;
+  background-position: center 42%;
   background-size: cover;
 }
 
@@ -7564,25 +7564,25 @@ button.hero-button {
   display: inline-flex;
   align-items: center;
   width: fit-content;
-  margin-bottom: 28px;
+  margin-bottom: 22px;
   border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.96);
-  padding: 7px 10px;
+  padding: 7px 9px;
   color: rgba(255, 255, 255, 0.86);
   font-weight: 950;
   backdrop-filter: blur(18px);
 }
 
 .onboarding-back-link .brand-logo {
-  width: clamp(156px, 30vw, 212px);
+  width: clamp(126px, 18vw, 154px);
 }
 
 .onboarding-hero h1 {
-  max-width: 720px;
+  max-width: 650px;
   margin: 12px 0 14px;
-  font-size: clamp(2.8rem, 7vw, 6.4rem);
-  line-height: 0.96;
+  font-size: clamp(2.45rem, 5.6vw, 4.9rem);
+  line-height: 1;
 }
 
 .onboarding-hero p {
@@ -7602,7 +7602,7 @@ button.hero-button {
   gap: 16px;
   border: 1px solid rgba(255, 255, 255, 0.24);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.18);
   padding: 18px;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.22);
   backdrop-filter: blur(20px);
@@ -7623,7 +7623,7 @@ button.hero-button {
 .onboarding-progress-ring {
   display: grid;
   flex: 0 0 auto;
-  width: 94px;
+  width: 84px;
   aspect-ratio: 1;
   place-items: center;
   border-radius: 50%;
@@ -7642,8 +7642,8 @@ button.hero-button {
   display: grid;
   grid-template-columns: 320px minmax(0, 1fr);
   gap: 22px;
-  width: min(1180px, calc(100% - 36px));
-  margin: -42px auto 72px;
+  width: min(1200px, calc(100% - 36px));
+  margin: -36px auto 72px;
 }
 
 .onboarding-side,
@@ -7665,8 +7665,8 @@ button.hero-button {
 .onboarding-resume-card {
   border: 1px solid rgba(193, 207, 202, 0.88);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 20px 58px rgba(23, 33, 29, 0.1);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 52px rgba(32, 27, 89, 0.09);
 }
 
 .onboarding-account-card {
@@ -7867,7 +7867,7 @@ button.hero-button {
 .onboarding-form {
   display: grid;
   gap: 22px;
-  min-height: 540px;
+  min-height: 500px;
   padding: clamp(20px, 3vw, 30px);
   animation: onboarding-rise 360ms ease both;
 }
@@ -7900,8 +7900,17 @@ button.hero-button {
 .onboarding-form__header h2,
 .onboarding-complete-panel h2 {
   margin: 5px 0 0;
-  font-size: clamp(1.65rem, 3vw, 2.8rem);
+  font-size: clamp(1.55rem, 2.6vw, 2.45rem);
   line-height: 1.05;
+}
+
+.onboarding-form__header p {
+  max-width: 620px;
+  margin: 9px 0 0;
+  color: var(--muted);
+  font-size: 0.96rem;
+  font-weight: 800;
+  line-height: 1.55;
 }
 
 .onboarding-grid {
@@ -7923,6 +7932,32 @@ button.hero-button {
   color: #24302b;
   font-size: 0.9rem;
   font-weight: 950;
+}
+
+.onboarding-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.onboarding-label-row > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.onboarding-label-row small {
+  flex: 0 0 auto;
+  border: 1px solid rgba(93, 88, 162, 0.16);
+  border-radius: 999px;
+  background: #f2f1fb;
+  color: var(--muted);
+  padding: 3px 8px;
+  font-size: 0.68rem;
+  font-weight: 950;
+  line-height: 1;
+  text-transform: uppercase;
 }
 
 .onboarding-form input,

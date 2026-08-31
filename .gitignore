@@ -20,6 +20,7 @@ docs/
 api/src/Joviq.Lms.Api/appsettings.Development.json
 api/src/Joviq.Lms.Api/appsettings.Local.json
 api/src/Joviq.Lms.Api/wwwroot/uploads/
+api/src/Joviq.Lms.Api/storage/
 
 *.log
 logs/

@@ -1650,6 +1650,45 @@ public sealed class LmsPortalService(
         return MapPayment(payment);
     }
 
+    public async Task<IReadOnlyList<PaymentTransactionResponse>> GetAdminRefundsAsync(CancellationToken cancellationToken)
+    {
+        var refunds = await dbContext.PaymentTransactions
+            .AsNoTracking()
+            .Where(x => x.Status == PaymentStatus.Refunded)
+            .OrderByDescending(x => x.UpdatedAt ?? x.CreatedAt)
+            .Take(200)
+            .ToListAsync(cancellationToken);
+
+        return refunds.Select(MapPayment).ToList();
+    }
+
+    public async Task<AdminAiFeatureSummaryResponse> GetAdminAiFeaturesAsync(CancellationToken cancellationToken)
+    {
+        var aiAssessments = await dbContext.Assessments.CountAsync(x => x.IsAiPowered, cancellationToken);
+        var aiAssessmentAttempts = await dbContext.AssessmentAttempts.CountAsync(
+            attempt => dbContext.Assessments.Any(assessment => assessment.Id == attempt.AssessmentId && assessment.IsAiPowered),
+            cancellationToken);
+        var aiInterviewAttempts = await dbContext.AiInterviewAttempts.CountAsync(cancellationToken);
+        var completedAiInterviews = await dbContext.AiInterviewAttempts.CountAsync(
+            x => x.CompletedAt != null || x.Status == AssessmentAttemptStatus.Submitted || x.Status == AssessmentAttemptStatus.Evaluated,
+            cancellationToken);
+        var averageAssessmentScore = await dbContext.AssessmentAttempts
+            .Where(attempt => attempt.Score.HasValue &&
+                dbContext.Assessments.Any(assessment => assessment.Id == attempt.AssessmentId && assessment.IsAiPowered))
+            .AverageAsync(attempt => attempt.Score, cancellationToken) ?? 0;
+        var averageInterviewScore = await dbContext.AiInterviewAttempts
+            .Where(attempt => attempt.OverallScore.HasValue)
+            .AverageAsync(attempt => attempt.OverallScore, cancellationToken) ?? 0;
+
+        return new AdminAiFeatureSummaryResponse(
+            aiAssessments,
+            aiAssessmentAttempts,
+            aiInterviewAttempts,
+            completedAiInterviews,
+            Math.Round(averageAssessmentScore, 2),
+            Math.Round(averageInterviewScore, 2));
+    }
+
     public async Task<IReadOnlyList<CouponResponse>> GetCouponsAsync(CancellationToken cancellationToken)
     {
         var coupons = await dbContext.Coupons
@@ -1836,6 +1875,315 @@ public sealed class LmsPortalService(
         Audit("Support.TicketUpdated", new { ticket.Id, ticket.UserId, ticket.ProgramId, ticket.Status });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapSupportTicket(ticket);
+    }
+
+    public async Task<IReadOnlyList<AdminContentItemResponse>> GetAdminContentAsync(
+        AdminContentType? contentType,
+        CancellationToken cancellationToken)
+    {
+        var query = dbContext.AdminContentItems.AsNoTracking().AsQueryable();
+        if (contentType.HasValue)
+        {
+            query = query.Where(x => x.ContentType == contentType.Value);
+        }
+
+        var content = await query
+            .OrderBy(x => x.ContentType)
+            .ThenBy(x => x.SortOrder)
+            .ThenBy(x => x.Title)
+            .Take(300)
+            .ToListAsync(cancellationToken);
+
+        return content.Select(MapAdminContent).ToList();
+    }
+
+    public async Task<AdminContentItemResponse> CreateAdminContentAsync(
+        CreateAdminContentItemRequest request,
+        CancellationToken cancellationToken)
+    {
+        var title = RequiredText(request.Title, nameof(request.Title), 2, 180);
+        var slug = string.IsNullOrWhiteSpace(request.Slug) ? GenerateSlug(title) : NormalizeSlug(request.Slug);
+
+        if (await dbContext.AdminContentItems.AnyAsync(x => x.ContentType == request.ContentType && x.Slug == slug, cancellationToken))
+        {
+            throw new AppException("Content slug already exists for this module.", 409, "admin_content_slug_exists");
+        }
+
+        var content = new AdminContentItem
+        {
+            Id = Guid.NewGuid(),
+            ContentType = request.ContentType,
+            Title = title,
+            Slug = slug,
+            Summary = OptionalText(request.Summary, 800),
+            Body = OptionalText(request.Body, 6000),
+            ImageUrl = OptionalUrl(request.ImageUrl, nameof(request.ImageUrl)),
+            ExternalUrl = OptionalUrl(request.ExternalUrl, nameof(request.ExternalUrl)),
+            MetadataJson = OptionalJson(request.MetadataJson, nameof(request.MetadataJson)) ?? "{}",
+            Status = request.Status,
+            IsFeatured = request.IsFeatured,
+            SortOrder = request.SortOrder > 0
+                ? request.SortOrder
+                : await dbContext.AdminContentItems.CountAsync(x => x.ContentType == request.ContentType, cancellationToken) + 1
+        };
+
+        dbContext.AdminContentItems.Add(content);
+        Audit("Admin.ContentCreated", new { content.Id, content.ContentType, content.Title, content.Slug, content.Status });
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return MapAdminContent(content);
+    }
+
+    public async Task<AdminContentItemResponse> UpdateAdminContentAsync(
+        Guid contentId,
+        CreateAdminContentItemRequest request,
+        CancellationToken cancellationToken)
+    {
+        var content = await dbContext.AdminContentItems.FirstOrDefaultAsync(x => x.Id == contentId, cancellationToken)
+            ?? throw new AppException("Admin content was not found.", 404, "admin_content_not_found");
+        var title = RequiredText(request.Title, nameof(request.Title), 2, 180);
+        var slug = string.IsNullOrWhiteSpace(request.Slug) ? GenerateSlug(title) : NormalizeSlug(request.Slug);
+
+        if (await dbContext.AdminContentItems.AnyAsync(
+            x => x.Id != contentId && x.ContentType == request.ContentType && x.Slug == slug,
+            cancellationToken))
+        {
+            throw new AppException("Content slug already exists for this module.", 409, "admin_content_slug_exists");
+        }
+
+        content.ContentType = request.ContentType;
+        content.Title = title;
+        content.Slug = slug;
+        content.Summary = OptionalText(request.Summary, 800);
+        content.Body = OptionalText(request.Body, 6000);
+        content.ImageUrl = OptionalUrl(request.ImageUrl, nameof(request.ImageUrl));
+        content.ExternalUrl = OptionalUrl(request.ExternalUrl, nameof(request.ExternalUrl));
+        content.MetadataJson = OptionalJson(request.MetadataJson, nameof(request.MetadataJson)) ?? "{}";
+        content.Status = request.Status;
+        content.IsFeatured = request.IsFeatured;
+        content.SortOrder = request.SortOrder > 0 ? request.SortOrder : content.SortOrder;
+
+        Audit("Admin.ContentUpdated", new { content.Id, content.ContentType, content.Title, content.Slug, content.Status });
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return MapAdminContent(content);
+    }
+
+    public async Task<IReadOnlyList<AdminLeadResponse>> GetAdminLeadsAsync(
+        string? leadType,
+        CancellationToken cancellationToken)
+    {
+        var normalizedLeadType = string.IsNullOrWhiteSpace(leadType) ? null : NormalizeLeadType(leadType);
+        var leads = new List<AdminLeadResponse>();
+
+        if (ShouldIncludeLead(normalizedLeadType, "CallbackRequest"))
+        {
+            var callbacks = await dbContext.CallbackRequests
+                .AsNoTracking()
+                .OrderByDescending(x => x.CreatedAt)
+                .Take(150)
+                .ToListAsync(cancellationToken);
+            leads.AddRange(callbacks.Select(MapCallbackLead));
+        }
+
+        if (ShouldIncludeLead(normalizedLeadType, "Enquiry"))
+        {
+            var enquiries = await dbContext.Enquiries
+                .AsNoTracking()
+                .OrderByDescending(x => x.CreatedAt)
+                .Take(150)
+                .ToListAsync(cancellationToken);
+            leads.AddRange(enquiries.Select(MapEnquiryLead));
+        }
+
+        if (ShouldIncludeLead(normalizedLeadType, "CampusAmbassador"))
+        {
+            var ambassadors = await dbContext.CampusAmbassadorApplications
+                .AsNoTracking()
+                .OrderByDescending(x => x.CreatedAt)
+                .Take(150)
+                .ToListAsync(cancellationToken);
+            leads.AddRange(ambassadors.Select(MapCampusAmbassadorLead));
+        }
+
+        if (ShouldIncludeLead(normalizedLeadType, "Career"))
+        {
+            var careers = await dbContext.CareerApplications
+                .AsNoTracking()
+                .OrderByDescending(x => x.CreatedAt)
+                .Take(150)
+                .ToListAsync(cancellationToken);
+            leads.AddRange(careers.Select(MapCareerLead));
+        }
+
+        return leads
+            .OrderByDescending(x => x.CreatedAt)
+            .Take(300)
+            .ToList();
+    }
+
+    public async Task<AdminLeadResponse> UpdateAdminLeadStatusAsync(
+        string leadType,
+        Guid leadId,
+        UpdateLeadStatusRequest request,
+        CancellationToken cancellationToken)
+    {
+        var normalizedLeadType = NormalizeLeadType(leadType);
+
+        if (normalizedLeadType == "CallbackRequest")
+        {
+            var lead = await dbContext.CallbackRequests.FirstOrDefaultAsync(x => x.Id == leadId, cancellationToken)
+                ?? throw new AppException("Callback request was not found.", 404, "lead_not_found");
+            lead.Status = request.Status;
+            lead.Notes = OptionalText(request.Notes, 1200) ?? lead.Notes;
+            Audit("Admin.LeadUpdated", new { lead.Id, LeadType = normalizedLeadType, lead.Status });
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return MapCallbackLead(lead);
+        }
+
+        if (normalizedLeadType == "Enquiry")
+        {
+            var lead = await dbContext.Enquiries.FirstOrDefaultAsync(x => x.Id == leadId, cancellationToken)
+                ?? throw new AppException("Enquiry was not found.", 404, "lead_not_found");
+            lead.Status = request.Status;
+            Audit("Admin.LeadUpdated", new { lead.Id, LeadType = normalizedLeadType, lead.Status });
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return MapEnquiryLead(lead);
+        }
+
+        if (normalizedLeadType == "CampusAmbassador")
+        {
+            var lead = await dbContext.CampusAmbassadorApplications.FirstOrDefaultAsync(x => x.Id == leadId, cancellationToken)
+                ?? throw new AppException("Campus ambassador application was not found.", 404, "lead_not_found");
+            lead.Status = request.Status;
+            Audit("Admin.LeadUpdated", new { lead.Id, LeadType = normalizedLeadType, lead.Status });
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return MapCampusAmbassadorLead(lead);
+        }
+
+        var career = await dbContext.CareerApplications.FirstOrDefaultAsync(x => x.Id == leadId, cancellationToken)
+            ?? throw new AppException("Career application was not found.", 404, "lead_not_found");
+        career.Status = request.Status;
+        Audit("Admin.LeadUpdated", new { career.Id, LeadType = normalizedLeadType, career.Status });
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return MapCareerLead(career);
+    }
+
+    public async Task<IReadOnlyList<AdminNotificationResponse>> GetAdminNotificationsAsync(CancellationToken cancellationToken)
+    {
+        var notifications = await dbContext.Notifications
+            .AsNoTracking()
+            .OrderByDescending(x => x.CreatedAt)
+            .Take(200)
+            .ToListAsync(cancellationToken);
+
+        return await MapAdminNotificationsAsync(notifications, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<AdminNotificationResponse>> CreateAdminNotificationAsync(
+        CreateAdminNotificationRequest request,
+        CancellationToken cancellationToken)
+    {
+        var targetUserIds = new HashSet<Guid>();
+
+        if (request.UserId.HasValue)
+        {
+            if (!await dbContext.Users.AnyAsync(x => x.Id == request.UserId.Value, cancellationToken))
+            {
+                throw new AppException("Notification user was not found.", 404, "notification_user_not_found");
+            }
+
+            targetUserIds.Add(request.UserId.Value);
+        }
+
+        if (request.SendToAllUsers)
+        {
+            var allUserIds = await dbContext.Users
+                .AsNoTracking()
+                .Select(x => x.Id)
+                .ToListAsync(cancellationToken);
+            targetUserIds.UnionWith(allUserIds);
+        }
+
+        if (request.SendToAllStudents)
+        {
+            targetUserIds.UnionWith(await GetUserIdsInRoleAsync("Student", cancellationToken));
+        }
+
+        if (request.SendToAllMentors)
+        {
+            targetUserIds.UnionWith(await GetUserIdsInRoleAsync("Mentor", cancellationToken));
+        }
+
+        if (targetUserIds.Count == 0)
+        {
+            throw new AppException("Choose at least one notification recipient.", 400, "notification_target_required");
+        }
+
+        var title = RequiredText(request.Title, nameof(request.Title), 2, 180);
+        var body = RequiredText(request.Body, nameof(request.Body), 5, 1000);
+        var actionUrl = OptionalText(request.ActionUrl, 500);
+        var notifications = targetUserIds.Select(userId => new Notification
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            Title = title,
+            Body = body,
+            ActionUrl = actionUrl
+        }).ToList();
+
+        dbContext.Notifications.AddRange(notifications);
+        Audit("Admin.NotificationCreated", new { Count = notifications.Count, title });
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return await MapAdminNotificationsAsync(notifications, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<AdminSettingResponse>> GetAdminSettingsAsync(
+        string? category,
+        CancellationToken cancellationToken)
+    {
+        var query = dbContext.AdminSettings.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(category))
+        {
+            var normalizedCategory = RequiredText(category, nameof(category), 2, 80);
+            query = query.Where(x => x.Category == normalizedCategory);
+        }
+
+        var settings = await query
+            .OrderBy(x => x.Category)
+            .ThenBy(x => x.Key)
+            .ToListAsync(cancellationToken);
+
+        return settings.Select(MapAdminSetting).ToList();
+    }
+
+    public async Task<AdminSettingResponse> UpsertAdminSettingAsync(
+        string category,
+        string key,
+        UpsertAdminSettingRequest request,
+        CancellationToken cancellationToken)
+    {
+        var normalizedCategory = RequiredText(category, nameof(category), 2, 80);
+        var normalizedKey = RequiredText(key, nameof(key), 2, 120);
+        var setting = await dbContext.AdminSettings
+            .FirstOrDefaultAsync(x => x.Category == normalizedCategory && x.Key == normalizedKey, cancellationToken);
+
+        if (setting is null)
+        {
+            setting = new AdminSetting
+            {
+                Id = Guid.NewGuid(),
+                Category = normalizedCategory,
+                Key = normalizedKey
+            };
+            dbContext.AdminSettings.Add(setting);
+        }
+
+        setting.Value = RequiredText(request.Value, nameof(request.Value), 1, 4000);
+        setting.Description = OptionalText(request.Description, 500);
+        setting.IsSecret = request.IsSecret;
+
+        Audit("Admin.SettingSaved", new { setting.Id, setting.Category, setting.Key, setting.IsSecret });
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return MapAdminSetting(setting);
     }
 
     public async Task<AdminReportResponse> GetAdminReportsAsync(CancellationToken cancellationToken)
@@ -2517,6 +2865,173 @@ public sealed class LmsPortalService(
             coupon.ExpiresAt);
     }
 
+    private static AdminContentItemResponse MapAdminContent(AdminContentItem content)
+    {
+        return new AdminContentItemResponse(
+            content.Id,
+            content.ContentType.ToString(),
+            content.Title,
+            content.Slug,
+            content.Summary,
+            content.Body,
+            content.ImageUrl,
+            content.ExternalUrl,
+            content.MetadataJson,
+            content.Status.ToString(),
+            content.IsFeatured,
+            content.SortOrder,
+            content.CreatedAt,
+            content.UpdatedAt);
+    }
+
+    private static AdminLeadResponse MapCallbackLead(CallbackRequest lead)
+    {
+        return new AdminLeadResponse(
+            lead.Id,
+            "CallbackRequest",
+            lead.FullName,
+            lead.Email,
+            lead.PhoneNumber,
+            lead.InterestedProgram,
+            null,
+            lead.Notes,
+            lead.Status.ToString(),
+            lead.CreatedAt,
+            lead.UpdatedAt);
+    }
+
+    private static AdminLeadResponse MapEnquiryLead(Enquiry lead)
+    {
+        return new AdminLeadResponse(
+            lead.Id,
+            "Enquiry",
+            lead.FullName,
+            lead.Email,
+            lead.PhoneNumber,
+            lead.Topic,
+            null,
+            lead.Message,
+            lead.Status.ToString(),
+            lead.CreatedAt,
+            lead.UpdatedAt);
+    }
+
+    private static AdminLeadResponse MapCampusAmbassadorLead(CampusAmbassadorApplication lead)
+    {
+        return new AdminLeadResponse(
+            lead.Id,
+            "CampusAmbassador",
+            lead.FullName,
+            lead.Email,
+            lead.PhoneNumber,
+            lead.College,
+            lead.City,
+            lead.WhyJoin,
+            lead.Status.ToString(),
+            lead.CreatedAt,
+            lead.UpdatedAt);
+    }
+
+    private static AdminLeadResponse MapCareerLead(CareerApplication lead)
+    {
+        return new AdminLeadResponse(
+            lead.Id,
+            "Career",
+            lead.FullName,
+            lead.Email,
+            lead.PhoneNumber,
+            lead.Role,
+            lead.PortfolioUrl ?? lead.ResumeUrl,
+            lead.CoverNote,
+            lead.Status.ToString(),
+            lead.CreatedAt,
+            lead.UpdatedAt);
+    }
+
+    private async Task<IReadOnlyList<AdminNotificationResponse>> MapAdminNotificationsAsync(
+        IReadOnlyList<Notification> notifications,
+        CancellationToken cancellationToken)
+    {
+        var userIds = notifications.Select(x => x.UserId).Distinct().ToList();
+        var users = await dbContext.Users
+            .AsNoTracking()
+            .Where(x => userIds.Contains(x.Id))
+            .Select(x => new { x.Id, x.FullName, x.Email })
+            .ToDictionaryAsync(x => x.Id, x => x, cancellationToken);
+
+        return notifications.Select(notification =>
+        {
+            users.TryGetValue(notification.UserId, out var user);
+            return new AdminNotificationResponse(
+                notification.Id,
+                notification.UserId,
+                user?.FullName,
+                user?.Email,
+                notification.Title,
+                notification.Body,
+                notification.ActionUrl,
+                notification.Status.ToString(),
+                notification.CreatedAt,
+                notification.ReadAt);
+        }).ToList();
+    }
+
+    private static AdminSettingResponse MapAdminSetting(AdminSetting setting)
+    {
+        return new AdminSettingResponse(
+            setting.Id,
+            setting.Category,
+            setting.Key,
+            setting.IsSecret ? "********" : setting.Value,
+            setting.Description,
+            setting.IsSecret,
+            setting.CreatedAt,
+            setting.UpdatedAt);
+    }
+
+    private async Task<IReadOnlyList<Guid>> GetUserIdsInRoleAsync(string roleName, CancellationToken cancellationToken)
+    {
+        var roleId = await dbContext.Roles
+            .AsNoTracking()
+            .Where(x => x.Name == roleName)
+            .Select(x => (Guid?)x.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (!roleId.HasValue)
+        {
+            return [];
+        }
+
+        return await dbContext.UserRoles
+            .AsNoTracking()
+            .Where(x => x.RoleId == roleId.Value)
+            .Select(x => x.UserId)
+            .ToListAsync(cancellationToken);
+    }
+
+    private static string NormalizeLeadType(string leadType)
+    {
+        var normalized = RequiredText(leadType, nameof(leadType), 2, 80)
+            .Replace("-", string.Empty, StringComparison.Ordinal)
+            .Replace("_", string.Empty, StringComparison.Ordinal)
+            .Replace(" ", string.Empty, StringComparison.Ordinal)
+            .ToLowerInvariant();
+
+        return normalized switch
+        {
+            "callback" or "callbacks" or "callbackrequest" or "callbackrequests" => "CallbackRequest",
+            "enquiry" or "enquiries" or "inquiry" or "inquiries" => "Enquiry",
+            "campus" or "ambassador" or "campusambassador" or "campusambassadors" => "CampusAmbassador",
+            "career" or "careers" or "careerapplication" or "careerapplications" => "Career",
+            _ => throw new AppException("Lead type is not supported.", 400, "unsupported_lead_type")
+        };
+    }
+
+    private static bool ShouldIncludeLead(string? requestedLeadType, string currentLeadType)
+    {
+        return requestedLeadType is null || requestedLeadType == currentLeadType;
+    }
+
     private static void AddDefaultProgramPlans(LearningProgram program)
     {
         var plans = new[]
@@ -2695,6 +3210,12 @@ public sealed class LmsPortalService(
         }
 
         return slug;
+    }
+
+    private static string GenerateSlug(string value)
+    {
+        var slug = Regex.Replace(value.Trim().ToLowerInvariant(), "[^a-z0-9]+", "-").Trim('-');
+        return NormalizeSlug(slug);
     }
 
     private static string RequiredText(string value, string fieldName, int minLength, int maxLength)

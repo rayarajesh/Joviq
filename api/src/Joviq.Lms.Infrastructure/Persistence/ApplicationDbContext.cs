@@ -72,6 +72,12 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
     public DbSet<CareerApplication> CareerApplications => Set<CareerApplication>();
 
+    public DbSet<AdminContentItem> AdminContentItems => Set<AdminContentItem>();
+
+    public DbSet<AdminSetting> AdminSettings => Set<AdminSetting>();
+
+    public DbSet<Asset> Assets => Set<Asset>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);

@@ -24,12 +24,7 @@ import {
 import { BrandLogo } from "../components/BrandLogo";
 import { env } from "../config/env";
 import { studentOnboardingApi } from "../features/student/api/studentOnboardingApi";
-import type {
-  StudentOnboardingResponse,
-  UpdateAcademicDetailsRequest,
-  UpdateCareerDetailsRequest,
-  UpdatePersonalDetailsRequest
-} from "../features/student/api/studentOnboardingTypes";
+import type { StudentOnboardingResponse } from "../features/student/api/studentOnboardingTypes";
 import { useAuth } from "../features/auth/context/useAuth";
 import { formatApiError } from "../lib/api/httpClient";
 
@@ -37,9 +32,29 @@ type StepId = "personal" | "academic" | "career" | "resume";
 type MessageState = { tone: "success" | "error"; text: string } | null;
 type ValidationErrors = Record<string, string>;
 
-type PersonalForm = UpdatePersonalDetailsRequest;
-type AcademicForm = Omit<UpdateAcademicDetailsRequest, "graduationYear"> & { graduationYear: string };
-type CareerForm = Omit<UpdateCareerDetailsRequest, "skills"> & { skillInput: string; skills: string[] };
+type PersonalForm = {
+  dateOfBirth: string;
+  address: string;
+  city: string;
+  state: string;
+};
+
+type AcademicForm = {
+  college: string;
+  degree: string;
+  branch: string;
+  graduationYear: string;
+  cgpaOrPercentage: string;
+};
+
+type CareerForm = {
+  targetJobRole: string;
+  skillInput: string;
+  skills: string[];
+  linkedInUrl: string;
+  gitHubUrl: string;
+  portfolioUrl: string;
+};
 
 const steps: Array<{ id: StepId; label: string; icon: ComponentType<{ size?: number }> }> = [
   { id: "personal", label: "Personal", icon: UserRound },
@@ -265,7 +280,7 @@ export function StudentOnboardingPage() {
 
   function failValidation(errors: ValidationErrors) {
     setValidationErrors(errors);
-    const firstError = Object.values(errors)[0] ?? "Please complete the required fields correctly.";
+    const firstError = Object.values(errors)[0] ?? "Please check the highlighted fields.";
     setMessage({ tone: "error", text: firstError });
     return false;
   }
@@ -277,9 +292,7 @@ export function StudentOnboardingPage() {
     const city = normalizeText(personal.city);
     const state = normalizeText(personal.state);
 
-    if (!dob) {
-      errors.dateOfBirth = "Date of birth is required.";
-    } else {
+    if (dob) {
       const date = new Date(`${dob}T00:00:00`);
       const today = new Date();
       const minDate = new Date();
@@ -298,15 +311,15 @@ export function StudentOnboardingPage() {
       }
     }
 
-    if (address.length < 8) {
-      errors.address = "Address must be at least 8 characters.";
+    if (address && (address.length < 3 || address.length > 500)) {
+      errors.address = "Address must be 3 to 500 characters.";
     }
 
-    if (!isNameLike(city, 2, 120)) {
+    if (city && !isNameLike(city, 2, 120)) {
       errors.city = "City must contain only letters, spaces, periods, apostrophes, or hyphens.";
     }
 
-    if (!isNameLike(state, 2, 120)) {
+    if (state && !isNameLike(state, 2, 120)) {
       errors.state = "State must contain only letters, spaces, periods, apostrophes, or hyphens.";
     }
 
@@ -325,26 +338,30 @@ export function StudentOnboardingPage() {
     const degree = normalizeText(academic.degree);
     const branch = normalizeText(academic.branch);
     const cgpaOrPercentage = normalizeText(academic.cgpaOrPercentage);
-    const graduationYear = Number(academic.graduationYear);
+    const graduationYearText = academic.graduationYear.trim();
+    const graduationYear = Number(graduationYearText);
     const maxGraduationYear = new Date().getFullYear() + 8;
 
-    if (college.length < 2 || college.length > 200) {
+    if (college && (college.length < 2 || college.length > 200)) {
       errors.college = "College must be 2 to 200 characters.";
     }
 
-    if (degree.length < 2 || degree.length > 120) {
+    if (degree && (degree.length < 2 || degree.length > 120)) {
       errors.degree = "Degree must be 2 to 120 characters.";
     }
 
-    if (branch.length < 2 || branch.length > 120) {
+    if (branch && (branch.length < 2 || branch.length > 120)) {
       errors.branch = "Branch must be 2 to 120 characters.";
     }
 
-    if (!Number.isInteger(graduationYear) || graduationYear < 2000 || graduationYear > maxGraduationYear) {
+    if (
+      graduationYearText &&
+      (!Number.isInteger(graduationYear) || graduationYear < 2000 || graduationYear > maxGraduationYear)
+    ) {
       errors.graduationYear = `Graduation year must be between 2000 and ${maxGraduationYear}.`;
     }
 
-    if (!isValidCgpaOrPercentage(cgpaOrPercentage)) {
+    if (cgpaOrPercentage && !isValidCgpaOrPercentage(cgpaOrPercentage)) {
       errors.cgpaOrPercentage = "Enter a valid score like 8.2 CGPA or 82%.";
     }
 
@@ -352,7 +369,7 @@ export function StudentOnboardingPage() {
       return failValidation(errors);
     }
 
-    setAcademic({ college, degree, branch, graduationYear: String(graduationYear), cgpaOrPercentage });
+    setAcademic({ college, degree, branch, graduationYear: graduationYearText, cgpaOrPercentage });
     clearValidation();
     return true;
   }
@@ -364,13 +381,11 @@ export function StudentOnboardingPage() {
     const gitHubUrl = normalizeText(career.gitHubUrl);
     const portfolioUrl = normalizeText(career.portfolioUrl);
 
-    if (!isValidCareerToken(targetJobRole, 2, 80, rolePattern)) {
+    if (targetJobRole && !isValidCareerToken(targetJobRole, 2, 80, rolePattern)) {
       errors.targetJobRole = "Select or enter a valid job role.";
     }
 
-    if (career.skills.length < 3) {
-      errors.skills = "Add at least 3 skills.";
-    } else if (career.skills.length > 15) {
+    if (career.skills.length > 15) {
       errors.skills = "Add up to 15 focused skills.";
     } else {
       const invalidSkill = career.skills.find((skill) => !isValidCareerToken(skill, 2, 40, skillPattern));
@@ -379,15 +394,15 @@ export function StudentOnboardingPage() {
       }
     }
 
-    if (!isValidUrlForHost(linkedInUrl, "linkedin.com")) {
+    if (linkedInUrl && !isValidUrlForHost(linkedInUrl, "linkedin.com")) {
       errors.linkedInUrl = "Enter a valid LinkedIn profile URL.";
     }
 
-    if (!isValidUrlForHost(gitHubUrl, "github.com")) {
+    if (gitHubUrl && !isValidUrlForHost(gitHubUrl, "github.com")) {
       errors.gitHubUrl = "Enter a valid GitHub profile URL.";
     }
 
-    if (!isValidHttpUrl(portfolioUrl)) {
+    if (portfolioUrl && !isValidHttpUrl(portfolioUrl)) {
       errors.portfolioUrl = "Enter a valid portfolio URL.";
     }
 
@@ -451,6 +466,10 @@ export function StudentOnboardingPage() {
 
   function addSkill(rawSkill = career.skillInput) {
     const skill = normalizeText(rawSkill);
+
+    if (!skill) {
+      return;
+    }
 
     if (!isValidCareerToken(skill, 2, 40, skillPattern)) {
       failValidation({ skills: "Enter a valid skill before adding it." });
@@ -558,14 +577,14 @@ export function StudentOnboardingPage() {
 
     try {
       const response = await studentOnboardingApi.updatePersonal({
-        dateOfBirth: personal.dateOfBirth.trim(),
-        address: normalizeText(personal.address),
-        city: normalizeText(personal.city),
-        state: normalizeText(personal.state)
+        dateOfBirth: optionalDate(personal.dateOfBirth),
+        address: optionalText(personal.address),
+        city: optionalText(personal.city),
+        state: optionalText(personal.state)
       });
       hydrateProfile(response.data);
       setActiveStep("academic");
-      setMessage({ tone: "success", text: "Personal details saved." });
+      setMessage({ tone: "success", text: "Personal details saved. You can edit them later." });
     } catch (error) {
       setMessage({ tone: "error", text: formatApiError(error) });
     } finally {
@@ -584,15 +603,15 @@ export function StudentOnboardingPage() {
 
     try {
       const response = await studentOnboardingApi.updateAcademic({
-        college: normalizeText(academic.college),
-        degree: normalizeText(academic.degree),
-        branch: normalizeText(academic.branch),
-        graduationYear: Number(academic.graduationYear),
-        cgpaOrPercentage: normalizeText(academic.cgpaOrPercentage)
+        college: optionalText(academic.college),
+        degree: optionalText(academic.degree),
+        branch: optionalText(academic.branch),
+        graduationYear: optionalNumber(academic.graduationYear),
+        cgpaOrPercentage: optionalText(academic.cgpaOrPercentage)
       });
       hydrateProfile(response.data);
       setActiveStep("career");
-      setMessage({ tone: "success", text: "Academic details saved." });
+      setMessage({ tone: "success", text: "Academic details saved. You can edit them later." });
     } catch (error) {
       setMessage({ tone: "error", text: formatApiError(error) });
     } finally {
@@ -611,15 +630,15 @@ export function StudentOnboardingPage() {
 
     try {
       const response = await studentOnboardingApi.updateCareer({
-        targetJobRole: normalizeText(career.targetJobRole),
+        targetJobRole: optionalText(career.targetJobRole),
         skills: career.skills,
-        linkedInUrl: normalizeText(career.linkedInUrl),
-        gitHubUrl: normalizeText(career.gitHubUrl),
-        portfolioUrl: normalizeText(career.portfolioUrl)
+        linkedInUrl: optionalText(career.linkedInUrl),
+        gitHubUrl: optionalText(career.gitHubUrl),
+        portfolioUrl: optionalText(career.portfolioUrl)
       });
       hydrateProfile(response.data);
       setActiveStep("resume");
-      setMessage({ tone: "success", text: "Career details saved." });
+      setMessage({ tone: "success", text: "Career details saved. You can edit them later." });
     } catch (error) {
       setMessage({ tone: "error", text: formatApiError(error) });
     } finally {
@@ -630,7 +649,7 @@ export function StudentOnboardingPage() {
   async function uploadResume(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!resumeFile) {
-      failValidation({ resume: "Choose a PDF, DOC, or DOCX resume before uploading." });
+      failValidation({ resume: "Choose a resume file to upload, or open the dashboard below." });
       return;
     }
 
@@ -671,15 +690,6 @@ export function StudentOnboardingPage() {
   }
 
   async function completeOnboarding() {
-    if (profile?.missingFields.length) {
-      const firstIncomplete = steps.find((step) =>
-        stepMissingLabels[step.id].some((field) => profile.missingFields.includes(field))
-      );
-      setActiveStep(firstIncomplete?.id ?? "personal");
-      setMessage({ tone: "error", text: `Complete missing fields: ${profile.missingFields.join(", ")}.` });
-      return;
-    }
-
     setSavingStep("complete");
     setMessage(null);
 
@@ -707,10 +717,10 @@ export function StudentOnboardingPage() {
             <BrandLogo />
           </Link>
           <span className="eyebrow">Student onboarding</span>
-          <h1>Complete your student profile.</h1>
+          <h1>Build your student profile.</h1>
           <p>
-            Keep registration simple, then collect academic, career, and resume details before opening the
-            full student workspace.
+            Save the details you have now. Anything blank stays empty, and you can update it later from your
+            dashboard.
           </p>
         </div>
 
@@ -719,8 +729,8 @@ export function StudentOnboardingPage() {
             <span>{completion}%</span>
           </div>
           <div>
-            <strong>{profile?.onboardingStatus ?? "Not started"}</strong>
-            <p>{profile.missingFields.length ? `${profile.missingFields.length} fields remaining` : "Ready for dashboard"}</p>
+            <strong>Profile strength</strong>
+            <p>{profile.missingFields.length ? `${profile.missingFields.length} optional details left` : "Profile looks complete"}</p>
           </div>
         </aside>
       </section>
@@ -771,7 +781,7 @@ export function StudentOnboardingPage() {
             </div>
             <AccountLine icon={Mail} label={profile.email} />
             <AccountLine icon={Phone} label={profile.phoneNumber ?? "Phone not verified"} />
-            <AccountLine icon={LockKeyhole} label="Name, email, and phone are already captured." />
+            <AccountLine icon={LockKeyhole} label="Optional details can be updated anytime." />
           </div>
 
           <nav className="onboarding-stepper" aria-label="Onboarding steps">
@@ -800,13 +810,17 @@ export function StudentOnboardingPage() {
 
           {activeStep === "personal" ? (
             <form className="onboarding-form" onSubmit={savePersonal} noValidate>
-              <FormHeader icon={MapPin} eyebrow="Personal" title="Where should mentors understand you from?" />
+              <FormHeader
+                icon={MapPin}
+                eyebrow="Personal"
+                title="Where are you learning from?"
+                description="Share only what helps mentors support you today."
+              />
               <div className="onboarding-grid onboarding-grid--two">
                 <label>
-                  Date of Birth
+                  <LabelText>Date of birth</LabelText>
                   <input
                     className={fieldClass("dateOfBirth")}
-                    required
                     min={minDateOfBirth}
                     max={maxDateOfBirth}
                     type="date"
@@ -819,10 +833,9 @@ export function StudentOnboardingPage() {
                   <FieldError error={validationErrors.dateOfBirth} />
                 </label>
                 <label>
-                  City
+                  <LabelText>City</LabelText>
                   <input
                     className={fieldClass("city")}
-                    required
                     value={personal.city}
                     onChange={(event) => {
                       setPersonal((current) => ({ ...current, city: event.target.value }));
@@ -833,10 +846,9 @@ export function StudentOnboardingPage() {
                   <FieldError error={validationErrors.city} />
                 </label>
                 <label>
-                  State
+                  <LabelText>State</LabelText>
                   <input
                     className={fieldClass("state")}
-                    required
                     value={personal.state}
                     onChange={(event) => {
                       setPersonal((current) => ({ ...current, state: event.target.value }));
@@ -847,10 +859,9 @@ export function StudentOnboardingPage() {
                   <FieldError error={validationErrors.state} />
                 </label>
                 <label className="onboarding-grid__wide">
-                  Address
+                  <LabelText>Address</LabelText>
                   <textarea
                     className={fieldClass("address")}
-                    required
                     value={personal.address}
                     onChange={(event) => {
                       setPersonal((current) => ({ ...current, address: event.target.value }));
@@ -861,19 +872,23 @@ export function StudentOnboardingPage() {
                   <FieldError error={validationErrors.address} />
                 </label>
               </div>
-              <FormActions isSaving={savingStep === "personal"} label="Save personal details" />
+              <FormActions isSaving={savingStep === "personal"} label="Save and continue" />
             </form>
           ) : null}
 
           {activeStep === "academic" ? (
             <form className="onboarding-form" onSubmit={saveAcademic} noValidate>
-              <FormHeader icon={GraduationCap} eyebrow="Academic" title="Add your college and education details." />
+              <FormHeader
+                icon={GraduationCap}
+                eyebrow="Academic"
+                title="Academic profile"
+                description="Add education details now or leave them for later."
+              />
               <div className="onboarding-grid onboarding-grid--two">
                 <label>
-                  College
+                  <LabelText>College</LabelText>
                   <input
                     className={fieldClass("college")}
-                    required
                     value={academic.college}
                     onChange={(event) => {
                       setAcademic((current) => ({ ...current, college: event.target.value }));
@@ -884,10 +899,9 @@ export function StudentOnboardingPage() {
                   <FieldError error={validationErrors.college} />
                 </label>
                 <label>
-                  Degree
+                  <LabelText>Degree</LabelText>
                   <input
                     className={fieldClass("degree")}
-                    required
                     value={academic.degree}
                     onChange={(event) => {
                       setAcademic((current) => ({ ...current, degree: event.target.value }));
@@ -898,10 +912,9 @@ export function StudentOnboardingPage() {
                   <FieldError error={validationErrors.degree} />
                 </label>
                 <label>
-                  Branch
+                  <LabelText>Branch</LabelText>
                   <input
                     className={fieldClass("branch")}
-                    required
                     value={academic.branch}
                     onChange={(event) => {
                       setAcademic((current) => ({ ...current, branch: event.target.value }));
@@ -912,10 +925,9 @@ export function StudentOnboardingPage() {
                   <FieldError error={validationErrors.branch} />
                 </label>
                 <label>
-                  Graduation Year
+                  <LabelText>Graduation year</LabelText>
                   <input
                     className={fieldClass("graduationYear")}
-                    required
                     min="2000"
                     max={new Date().getFullYear() + 8}
                     type="number"
@@ -929,10 +941,9 @@ export function StudentOnboardingPage() {
                   <FieldError error={validationErrors.graduationYear} />
                 </label>
                 <label className="onboarding-grid__wide">
-                  CGPA/Percentage
+                  <LabelText>CGPA/Percentage</LabelText>
                   <input
                     className={fieldClass("cgpaOrPercentage")}
-                    required
                     value={academic.cgpaOrPercentage}
                     onChange={(event) => {
                       setAcademic((current) => ({ ...current, cgpaOrPercentage: event.target.value }));
@@ -943,21 +954,27 @@ export function StudentOnboardingPage() {
                   <FieldError error={validationErrors.cgpaOrPercentage} />
                 </label>
               </div>
-              <FormActions isSaving={savingStep === "academic"} label="Save academic details" />
+              <FormActions isSaving={savingStep === "academic"} label="Save and continue" />
             </form>
           ) : null}
 
           {activeStep === "career" ? (
             <form className="onboarding-form" onSubmit={saveCareer} noValidate>
-              <FormHeader icon={BriefcaseBusiness} eyebrow="Career" title="Tell us the role and proof you are building toward." />
+              <FormHeader
+                icon={BriefcaseBusiness}
+                eyebrow="Career"
+                title="Career goals"
+                description="Choose a direction, add skills, or keep this open until you know."
+              />
               <div className="onboarding-grid onboarding-grid--two">
                 <div className="onboarding-picker onboarding-grid__wide">
-                  <label htmlFor="targetJobRole">Target Job Role</label>
+                  <label htmlFor="targetJobRole">
+                    <LabelText>Target job role</LabelText>
+                  </label>
                   <div className="onboarding-combo">
                     <input
                       className={fieldClass("targetJobRole")}
                       id="targetJobRole"
-                      required
                       value={career.targetJobRole}
                       onChange={(event) => {
                         setCareer((current) => ({ ...current, targetJobRole: event.target.value }));
@@ -984,7 +1001,9 @@ export function StudentOnboardingPage() {
                 </div>
 
                 <div className="onboarding-picker onboarding-grid__wide">
-                  <label htmlFor="skillInput">Skills</label>
+                  <label htmlFor="skillInput">
+                    <LabelText>Skills</LabelText>
+                  </label>
                   <div className="onboarding-combo">
                     <input
                       className={fieldClass("skills")}
@@ -1018,10 +1037,9 @@ export function StudentOnboardingPage() {
                 </div>
 
                 <label>
-                  LinkedIn
+                  <LabelText>LinkedIn</LabelText>
                   <input
                     className={fieldClass("linkedInUrl")}
-                    required
                     type="url"
                     value={career.linkedInUrl}
                     onChange={(event) => {
@@ -1033,10 +1051,9 @@ export function StudentOnboardingPage() {
                   <FieldError error={validationErrors.linkedInUrl} />
                 </label>
                 <label>
-                  GitHub
+                  <LabelText>GitHub</LabelText>
                   <input
                     className={fieldClass("gitHubUrl")}
-                    required
                     type="url"
                     value={career.gitHubUrl}
                     onChange={(event) => {
@@ -1048,10 +1065,9 @@ export function StudentOnboardingPage() {
                   <FieldError error={validationErrors.gitHubUrl} />
                 </label>
                 <label className="onboarding-grid__wide">
-                  Portfolio
+                  <LabelText>Portfolio</LabelText>
                   <input
                     className={fieldClass("portfolioUrl")}
-                    required
                     type="url"
                     value={career.portfolioUrl}
                     onChange={(event) => {
@@ -1063,13 +1079,18 @@ export function StudentOnboardingPage() {
                   <FieldError error={validationErrors.portfolioUrl} />
                 </label>
               </div>
-              <FormActions isSaving={savingStep === "career"} label="Save career details" />
+              <FormActions isSaving={savingStep === "career"} label="Save and continue" />
             </form>
           ) : null}
 
           {activeStep === "resume" ? (
             <form className="onboarding-form" onSubmit={uploadResume} noValidate>
-              <FormHeader icon={FileText} eyebrow="Resume" title="Upload the resume mentors should review." />
+              <FormHeader
+                icon={FileText}
+                eyebrow="Resume"
+                title="Resume"
+                description="Attach a resume if it is ready. You can open the dashboard without one."
+              />
               <div className="onboarding-upload">
                 <label className={`onboarding-upload__drop ${validationErrors.resume ? "is-invalid" : ""}`}>
                   <UploadCloud size={30} />
@@ -1117,14 +1138,14 @@ export function StudentOnboardingPage() {
                 <h2>Open student dashboard</h2>
                 <p>
                   {profile?.missingFields.length
-                    ? `${profile.missingFields.length} profile fields still need attention.`
+                    ? `${profile.missingFields.length} optional details are still open. You can continue now and finish them later.`
                     : "Your profile is ready for learning, projects, and mentor review."}
                 </p>
               </div>
             </div>
             <button className="primary-action" type="button" onClick={completeOnboarding} disabled={savingStep === "complete"}>
               {savingStep === "complete" ? <Loader2 className="spin" size={17} /> : <ArrowRight size={17} />}
-              Complete profile
+              Open dashboard
             </button>
           </section>
         </section>
@@ -1159,14 +1180,25 @@ function FieldError({ error }: { error?: string }) {
   return error ? <small className="onboarding-field-error">{error}</small> : null;
 }
 
+function LabelText({ children }: { children: string }) {
+  return (
+    <span className="onboarding-label-row">
+      <span>{children}</span>
+      <small>Optional</small>
+    </span>
+  );
+}
+
 function FormHeader({
   icon: Icon,
   eyebrow,
-  title
+  title,
+  description
 }: {
   icon: ComponentType<{ size?: number }>;
   eyebrow: string;
   title: string;
+  description?: string;
 }) {
   return (
     <header className="onboarding-form__header">
@@ -1176,6 +1208,7 @@ function FormHeader({
       <div>
         <small>{eyebrow}</small>
         <h2>{title}</h2>
+        {description ? <p>{description}</p> : null}
       </div>
     </header>
   );
@@ -1214,6 +1247,21 @@ function toApiFileUrl(path: string) {
 
 function normalizeText(value: string) {
   return value.trim().replace(/\s+/g, " ");
+}
+
+function optionalText(value: string) {
+  const normalized = normalizeText(value);
+  return normalized || null;
+}
+
+function optionalDate(value: string) {
+  const normalized = value.trim();
+  return normalized || null;
+}
+
+function optionalNumber(value: string) {
+  const normalized = value.trim();
+  return normalized ? Number(normalized) : null;
 }
 
 function isNameLike(value: string, minLength: number, maxLength: number) {
