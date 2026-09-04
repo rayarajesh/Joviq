@@ -47,6 +47,6 @@ internal interface IAssetStorageProvider
 
     Task<AssetLocalFile> OpenLocalFileAsync(
         Asset asset,
-        string token,
+        string? token,
         CancellationToken cancellationToken);
 }

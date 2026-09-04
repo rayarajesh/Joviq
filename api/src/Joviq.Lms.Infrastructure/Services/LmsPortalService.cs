@@ -21,6 +21,9 @@ public sealed class LmsPortalService(
     private const string DefaultThumbnailUrl = "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=82";
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private static readonly Regex SlugRegex = new("^[a-z0-9]+(?:-[a-z0-9]+)*$", RegexOptions.Compiled);
+    private static readonly Regex LocalAssetFilePathRegex = new(
+        "/api/v1/assets/local-files/([0-9a-fA-F-]{36})",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     private void Audit(string eventType, object? metadata = null)
         => auditLog.Add($"Lms.{eventType}", metadata);
@@ -43,6 +46,7 @@ public sealed class LmsPortalService(
                 category.Slug,
                 category.Description,
                 category.SortOrder,
+                category.IsPublished,
                 programs.Where(program => program.CategoryId == category.Id).ToList()))
             .ToList();
     }
@@ -110,19 +114,7 @@ public sealed class LmsPortalService(
             .OrderBy(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        var assignments = await dbContext.Assignments
-            .AsNoTracking()
-            .Where(x => x.ProgramId == program.Id && x.IsPublished)
-            .OrderBy(x => x.DueAt ?? DateTimeOffset.MaxValue)
-            .ToListAsync(cancellationToken);
-
-        var assessments = await dbContext.Assessments
-            .AsNoTracking()
-            .Where(x => x.ProgramId == program.Id && x.IsPublished)
-            .OrderBy(x => x.CreatedAt)
-            .ToListAsync(cancellationToken);
-
-        return MapProgramDetails(program, projects, assignments, assessments, new Dictionary<Guid, LessonProgress>());
+        return MapProgramDetails(program, projects, new Dictionary<Guid, LessonProgress>());
     }
 
     public async Task<LeadCaptureResponse> CreateCallbackRequestAsync(
@@ -161,49 +153,6 @@ public sealed class LmsPortalService(
 
         dbContext.Enquiries.Add(entity);
         Audit("Lead.EnquiryCreated", new { entity.Id, entity.Email, entity.PhoneNumber, entity.Topic });
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return new LeadCaptureResponse(entity.Id, entity.Status.ToString(), entity.CreatedAt);
-    }
-
-    public async Task<LeadCaptureResponse> ApplyCampusAmbassadorAsync(
-        CampusAmbassadorApplyRequest request,
-        CancellationToken cancellationToken)
-    {
-        var entity = new CampusAmbassadorApplication
-        {
-            Id = Guid.NewGuid(),
-            FullName = RequiredText(request.FullName, nameof(request.FullName), 2, 160),
-            Email = ValidateEmail(request.Email, nameof(request.Email)),
-            PhoneNumber = NormalizeIndianPhone(request.PhoneNumber),
-            College = RequiredText(request.College, nameof(request.College), 2, 220),
-            City = RequiredText(request.City, nameof(request.City), 2, 120),
-            WhyJoin = RequiredText(request.WhyJoin, nameof(request.WhyJoin), 20, 2500)
-        };
-
-        dbContext.CampusAmbassadorApplications.Add(entity);
-        Audit("Lead.CampusAmbassadorApplied", new { entity.Id, entity.Email, entity.PhoneNumber, entity.College, entity.City });
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return new LeadCaptureResponse(entity.Id, entity.Status.ToString(), entity.CreatedAt);
-    }
-
-    public async Task<LeadCaptureResponse> ApplyCareerAsync(
-        CareerApplyRequest request,
-        CancellationToken cancellationToken)
-    {
-        var entity = new CareerApplication
-        {
-            Id = Guid.NewGuid(),
-            FullName = RequiredText(request.FullName, nameof(request.FullName), 2, 160),
-            Email = ValidateEmail(request.Email, nameof(request.Email)),
-            PhoneNumber = NormalizeIndianPhone(request.PhoneNumber),
-            Role = RequiredText(request.Role, nameof(request.Role), 2, 160),
-            ResumeUrl = OptionalUrl(request.ResumeUrl, nameof(request.ResumeUrl)),
-            PortfolioUrl = OptionalUrl(request.PortfolioUrl, nameof(request.PortfolioUrl)),
-            CoverNote = OptionalText(request.CoverNote, 2500)
-        };
-
-        dbContext.CareerApplications.Add(entity);
-        Audit("Lead.CareerApplied", new { entity.Id, entity.Email, entity.PhoneNumber, entity.Role });
         await dbContext.SaveChangesAsync(cancellationToken);
         return new LeadCaptureResponse(entity.Id, entity.Status.ToString(), entity.CreatedAt);
     }
@@ -250,21 +199,13 @@ public sealed class LmsPortalService(
                 0,
                 0,
                 0,
-                0,
-                0,
-                null,
-                null,
-                null,
                 null,
                 0,
                 notifications.Take(5).ToList());
         }
 
         var progress = await GetLearningProgressAsync(studentId, enrollment.ProgramId, cancellationToken);
-        var assignments = await GetStudentAssignmentsAsync(studentId, cancellationToken);
         var projects = await GetStudentProjectsAsync(studentId, cancellationToken);
-        var assessments = await GetStudentAssessmentsAsync(studentId, cancellationToken);
-        var liveClasses = await GetStudentLiveClassesAsync(studentId, cancellationToken);
         var certificates = await GetStudentCertificatesAsync(studentId, cancellationToken);
 
         return new StudentLmsDashboardResponse(
@@ -273,12 +214,7 @@ public sealed class LmsPortalService(
             progress.Percentage,
             progress.Completed,
             progress.Total,
-            assignments.Count(x => x.LatestSubmission is null || x.LatestSubmission.Status is "Draft" or "NeedsRevision"),
             projects.Count(x => x.LatestSubmission is null || x.LatestSubmission.Status is "Draft" or "NeedsRevision"),
-            assessments.Count,
-            liveClasses.FirstOrDefault(x => x.StartsAt >= clock.UtcNow),
-            assignments.FirstOrDefault(x => x.LatestSubmission is null || x.LatestSubmission.Status is "NeedsRevision"),
-            assessments.FirstOrDefault(),
             certificates.OrderByDescending(x => x.IssuedAt ?? DateTimeOffset.MinValue).FirstOrDefault(),
             Math.Max(enrollment.TotalAmount - enrollment.PaidAmount, 0),
             notifications.Take(5).ToList());
@@ -290,11 +226,7 @@ public sealed class LmsPortalService(
 
         return new StudentProgramWorkspaceResponse(
             enrollment is null ? null : MapEnrollment(enrollment),
-            enrollment is null ? [] : await GetStudentCurriculumAsync(studentId, cancellationToken),
-            enrollment is null ? [] : await GetStudentLiveClassesAsync(studentId, cancellationToken),
-            enrollment is null ? [] : await GetStudentAssignmentsAsync(studentId, cancellationToken),
             enrollment is null ? [] : await GetStudentProjectsAsync(studentId, cancellationToken),
-            enrollment is null ? [] : await GetStudentAssessmentsAsync(studentId, cancellationToken),
             await GetStudentCertificatesAsync(studentId, cancellationToken),
             await GetStudentPaymentsAsync(studentId, cancellationToken));
     }
@@ -318,10 +250,7 @@ public sealed class LmsPortalService(
             .Where(x => x.StudentId == studentId && lessonIds.Contains(x.LessonId))
             .ToDictionaryAsync(x => x.LessonId, cancellationToken);
         var projects = await dbContext.Projects.AsNoTracking().Where(x => x.ProgramId == program.Id && x.IsPublished).ToListAsync(cancellationToken);
-        var assignments = await dbContext.Assignments.AsNoTracking().Where(x => x.ProgramId == program.Id && x.IsPublished).ToListAsync(cancellationToken);
-        var assessments = await dbContext.Assessments.AsNoTracking().Where(x => x.ProgramId == program.Id && x.IsPublished).ToListAsync(cancellationToken);
-
-        return MapProgramDetails(program, projects, assignments, assessments, progress);
+        return MapProgramDetails(program, projects, progress);
     }
 
     public async Task<EnrollmentResponse> CreateEnrollmentAsync(
@@ -487,184 +416,6 @@ public sealed class LmsPortalService(
         return MapPayment(transaction);
     }
 
-    public async Task<IReadOnlyList<CurriculumModuleResponse>> GetStudentCurriculumAsync(
-        Guid studentId,
-        CancellationToken cancellationToken)
-    {
-        var enrollment = await RequireEnrollmentAsync(studentId, cancellationToken);
-        var modules = await dbContext.CurriculumModules
-            .AsNoTracking()
-            .Include(x => x.Lessons.OrderBy(lesson => lesson.SortOrder))
-                .ThenInclude(x => x.Resources)
-            .Where(x => x.ProgramId == enrollment.ProgramId)
-            .OrderBy(x => x.SortOrder)
-            .ToListAsync(cancellationToken);
-
-        var lessonIds = modules.SelectMany(x => x.Lessons).Select(x => x.Id).ToList();
-        var progress = await dbContext.LessonProgress
-            .AsNoTracking()
-            .Where(x => x.StudentId == studentId && lessonIds.Contains(x.LessonId))
-            .ToDictionaryAsync(x => x.LessonId, cancellationToken);
-
-        return modules.Select(module => MapCurriculumModule(module, enrollment, progress)).ToList();
-    }
-
-    public async Task<LessonResponse> UpdateLessonProgressAsync(
-        Guid studentId,
-        Guid lessonId,
-        UpdateLessonProgressRequest request,
-        CancellationToken cancellationToken)
-    {
-        if (request.ProgressPercentage is < 0 or > 100)
-        {
-            throw Validation(nameof(request.ProgressPercentage), "Progress must be between 0 and 100.");
-        }
-
-        var enrollment = await RequireEnrollmentAsync(studentId, cancellationToken);
-        var lesson = await dbContext.Lessons
-            .Include(x => x.Module)
-            .Include(x => x.Resources)
-            .FirstOrDefaultAsync(x => x.Id == lessonId && x.Module != null && x.Module.ProgramId == enrollment.ProgramId, cancellationToken)
-            ?? throw new AppException("Lesson was not found for this enrollment.", 404, "lesson_not_found");
-
-        var progress = await dbContext.LessonProgress
-            .FirstOrDefaultAsync(x => x.StudentId == studentId && x.LessonId == lessonId, cancellationToken);
-
-        if (progress is null)
-        {
-            progress = new LessonProgress
-            {
-                Id = Guid.NewGuid(),
-                StudentId = studentId,
-                LessonId = lessonId
-            };
-            dbContext.LessonProgress.Add(progress);
-        }
-
-        progress.ProgressPercentage = request.ProgressPercentage;
-        progress.IsCompleted = request.ProgressPercentage >= 100;
-        progress.CompletedAt = progress.IsCompleted ? clock.UtcNow : null;
-
-        Audit("Student.LessonProgressUpdated", new { studentId, lessonId, request.ProgressPercentage, progress.IsCompleted });
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return MapLesson(lesson, enrollment, progress);
-    }
-
-    public async Task<IReadOnlyList<LiveClassResponse>> GetStudentLiveClassesAsync(
-        Guid studentId,
-        CancellationToken cancellationToken)
-    {
-        var enrollment = await RequireEnrollmentAsync(studentId, cancellationToken);
-        var liveClasses = await dbContext.LiveClasses
-            .AsNoTracking()
-            .Where(x => x.ProgramId == enrollment.ProgramId)
-            .OrderBy(x => x.StartsAt)
-            .ToListAsync(cancellationToken);
-
-        return liveClasses.Select(MapLiveClass).ToList();
-    }
-
-    public async Task<IReadOnlyList<RecordedClassResponse>> GetStudentRecordedClassesAsync(
-        Guid studentId,
-        CancellationToken cancellationToken)
-    {
-        var enrollment = await RequireEnrollmentAsync(studentId, cancellationToken);
-        var modules = await dbContext.CurriculumModules
-            .AsNoTracking()
-            .Include(x => x.Lessons.OrderBy(lesson => lesson.SortOrder))
-            .Where(x => x.ProgramId == enrollment.ProgramId)
-            .OrderBy(x => x.SortOrder)
-            .ToListAsync(cancellationToken);
-        var lessonIds = modules.SelectMany(x => x.Lessons).Select(x => x.Id).ToList();
-        var progress = await dbContext.LessonProgress
-            .AsNoTracking()
-            .Where(x => x.StudentId == studentId && lessonIds.Contains(x.LessonId))
-            .ToDictionaryAsync(x => x.LessonId, cancellationToken);
-
-        return modules
-            .SelectMany(module => module.Lessons.Select(lesson =>
-            {
-                var lessonProgress = progress.GetValueOrDefault(lesson.Id);
-                var isLocked = enrollment.Status == EnrollmentStatus.Reserved && lesson.AccessLevel == ContentAccessLevel.Full;
-                return new RecordedClassResponse(
-                    lesson.Id,
-                    module.Id,
-                    module.Title,
-                    lesson.Title,
-                    lesson.Summary,
-                    isLocked ? null : lesson.VideoUrl,
-                    isLocked ? null : lesson.NotesUrl,
-                    lesson.DurationMinutes,
-                    isLocked,
-                    lessonProgress?.ProgressPercentage ?? 0,
-                    lessonProgress?.IsCompleted ?? false);
-            }))
-            .ToList();
-    }
-
-    public async Task<IReadOnlyList<AssignmentResponse>> GetStudentAssignmentsAsync(
-        Guid studentId,
-        CancellationToken cancellationToken)
-    {
-        var enrollment = await RequireEnrollmentAsync(studentId, cancellationToken);
-        var assignments = await dbContext.Assignments
-            .AsNoTracking()
-            .Where(x => x.ProgramId == enrollment.ProgramId && x.IsPublished)
-            .OrderBy(x => x.DueAt ?? DateTimeOffset.MaxValue)
-            .ToListAsync(cancellationToken);
-
-        var assignmentIds = assignments.Select(x => x.Id).ToList();
-        var submissions = await dbContext.AssignmentSubmissions
-            .AsNoTracking()
-            .Where(x => x.StudentId == studentId && assignmentIds.Contains(x.AssignmentId))
-            .OrderByDescending(x => x.CreatedAt)
-            .ToListAsync(cancellationToken);
-
-        var latestByAssignment = submissions
-            .GroupBy(x => x.AssignmentId)
-            .ToDictionary(group => group.Key, group => group.First());
-
-        return assignments
-            .Select(assignment => MapAssignment(
-                assignment,
-                latestByAssignment.GetValueOrDefault(assignment.Id)))
-            .ToList();
-    }
-
-    public async Task<SubmissionResponse> SubmitAssignmentAsync(
-        Guid studentId,
-        Guid assignmentId,
-        SubmitAssignmentRequest request,
-        CancellationToken cancellationToken)
-    {
-        var enrollment = await RequireEnrollmentAsync(studentId, cancellationToken);
-        var assignment = await dbContext.Assignments
-            .FirstOrDefaultAsync(x => x.Id == assignmentId && x.ProgramId == enrollment.ProgramId && x.IsPublished, cancellationToken)
-            ?? throw new AppException("Assignment was not found.", 404, "assignment_not_found");
-
-        if (AllBlank(request.SubmissionUrl, request.FileUrl, request.Notes))
-        {
-            throw Validation(nameof(request.SubmissionUrl), "Add a submission link, file URL, or notes.");
-        }
-
-        var submission = new AssignmentSubmission
-        {
-            Id = Guid.NewGuid(),
-            AssignmentId = assignment.Id,
-            StudentId = studentId,
-            EnrollmentId = enrollment.Id,
-            SubmissionUrl = OptionalUrl(request.SubmissionUrl, nameof(request.SubmissionUrl)),
-            FileUrl = OptionalUrl(request.FileUrl, nameof(request.FileUrl)),
-            Notes = OptionalText(request.Notes, 2000),
-            Status = SubmissionStatus.Submitted
-        };
-
-        dbContext.AssignmentSubmissions.Add(submission);
-        Audit("Student.AssignmentSubmitted", new { studentId, submissionId = submission.Id, assignmentId = assignment.Id, enrollmentId = enrollment.Id });
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return MapAssignmentSubmission(submission);
-    }
-
     public async Task<IReadOnlyList<ProjectResponse>> GetStudentProjectsAsync(
         Guid studentId,
         CancellationToken cancellationToken)
@@ -728,186 +479,6 @@ public sealed class LmsPortalService(
         return MapProjectSubmission(submission);
     }
 
-    public async Task<IReadOnlyList<AssessmentResponse>> GetStudentAssessmentsAsync(
-        Guid studentId,
-        CancellationToken cancellationToken)
-    {
-        var enrollment = await RequireEnrollmentAsync(studentId, cancellationToken);
-        var assessments = await dbContext.Assessments
-            .AsNoTracking()
-            .Where(x => x.ProgramId == enrollment.ProgramId && x.IsPublished)
-            .OrderBy(x => x.CreatedAt)
-            .ToListAsync(cancellationToken);
-
-        return assessments.Select(MapAssessment).ToList();
-    }
-
-    public async Task<AssessmentAttemptResponse> StartAssessmentAttemptAsync(
-        Guid studentId,
-        Guid assessmentId,
-        CancellationToken cancellationToken)
-    {
-        var enrollment = await RequireEnrollmentAsync(studentId, cancellationToken);
-        var assessment = await dbContext.Assessments
-            .FirstOrDefaultAsync(x => x.Id == assessmentId && x.ProgramId == enrollment.ProgramId && x.IsPublished, cancellationToken)
-            ?? throw new AppException("Assessment was not found.", 404, "assessment_not_found");
-
-        var attempt = new AssessmentAttempt
-        {
-            Id = Guid.NewGuid(),
-            AssessmentId = assessment.Id,
-            Assessment = assessment,
-            StudentId = studentId,
-            EnrollmentId = enrollment.Id,
-            Status = AssessmentAttemptStatus.Started,
-            StartedAt = clock.UtcNow
-        };
-
-        dbContext.AssessmentAttempts.Add(attempt);
-        Audit("Student.AssessmentStarted", new { studentId, attemptId = attempt.Id, assessmentId = assessment.Id, enrollmentId = enrollment.Id });
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return MapAssessmentAttempt(attempt);
-    }
-
-    public async Task<AssessmentAttemptResponse> SubmitAssessmentAttemptAsync(
-        Guid studentId,
-        Guid attemptId,
-        SubmitAssessmentAttemptRequest request,
-        CancellationToken cancellationToken)
-    {
-        var attempt = await dbContext.AssessmentAttempts
-            .Include(x => x.Assessment)
-            .FirstOrDefaultAsync(x => x.Id == attemptId && x.StudentId == studentId, cancellationToken)
-            ?? throw new AppException("Assessment attempt was not found.", 404, "assessment_attempt_not_found");
-
-        if (request.Score.HasValue)
-        {
-            EnsureScore(request.Score.Value, nameof(request.Score));
-        }
-
-        attempt.Score = request.Score;
-        attempt.ResultJson = OptionalJson(request.ResultJson, nameof(request.ResultJson));
-        attempt.Status = AssessmentAttemptStatus.Submitted;
-        attempt.SubmittedAt = clock.UtcNow;
-        Audit("Student.AssessmentSubmitted", new { studentId, attempt.Id, attempt.AssessmentId, request.Score });
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return MapAssessmentAttempt(attempt);
-    }
-
-    public async Task<IReadOnlyList<AssessmentResponse>> GetStudentAiAssessmentsAsync(
-        Guid studentId,
-        CancellationToken cancellationToken)
-    {
-        var assessments = await GetStudentAssessmentsAsync(studentId, cancellationToken);
-        return assessments.Where(x => x.IsAiPowered).ToList();
-    }
-
-    public Task<AssessmentAttemptResponse> StartAiAssessmentAttemptAsync(
-        Guid studentId,
-        Guid assessmentId,
-        CancellationToken cancellationToken)
-    {
-        return StartAssessmentAttemptAsync(studentId, assessmentId, cancellationToken);
-    }
-
-    public async Task<IReadOnlyList<AiInterviewAttemptResponse>> GetStudentAiInterviewsAsync(
-        Guid studentId,
-        CancellationToken cancellationToken)
-    {
-        var attempts = await dbContext.AiInterviewAttempts
-            .AsNoTracking()
-            .Where(x => x.StudentId == studentId)
-            .OrderByDescending(x => x.StartedAt)
-            .ToListAsync(cancellationToken);
-
-        return attempts.Select(MapAiInterviewAttempt).ToList();
-    }
-
-    public async Task<AiInterviewAttemptResponse> StartAiInterviewAsync(
-        Guid studentId,
-        StartAiInterviewRequest request,
-        CancellationToken cancellationToken)
-    {
-        var enrollment = await GetCurrentEnrollmentAsync(studentId, cancellationToken);
-        var attempt = new AiInterviewAttempt
-        {
-            Id = Guid.NewGuid(),
-            StudentId = studentId,
-            EnrollmentId = enrollment?.Id,
-            JobRole = RequiredText(request.JobRole, nameof(request.JobRole), 2, 180),
-            Domain = RequiredText(request.Domain, nameof(request.Domain), 2, 120),
-            InterviewType = RequiredText(request.InterviewType, nameof(request.InterviewType), 2, 80),
-            Status = AssessmentAttemptStatus.Started,
-            StartedAt = clock.UtcNow
-        };
-
-        dbContext.AiInterviewAttempts.Add(attempt);
-        Audit("Student.AiInterviewStarted", new { studentId, attempt.Id, attempt.EnrollmentId, attempt.JobRole, attempt.Domain, attempt.InterviewType });
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return MapAiInterviewAttempt(attempt);
-    }
-
-    public async Task<IReadOnlyList<SupportTicketResponse>> GetStudentMentorSupportAsync(
-        Guid studentId,
-        CancellationToken cancellationToken)
-    {
-        var tickets = await dbContext.SupportTickets
-            .AsNoTracking()
-            .Where(x => x.UserId == studentId)
-            .OrderByDescending(x => x.CreatedAt)
-            .ToListAsync(cancellationToken);
-
-        return tickets.Select(MapSupportTicket).ToList();
-    }
-
-    public async Task<CareerSupportResponse> GetStudentCareerSupportAsync(
-        Guid studentId,
-        CancellationToken cancellationToken)
-    {
-        var user = await dbContext.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == studentId, cancellationToken)
-            ?? throw new AppException("User was not found.", 404, "user_not_found");
-        var profile = await dbContext.StudentProfiles.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == studentId, cancellationToken);
-        var tickets = await GetStudentMentorSupportAsync(studentId, cancellationToken);
-
-        return new CareerSupportResponse(
-            string.IsNullOrWhiteSpace(profile?.ResumeUrl) ? "Resume pending" : "Resume uploaded",
-            string.IsNullOrWhiteSpace(profile?.LinkedInUrl) ? "LinkedIn pending" : "LinkedIn ready",
-            string.IsNullOrWhiteSpace(profile?.GitHubUrl) ? "GitHub pending" : "GitHub ready",
-            string.IsNullOrWhiteSpace(profile?.PortfolioUrl) ? "Portfolio pending" : "Portfolio ready",
-            [
-                profile?.TargetJobRole ?? "Target job role",
-                user.OnboardingStatus.ToString(),
-                "Project explanation",
-                "Mock interview practice"
-            ],
-            tickets.Where(x => x.Issue.Contains("resume", StringComparison.OrdinalIgnoreCase) ||
-                               x.Issue.Contains("career", StringComparison.OrdinalIgnoreCase) ||
-                               x.Issue.Contains("interview", StringComparison.OrdinalIgnoreCase)).ToList());
-    }
-
-    public Task<SupportTicketResponse> CreateResumeReviewRequestAsync(
-        Guid studentId,
-        CreateSupportTicketRequest request,
-        CancellationToken cancellationToken)
-    {
-        return CreateSupportTicketAsync(
-            studentId,
-            new CreateSupportTicketRequest
-            {
-                ProgramId = request.ProgramId,
-                Name = request.Name,
-                Email = request.Email,
-                StudentIdText = request.StudentIdText,
-                Issue = string.IsNullOrWhiteSpace(request.Issue) ? "Resume review" : request.Issue,
-                Description = string.IsNullOrWhiteSpace(request.Description)
-                    ? "Please review my resume, LinkedIn, GitHub, portfolio, and interview readiness."
-                    : request.Description,
-                AttachmentUrl = request.AttachmentUrl,
-                Priority = request.Priority
-            },
-            cancellationToken);
-    }
-
     public async Task<IReadOnlyList<PaymentTransactionResponse>> GetStudentPaymentsAsync(
         Guid studentId,
         CancellationToken cancellationToken)
@@ -965,32 +536,6 @@ public sealed class LmsPortalService(
         return MapNotification(notification);
     }
 
-    public async Task<SupportTicketResponse> CreateSupportTicketAsync(
-        Guid userId,
-        CreateSupportTicketRequest request,
-        CancellationToken cancellationToken)
-    {
-        var user = await dbContext.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userId, cancellationToken);
-        var entity = new SupportTicket
-        {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            ProgramId = request.ProgramId,
-            Name = RequiredText(string.IsNullOrWhiteSpace(request.Name) ? user?.FullName ?? string.Empty : request.Name, nameof(request.Name), 2, 160),
-            Email = ValidateEmail(string.IsNullOrWhiteSpace(request.Email) ? user?.Email ?? string.Empty : request.Email, nameof(request.Email)),
-            StudentIdText = OptionalText(request.StudentIdText, 120),
-            Issue = RequiredText(request.Issue, nameof(request.Issue), 2, 180),
-            Description = RequiredText(request.Description, nameof(request.Description), 10, 2500),
-            AttachmentUrl = OptionalUrl(request.AttachmentUrl, nameof(request.AttachmentUrl)),
-            Priority = RequiredText(request.Priority, nameof(request.Priority), 2, 40)
-        };
-
-        dbContext.SupportTickets.Add(entity);
-        Audit("Support.TicketCreated", new { userId, entity.Id, entity.ProgramId, entity.Issue, entity.Priority });
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return MapSupportTicket(entity);
-    }
-
     public async Task<AdminLmsSummaryResponse> GetAdminSummaryAsync(CancellationToken cancellationToken)
     {
         var programs = await dbContext.LearningPrograms.CountAsync(cancellationToken);
@@ -1000,12 +545,8 @@ public sealed class LmsPortalService(
         var revenue = await dbContext.PaymentTransactions
             .Where(x => x.Status == PaymentStatus.Verified)
             .SumAsync(x => x.Amount, cancellationToken);
-        var pendingAssignments = await dbContext.AssignmentSubmissions
-            .CountAsync(x => x.Status == SubmissionStatus.Submitted, cancellationToken);
         var pendingProjects = await dbContext.ProjectSubmissions
             .CountAsync(x => x.Status == SubmissionStatus.Submitted, cancellationToken);
-        var openTickets = await dbContext.SupportTickets
-            .CountAsync(x => x.Status == SupportTicketStatus.Open || x.Status == SupportTicketStatus.InProgress, cancellationToken);
         var callbacks = await dbContext.CallbackRequests.CountAsync(x => x.Status == LeadStatus.New, cancellationToken);
 
         return new AdminLmsSummaryResponse(
@@ -1014,9 +555,7 @@ public sealed class LmsPortalService(
             enrollments,
             activeEnrollments,
             revenue,
-            pendingAssignments,
             pendingProjects,
-            openTickets,
             callbacks);
     }
 
@@ -1036,6 +575,7 @@ public sealed class LmsPortalService(
                 category.Slug,
                 category.Description,
                 category.SortOrder,
+                category.IsPublished,
                 programs.Where(program => program.CategoryId == category.Id).ToList()))
             .ToList();
     }
@@ -1063,7 +603,7 @@ public sealed class LmsPortalService(
         dbContext.LearningProgramCategories.Add(category);
         Audit("Admin.CategoryCreated", new { category.Id, category.Name, category.Slug });
         await dbContext.SaveChangesAsync(cancellationToken);
-        return new ProgramCategoryResponse(category.Id, category.Name, category.Slug, category.Description, category.SortOrder, []);
+        return new ProgramCategoryResponse(category.Id, category.Name, category.Slug, category.Description, category.SortOrder, category.IsPublished, []);
     }
 
     public async Task<ProgramCategoryResponse> UpdateCategoryAsync(
@@ -1087,7 +627,7 @@ public sealed class LmsPortalService(
 
         Audit("Admin.CategoryUpdated", new { category.Id, category.Name, category.Slug, category.IsPublished });
         await dbContext.SaveChangesAsync(cancellationToken);
-        return new ProgramCategoryResponse(category.Id, category.Name, category.Slug, category.Description, category.SortOrder, []);
+        return new ProgramCategoryResponse(category.Id, category.Name, category.Slug, category.Description, category.SortOrder, category.IsPublished, []);
     }
 
     public Task<IReadOnlyList<ProgramSummaryResponse>> GetAdminProgramsAsync(CancellationToken cancellationToken)
@@ -1337,100 +877,6 @@ public sealed class LmsPortalService(
         return MapLesson(lesson, null, null);
     }
 
-    public async Task<IReadOnlyList<LiveClassResponse>> GetAdminLiveClassesAsync(CancellationToken cancellationToken)
-    {
-        var classes = await dbContext.LiveClasses
-            .AsNoTracking()
-            .OrderByDescending(x => x.StartsAt)
-            .Take(200)
-            .ToListAsync(cancellationToken);
-
-        return classes.Select(MapLiveClass).ToList();
-    }
-
-    public async Task<LiveClassResponse> CreateLiveClassAsync(
-        CreateLiveClassRequest request,
-        CancellationToken cancellationToken)
-    {
-        await EnsureProgramExistsAsync(request.ProgramId, cancellationToken);
-        var entity = CreateLiveClassEntity(request, request.MentorId);
-        dbContext.LiveClasses.Add(entity);
-        Audit("Admin.LiveClassCreated", new { entity.Id, entity.ProgramId, entity.MentorId, entity.Title, entity.StartsAt, entity.EndsAt });
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return MapLiveClass(entity);
-    }
-
-    public async Task<LiveClassResponse> UpdateLiveClassAsync(
-        Guid liveClassId,
-        CreateLiveClassRequest request,
-        CancellationToken cancellationToken)
-    {
-        await EnsureProgramExistsAsync(request.ProgramId, cancellationToken);
-        var liveClass = await dbContext.LiveClasses.FirstOrDefaultAsync(x => x.Id == liveClassId, cancellationToken)
-            ?? throw new AppException("Live class was not found.", 404, "live_class_not_found");
-
-        ApplyLiveClassRequest(liveClass, request, request.MentorId);
-        Audit("Admin.LiveClassUpdated", new { liveClass.Id, liveClass.ProgramId, liveClass.MentorId, liveClass.Title, liveClass.StartsAt, liveClass.EndsAt });
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return MapLiveClass(liveClass);
-    }
-
-    public async Task<IReadOnlyList<AssignmentResponse>> GetAdminAssignmentsAsync(CancellationToken cancellationToken)
-    {
-        var assignments = await dbContext.Assignments
-            .AsNoTracking()
-            .OrderByDescending(x => x.CreatedAt)
-            .Take(200)
-            .ToListAsync(cancellationToken);
-
-        return assignments.Select(x => MapAssignment(x, null)).ToList();
-    }
-
-    public async Task<AssignmentResponse> CreateAssignmentAsync(
-        CreateAssignmentRequest request,
-        CancellationToken cancellationToken)
-    {
-        await EnsureProgramExistsAsync(request.ProgramId, cancellationToken);
-        EnsureScore(request.MaxScore, nameof(request.MaxScore));
-        var assignment = new Assignment
-        {
-            Id = Guid.NewGuid(),
-            ProgramId = request.ProgramId,
-            Title = RequiredText(request.Title, nameof(request.Title), 2, 180),
-            Instructions = RequiredText(request.Instructions, nameof(request.Instructions), 10, 2500),
-            DueAt = request.DueAt,
-            MaxScore = request.MaxScore,
-            IsPublished = request.IsPublished
-        };
-
-        dbContext.Assignments.Add(assignment);
-        Audit("Admin.AssignmentCreated", new { assignment.Id, assignment.ProgramId, assignment.Title, assignment.IsPublished });
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return MapAssignment(assignment, null);
-    }
-
-    public async Task<AssignmentResponse> UpdateAssignmentAsync(
-        Guid assignmentId,
-        CreateAssignmentRequest request,
-        CancellationToken cancellationToken)
-    {
-        await EnsureProgramExistsAsync(request.ProgramId, cancellationToken);
-        EnsureScore(request.MaxScore, nameof(request.MaxScore));
-        var assignment = await dbContext.Assignments.FirstOrDefaultAsync(x => x.Id == assignmentId, cancellationToken)
-            ?? throw new AppException("Assignment was not found.", 404, "assignment_not_found");
-
-        assignment.ProgramId = request.ProgramId;
-        assignment.Title = RequiredText(request.Title, nameof(request.Title), 2, 180);
-        assignment.Instructions = RequiredText(request.Instructions, nameof(request.Instructions), 10, 2500);
-        assignment.DueAt = request.DueAt;
-        assignment.MaxScore = request.MaxScore;
-        assignment.IsPublished = request.IsPublished;
-
-        Audit("Admin.AssignmentUpdated", new { assignment.Id, assignment.ProgramId, assignment.Title, assignment.IsPublished });
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return MapAssignment(assignment, null);
-    }
-
     public async Task<IReadOnlyList<ProjectResponse>> GetAdminProjectsAsync(CancellationToken cancellationToken)
     {
         var projects = await dbContext.Projects
@@ -1485,66 +931,6 @@ public sealed class LmsPortalService(
         Audit("Admin.ProjectUpdated", new { project.Id, project.ProgramId, project.Title, project.IsPublished });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapProject(project, null);
-    }
-
-    public async Task<IReadOnlyList<AssessmentResponse>> GetAdminAssessmentsAsync(CancellationToken cancellationToken)
-    {
-        var assessments = await dbContext.Assessments
-            .AsNoTracking()
-            .OrderByDescending(x => x.CreatedAt)
-            .Take(200)
-            .ToListAsync(cancellationToken);
-
-        return assessments.Select(MapAssessment).ToList();
-    }
-
-    public async Task<AssessmentResponse> CreateAssessmentAsync(
-        CreateAssessmentRequest request,
-        CancellationToken cancellationToken)
-    {
-        await EnsureProgramExistsAsync(request.ProgramId, cancellationToken);
-        EnsureScore(request.PassingPercentage, nameof(request.PassingPercentage));
-        var assessment = new Assessment
-        {
-            Id = Guid.NewGuid(),
-            ProgramId = request.ProgramId,
-            Title = RequiredText(request.Title, nameof(request.Title), 2, 180),
-            AssessmentType = RequiredText(request.AssessmentType, nameof(request.AssessmentType), 2, 80),
-            Instructions = RequiredText(request.Instructions, nameof(request.Instructions), 10, 2500),
-            DurationMinutes = request.DurationMinutes <= 0 ? 45 : request.DurationMinutes,
-            PassingPercentage = request.PassingPercentage,
-            IsAiPowered = request.IsAiPowered,
-            IsPublished = request.IsPublished
-        };
-
-        dbContext.Assessments.Add(assessment);
-        Audit("Admin.AssessmentCreated", new { assessment.Id, assessment.ProgramId, assessment.Title, assessment.IsAiPowered, assessment.IsPublished });
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return MapAssessment(assessment);
-    }
-
-    public async Task<AssessmentResponse> UpdateAssessmentAsync(
-        Guid assessmentId,
-        CreateAssessmentRequest request,
-        CancellationToken cancellationToken)
-    {
-        await EnsureProgramExistsAsync(request.ProgramId, cancellationToken);
-        EnsureScore(request.PassingPercentage, nameof(request.PassingPercentage));
-        var assessment = await dbContext.Assessments.FirstOrDefaultAsync(x => x.Id == assessmentId, cancellationToken)
-            ?? throw new AppException("Assessment was not found.", 404, "assessment_not_found");
-
-        assessment.ProgramId = request.ProgramId;
-        assessment.Title = RequiredText(request.Title, nameof(request.Title), 2, 180);
-        assessment.AssessmentType = RequiredText(request.AssessmentType, nameof(request.AssessmentType), 2, 80);
-        assessment.Instructions = RequiredText(request.Instructions, nameof(request.Instructions), 10, 2500);
-        assessment.DurationMinutes = request.DurationMinutes <= 0 ? 45 : request.DurationMinutes;
-        assessment.PassingPercentage = request.PassingPercentage;
-        assessment.IsAiPowered = request.IsAiPowered;
-        assessment.IsPublished = request.IsPublished;
-
-        Audit("Admin.AssessmentUpdated", new { assessment.Id, assessment.ProgramId, assessment.Title, assessment.IsAiPowered, assessment.IsPublished });
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return MapAssessment(assessment);
     }
 
     public async Task<IReadOnlyList<EnrollmentResponse>> GetAdminEnrollmentsAsync(CancellationToken cancellationToken)
@@ -1621,72 +1007,6 @@ public sealed class LmsPortalService(
         Audit("Admin.PaymentStatusUpdated", new { payment.Id, payment.StudentId, payment.EnrollmentId, payment.Status, payment.Amount });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapPayment(payment);
-    }
-
-    public async Task<PaymentTransactionResponse> RefundPaymentAsync(
-        Guid paymentId,
-        RefundPaymentRequest request,
-        CancellationToken cancellationToken)
-    {
-        var payment = await dbContext.PaymentTransactions
-            .Include(x => x.Enrollment)
-            .FirstOrDefaultAsync(x => x.Id == paymentId, cancellationToken)
-            ?? throw new AppException("Payment was not found.", 404, "payment_not_found");
-
-        payment.Status = PaymentStatus.Refunded;
-        payment.FailureReason = OptionalText(request.Reason, 500);
-        if (payment.Enrollment is not null)
-        {
-            payment.Enrollment.PaidAmount = Math.Max(payment.Enrollment.PaidAmount - payment.Amount, 0);
-            if (payment.Enrollment.PaidAmount < payment.Enrollment.TotalAmount)
-            {
-                payment.Enrollment.Status = EnrollmentStatus.Reserved;
-                payment.Enrollment.LockedReason = "Payment refund reduced access. Remaining balance is pending.";
-            }
-        }
-
-        Audit("Admin.PaymentRefunded", new { payment.Id, payment.StudentId, payment.EnrollmentId, payment.Amount, reason = request.Reason });
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return MapPayment(payment);
-    }
-
-    public async Task<IReadOnlyList<PaymentTransactionResponse>> GetAdminRefundsAsync(CancellationToken cancellationToken)
-    {
-        var refunds = await dbContext.PaymentTransactions
-            .AsNoTracking()
-            .Where(x => x.Status == PaymentStatus.Refunded)
-            .OrderByDescending(x => x.UpdatedAt ?? x.CreatedAt)
-            .Take(200)
-            .ToListAsync(cancellationToken);
-
-        return refunds.Select(MapPayment).ToList();
-    }
-
-    public async Task<AdminAiFeatureSummaryResponse> GetAdminAiFeaturesAsync(CancellationToken cancellationToken)
-    {
-        var aiAssessments = await dbContext.Assessments.CountAsync(x => x.IsAiPowered, cancellationToken);
-        var aiAssessmentAttempts = await dbContext.AssessmentAttempts.CountAsync(
-            attempt => dbContext.Assessments.Any(assessment => assessment.Id == attempt.AssessmentId && assessment.IsAiPowered),
-            cancellationToken);
-        var aiInterviewAttempts = await dbContext.AiInterviewAttempts.CountAsync(cancellationToken);
-        var completedAiInterviews = await dbContext.AiInterviewAttempts.CountAsync(
-            x => x.CompletedAt != null || x.Status == AssessmentAttemptStatus.Submitted || x.Status == AssessmentAttemptStatus.Evaluated,
-            cancellationToken);
-        var averageAssessmentScore = await dbContext.AssessmentAttempts
-            .Where(attempt => attempt.Score.HasValue &&
-                dbContext.Assessments.Any(assessment => assessment.Id == attempt.AssessmentId && assessment.IsAiPowered))
-            .AverageAsync(attempt => attempt.Score, cancellationToken) ?? 0;
-        var averageInterviewScore = await dbContext.AiInterviewAttempts
-            .Where(attempt => attempt.OverallScore.HasValue)
-            .AverageAsync(attempt => attempt.OverallScore, cancellationToken) ?? 0;
-
-        return new AdminAiFeatureSummaryResponse(
-            aiAssessments,
-            aiAssessmentAttempts,
-            aiInterviewAttempts,
-            completedAiInterviews,
-            Math.Round(averageAssessmentScore, 2),
-            Math.Round(averageInterviewScore, 2));
     }
 
     public async Task<IReadOnlyList<CouponResponse>> GetCouponsAsync(CancellationToken cancellationToken)
@@ -1836,237 +1156,6 @@ public sealed class LmsPortalService(
         return MapCertificate(certificate);
     }
 
-    public async Task<PagedResult<SupportTicketResponse>> GetSupportTicketsAsync(
-        int page,
-        int pageSize,
-        CancellationToken cancellationToken)
-    {
-        page = page <= 0 ? 1 : page;
-        pageSize = pageSize is <= 0 or > 100 ? 20 : pageSize;
-
-        var query = dbContext.SupportTickets.AsNoTracking();
-        var total = await query.CountAsync(cancellationToken);
-        var tickets = await query
-            .OrderBy(x => x.Status == SupportTicketStatus.Open ? 0 : 1)
-            .ThenByDescending(x => x.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(cancellationToken);
-
-        return new PagedResult<SupportTicketResponse>
-        {
-            Items = tickets.Select(MapSupportTicket).ToList(),
-            Page = page,
-            PageSize = pageSize,
-            TotalCount = total
-        };
-    }
-
-    public async Task<SupportTicketResponse> UpdateSupportTicketAsync(
-        Guid ticketId,
-        UpdateSupportTicketRequest request,
-        CancellationToken cancellationToken)
-    {
-        var ticket = await dbContext.SupportTickets.FirstOrDefaultAsync(x => x.Id == ticketId, cancellationToken)
-            ?? throw new AppException("Support ticket was not found.", 404, "support_ticket_not_found");
-
-        ticket.Status = request.Status;
-        ticket.AdminNotes = OptionalText(request.AdminNotes, 2500);
-        Audit("Support.TicketUpdated", new { ticket.Id, ticket.UserId, ticket.ProgramId, ticket.Status });
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return MapSupportTicket(ticket);
-    }
-
-    public async Task<IReadOnlyList<AdminContentItemResponse>> GetAdminContentAsync(
-        AdminContentType? contentType,
-        CancellationToken cancellationToken)
-    {
-        var query = dbContext.AdminContentItems.AsNoTracking().AsQueryable();
-        if (contentType.HasValue)
-        {
-            query = query.Where(x => x.ContentType == contentType.Value);
-        }
-
-        var content = await query
-            .OrderBy(x => x.ContentType)
-            .ThenBy(x => x.SortOrder)
-            .ThenBy(x => x.Title)
-            .Take(300)
-            .ToListAsync(cancellationToken);
-
-        return content.Select(MapAdminContent).ToList();
-    }
-
-    public async Task<AdminContentItemResponse> CreateAdminContentAsync(
-        CreateAdminContentItemRequest request,
-        CancellationToken cancellationToken)
-    {
-        var title = RequiredText(request.Title, nameof(request.Title), 2, 180);
-        var slug = string.IsNullOrWhiteSpace(request.Slug) ? GenerateSlug(title) : NormalizeSlug(request.Slug);
-
-        if (await dbContext.AdminContentItems.AnyAsync(x => x.ContentType == request.ContentType && x.Slug == slug, cancellationToken))
-        {
-            throw new AppException("Content slug already exists for this module.", 409, "admin_content_slug_exists");
-        }
-
-        var content = new AdminContentItem
-        {
-            Id = Guid.NewGuid(),
-            ContentType = request.ContentType,
-            Title = title,
-            Slug = slug,
-            Summary = OptionalText(request.Summary, 800),
-            Body = OptionalText(request.Body, 6000),
-            ImageUrl = OptionalUrl(request.ImageUrl, nameof(request.ImageUrl)),
-            ExternalUrl = OptionalUrl(request.ExternalUrl, nameof(request.ExternalUrl)),
-            MetadataJson = OptionalJson(request.MetadataJson, nameof(request.MetadataJson)) ?? "{}",
-            Status = request.Status,
-            IsFeatured = request.IsFeatured,
-            SortOrder = request.SortOrder > 0
-                ? request.SortOrder
-                : await dbContext.AdminContentItems.CountAsync(x => x.ContentType == request.ContentType, cancellationToken) + 1
-        };
-
-        dbContext.AdminContentItems.Add(content);
-        Audit("Admin.ContentCreated", new { content.Id, content.ContentType, content.Title, content.Slug, content.Status });
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return MapAdminContent(content);
-    }
-
-    public async Task<AdminContentItemResponse> UpdateAdminContentAsync(
-        Guid contentId,
-        CreateAdminContentItemRequest request,
-        CancellationToken cancellationToken)
-    {
-        var content = await dbContext.AdminContentItems.FirstOrDefaultAsync(x => x.Id == contentId, cancellationToken)
-            ?? throw new AppException("Admin content was not found.", 404, "admin_content_not_found");
-        var title = RequiredText(request.Title, nameof(request.Title), 2, 180);
-        var slug = string.IsNullOrWhiteSpace(request.Slug) ? GenerateSlug(title) : NormalizeSlug(request.Slug);
-
-        if (await dbContext.AdminContentItems.AnyAsync(
-            x => x.Id != contentId && x.ContentType == request.ContentType && x.Slug == slug,
-            cancellationToken))
-        {
-            throw new AppException("Content slug already exists for this module.", 409, "admin_content_slug_exists");
-        }
-
-        content.ContentType = request.ContentType;
-        content.Title = title;
-        content.Slug = slug;
-        content.Summary = OptionalText(request.Summary, 800);
-        content.Body = OptionalText(request.Body, 6000);
-        content.ImageUrl = OptionalUrl(request.ImageUrl, nameof(request.ImageUrl));
-        content.ExternalUrl = OptionalUrl(request.ExternalUrl, nameof(request.ExternalUrl));
-        content.MetadataJson = OptionalJson(request.MetadataJson, nameof(request.MetadataJson)) ?? "{}";
-        content.Status = request.Status;
-        content.IsFeatured = request.IsFeatured;
-        content.SortOrder = request.SortOrder > 0 ? request.SortOrder : content.SortOrder;
-
-        Audit("Admin.ContentUpdated", new { content.Id, content.ContentType, content.Title, content.Slug, content.Status });
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return MapAdminContent(content);
-    }
-
-    public async Task<IReadOnlyList<AdminLeadResponse>> GetAdminLeadsAsync(
-        string? leadType,
-        CancellationToken cancellationToken)
-    {
-        var normalizedLeadType = string.IsNullOrWhiteSpace(leadType) ? null : NormalizeLeadType(leadType);
-        var leads = new List<AdminLeadResponse>();
-
-        if (ShouldIncludeLead(normalizedLeadType, "CallbackRequest"))
-        {
-            var callbacks = await dbContext.CallbackRequests
-                .AsNoTracking()
-                .OrderByDescending(x => x.CreatedAt)
-                .Take(150)
-                .ToListAsync(cancellationToken);
-            leads.AddRange(callbacks.Select(MapCallbackLead));
-        }
-
-        if (ShouldIncludeLead(normalizedLeadType, "Enquiry"))
-        {
-            var enquiries = await dbContext.Enquiries
-                .AsNoTracking()
-                .OrderByDescending(x => x.CreatedAt)
-                .Take(150)
-                .ToListAsync(cancellationToken);
-            leads.AddRange(enquiries.Select(MapEnquiryLead));
-        }
-
-        if (ShouldIncludeLead(normalizedLeadType, "CampusAmbassador"))
-        {
-            var ambassadors = await dbContext.CampusAmbassadorApplications
-                .AsNoTracking()
-                .OrderByDescending(x => x.CreatedAt)
-                .Take(150)
-                .ToListAsync(cancellationToken);
-            leads.AddRange(ambassadors.Select(MapCampusAmbassadorLead));
-        }
-
-        if (ShouldIncludeLead(normalizedLeadType, "Career"))
-        {
-            var careers = await dbContext.CareerApplications
-                .AsNoTracking()
-                .OrderByDescending(x => x.CreatedAt)
-                .Take(150)
-                .ToListAsync(cancellationToken);
-            leads.AddRange(careers.Select(MapCareerLead));
-        }
-
-        return leads
-            .OrderByDescending(x => x.CreatedAt)
-            .Take(300)
-            .ToList();
-    }
-
-    public async Task<AdminLeadResponse> UpdateAdminLeadStatusAsync(
-        string leadType,
-        Guid leadId,
-        UpdateLeadStatusRequest request,
-        CancellationToken cancellationToken)
-    {
-        var normalizedLeadType = NormalizeLeadType(leadType);
-
-        if (normalizedLeadType == "CallbackRequest")
-        {
-            var lead = await dbContext.CallbackRequests.FirstOrDefaultAsync(x => x.Id == leadId, cancellationToken)
-                ?? throw new AppException("Callback request was not found.", 404, "lead_not_found");
-            lead.Status = request.Status;
-            lead.Notes = OptionalText(request.Notes, 1200) ?? lead.Notes;
-            Audit("Admin.LeadUpdated", new { lead.Id, LeadType = normalizedLeadType, lead.Status });
-            await dbContext.SaveChangesAsync(cancellationToken);
-            return MapCallbackLead(lead);
-        }
-
-        if (normalizedLeadType == "Enquiry")
-        {
-            var lead = await dbContext.Enquiries.FirstOrDefaultAsync(x => x.Id == leadId, cancellationToken)
-                ?? throw new AppException("Enquiry was not found.", 404, "lead_not_found");
-            lead.Status = request.Status;
-            Audit("Admin.LeadUpdated", new { lead.Id, LeadType = normalizedLeadType, lead.Status });
-            await dbContext.SaveChangesAsync(cancellationToken);
-            return MapEnquiryLead(lead);
-        }
-
-        if (normalizedLeadType == "CampusAmbassador")
-        {
-            var lead = await dbContext.CampusAmbassadorApplications.FirstOrDefaultAsync(x => x.Id == leadId, cancellationToken)
-                ?? throw new AppException("Campus ambassador application was not found.", 404, "lead_not_found");
-            lead.Status = request.Status;
-            Audit("Admin.LeadUpdated", new { lead.Id, LeadType = normalizedLeadType, lead.Status });
-            await dbContext.SaveChangesAsync(cancellationToken);
-            return MapCampusAmbassadorLead(lead);
-        }
-
-        var career = await dbContext.CareerApplications.FirstOrDefaultAsync(x => x.Id == leadId, cancellationToken)
-            ?? throw new AppException("Career application was not found.", 404, "lead_not_found");
-        career.Status = request.Status;
-        Audit("Admin.LeadUpdated", new { career.Id, LeadType = normalizedLeadType, career.Status });
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return MapCareerLead(career);
-    }
-
     public async Task<IReadOnlyList<AdminNotificationResponse>> GetAdminNotificationsAsync(CancellationToken cancellationToken)
     {
         var notifications = await dbContext.Notifications
@@ -2108,11 +1197,6 @@ public sealed class LmsPortalService(
             targetUserIds.UnionWith(await GetUserIdsInRoleAsync("Student", cancellationToken));
         }
 
-        if (request.SendToAllMentors)
-        {
-            targetUserIds.UnionWith(await GetUserIdsInRoleAsync("Mentor", cancellationToken));
-        }
-
         if (targetUserIds.Count == 0)
         {
             throw new AppException("Choose at least one notification recipient.", 400, "notification_target_required");
@@ -2136,270 +1220,6 @@ public sealed class LmsPortalService(
         return await MapAdminNotificationsAsync(notifications, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<AdminSettingResponse>> GetAdminSettingsAsync(
-        string? category,
-        CancellationToken cancellationToken)
-    {
-        var query = dbContext.AdminSettings.AsNoTracking().AsQueryable();
-        if (!string.IsNullOrWhiteSpace(category))
-        {
-            var normalizedCategory = RequiredText(category, nameof(category), 2, 80);
-            query = query.Where(x => x.Category == normalizedCategory);
-        }
-
-        var settings = await query
-            .OrderBy(x => x.Category)
-            .ThenBy(x => x.Key)
-            .ToListAsync(cancellationToken);
-
-        return settings.Select(MapAdminSetting).ToList();
-    }
-
-    public async Task<AdminSettingResponse> UpsertAdminSettingAsync(
-        string category,
-        string key,
-        UpsertAdminSettingRequest request,
-        CancellationToken cancellationToken)
-    {
-        var normalizedCategory = RequiredText(category, nameof(category), 2, 80);
-        var normalizedKey = RequiredText(key, nameof(key), 2, 120);
-        var setting = await dbContext.AdminSettings
-            .FirstOrDefaultAsync(x => x.Category == normalizedCategory && x.Key == normalizedKey, cancellationToken);
-
-        if (setting is null)
-        {
-            setting = new AdminSetting
-            {
-                Id = Guid.NewGuid(),
-                Category = normalizedCategory,
-                Key = normalizedKey
-            };
-            dbContext.AdminSettings.Add(setting);
-        }
-
-        setting.Value = RequiredText(request.Value, nameof(request.Value), 1, 4000);
-        setting.Description = OptionalText(request.Description, 500);
-        setting.IsSecret = request.IsSecret;
-
-        Audit("Admin.SettingSaved", new { setting.Id, setting.Category, setting.Key, setting.IsSecret });
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return MapAdminSetting(setting);
-    }
-
-    public async Task<AdminReportResponse> GetAdminReportsAsync(CancellationToken cancellationToken)
-    {
-        var enrollments = await GetAdminEnrollmentsAsync(cancellationToken);
-        var payments = await GetAdminPaymentsAsync(cancellationToken);
-        var supportTickets = await GetSupportTicketsAsync(1, 20, cancellationToken);
-
-        return new AdminReportResponse(
-            await GetAdminSummaryAsync(cancellationToken),
-            await GetAdminProgramsAsync(cancellationToken),
-            enrollments.Take(20).ToList(),
-            payments.Take(20).ToList(),
-            supportTickets.Items.ToList());
-    }
-
-    public async Task<MentorDashboardResponse> GetMentorDashboardAsync(Guid mentorId, CancellationToken cancellationToken)
-    {
-        var now = clock.UtcNow;
-        var liveClasses = await dbContext.LiveClasses.CountAsync(
-            x => x.MentorId == mentorId && x.StartsAt >= now,
-            cancellationToken);
-        var pendingAssignments = await dbContext.AssignmentSubmissions
-            .CountAsync(x => x.Status == SubmissionStatus.Submitted, cancellationToken);
-        var pendingProjects = await dbContext.ProjectSubmissions
-            .CountAsync(x => x.Status == SubmissionStatus.Submitted, cancellationToken);
-        var reviewed = await dbContext.AssignmentSubmissions.CountAsync(x => x.ReviewedById == mentorId, cancellationToken) +
-            await dbContext.ProjectSubmissions.CountAsync(x => x.ReviewedById == mentorId, cancellationToken);
-
-        return new MentorDashboardResponse(liveClasses, pendingAssignments, pendingProjects, reviewed);
-    }
-
-    public async Task<IReadOnlyList<MentorLearnerResponse>> GetMentorLearnersAsync(
-        Guid mentorId,
-        CancellationToken cancellationToken)
-    {
-        var enrollments = await dbContext.Enrollments
-            .AsNoTracking()
-            .Include(x => x.Program)
-            .OrderByDescending(x => x.CreatedAt)
-            .Take(200)
-            .ToListAsync(cancellationToken);
-        var studentIds = enrollments.Select(x => x.StudentId).Distinct().ToList();
-        var users = await dbContext.Users
-            .AsNoTracking()
-            .Where(x => studentIds.Contains(x.Id))
-            .ToDictionaryAsync(x => x.Id, cancellationToken);
-        var result = new List<MentorLearnerResponse>();
-
-        foreach (var enrollment in enrollments)
-        {
-            if (!users.TryGetValue(enrollment.StudentId, out var user))
-            {
-                continue;
-            }
-
-            var progress = await GetLearningProgressAsync(enrollment.StudentId, enrollment.ProgramId, cancellationToken);
-
-            result.Add(new MentorLearnerResponse(
-                user.Id,
-                user.FullName,
-                user.Email ?? string.Empty,
-                user.PhoneNumber,
-                enrollment.Id,
-                enrollment.Program?.Title ?? "Program",
-                enrollment.Status.ToString(),
-                progress.Percentage,
-                enrollment.EnrolledAt));
-        }
-
-        return result;
-    }
-
-    public async Task<IReadOnlyList<LiveClassResponse>> GetMentorLiveClassesAsync(
-        Guid mentorId,
-        CancellationToken cancellationToken)
-    {
-        var classes = await dbContext.LiveClasses
-            .AsNoTracking()
-            .Where(x => x.MentorId == mentorId || x.MentorId == null)
-            .OrderBy(x => x.StartsAt)
-            .Take(100)
-            .ToListAsync(cancellationToken);
-
-        return classes.Select(MapLiveClass).ToList();
-    }
-
-    public async Task<LiveClassResponse> CreateMentorLiveClassAsync(
-        Guid mentorId,
-        CreateLiveClassRequest request,
-        CancellationToken cancellationToken)
-    {
-        await EnsureProgramExistsAsync(request.ProgramId, cancellationToken);
-        var entity = CreateLiveClassEntity(request, mentorId);
-        dbContext.LiveClasses.Add(entity);
-        Audit("Mentor.LiveClassCreated", new { mentorId, entity.Id, entity.ProgramId, entity.Title, entity.StartsAt, entity.EndsAt });
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return MapLiveClass(entity);
-    }
-
-    public async Task<MentorReviewQueueResponse> GetMentorReviewQueueAsync(Guid mentorId, CancellationToken cancellationToken)
-    {
-        var assignmentSubmissions = await dbContext.AssignmentSubmissions
-            .AsNoTracking()
-            .Where(x => x.Status == SubmissionStatus.Submitted)
-            .OrderBy(x => x.CreatedAt)
-            .Take(25)
-            .ToListAsync(cancellationToken);
-        var projectSubmissions = await dbContext.ProjectSubmissions
-            .AsNoTracking()
-            .Where(x => x.Status == SubmissionStatus.Submitted)
-            .OrderBy(x => x.CreatedAt)
-            .Take(25)
-            .ToListAsync(cancellationToken);
-
-        return new MentorReviewQueueResponse(
-            assignmentSubmissions.Select(MapAssignmentSubmission).ToList(),
-            projectSubmissions.Select(MapProjectSubmission).ToList());
-    }
-
-    public async Task<SubmissionResponse> ReviewAssignmentSubmissionAsync(
-        Guid mentorId,
-        Guid submissionId,
-        ReviewSubmissionRequest request,
-        CancellationToken cancellationToken)
-    {
-        var submission = await dbContext.AssignmentSubmissions.FirstOrDefaultAsync(x => x.Id == submissionId, cancellationToken)
-            ?? throw new AppException("Assignment submission was not found.", 404, "submission_not_found");
-
-        ApplyReview(submission, mentorId, request);
-        Audit("Mentor.AssignmentReviewed", new { mentorId, submission.Id, submission.AssignmentId, request.Score, request.Status });
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return MapAssignmentSubmission(submission);
-    }
-
-    public async Task<SubmissionResponse> ReviewProjectSubmissionAsync(
-        Guid mentorId,
-        Guid submissionId,
-        ReviewSubmissionRequest request,
-        CancellationToken cancellationToken)
-    {
-        var submission = await dbContext.ProjectSubmissions.FirstOrDefaultAsync(x => x.Id == submissionId, cancellationToken)
-            ?? throw new AppException("Project submission was not found.", 404, "submission_not_found");
-
-        ApplyReview(submission, mentorId, request);
-        Audit("Mentor.ProjectReviewed", new { mentorId, submission.Id, submission.ProjectId, request.Score, request.Status });
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return MapProjectSubmission(submission);
-    }
-
-    public async Task<IReadOnlyList<AssessmentAttemptResponse>> GetMentorAssessmentReviewQueueAsync(
-        Guid mentorId,
-        CancellationToken cancellationToken)
-    {
-        var attempts = await dbContext.AssessmentAttempts
-            .AsNoTracking()
-            .Include(x => x.Assessment)
-            .Where(x => x.Status == AssessmentAttemptStatus.Submitted)
-            .OrderBy(x => x.SubmittedAt ?? x.StartedAt)
-            .Take(100)
-            .ToListAsync(cancellationToken);
-
-        return attempts.Select(MapAssessmentAttempt).ToList();
-    }
-
-    public async Task<AssessmentAttemptResponse> ReviewAssessmentAttemptAsync(
-        Guid mentorId,
-        Guid attemptId,
-        SubmitAssessmentAttemptRequest request,
-        CancellationToken cancellationToken)
-    {
-        var attempt = await dbContext.AssessmentAttempts
-            .Include(x => x.Assessment)
-            .FirstOrDefaultAsync(x => x.Id == attemptId, cancellationToken)
-            ?? throw new AppException("Assessment attempt was not found.", 404, "assessment_attempt_not_found");
-
-        if (request.Score.HasValue)
-        {
-            EnsureScore(request.Score.Value, nameof(request.Score));
-        }
-
-        attempt.Score = request.Score;
-        attempt.ResultJson = OptionalJson(request.ResultJson, nameof(request.ResultJson));
-        attempt.Status = AssessmentAttemptStatus.Evaluated;
-        attempt.SubmittedAt ??= clock.UtcNow;
-        Audit("Mentor.AssessmentReviewed", new { mentorId, attempt.Id, attempt.AssessmentId, request.Score });
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return MapAssessmentAttempt(attempt);
-    }
-
-    public async Task<IReadOnlyList<SupportTicketResponse>> GetMentorSupportRequestsAsync(
-        Guid mentorId,
-        CancellationToken cancellationToken)
-    {
-        var tickets = await dbContext.SupportTickets
-            .AsNoTracking()
-            .Where(x => x.Issue.ToLower().Contains("mentor") ||
-                        x.Issue.ToLower().Contains("review") ||
-                        x.Issue.ToLower().Contains("project") ||
-                        x.Issue.ToLower().Contains("assignment"))
-            .OrderByDescending(x => x.CreatedAt)
-            .Take(100)
-            .ToListAsync(cancellationToken);
-
-        return tickets.Select(MapSupportTicket).ToList();
-    }
-
-    public Task<SupportTicketResponse> UpdateMentorSupportRequestAsync(
-        Guid mentorId,
-        Guid ticketId,
-        UpdateSupportTicketRequest request,
-        CancellationToken cancellationToken)
-    {
-        return UpdateSupportTicketAsync(ticketId, request, cancellationToken);
-    }
-
     private async Task<ProgramDetailsResponse> GetProgramBySlugForAdminAsync(string slug, CancellationToken cancellationToken)
     {
         var program = await dbContext.LearningPrograms
@@ -2420,9 +1240,7 @@ public sealed class LmsPortalService(
         CancellationToken cancellationToken)
     {
         var projects = await dbContext.Projects.AsNoTracking().Where(x => x.ProgramId == program.Id).ToListAsync(cancellationToken);
-        var assignments = await dbContext.Assignments.AsNoTracking().Where(x => x.ProgramId == program.Id).ToListAsync(cancellationToken);
-        var assessments = await dbContext.Assessments.AsNoTracking().Where(x => x.ProgramId == program.Id).ToListAsync(cancellationToken);
-        return MapProgramDetails(program, projects, assignments, assessments, new Dictionary<Guid, LessonProgress>());
+        return MapProgramDetails(program, projects, new Dictionary<Guid, LessonProgress>());
     }
 
     private async Task<Enrollment> CreateEnrollmentEntityAsync(
@@ -2549,7 +1367,7 @@ public sealed class LmsPortalService(
             program.Level,
             program.Duration,
             program.LearningMode,
-            program.ThumbnailUrl ?? DefaultThumbnailUrl,
+            ResolveProgramThumbnailUrl(program.ThumbnailUrl),
             program.Status.ToString(),
             startingPrice,
             DeserializeList(program.SkillsJson));
@@ -2558,8 +1376,6 @@ public sealed class LmsPortalService(
     private static ProgramDetailsResponse MapProgramDetails(
         LearningProgram program,
         IReadOnlyList<Project> projects,
-        IReadOnlyList<Assignment> assignments,
-        IReadOnlyList<Assessment> assessments,
         IReadOnlyDictionary<Guid, LessonProgress> progress)
     {
         return new ProgramDetailsResponse(
@@ -2573,18 +1389,15 @@ public sealed class LmsPortalService(
             program.Level,
             program.Duration,
             program.LearningMode,
-            program.MentorSummary,
             program.CertificationName,
-            program.ThumbnailUrl ?? DefaultThumbnailUrl,
+            ResolveProgramThumbnailUrl(program.ThumbnailUrl),
             program.Status.ToString(),
             DeserializeList(program.SkillsJson),
             DeserializeList(program.OutcomesJson),
             DeserializeFaqs(program.FaqsJson),
             program.Plans.OrderBy(x => x.SortOrder).Select(MapPlan).ToList(),
             program.Modules.OrderBy(x => x.SortOrder).Select(module => MapCurriculumModule(module, null, progress)).ToList(),
-            projects.Select(project => MapProject(project, null)).ToList(),
-            assignments.Select(assignment => MapAssignment(assignment, null)).ToList(),
-            assessments.Select(MapAssessment).ToList());
+            projects.Select(project => MapProject(project, null)).ToList());
     }
 
     private static ProgramPlanResponse MapPlan(ProgramPlan plan)
@@ -2676,33 +1489,6 @@ public sealed class LmsPortalService(
             payment.VerifiedAt);
     }
 
-    private static LiveClassResponse MapLiveClass(LiveClass liveClass)
-    {
-        return new LiveClassResponse(
-            liveClass.Id,
-            liveClass.ProgramId,
-            liveClass.Title,
-            liveClass.Description,
-            liveClass.StartsAt,
-            liveClass.EndsAt,
-            liveClass.JoinUrl,
-            liveClass.RecordingUrl,
-            liveClass.Status.ToString());
-    }
-
-    private static AssignmentResponse MapAssignment(Assignment assignment, AssignmentSubmission? submission)
-    {
-        return new AssignmentResponse(
-            assignment.Id,
-            assignment.ProgramId,
-            assignment.Title,
-            assignment.Instructions,
-            assignment.DueAt,
-            assignment.MaxScore,
-            assignment.IsPublished,
-            submission is null ? null : MapAssignmentSubmission(submission));
-    }
-
     private static ProjectResponse MapProject(Project project, ProjectSubmission? submission)
     {
         return new ProjectResponse(
@@ -2714,26 +1500,6 @@ public sealed class LmsPortalService(
             project.MaxScore,
             project.IsPublished,
             submission is null ? null : MapProjectSubmission(submission));
-    }
-
-    private static SubmissionResponse MapAssignmentSubmission(AssignmentSubmission submission)
-    {
-        return new SubmissionResponse(
-            submission.Id,
-            submission.AssignmentId,
-            "Assignment",
-            submission.Status.ToString(),
-            submission.Score,
-            submission.Feedback,
-            submission.SubmissionUrl,
-            submission.FileUrl,
-            null,
-            null,
-            null,
-            null,
-            submission.Notes,
-            submission.CreatedAt,
-            submission.ReviewedAt);
     }
 
     private static SubmissionResponse MapProjectSubmission(ProjectSubmission submission)
@@ -2756,54 +1522,6 @@ public sealed class LmsPortalService(
             submission.ReviewedAt);
     }
 
-    private static AssessmentResponse MapAssessment(Assessment assessment)
-    {
-        return new AssessmentResponse(
-            assessment.Id,
-            assessment.ProgramId,
-            assessment.Title,
-            assessment.AssessmentType,
-            assessment.Instructions,
-            assessment.DurationMinutes,
-            assessment.PassingPercentage,
-            assessment.IsAiPowered,
-            assessment.IsPublished);
-    }
-
-    private static AssessmentAttemptResponse MapAssessmentAttempt(AssessmentAttempt attempt)
-    {
-        return new AssessmentAttemptResponse(
-            attempt.Id,
-            attempt.AssessmentId,
-            attempt.Assessment?.Title ?? "Assessment",
-            attempt.StudentId,
-            attempt.EnrollmentId,
-            attempt.Status.ToString(),
-            attempt.StartedAt,
-            attempt.SubmittedAt,
-            attempt.Score,
-            attempt.ResultJson);
-    }
-
-    private static AiInterviewAttemptResponse MapAiInterviewAttempt(AiInterviewAttempt attempt)
-    {
-        return new AiInterviewAttemptResponse(
-            attempt.Id,
-            attempt.StudentId,
-            attempt.EnrollmentId,
-            attempt.JobRole,
-            attempt.Domain,
-            attempt.InterviewType,
-            attempt.TechnicalScore,
-            attempt.CommunicationScore,
-            attempt.OverallScore,
-            attempt.TranscriptJson,
-            attempt.RecommendationsJson,
-            attempt.Status.ToString(),
-            attempt.StartedAt,
-            attempt.CompletedAt);
-    }
-
     private static CertificateResponse MapCertificate(Certificate certificate)
     {
         return new CertificateResponse(
@@ -2819,25 +1537,6 @@ public sealed class LmsPortalService(
             certificate.VerificationUrl,
             certificate.QrCodeUrl,
             certificate.AuthorizedSignatory);
-    }
-
-    private static SupportTicketResponse MapSupportTicket(SupportTicket ticket)
-    {
-        return new SupportTicketResponse(
-            ticket.Id,
-            ticket.UserId,
-            ticket.ProgramId,
-            ticket.Name,
-            ticket.Email,
-            ticket.StudentIdText,
-            ticket.Issue,
-            ticket.Description,
-            ticket.AttachmentUrl,
-            ticket.Priority,
-            ticket.Status.ToString(),
-            ticket.AdminNotes,
-            ticket.CreatedAt,
-            ticket.UpdatedAt);
     }
 
     private static NotificationResponse MapNotification(Notification notification)
@@ -2863,89 +1562,6 @@ public sealed class LmsPortalService(
             coupon.IsActive,
             coupon.StartsAt,
             coupon.ExpiresAt);
-    }
-
-    private static AdminContentItemResponse MapAdminContent(AdminContentItem content)
-    {
-        return new AdminContentItemResponse(
-            content.Id,
-            content.ContentType.ToString(),
-            content.Title,
-            content.Slug,
-            content.Summary,
-            content.Body,
-            content.ImageUrl,
-            content.ExternalUrl,
-            content.MetadataJson,
-            content.Status.ToString(),
-            content.IsFeatured,
-            content.SortOrder,
-            content.CreatedAt,
-            content.UpdatedAt);
-    }
-
-    private static AdminLeadResponse MapCallbackLead(CallbackRequest lead)
-    {
-        return new AdminLeadResponse(
-            lead.Id,
-            "CallbackRequest",
-            lead.FullName,
-            lead.Email,
-            lead.PhoneNumber,
-            lead.InterestedProgram,
-            null,
-            lead.Notes,
-            lead.Status.ToString(),
-            lead.CreatedAt,
-            lead.UpdatedAt);
-    }
-
-    private static AdminLeadResponse MapEnquiryLead(Enquiry lead)
-    {
-        return new AdminLeadResponse(
-            lead.Id,
-            "Enquiry",
-            lead.FullName,
-            lead.Email,
-            lead.PhoneNumber,
-            lead.Topic,
-            null,
-            lead.Message,
-            lead.Status.ToString(),
-            lead.CreatedAt,
-            lead.UpdatedAt);
-    }
-
-    private static AdminLeadResponse MapCampusAmbassadorLead(CampusAmbassadorApplication lead)
-    {
-        return new AdminLeadResponse(
-            lead.Id,
-            "CampusAmbassador",
-            lead.FullName,
-            lead.Email,
-            lead.PhoneNumber,
-            lead.College,
-            lead.City,
-            lead.WhyJoin,
-            lead.Status.ToString(),
-            lead.CreatedAt,
-            lead.UpdatedAt);
-    }
-
-    private static AdminLeadResponse MapCareerLead(CareerApplication lead)
-    {
-        return new AdminLeadResponse(
-            lead.Id,
-            "Career",
-            lead.FullName,
-            lead.Email,
-            lead.PhoneNumber,
-            lead.Role,
-            lead.PortfolioUrl ?? lead.ResumeUrl,
-            lead.CoverNote,
-            lead.Status.ToString(),
-            lead.CreatedAt,
-            lead.UpdatedAt);
     }
 
     private async Task<IReadOnlyList<AdminNotificationResponse>> MapAdminNotificationsAsync(
@@ -2976,19 +1592,6 @@ public sealed class LmsPortalService(
         }).ToList();
     }
 
-    private static AdminSettingResponse MapAdminSetting(AdminSetting setting)
-    {
-        return new AdminSettingResponse(
-            setting.Id,
-            setting.Category,
-            setting.Key,
-            setting.IsSecret ? "********" : setting.Value,
-            setting.Description,
-            setting.IsSecret,
-            setting.CreatedAt,
-            setting.UpdatedAt);
-    }
-
     private async Task<IReadOnlyList<Guid>> GetUserIdsInRoleAsync(string roleName, CancellationToken cancellationToken)
     {
         var roleId = await dbContext.Roles
@@ -3009,29 +1612,6 @@ public sealed class LmsPortalService(
             .ToListAsync(cancellationToken);
     }
 
-    private static string NormalizeLeadType(string leadType)
-    {
-        var normalized = RequiredText(leadType, nameof(leadType), 2, 80)
-            .Replace("-", string.Empty, StringComparison.Ordinal)
-            .Replace("_", string.Empty, StringComparison.Ordinal)
-            .Replace(" ", string.Empty, StringComparison.Ordinal)
-            .ToLowerInvariant();
-
-        return normalized switch
-        {
-            "callback" or "callbacks" or "callbackrequest" or "callbackrequests" => "CallbackRequest",
-            "enquiry" or "enquiries" or "inquiry" or "inquiries" => "Enquiry",
-            "campus" or "ambassador" or "campusambassador" or "campusambassadors" => "CampusAmbassador",
-            "career" or "careers" or "careerapplication" or "careerapplications" => "Career",
-            _ => throw new AppException("Lead type is not supported.", 400, "unsupported_lead_type")
-        };
-    }
-
-    private static bool ShouldIncludeLead(string? requestedLeadType, string currentLeadType)
-    {
-        return requestedLeadType is null || requestedLeadType == currentLeadType;
-    }
-
     private static void AddDefaultProgramPlans(LearningProgram program)
     {
         var plans = new[]
@@ -3044,8 +1624,8 @@ public sealed class LmsPortalService(
                 OfferPrice = 3999m,
                 Features = new[]
                 {
-                    "Recorded Classes", "Complete Curriculum", "Assignments", "Projects",
-                    "Assessments", "LMS Access", "Certificate", "Basic Support"
+                    "Lesson Replays", "Complete Curriculum", "Projects", "LMS Access",
+                    "Certificate", "Basic Support"
                 }
             },
             new
@@ -3056,8 +1636,8 @@ public sealed class LmsPortalService(
                 OfferPrice = 4999m,
                 Features = new[]
                 {
-                    "Live Sessions", "Mentor Support", "Project Reviews", "AI Assessment",
-                    "AI Interview", "Resume Review", "Interview Preparation", "Priority Support"
+                    "Live Sessions", "Project Reviews", "Resume Review",
+                    "Interview Preparation", "Priority Support"
                 }
             },
             new
@@ -3068,7 +1648,7 @@ public sealed class LmsPortalService(
                 OfferPrice = 9999m,
                 Features = new[]
                 {
-                    "Personal Mentor", "Additional Live Sessions", "Advanced Project Reviews", "Portfolio Development",
+                    "Additional Live Sessions", "Advanced Project Reviews", "Portfolio Development",
                     "Resume Optimization", "Mock Interviews", "Technical Interview Preparation", "HR Interview Preparation",
                     "Career / Placement Assistance", "Priority Support"
                 }
@@ -3105,9 +1685,8 @@ public sealed class LmsPortalService(
         program.Level = RequiredText(request.Level, nameof(request.Level), 2, 80);
         program.Duration = RequiredText(request.Duration, nameof(request.Duration), 2, 80);
         program.LearningMode = RequiredText(request.LearningMode, nameof(request.LearningMode), 2, 120);
-        program.MentorSummary = RequiredText(request.MentorSummary, nameof(request.MentorSummary), 10, 1000);
         program.CertificationName = RequiredText(request.CertificationName, nameof(request.CertificationName), 2, 180);
-        program.ThumbnailUrl = OptionalUrl(request.ThumbnailUrl, nameof(request.ThumbnailUrl));
+        program.ThumbnailUrl = OptionalMediaUrl(request.ThumbnailUrl, nameof(request.ThumbnailUrl));
         program.SkillsJson = SerializeList(request.Skills);
         program.OutcomesJson = SerializeList(request.Outcomes);
         program.FaqsJson = JsonSerializer.Serialize(request.Faqs, JsonOptions);
@@ -3126,7 +1705,6 @@ public sealed class LmsPortalService(
             Level = request.Level,
             Duration = request.Duration,
             LearningMode = request.LearningMode,
-            MentorSummary = request.MentorSummary,
             CertificationName = request.CertificationName,
             ThumbnailUrl = request.ThumbnailUrl,
             Skills = request.Skills,
@@ -3134,35 +1712,6 @@ public sealed class LmsPortalService(
             Faqs = request.Faqs,
             Status = request.Status
         });
-    }
-
-    private static LiveClass CreateLiveClassEntity(CreateLiveClassRequest request, Guid? mentorId)
-    {
-        var liveClass = new LiveClass
-        {
-            Id = Guid.NewGuid(),
-            Status = LiveClassStatus.Scheduled
-        };
-
-        ApplyLiveClassRequest(liveClass, request, mentorId);
-        return liveClass;
-    }
-
-    private static void ApplyLiveClassRequest(LiveClass liveClass, CreateLiveClassRequest request, Guid? mentorId)
-    {
-        if (request.EndsAt <= request.StartsAt)
-        {
-            throw Validation(nameof(request.EndsAt), "Class end time must be after start time.");
-        }
-
-        liveClass.ProgramId = request.ProgramId;
-        liveClass.MentorId = mentorId ?? request.MentorId;
-        liveClass.Title = RequiredText(request.Title, nameof(request.Title), 2, 180);
-        liveClass.Description = RequiredText(request.Description, nameof(request.Description), 10, 1200);
-        liveClass.StartsAt = request.StartsAt;
-        liveClass.EndsAt = request.EndsAt;
-        liveClass.JoinUrl = OptionalUrl(request.JoinUrl, nameof(request.JoinUrl));
-        liveClass.RecordingUrl = OptionalUrl(request.RecordingUrl, nameof(request.RecordingUrl));
     }
 
     private async Task EnsureCategoryExistsAsync(Guid categoryId, CancellationToken cancellationToken)
@@ -3179,26 +1728,6 @@ public sealed class LmsPortalService(
         {
             throw new AppException("Program was not found.", 404, "program_not_found");
         }
-    }
-
-    private void ApplyReview(AssignmentSubmission submission, Guid reviewerId, ReviewSubmissionRequest request)
-    {
-        EnsureScore(request.Score, nameof(request.Score));
-        submission.Score = request.Score;
-        submission.Feedback = RequiredText(request.Feedback, nameof(request.Feedback), 3, 2500);
-        submission.Status = request.Status;
-        submission.ReviewedById = reviewerId;
-        submission.ReviewedAt = clock.UtcNow;
-    }
-
-    private void ApplyReview(ProjectSubmission submission, Guid reviewerId, ReviewSubmissionRequest request)
-    {
-        EnsureScore(request.Score, nameof(request.Score));
-        submission.Score = request.Score;
-        submission.Feedback = RequiredText(request.Feedback, nameof(request.Feedback), 3, 2500);
-        submission.Status = request.Status;
-        submission.ReviewedById = reviewerId;
-        submission.ReviewedAt = clock.UtcNow;
     }
 
     private static string NormalizeSlug(string value)
@@ -3276,12 +1805,98 @@ public sealed class LmsPortalService(
         if (!Uri.TryCreate(trimmed, UriKind.Absolute, out var uri) ||
             (uri.Scheme is not "http" and not "https") ||
             string.IsNullOrWhiteSpace(uri.Host) ||
-            !uri.Host.Contains('.'))
+            (!uri.Host.Contains('.') && !uri.IsLoopback))
         {
             throw Validation(fieldName, "Enter a valid URL.");
         }
 
         return trimmed;
+    }
+
+    private static string? OptionalMediaUrl(string? value, string fieldName)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var trimmed = value.Trim();
+        var permanentLocalAssetUrl = ToPermanentLocalPublicAssetUrl(trimmed);
+        if (!string.IsNullOrWhiteSpace(permanentLocalAssetUrl))
+        {
+            return permanentLocalAssetUrl;
+        }
+
+        if (IsSafeAppMediaPath(trimmed))
+        {
+            return trimmed;
+        }
+
+        return OptionalUrl(trimmed, fieldName);
+    }
+
+    private static bool IsSafeAppMediaPath(string value)
+    {
+        if (!value.StartsWith('/') ||
+            value.StartsWith("//") ||
+            value.Contains('\\'))
+        {
+            return false;
+        }
+
+        var queryStart = value.IndexOf('?');
+        var path = queryStart >= 0 ? value[..queryStart] : value;
+        return !path.Contains("..", StringComparison.Ordinal) &&
+            (path.StartsWith("/assets/", StringComparison.OrdinalIgnoreCase) ||
+             path.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase) ||
+             path.StartsWith("/api/v1/assets/public-files/", StringComparison.OrdinalIgnoreCase) ||
+             path.StartsWith("/api/v1/assets/local-files/", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string ResolveProgramThumbnailUrl(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return DefaultThumbnailUrl;
+        }
+
+        var trimmed = value.Trim();
+        return ToPermanentLocalPublicAssetUrl(trimmed) ?? trimmed;
+    }
+
+    private static string? ToPermanentLocalPublicAssetUrl(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var trimmed = value.Trim();
+        var path = trimmed;
+        string? origin = null;
+
+        if (Uri.TryCreate(trimmed, UriKind.Absolute, out var absoluteUri))
+        {
+            path = absoluteUri.AbsolutePath;
+            origin = absoluteUri.GetLeftPart(UriPartial.Authority);
+        }
+        else
+        {
+            var queryStart = path.IndexOf('?');
+            if (queryStart >= 0)
+            {
+                path = path[..queryStart];
+            }
+        }
+
+        var match = LocalAssetFilePathRegex.Match(path);
+        if (!match.Success || !Guid.TryParse(match.Groups[1].Value, out var assetId))
+        {
+            return null;
+        }
+
+        var publicPath = $"/api/v1/assets/public-files/{assetId:D}";
+        return origin is null ? publicPath : $"{origin}{publicPath}";
     }
 
     private static string? OptionalJson(string? value, string fieldName)

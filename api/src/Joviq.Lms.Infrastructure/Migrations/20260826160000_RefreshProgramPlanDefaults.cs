@@ -19,7 +19,7 @@ public sealed class RefreshProgramPlanDefaults : Migration
                 "Name" = 'Self-Paced',
                 "ActualPrice" = 7999,
                 "OfferPrice" = 3999,
-                "FeaturesJson" = '["Recorded Classes","Complete Curriculum","Assignments","Projects","Assessments","LMS Access","Certificate","Basic Support"]'::jsonb
+                "FeaturesJson" = '["Lesson Replays","Complete Curriculum","Projects","LMS Access","Certificate","Basic Support"]'::jsonb
             WHERE "Code" = 'SELF';
 
             UPDATE "program_plans"
@@ -27,7 +27,7 @@ public sealed class RefreshProgramPlanDefaults : Migration
                 "Name" = 'Intermediate',
                 "ActualPrice" = 9999,
                 "OfferPrice" = 4999,
-                "FeaturesJson" = '["Live Sessions","Mentor Support","Project Reviews","AI Assessment","AI Interview","Resume Review","Interview Preparation","Priority Support"]'::jsonb
+                "FeaturesJson" = '["Live Sessions","Project Reviews","Resume Review","Interview Preparation","Priority Support"]'::jsonb
             WHERE "Code" = 'INTERMEDIATE';
 
             UPDATE "program_plans"
@@ -35,7 +35,7 @@ public sealed class RefreshProgramPlanDefaults : Migration
                 "Name" = 'Master',
                 "ActualPrice" = 14999,
                 "OfferPrice" = 9999,
-                "FeaturesJson" = '["Personal Mentor","Additional Live Sessions","Advanced Project Reviews","Portfolio Development","Resume Optimization","Mock Interviews","Technical Interview Preparation","HR Interview Preparation","Career / Placement Assistance","Priority Support"]'::jsonb
+                "FeaturesJson" = '["Additional Live Sessions","Advanced Project Reviews","Portfolio Development","Resume Optimization","Mock Interviews","Technical Interview Preparation","HR Interview Preparation","Career / Placement Assistance","Priority Support"]'::jsonb
             WHERE "Code" = 'MASTER';
             """);
     }
@@ -45,15 +45,15 @@ public sealed class RefreshProgramPlanDefaults : Migration
         migrationBuilder.Sql(
             """
             UPDATE "program_plans"
-            SET "FeaturesJson" = '["Recorded lessons","Assignments","Certificate","Community access"]'::jsonb
+            SET "FeaturesJson" = '["Recorded lessons","Certificate","Community access"]'::jsonb
             WHERE "Code" = 'SELF';
 
             UPDATE "program_plans"
-            SET "FeaturesJson" = '["Live sessions","Mentor support","Project reviews","AI assessment","AI interview","Resume review","Interview preparation"]'::jsonb
+            SET "FeaturesJson" = '["Live sessions","Project reviews","Resume review","Interview preparation"]'::jsonb
             WHERE "Code" = 'INTERMEDIATE';
 
             UPDATE "program_plans"
-            SET "FeaturesJson" = '["Personal mentor","Additional live sessions","Advanced project reviews","Portfolio development","Resume optimization","Mock interviews","Placement assistance"]'::jsonb
+            SET "FeaturesJson" = '["Additional live sessions","Advanced project reviews","Portfolio development","Resume optimization","Mock interviews","Placement assistance"]'::jsonb
             WHERE "Code" = 'MASTER';
             """);
     }

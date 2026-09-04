@@ -62,24 +62,6 @@ public sealed class PublicPortalController(ILmsPortalService lmsPortalService) :
         return Ok(ApiResponse<LeadCaptureResponse>.Ok(result, "Enquiry received.", CorrelationId));
     }
 
-    [HttpPost("campus-ambassador/apply")]
-    public async Task<ActionResult<ApiResponse<LeadCaptureResponse>>> ApplyCampusAmbassador(
-        CampusAmbassadorApplyRequest request,
-        CancellationToken cancellationToken)
-    {
-        var result = await lmsPortalService.ApplyCampusAmbassadorAsync(request, cancellationToken);
-        return Ok(ApiResponse<LeadCaptureResponse>.Ok(result, "Campus ambassador application received.", CorrelationId));
-    }
-
-    [HttpPost("careers/apply")]
-    public async Task<ActionResult<ApiResponse<LeadCaptureResponse>>> ApplyCareer(
-        CareerApplyRequest request,
-        CancellationToken cancellationToken)
-    {
-        var result = await lmsPortalService.ApplyCareerAsync(request, cancellationToken);
-        return Ok(ApiResponse<LeadCaptureResponse>.Ok(result, "Career application received.", CorrelationId));
-    }
-
     [HttpGet("certificates/verify/{certificateId}")]
     public async Task<ActionResult<ApiResponse<CertificateVerificationResponse>>> VerifyCertificate(
         string certificateId,

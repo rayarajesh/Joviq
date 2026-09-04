@@ -11,6 +11,7 @@ export type ProgramCategoryResponse = {
   slug: string;
   description: string;
   sortOrder: number;
+  isPublished?: boolean;
   programs: ProgramSummaryResponse[];
 };
 
@@ -32,15 +33,12 @@ export type ProgramSummaryResponse = {
 
 export type ProgramDetailsResponse = ProgramSummaryResponse & {
   overview: string;
-  mentorSummary: string;
   certificationName: string;
   outcomes: string[];
   faqs: FaqItemResponse[];
   plans: ProgramPlanResponse[];
   curriculum: CurriculumModuleResponse[];
   projects: ProjectResponse[];
-  assignments: AssignmentResponse[];
-  assessments: AssessmentResponse[];
 };
 
 export type ProgramPlanResponse = {
@@ -108,12 +106,7 @@ export type StudentLmsDashboardResponse = {
   learningProgressPercentage: number;
   completedLessons: number;
   totalLessons: number;
-  pendingAssignments: number;
   pendingProjects: number;
-  upcomingAssessments: number;
-  upcomingClass?: LiveClassResponse;
-  pendingAssignment?: AssignmentResponse;
-  upcomingAssessment?: AssessmentResponse;
   latestCertificate?: CertificateResponse;
   balanceDue: number;
   notifications: NotificationResponse[];
@@ -121,27 +114,9 @@ export type StudentLmsDashboardResponse = {
 
 export type StudentProgramWorkspaceResponse = {
   enrollment?: EnrollmentResponse;
-  curriculum: CurriculumModuleResponse[];
-  liveClasses: LiveClassResponse[];
-  assignments: AssignmentResponse[];
   projects: ProjectResponse[];
-  assessments: AssessmentResponse[];
   certificates: CertificateResponse[];
   payments: PaymentTransactionResponse[];
-};
-
-export type RecordedClassResponse = {
-  lessonId: string;
-  moduleId: string;
-  moduleTitle: string;
-  title: string;
-  summary: string;
-  videoUrl?: string;
-  notesUrl?: string;
-  durationMinutes: number;
-  isLocked: boolean;
-  progressPercentage: number;
-  isCompleted: boolean;
 };
 
 export type PaymentTransactionResponse = {
@@ -158,29 +133,6 @@ export type PaymentTransactionResponse = {
   currency: string;
   createdAt: string;
   verifiedAt?: string;
-};
-
-export type LiveClassResponse = {
-  id: string;
-  programId: string;
-  title: string;
-  description: string;
-  startsAt: string;
-  endsAt: string;
-  joinUrl?: string;
-  recordingUrl?: string;
-  status: string;
-};
-
-export type AssignmentResponse = {
-  id: string;
-  programId: string;
-  title: string;
-  instructions: string;
-  dueAt?: string;
-  maxScore: number;
-  isPublished: boolean;
-  latestSubmission?: SubmissionResponse;
 };
 
 export type ProjectResponse = {
@@ -212,48 +164,6 @@ export type SubmissionResponse = {
   reviewedAt?: string;
 };
 
-export type AssessmentResponse = {
-  id: string;
-  programId: string;
-  title: string;
-  assessmentType: string;
-  instructions: string;
-  durationMinutes: number;
-  passingPercentage: number;
-  isAiPowered: boolean;
-  isPublished: boolean;
-};
-
-export type AssessmentAttemptResponse = {
-  id: string;
-  assessmentId: string;
-  assessmentTitle: string;
-  studentId: string;
-  enrollmentId?: string;
-  status: string;
-  startedAt: string;
-  submittedAt?: string;
-  score?: number;
-  resultJson?: string;
-};
-
-export type AiInterviewAttemptResponse = {
-  id: string;
-  studentId: string;
-  enrollmentId?: string;
-  jobRole: string;
-  domain: string;
-  interviewType: string;
-  technicalScore?: number;
-  communicationScore?: number;
-  overallScore?: number;
-  transcriptJson?: string;
-  recommendationsJson?: string;
-  status: string;
-  startedAt: string;
-  completedAt?: string;
-};
-
 export type CertificateResponse = {
   id: string;
   studentId: string;
@@ -269,23 +179,6 @@ export type CertificateResponse = {
   authorizedSignatory?: string;
 };
 
-export type SupportTicketResponse = {
-  id: string;
-  userId?: string;
-  programId?: string;
-  name: string;
-  email: string;
-  studentIdText?: string;
-  issue: string;
-  description: string;
-  attachmentUrl?: string;
-  priority: string;
-  status: string;
-  adminNotes?: string;
-  createdAt: string;
-  updatedAt?: string;
-};
-
 export type NotificationResponse = {
   id: string;
   title: string;
@@ -296,49 +189,14 @@ export type NotificationResponse = {
   readAt?: string;
 };
 
-export type CareerSupportResponse = {
-  resumeStatus: string;
-  linkedInStatus: string;
-  gitHubStatus: string;
-  portfolioStatus: string;
-  interviewFocusAreas: string[];
-  requests: SupportTicketResponse[];
-};
-
 export type AdminLmsSummaryResponse = {
   programs: number;
   publishedPrograms: number;
   enrollments: number;
   activeEnrollments: number;
   verifiedRevenue: number;
-  pendingAssignmentReviews: number;
   pendingProjectReviews: number;
-  openSupportTickets: number;
   newCallbackRequests: number;
-};
-
-export type MentorDashboardResponse = {
-  assignedLiveClasses: number;
-  pendingAssignmentReviews: number;
-  pendingProjectReviews: number;
-  reviewedSubmissions: number;
-};
-
-export type MentorReviewQueueResponse = {
-  assignmentSubmissions: SubmissionResponse[];
-  projectSubmissions: SubmissionResponse[];
-};
-
-export type MentorLearnerResponse = {
-  studentId: string;
-  fullName: string;
-  email: string;
-  phoneNumber?: string;
-  enrollmentId: string;
-  programTitle: string;
-  enrollmentStatus: string;
-  progressPercentage: number;
-  enrolledAt: string;
 };
 
 export type CouponResponse = {
@@ -352,48 +210,6 @@ export type CouponResponse = {
   expiresAt?: string;
 };
 
-export type AdminReportResponse = {
-  summary: AdminLmsSummaryResponse;
-  programs: ProgramSummaryResponse[];
-  recentEnrollments: EnrollmentResponse[];
-  recentPayments: PaymentTransactionResponse[];
-  openSupportTickets: SupportTicketResponse[];
-};
-
-export type AdminContentType = 1 | 2 | 3 | 4;
-export type AdminContentStatus = 1 | 2 | 3;
-
-export type AdminContentItemResponse = {
-  id: string;
-  contentType: string;
-  title: string;
-  slug: string;
-  summary?: string;
-  body?: string;
-  imageUrl?: string;
-  externalUrl?: string;
-  metadataJson: string;
-  status: string;
-  isFeatured: boolean;
-  sortOrder: number;
-  createdAt: string;
-  updatedAt?: string;
-};
-
-export type AdminLeadResponse = {
-  id: string;
-  leadType: string;
-  fullName: string;
-  email: string;
-  phoneNumber: string;
-  subject?: string;
-  secondary?: string;
-  message?: string;
-  status: string;
-  createdAt: string;
-  updatedAt?: string;
-};
-
 export type AdminNotificationResponse = {
   id: string;
   userId: string;
@@ -405,26 +221,6 @@ export type AdminNotificationResponse = {
   status: string;
   createdAt: string;
   readAt?: string;
-};
-
-export type AdminSettingResponse = {
-  id: string;
-  category: string;
-  key: string;
-  value: string;
-  description?: string;
-  isSecret: boolean;
-  createdAt: string;
-  updatedAt?: string;
-};
-
-export type AdminAiFeatureSummaryResponse = {
-  aiAssessments: number;
-  aiAssessmentAttempts: number;
-  aiInterviewAttempts: number;
-  completedAiInterviews: number;
-  averageAssessmentScore: number;
-  averageInterviewScore: number;
 };
 
 export type AuditLogResponse = {
@@ -477,7 +273,6 @@ export type CreateProgramRequest = {
   level: string;
   duration: string;
   learningMode: string;
-  mentorSummary: string;
   certificationName: string;
   thumbnailUrl?: string;
   skills: string[];
@@ -517,43 +312,12 @@ export type CreateLessonRequest = {
   accessLevel: number;
 };
 
-export type CreateLiveClassRequest = {
-  programId: string;
-  mentorId?: string;
-  title: string;
-  description: string;
-  startsAt: string;
-  endsAt: string;
-  joinUrl?: string;
-  recordingUrl?: string;
-};
-
-export type CreateAssignmentRequest = {
-  programId: string;
-  title: string;
-  instructions: string;
-  dueAt?: string;
-  maxScore?: number;
-  isPublished?: boolean;
-};
-
 export type CreateProjectRequest = {
   programId: string;
   title: string;
   description: string;
   requiredArtifacts: string[];
   maxScore?: number;
-  isPublished?: boolean;
-};
-
-export type CreateAssessmentRequest = {
-  programId: string;
-  title: string;
-  assessmentType: string;
-  instructions: string;
-  durationMinutes: number;
-  passingPercentage?: number;
-  isAiPowered?: boolean;
   isPublished?: boolean;
 };
 
@@ -568,29 +332,6 @@ export type UpdatePaymentStatusRequest = {
   failureReason?: string;
 };
 
-export type RefundPaymentRequest = {
-  reason?: string;
-};
-
-export type CreateAdminContentItemRequest = {
-  contentType: AdminContentType;
-  title: string;
-  slug?: string;
-  summary?: string;
-  body?: string;
-  imageUrl?: string;
-  externalUrl?: string;
-  metadataJson?: string;
-  status: AdminContentStatus;
-  isFeatured?: boolean;
-  sortOrder?: number;
-};
-
-export type UpdateLeadStatusRequest = {
-  status: number;
-  notes?: string;
-};
-
 export type CreateAdminNotificationRequest = {
   userId?: string;
   title: string;
@@ -598,24 +339,6 @@ export type CreateAdminNotificationRequest = {
   actionUrl?: string;
   sendToAllUsers?: boolean;
   sendToAllStudents?: boolean;
-  sendToAllMentors?: boolean;
-};
-
-export type UpsertAdminSettingRequest = {
-  value: string;
-  description?: string;
-  isSecret?: boolean;
-};
-
-export type SubmitAssessmentAttemptRequest = {
-  score?: number;
-  resultJson?: string;
-};
-
-export type StartAiInterviewRequest = {
-  jobRole: string;
-  domain: string;
-  interviewType: string;
 };
 
 export type CreateCouponRequest = {
@@ -640,22 +363,4 @@ export type UpdateCertificateStatusRequest = {
   status: number;
 };
 
-export type CreateSupportTicketRequest = {
-  programId?: string;
-  name: string;
-  email: string;
-  studentIdText?: string;
-  issue: string;
-  description: string;
-  attachmentUrl?: string;
-  priority: string;
-};
-
-export type ReviewSubmissionRequest = {
-  score: number;
-  feedback: string;
-  status: number;
-};
-
-export type LmsSupportTicketPage = PagedResult<SupportTicketResponse>;
 export type AuditLogPage = PagedResult<AuditLogResponse>;

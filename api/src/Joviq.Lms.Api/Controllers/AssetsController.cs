@@ -69,6 +69,20 @@ public sealed class AssetsController(
     }
 
     [AllowAnonymous]
+    [HttpGet("public-files/{assetId:guid}")]
+    public async Task<IActionResult> OpenPublicLocalAsset(
+        Guid assetId,
+        CancellationToken cancellationToken)
+    {
+        var download = await assetService.OpenPublicLocalAssetAsync(assetId, cancellationToken);
+        return new FileStreamResult(download.Content, download.ContentType)
+        {
+            LastModified = download.LastModified,
+            EnableRangeProcessing = true
+        };
+    }
+
+    [AllowAnonymous]
     [HttpGet("local-files/{assetId:guid}")]
     public async Task<IActionResult> OpenLocalAsset(
         Guid assetId,

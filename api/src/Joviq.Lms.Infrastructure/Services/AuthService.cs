@@ -23,7 +23,6 @@ public sealed class AuthService(
     IRefreshTokenService refreshTokenService,
     IOtpService otpService,
     IEmailSender emailSender,
-    ISmsSender smsSender,
     IDateTimeProvider clock,
     IDataProtectionProvider dataProtectionProvider,
     ILogger<AuthService> logger) : IAuthService
@@ -71,7 +70,6 @@ public sealed class AuthService(
             UserId = user.Id,
             TermsVersion = request.TermsVersion,
             PrivacyPolicyVersion = request.PrivacyPolicyVersion,
-            RefundPolicyVersion = request.RefundPolicyVersion,
             AcceptedAt = clock.UtcNow,
             IpAddress = metadata.IpAddress,
             UserAgent = metadata.UserAgent
@@ -105,7 +103,7 @@ public sealed class AuthService(
             logger.LogError(exception, "Failed to send registration verification email for user {UserId}.", user.Id);
         }
 
-        return new RegisterResponse(user.Id, EmailVerificationRequired: true, PhoneVerificationRequired: false);
+        return new RegisterResponse(user.Id, EmailVerificationRequired: true);
     }
 
     public async Task<AuthTokenResponse> LoginAsync(LoginRequest request, RequestMetadata metadata, CancellationToken cancellationToken)
@@ -204,7 +202,6 @@ public sealed class AuthService(
                     UserId = user.Id,
                     TermsVersion = NormalizePolicyVersion(request.TermsVersion),
                     PrivacyPolicyVersion = NormalizePolicyVersion(request.PrivacyPolicyVersion),
-                    RefundPolicyVersion = NormalizePolicyVersion(request.RefundPolicyVersion),
                     AcceptedAt = clock.UtcNow,
                     IpAddress = metadata.IpAddress,
                     UserAgent = metadata.UserAgent
@@ -327,78 +324,17 @@ public sealed class AuthService(
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task SendPhoneOtpAsync(SendPhoneOtpRequest request, RequestMetadata metadata, CancellationToken cancellationToken)
-    {
-        var phone = NormalizeIndianPhone(request.PhoneNumber);
-        var user = await dbContext.Users.FirstOrDefaultAsync(x => x.PhoneNumber == phone, cancellationToken);
-        var code = await otpService.CreateOtpAsync(user?.Id, phone, OtpDestinationType.Phone, request.Purpose, metadata.IpAddress, cancellationToken);
-        await smsSender.SendAsync(phone, $"Your Joviq Technologies OTP is {code}.", cancellationToken);
-        AddAudit(user?.Id, "PhoneOtpRequested", user?.Email, phone, metadata, new { request.Purpose });
-        await dbContext.SaveChangesAsync(cancellationToken);
-    }
-
-    public async Task VerifyPhoneOtpAsync(VerifyPhoneOtpRequest request, RequestMetadata metadata, CancellationToken cancellationToken)
-    {
-        var phone = NormalizeIndianPhone(request.PhoneNumber);
-        await otpService.VerifyOtpAsync(phone, request.Purpose, request.Otp, cancellationToken);
-
-        if (request.Purpose == OtpPurpose.PhoneVerification)
-        {
-            var user = await dbContext.Users.FirstOrDefaultAsync(x => x.PhoneNumber == phone, cancellationToken)
-                ?? throw new AppException("User was not found.", 404, "user_not_found");
-
-            user.PhoneNumberConfirmed = true;
-            AddAudit(user.Id, "PhoneVerified", user.Email, user.PhoneNumber, metadata);
-            await dbContext.SaveChangesAsync(cancellationToken);
-        }
-    }
-
-    public async Task RequestOtpLoginAsync(RequestOtpLoginRequest request, RequestMetadata metadata, CancellationToken cancellationToken)
-    {
-        var phone = NormalizeIndianPhone(request.PhoneNumber);
-        var user = await dbContext.Users.FirstOrDefaultAsync(x => x.PhoneNumber == phone, cancellationToken);
-        if (user is not null)
-        {
-            var code = await otpService.CreateOtpAsync(user.Id, phone, OtpDestinationType.Phone, OtpPurpose.Login, metadata.IpAddress, cancellationToken);
-            await smsSender.SendAsync(phone, $"Your Joviq LMS login OTP is {code}.", cancellationToken);
-            AddAudit(user.Id, "PhoneOtpRequested", user.Email, user.PhoneNumber, metadata, new { purpose = "Login" });
-            await dbContext.SaveChangesAsync(cancellationToken);
-        }
-    }
-
-    public async Task<AuthTokenResponse> VerifyOtpLoginAsync(VerifyOtpLoginRequest request, RequestMetadata metadata, CancellationToken cancellationToken)
-    {
-        var phone = NormalizeIndianPhone(request.PhoneNumber);
-        var user = await dbContext.Users.FirstOrDefaultAsync(x => x.PhoneNumber == phone, cancellationToken)
-            ?? throw new AppException("Invalid OTP login request.", 401, "invalid_otp_login");
-
-        EnsureCanLogin(user, requireEmailConfirmed: false);
-        await otpService.VerifyOtpAsync(phone, OtpPurpose.Login, request.Otp, cancellationToken);
-        user.PhoneNumberConfirmed = true;
-        user.LastLoginAt = clock.UtcNow;
-        AddAudit(user.Id, "LoginSucceeded", user.Email, user.PhoneNumber, metadata, new { method = "otp" });
-
-        return await IssueTokenPairAsync(user, request.RememberMe, metadata with { DeviceName = request.DeviceName ?? metadata.DeviceName }, cancellationToken);
-    }
-
     public async Task ForgotPasswordAsync(ForgotPasswordRequest request, RequestMetadata metadata, CancellationToken cancellationToken)
     {
-        var (user, destinationType, destination) = await FindUserByEmailOrPhoneAsync(request.EmailOrPhone, cancellationToken);
+        var email = NormalizeEmail(request.Email);
+        var user = await userManager.FindByEmailAsync(email);
         if (user is null)
         {
             return;
         }
 
-        var code = await otpService.CreateOtpAsync(user.Id, destination, destinationType, OtpPurpose.ForgotPassword, metadata.IpAddress, cancellationToken);
-
-        if (destinationType == OtpDestinationType.Email)
-        {
-            await emailSender.SendAsync(destination, "Reset your Joviq LMS password", $"Your password reset OTP is <strong>{code}</strong>.", cancellationToken);
-        }
-        else
-        {
-            await smsSender.SendAsync(destination, $"Your Joviq LMS password reset OTP is {code}.", cancellationToken);
-        }
+        var code = await otpService.CreateOtpAsync(user.Id, email, OtpDestinationType.Email, OtpPurpose.ForgotPassword, metadata.IpAddress, cancellationToken);
+        await emailSender.SendAsync(email, "Reset your Joviq LMS password", $"Your password reset OTP is <strong>{code}</strong>.", cancellationToken);
 
         AddAudit(user.Id, "ForgotPasswordRequested", user.Email, user.PhoneNumber, metadata);
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -406,13 +342,14 @@ public sealed class AuthService(
 
     public async Task<PasswordResetVerificationResponse> VerifyForgotPasswordAsync(VerifyForgotPasswordRequest request, RequestMetadata metadata, CancellationToken cancellationToken)
     {
-        var (user, _, destination) = await FindUserByEmailOrPhoneAsync(request.EmailOrPhone, cancellationToken);
+        var email = NormalizeEmail(request.Email);
+        var user = await userManager.FindByEmailAsync(email);
         if (user is null)
         {
             throw new AppException("Invalid password reset request.", 400, "invalid_password_reset");
         }
 
-        await otpService.VerifyOtpAsync(destination, OtpPurpose.ForgotPassword, request.Otp, cancellationToken);
+        await otpService.VerifyOtpAsync(email, OtpPurpose.ForgotPassword, request.Otp, cancellationToken);
         var identityToken = await userManager.GeneratePasswordResetTokenAsync(user);
         var protectedToken = _resetProtector.Protect(JsonSerializer.Serialize(new ResetTokenPayload(user.Id, identityToken, clock.UtcNow.AddMinutes(10))));
 
@@ -571,20 +508,6 @@ public sealed class AuthService(
             UserAgent = metadata?.UserAgent,
             MetadataJson = extra is null ? null : JsonSerializer.Serialize(extra)
         });
-    }
-
-    private async Task<(ApplicationUser? User, OtpDestinationType DestinationType, string Destination)> FindUserByEmailOrPhoneAsync(
-        string emailOrPhone,
-        CancellationToken cancellationToken)
-    {
-        if (emailOrPhone.Contains('@'))
-        {
-            var email = NormalizeEmail(emailOrPhone);
-            return (await userManager.FindByEmailAsync(email), OtpDestinationType.Email, email);
-        }
-
-        var phone = NormalizeIndianPhone(emailOrPhone);
-        return (await dbContext.Users.FirstOrDefaultAsync(x => x.PhoneNumber == phone, cancellationToken), OtpDestinationType.Phone, phone);
     }
 
     private ResetTokenPayload ReadResetTokenPayload(string token)

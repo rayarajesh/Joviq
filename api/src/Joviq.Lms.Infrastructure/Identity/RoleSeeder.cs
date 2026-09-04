@@ -1,6 +1,8 @@
 using Joviq.Lms.Application.Common.Security;
 using Joviq.Lms.Domain.Enums;
+using Joviq.Lms.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -12,6 +14,7 @@ public static class RoleSeeder
     public static async Task SeedRolesAsync(IServiceProvider serviceProvider)
     {
         using var scope = serviceProvider.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
@@ -34,6 +37,8 @@ public static class RoleSeeder
                 logger.LogError("Failed to seed role {RoleName}: {Errors}", roleName, string.Join(", ", result.Errors.Select(e => e.Description)));
             }
         }
+
+        await RemoveObsoleteRoleAsync(roleManager, dbContext, logger);
 
         var adminEmail = configuration["SeedAdmin:Email"];
         var adminPassword = configuration["SeedAdmin:Password"];
@@ -73,5 +78,37 @@ public static class RoleSeeder
             await userManager.AddToRoleAsync(admin, RoleNames.Admin);
             logger.LogInformation("Seeded default admin user {AdminEmail}", normalizedEmail);
         }
+    }
+
+    private static async Task RemoveObsoleteRoleAsync(
+        RoleManager<IdentityRole<Guid>> roleManager,
+        ApplicationDbContext dbContext,
+        ILogger logger)
+    {
+        var obsoleteRoleName = string.Concat("Men", "tor");
+        var obsoleteRole = await roleManager.FindByNameAsync(obsoleteRoleName);
+        if (obsoleteRole is null)
+        {
+            return;
+        }
+
+        var roleLinks = await dbContext.UserRoles
+            .Where(userRole => userRole.RoleId == obsoleteRole.Id)
+            .ToListAsync();
+
+        dbContext.UserRoles.RemoveRange(roleLinks);
+        await dbContext.SaveChangesAsync();
+
+        var result = await roleManager.DeleteAsync(obsoleteRole);
+        if (result.Succeeded)
+        {
+            logger.LogInformation("Removed obsolete role {RoleName}", obsoleteRoleName);
+            return;
+        }
+
+        logger.LogError(
+            "Failed to remove obsolete role {RoleName}: {Errors}",
+            obsoleteRoleName,
+            string.Join(", ", result.Errors.Select(error => error.Description)));
     }
 }

@@ -5,12 +5,12 @@ import type {
   AdminUserSummaryResponse,
   AuthTokenResponse,
   CreateAdminUserRequest,
-  OtpPurpose,
   PagedResult,
   PasswordResetVerificationResponse,
   RegisterRequest,
   RegisterResponse,
   SessionResponse,
+  UpdateAdminUserRequest,
   UpdateUserRolesRequest,
   UpdateUserStatusRequest,
   UserSummary
@@ -27,7 +27,6 @@ export const authApi = {
       rememberMe?: boolean;
       termsVersion?: string;
       privacyPolicyVersion?: string;
-      refundPolicyVersion?: string;
     } = {}
   ) {
     const search = new URLSearchParams();
@@ -46,10 +45,6 @@ export const authApi = {
 
     if (options.privacyPolicyVersion) {
       search.set("privacyPolicyVersion", options.privacyPolicyVersion);
-    }
-
-    if (options.refundPolicyVersion) {
-      search.set("refundPolicyVersion", options.refundPolicyVersion);
     }
 
     return `${env.apiBaseUrl}/api/v1/auth/oauth/${provider}/start?${search.toString()}`;
@@ -112,47 +107,17 @@ export const authApi = {
     });
   },
 
-  sendPhoneOtp(phoneNumber: string, purpose: OtpPurpose) {
-    return request<void>("/api/v1/auth/phone-otp/send", {
-      method: "POST",
-      body: { phoneNumber, purpose }
-    });
-  },
-
-  verifyPhoneOtp(phoneNumber: string, purpose: OtpPurpose, otp: string) {
-    return request<void>("/api/v1/auth/phone-otp/verify", {
-      method: "POST",
-      body: { phoneNumber, purpose, otp }
-    });
-  },
-
-  requestOtpLogin(phoneNumber: string) {
-    return request<void>("/api/v1/auth/login/otp/request", {
-      method: "POST",
-      body: { phoneNumber }
-    });
-  },
-
-  verifyOtpLogin(body: {
-    phoneNumber: string;
-    otp: string;
-    rememberMe: boolean;
-    deviceName?: string;
-  }) {
-    return request<AuthTokenResponse>("/api/v1/auth/login/otp/verify", { method: "POST", body });
-  },
-
-  forgotPassword(emailOrPhone: string) {
+  forgotPassword(email: string) {
     return request<void>("/api/v1/auth/forgot-password", {
       method: "POST",
-      body: { emailOrPhone }
+      body: { email }
     });
   },
 
-  verifyForgotPassword(emailOrPhone: string, otp: string) {
+  verifyForgotPassword(email: string, otp: string) {
     return request<PasswordResetVerificationResponse>("/api/v1/auth/forgot-password/verify", {
       method: "POST",
-      body: { emailOrPhone, otp }
+      body: { email, otp }
     });
   },
 
@@ -207,6 +172,9 @@ export const adminUsersApi = {
   getUsers(params: {
     search?: string;
     role?: string;
+    status?: string;
+    sortBy?: string;
+    sortDirection?: string;
     page?: number;
     pageSize?: number;
   }) {
@@ -227,6 +195,13 @@ export const adminUsersApi = {
 
   createUser(body: CreateAdminUserRequest) {
     return request<AdminUserResponse>("/api/v1/admin/users", { method: "POST", body });
+  },
+
+  updateUser(userId: string, body: UpdateAdminUserRequest) {
+    return request<AdminUserResponse>(`/api/v1/admin/users/${userId}`, {
+      method: "PUT",
+      body
+    });
   },
 
   updateStatus(userId: string, body: UpdateUserStatusRequest) {

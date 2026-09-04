@@ -29,4 +29,8 @@ public interface IAssetService
         Guid assetId,
         string token,
         CancellationToken cancellationToken);
+
+    Task<AssetFileDownload> OpenPublicLocalAssetAsync(
+        Guid assetId,
+        CancellationToken cancellationToken);
 }

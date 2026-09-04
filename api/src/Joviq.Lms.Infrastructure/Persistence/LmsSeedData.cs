@@ -100,9 +100,6 @@ public static class LmsSeedData
                 AddPlans(dbContext, program);
                 AddCurriculum(dbContext, program, title);
                 AddProjects(dbContext, program, title);
-                AddAssignments(dbContext, program, title, now);
-                AddAssessments(dbContext, program, title);
-                AddLiveClass(dbContext, program, title, now);
                 programOrder++;
             }
 
@@ -137,19 +134,18 @@ public static class LmsSeedData
             Category = category,
             Slug = slug,
             Title = title,
-            ShortDescription = $"Build job-ready {title} skills through mentor-guided classes, assignments, assessments, and real-time projects.",
-            Overview = $"{title} is designed as a career-focused learning track. Learners move from fundamentals to practical implementation, complete real-time projects, get mentor feedback, practice assessments, and prepare for interview conversations with portfolio proof.",
+            ShortDescription = $"Build job-ready {title} skills through structured classes, practice labs, and real-time projects.",
+            Overview = $"{title} is designed as a career-focused learning track. Learners move from fundamentals to practical implementation, complete real-time projects, get expert feedback, and prepare for interview conversations with portfolio proof.",
             Level = "Beginner to job-ready",
             Duration = "8 to 16 weeks",
-            LearningMode = "Live + recorded + project mentoring",
-            MentorSummary = $"Guided by experienced {title} mentors with project reviews, interview preparation, and practical portfolio feedback.",
+            LearningMode = "Live + recorded + project practice",
             CertificationName = $"Joviq {title} Career Program Certification",
             ThumbnailUrl = ThumbnailFor(title),
             SkillsJson = Serialize(skills),
             OutcomesJson = Serialize([
                 "Build a portfolio with real-time project evidence",
                 "Explain domain concepts confidently in interviews",
-                "Complete mentor-reviewed assignments and assessments",
+                "Complete reviewed project work",
                 "Prepare a resume, LinkedIn profile, and project walkthrough"
             ]),
             FaqsJson = JsonSerializer.Serialize(new[]
@@ -168,27 +164,21 @@ public static class LmsSeedData
         var plans = new[]
         {
             new PlanSeed("Self-Paced", "SELF", 7999m, 3999m, 999m, [
-                "Recorded Classes",
+                "Lesson Replays",
                 "Complete Curriculum",
-                "Assignments",
                 "Projects",
-                "Assessments",
                 "LMS Access",
                 "Certificate",
                 "Basic Support"
             ]),
             new PlanSeed("Intermediate", "INTERMEDIATE", 9999m, 4999m, 999m, [
                 "Live Sessions",
-                "Mentor Support",
                 "Project Reviews",
-                "AI Assessment",
-                "AI Interview",
                 "Resume Review",
                 "Interview Preparation",
                 "Priority Support"
             ]),
             new PlanSeed("Master", "MASTER", 14999m, 9999m, 999m, [
-                "Personal Mentor",
                 "Additional Live Sessions",
                 "Advanced Project Reviews",
                 "Portfolio Development",
@@ -227,7 +217,7 @@ public static class LmsSeedData
         {
             new ModuleSeed($"{title} Foundations", "Concepts, tools, workflows, and domain vocabulary."),
             new ModuleSeed("Project Implementation", "Build practical outputs with reviews and improvements."),
-            new ModuleSeed("Career Readiness", "Assessments, portfolio polish, and interview explanation practice.")
+            new ModuleSeed("Career Readiness", "Portfolio polish and interview explanation practice.")
         };
 
         for (var moduleIndex = 0; moduleIndex < modules.Length; moduleIndex++)
@@ -251,7 +241,7 @@ public static class LmsSeedData
                     ModuleId = module.Id,
                     Module = module,
                     Title = $"{modules[moduleIndex].Title} - Lesson {lessonIndex}",
-                    Summary = "Structured lesson with mentor notes, practice prompts, and project checkpoints.",
+                    Summary = "Structured lesson with notes, practice prompts, and project checkpoints.",
                     DurationMinutes = 45 + lessonIndex * 5,
                     AccessLevel = moduleIndex == 0 && lessonIndex == 1 ? ContentAccessLevel.Preview : ContentAccessLevel.Full,
                     VideoUrl = $"https://learn.joviq.com/videos/{program.Slug}/lesson-{moduleIndex + 1}-{lessonIndex}",
@@ -282,83 +272,12 @@ public static class LmsSeedData
                 ProgramId = program.Id,
                 Program = program,
                 Title = projectTitle,
-                Description = $"A portfolio-ready {title} project with clear deliverables, mentor review, and interview talking points.",
+                Description = $"A portfolio-ready {title} project with clear deliverables, review checkpoints, and interview talking points.",
                 RequiredArtifactsJson = Serialize(["GitHub or document link", "Demo or screenshots", "Short project explanation"]),
                 MaxScore = 100,
                 IsPublished = true
             });
         }
-    }
-
-    private static void AddAssignments(ApplicationDbContext dbContext, LearningProgram program, string title, DateTimeOffset now)
-    {
-        var assignments = new[]
-        {
-            "Foundation concept worksheet",
-            "Mini project checkpoint"
-        };
-
-        for (var index = 0; index < assignments.Length; index++)
-        {
-            dbContext.Assignments.Add(new Assignment
-            {
-                Id = Guid.NewGuid(),
-                ProgramId = program.Id,
-                Program = program,
-                Title = $"{title} {assignments[index]}",
-                Instructions = "Submit your work link or file with a short explanation of your approach, assumptions, and learnings.",
-                DueAt = now.AddDays(7 + index * 7),
-                MaxScore = 100,
-                IsPublished = true
-            });
-        }
-    }
-
-    private static void AddAssessments(ApplicationDbContext dbContext, LearningProgram program, string title)
-    {
-        dbContext.Assessments.Add(new Assessment
-        {
-            Id = Guid.NewGuid(),
-            ProgramId = program.Id,
-            Program = program,
-            Title = $"{title} readiness assessment",
-            AssessmentType = "Quiz",
-            Instructions = "Complete the quiz to validate core concepts before project review.",
-            DurationMinutes = 45,
-            PassingPercentage = 70,
-            IsAiPowered = false,
-            IsPublished = true
-        });
-
-        dbContext.Assessments.Add(new Assessment
-        {
-            Id = Guid.NewGuid(),
-            ProgramId = program.Id,
-            Program = program,
-            Title = $"{title} AI interview practice",
-            AssessmentType = "AI Interview",
-            Instructions = "Practice explaining project decisions and role-specific concepts.",
-            DurationMinutes = 30,
-            PassingPercentage = 70,
-            IsAiPowered = true,
-            IsPublished = true
-        });
-    }
-
-    private static void AddLiveClass(ApplicationDbContext dbContext, LearningProgram program, string title, DateTimeOffset now)
-    {
-        dbContext.LiveClasses.Add(new LiveClass
-        {
-            Id = Guid.NewGuid(),
-            ProgramId = program.Id,
-            Program = program,
-            Title = $"{title} orientation and roadmap",
-            Description = "Meet the mentor, understand the program roadmap, and set your project milestones.",
-            StartsAt = now.AddDays(3).AddHours(13),
-            EndsAt = now.AddDays(3).AddHours(14),
-            JoinUrl = $"https://meet.joviq.com/{program.Slug}/orientation",
-            Status = LiveClassStatus.Scheduled
-        });
     }
 
     private static IReadOnlyList<string> BuildSkills(string title)
@@ -385,7 +304,7 @@ public static class LmsSeedData
             "Business Analytics" => ["SQL", "Dashboards", "Statistics", "Case analysis", "Storytelling"],
             "IBM" => ["Enterprise tools", "Cloud concepts", "Data workflows", "Business process", "Project delivery"],
             "HRM" => ["Recruitment", "HR operations", "Employee engagement", "Payroll basics", "HR analytics"],
-            _ => ["Foundation skills", "Tools", "Projects", "Assessments", "Interview preparation"]
+            _ => ["Foundation skills", "Tools", "Projects", "Interview preparation"]
         };
     }
 
@@ -423,7 +342,7 @@ public static class LmsSeedData
             ],
             "Cyber Security / Ethical Hacking" => [
                 "Web vulnerability report",
-                "Network scan assessment",
+                "Network scan report",
                 "Phishing awareness audit",
                 "Secure login checklist",
                 "Incident response playbook"

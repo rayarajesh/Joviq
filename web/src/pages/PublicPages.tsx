@@ -1,10 +1,9 @@
-import { FormEvent, lazy, Suspense, useMemo, useState } from "react";
+import { FormEvent, lazy, Suspense, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowRight,
   BadgeCheck,
-  BriefcaseBusiness,
   Building2,
   CheckCircle2,
   ChevronDown,
@@ -13,23 +12,16 @@ import {
   Cpu,
   FolderKanban,
   GraduationCap,
-  HeartHandshake,
   KeyRound,
   Layers3,
   Lightbulb,
   MailCheck,
-  Megaphone,
   PhoneCall,
-  Quote,
   RefreshCw,
-  Rocket,
   Search,
   Send,
   ShieldCheck,
   Sparkles,
-  Star,
-  Target,
-  Trophy,
   UserPlus,
   UsersRound,
   Wrench,
@@ -41,12 +33,11 @@ import type { RouteSceneVariant } from "../components/RouteScene3D";
 import { SiteFooter } from "../components/SiteFooter";
 import {
   allPrograms,
+  expertGuides,
   keyStatistics,
-  mentors,
   pricingPlans,
   programCategories,
-  recognitions,
-  reviews
+  recognitions
 } from "../data/siteContent";
 import { getProgramImage } from "../data/programVisuals";
 import { authApi } from "../features/auth/api/authApi";
@@ -85,19 +76,19 @@ const featureGroups = [
   {
     icon: <Sparkles size={24} />,
     title: "AI learning support",
-    text: "AI assessments, interview practice, improvement suggestions, and role-based checkpoints.",
+    text: "Interview practice, improvement suggestions, and role-based checkpoints.",
     signals: ["Adaptive checkpoints", "Interview practice", "Actionable feedback"]
   },
   {
     icon: <UsersRound size={24} />,
-    title: "Mentor-led delivery",
-    text: "Live classes, mentor support, project reviews, mock interviews, and career guidance.",
-    signals: ["Live cohorts", "Weekly reviews", "Career guidance"]
+    title: "Expert-led delivery",
+    text: "Expert-led sessions, project reviews, mock interviews, and career guidance.",
+    signals: ["Guided cohorts", "Weekly reviews", "Career guidance"]
   },
   {
     icon: <Layers3 size={24} />,
     title: "Project-first LMS",
-    text: "Recorded classes, assignments, projects, assessments, progress tracking, and certification.",
+    text: "Lesson replays, projects, progress tracking, reviews, and certification.",
     signals: ["Real projects", "Clear rubrics", "Progress tracking"]
   },
   {
@@ -108,38 +99,42 @@ const featureGroups = [
   }
 ];
 
-const ambassadorSteps = ["Apply", "Represent Joviq", "Host campus activities", "Earn recognition"];
-const ambassadorBenefits = [
-  { icon: <Megaphone size={23} />, title: "Create momentum", text: "Bring useful career conversations, workshops, and learning opportunities to your campus." },
-  { icon: <UsersRound size={23} />, title: "Build your network", text: "Collaborate with student leaders, mentors, and the Joviq program team." },
-  { icon: <Trophy size={23} />, title: "Earn visible proof", text: "Turn consistent campus impact into certificates, rewards, and leadership evidence." }
-];
-const careerOpenings = [
-  { role: "HR", team: "People & Culture", text: "Build thoughtful hiring, onboarding, and employee experience systems." },
-  { role: "Program Advisor", team: "Learner Success", text: "Help learners choose the right program, plan, and career direction." },
-  { role: "Digital Marketing", team: "Growth", text: "Create campaigns, content, and measurable acquisition experiments." },
-  { role: "Full Stack Developer", team: "Product Engineering", text: "Build reliable LMS workflows across React, APIs, and data." },
-  { role: "Operations", team: "Program Operations", text: "Keep cohorts, mentor workflows, and learner delivery running clearly." },
-  { role: "Operations Executive", team: "Delivery", text: "Coordinate schedules, communication, records, and learner support." }
-];
-const aboutValues = ["Industry-focused education", "Project-first learning", "Mentor-reviewed outcomes", "Career preparation"];
-const reviewSignals = [
-  { icon: <FolderKanban size={22} />, title: "Portfolio evidence", text: "Work learners can demonstrate, explain, and improve." },
-  { icon: <UsersRound size={22} />, title: "Direct feedback", text: "Specific review loops instead of generic completion signals." },
-  { icon: <Target size={22} />, title: "Interview clarity", text: "Practice turning project decisions into confident answers." },
-  { icon: <ShieldCheck size={22} />, title: "Verified progress", text: "Assessment and certification connected to completed work." }
-];
+const aboutValues = ["Industry-focused education", "Project-first learning", "Expert-reviewed outcomes", "Career preparation"];
 const programCatalogStats = [
   { value: String(allPrograms.length), label: "Career programs" },
   { value: String(programCategories.length), label: "Learning domains" },
   { value: "5-6", label: "Projects per track" },
-  { value: "Weekly", label: "Mentor reviews" }
+  { value: "Weekly", label: "Expert reviews" }
 ];
 
+function toDomainSlug(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function domainFromCategoryParam(value: string | null) {
+  if (!value || value === "all") {
+    return "All";
+  }
+
+  const requestedSlug = toDomainSlug(value);
+  return programCategories.find((category) => toDomainSlug(category.domain) === requestedSlug)?.domain ?? "All";
+}
+
 export function ProgramsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const categoryParam = searchParams.get("category");
   const [query, setQuery] = useState("");
-  const [activeDomain, setActiveDomain] = useState("All");
+  const [activeDomain, setActiveDomain] = useState(() => domainFromCategoryParam(categoryParam));
   const [visibleCount, setVisibleCount] = useState(6);
+
+  useEffect(() => {
+    setActiveDomain(domainFromCategoryParam(categoryParam));
+    setVisibleCount(6);
+  }, [categoryParam]);
 
   const filteredPrograms = useMemo(() => {
     const search = query.trim().toLowerCase();
@@ -165,14 +160,26 @@ export function ProgramsPage() {
   const activeCategory = programCategories.find((category) => category.domain === activeDomain);
 
   function selectDomain(domain: string) {
+    const nextSearchParams = new URLSearchParams(searchParams);
+    if (domain === "All") {
+      nextSearchParams.delete("category");
+    } else {
+      nextSearchParams.set("category", toDomainSlug(domain));
+    }
+
     setActiveDomain(domain);
     setVisibleCount(6);
+    setSearchParams(nextSearchParams, { replace: true });
   }
 
   function resetCatalog() {
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.delete("category");
+
     setQuery("");
     setActiveDomain("All");
     setVisibleCount(6);
+    setSearchParams(nextSearchParams, { replace: true });
   }
 
   return (
@@ -200,7 +207,7 @@ export function ProgramsPage() {
               </Link>
             </div>
             <div className="route-programs-hero__proof" aria-label="Program experience highlights">
-              <span><CheckCircle2 size={16} /> Live mentor-led learning</span>
+              <span><CheckCircle2 size={16} /> Live expert-led learning</span>
               <span><CheckCircle2 size={16} /> Portfolio-grade projects</span>
               <span><CheckCircle2 size={16} /> Verified certification</span>
             </div>
@@ -362,7 +369,7 @@ export function FeaturesPage() {
         metrics={[
           { value: "One", label: "Connected workspace" },
           { value: "AI", label: "Practice checkpoints" },
-          { value: "Weekly", label: "Mentor reviews" },
+          { value: "Weekly", label: "Expert reviews" },
           { value: "Verified", label: "Career proof" }
         ]}
         text="Live learning, practical projects, expert review, AI practice, and verified outcomes working together in one focused experience."
@@ -427,197 +434,6 @@ export function FeaturesPage() {
   );
 }
 
-export function CampusAmbassadorPage() {
-  return (
-    <PublicPageShell>
-      <ImmersiveRouteHero
-        accent="visible leadership."
-        eyebrow="Joviq Campus Ambassador"
-        metrics={[
-          { value: "Lead", label: "Campus conversations" },
-          { value: "Host", label: "Learning activities" },
-          { value: "Connect", label: "Peers and mentors" },
-          { value: "Earn", label: "Proof and rewards" }
-        ]}
-        text="Represent Joviq, create useful career conversations, and turn real campus impact into leadership proof you can carry forward."
-        title="Turn campus energy into"
-        variant="ambassador"
-        actions={
-          <Link className="site-button site-button--primary" to="/request-callback">
-            Apply to lead <ArrowRight size={18} />
-          </Link>
-        }
-      />
-
-      <section className="route-experience-section ambassador-impact">
-        <div className="route-section-lead">
-          <span>Leadership through action</span>
-          <h2>Be useful on campus, not just visible.</h2>
-          <p>The role is built around creating genuine value for peers while developing communication, ownership, and community leadership.</p>
-        </div>
-        <div className="ambassador-impact__grid">
-          {ambassadorBenefits.map((benefit) => (
-            <article key={benefit.title}>
-              <span>{benefit.icon}</span>
-              <h3>{benefit.title}</h3>
-              <p>{benefit.text}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="ambassador-pathway">
-        <div className="ambassador-pathway__intro">
-          <span className="apt-pill apt-pill--dark"><Rocket size={15} /> Your pathway</span>
-          <h2>Four steps from application to recognized impact.</h2>
-          <p>A clear operating rhythm keeps the role practical, measurable, and easy to explain.</p>
-        </div>
-        <ol>
-          {ambassadorSteps.map((step, index) => (
-            <li key={step}>
-              <span>{String(index + 1).padStart(2, "0")}</span>
-              <div>
-                <strong>{step}</strong>
-                <p>{index === 0 ? "Share your profile, college, and leadership interests." : index === 1 ? "Introduce useful programs and opportunities with clarity." : index === 2 ? "Run learning circles, workshops, and peer conversations." : "Receive certificates, rewards, and evidence of contribution."}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
-        <Link className="site-button site-button--primary" to="/request-callback">
-          Start your application <ArrowRight size={18} />
-        </Link>
-      </section>
-    </PublicPageShell>
-  );
-}
-
-export function ReviewsPage() {
-  return (
-    <PublicPageShell>
-      <ImmersiveRouteHero
-        accent="confidence."
-        eyebrow="Learner perspectives"
-        metrics={[
-          { value: "Build", label: "Portfolio projects" },
-          { value: "Review", label: "Expert feedback" },
-          { value: "Explain", label: "Interview practice" },
-          { value: "Improve", label: "Visible progress" }
-        ]}
-        text="Learners remember the moment their work became easier to explain, their portfolio became more credible, and interviews felt less uncertain."
-        title="The work changed. So did their"
-        variant="reviews"
-        actions={
-          <Link className="site-button site-button--primary" to="/programs">
-            Explore programs <ArrowRight size={18} />
-          </Link>
-        }
-      />
-
-      <section className="route-experience-section route-review-stories">
-        <div className="route-section-lead">
-          <span>Stories behind the progress</span>
-          <h2>Feedback is valuable when it changes the next attempt.</h2>
-          <p>These learner perspectives focus on the practical moments that made their work and communication stronger.</p>
-        </div>
-        <div className="route-review-stories__grid">
-          {reviews.map((review, index) => (
-            <article key={review.name}>
-              <header>
-                <span className="route-review-stories__avatar">{review.name.charAt(0)}</span>
-                <div>
-                  <strong>{review.name}</strong>
-                  <small>{review.program}</small>
-                </div>
-                <Quote size={25} />
-              </header>
-              <blockquote>{review.quote}</blockquote>
-              <footer>
-                <span><BadgeCheck size={15} /> Learner perspective</span>
-                <strong>{["Portfolio clarity", "Project confidence", "Practical confidence"][index]}</strong>
-              </footer>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="review-proof-band">
-        <div className="review-proof-band__intro">
-          <span className="apt-pill apt-pill--dark"><Star size={15} /> What creates confidence</span>
-          <h2>Proof, feedback, and practice working together.</h2>
-        </div>
-        <div className="review-proof-band__grid">
-          {reviewSignals.map((signal) => (
-            <article key={signal.title}>
-              <span>{signal.icon}</span>
-              <div><strong>{signal.title}</strong><p>{signal.text}</p></div>
-            </article>
-          ))}
-        </div>
-      </section>
-    </PublicPageShell>
-  );
-}
-
-export function CareersPage() {
-  return (
-    <PublicPageShell>
-      <ImmersiveRouteHero
-        accent="better career outcomes."
-        eyebrow="Careers at Joviq"
-        metrics={[
-          { value: String(careerOpenings.length), label: "Open disciplines" },
-          { value: "Learner", label: "First decisions" },
-          { value: "Clear", label: "Operating ownership" },
-          { value: "Build", label: "Useful systems" }
-        ]}
-        text="Join a team that cares about clear communication, disciplined delivery, thoughtful technology, and learning that produces practical evidence."
-        title="Build the team behind"
-        variant="careers"
-        actions={
-          <Link className="site-button site-button--primary" to="/request-callback">
-            Contact the hiring team <ArrowRight size={18} />
-          </Link>
-        }
-      />
-
-      <section className="route-experience-section career-culture">
-        <div className="route-section-lead">
-          <span>How we work</span>
-          <h2>High standards, low noise, real ownership.</h2>
-          <p>We value people who can make progress visible, communicate early, and keep the learner experience at the center of decisions.</p>
-        </div>
-        <div className="career-culture__grid">
-          {[
-            { icon: <HeartHandshake size={23} />, title: "Learner empathy", text: "Understand the person behind the workflow and build with their reality in mind." },
-            { icon: <Target size={23} />, title: "Outcome ownership", text: "Take responsibility for work that is clear, measurable, and genuinely useful." },
-            { icon: <Rocket size={23} />, title: "Thoughtful momentum", text: "Move decisively, share context, and improve the system as the team learns." }
-          ].map((value) => (
-            <article key={value.title}><span>{value.icon}</span><h3>{value.title}</h3><p>{value.text}</p></article>
-          ))}
-        </div>
-      </section>
-
-      <section className="career-openings">
-        <div className="career-openings__intro">
-          <span className="apt-pill apt-pill--dark"><BriefcaseBusiness size={15} /> Open disciplines</span>
-          <h2>Find where your strengths can make a difference.</h2>
-          <p>Current areas where Joviq is interested in meeting outcome-focused people.</p>
-        </div>
-        <div className="career-openings__grid">
-          {careerOpenings.map((opening) => (
-            <article key={opening.role}>
-              <header><span>{opening.team}</span><small>Opportunity</small></header>
-              <h3>{opening.role}</h3>
-              <p>{opening.text}</p>
-              <Link to="/request-callback">Contact hiring <ArrowRight size={17} /></Link>
-            </article>
-          ))}
-        </div>
-      </section>
-    </PublicPageShell>
-  );
-}
-
 export function AboutPage() {
   return (
     <PublicPageShell>
@@ -658,18 +474,18 @@ export function AboutPage() {
         ))}
       </section>
 
-      <section className="route-experience-section about-mentors">
+      <section className="route-experience-section about-experts">
         <div className="route-section-lead">
           <span>Expert context</span>
           <h2>Different disciplines, one review standard.</h2>
           <p>Learners get guidance from people who understand the technical work and the career conversation around it.</p>
         </div>
-        <div className="about-mentors__grid">
-          {mentors.map((mentor, index) => (
-            <article key={mentor.name}>
+        <div className="about-experts__grid">
+          {expertGuides.map((expert, index) => (
+            <article key={expert.name}>
               <header><GraduationCap size={23} /><span>0{index + 1}</span></header>
-              <h3>{mentor.name}</h3>
-              <p>{mentor.role}</p>
+              <h3>{expert.name}</h3>
+              <p>{expert.role}</p>
             </article>
           ))}
         </div>
@@ -786,8 +602,7 @@ export function LoginPage() {
         confirmPassword,
         acceptedTerms: form.get("acceptedTerms") === "on",
         termsVersion: policyVersion,
-        privacyPolicyVersion: policyVersion,
-        refundPolicyVersion: policyVersion
+        privacyPolicyVersion: policyVersion
       });
 
       setPendingEmail(email);
@@ -839,8 +654,7 @@ export function LoginPage() {
         phoneNumber: allowSignUp ? phoneNumber : undefined,
         rememberMe,
         termsVersion: policyVersion,
-        privacyPolicyVersion: policyVersion,
-        refundPolicyVersion: policyVersion
+        privacyPolicyVersion: policyVersion
       })
     );
   }
@@ -854,7 +668,7 @@ export function LoginPage() {
             LMS access
           </span>
           <h1>{mode === "register" || mode === "verify-email" ? "Create your learning account." : "Login to your LMS dashboard."}</h1>
-          <p>Secure access for students, mentors, and admins with project-driven learning workflows.</p>
+          <p>Secure access for students and admins with project-driven learning workflows.</p>
         </div>
 
         <div className="route-auth-card">
@@ -915,7 +729,7 @@ export function LoginPage() {
                     checked={acceptedOAuthTerms}
                     onChange={(event) => setAcceptedOAuthTerms(event.currentTarget.checked)}
                   />
-                  <span>I accept the terms, privacy policy, and refund policy.</span>
+                  <span>I accept the terms and privacy policy.</span>
                 </label>
                 <button
                   className="auth-secondary-button auth-oauth-button"
@@ -949,7 +763,7 @@ export function LoginPage() {
               </label>
               <label className="checkbox-row">
                 <input name="acceptedTerms" type="checkbox" required />
-                <span>I accept the terms, privacy policy, and refund policy.</span>
+                <span>I accept the terms and privacy policy.</span>
               </label>
               <button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? "Creating" : "Register as student"}

@@ -12,7 +12,6 @@ public sealed class UserConsentConfiguration : IEntityTypeConfiguration<UserCons
         builder.HasKey(x => x.Id);
         builder.Property(x => x.TermsVersion).HasMaxLength(64).IsRequired();
         builder.Property(x => x.PrivacyPolicyVersion).HasMaxLength(64).IsRequired();
-        builder.Property(x => x.RefundPolicyVersion).HasMaxLength(64).IsRequired();
         builder.Property(x => x.IpAddress).HasMaxLength(64);
         builder.Property(x => x.UserAgent).HasMaxLength(512);
         builder.HasIndex(x => x.UserId);

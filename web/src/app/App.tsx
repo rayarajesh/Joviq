@@ -9,13 +9,10 @@ import { OAuthCallbackPage } from "../pages/OAuthCallbackPage";
 import { ProgramDetailsPage } from "../pages/ProgramDetailsPage";
 import {
   AboutPage,
-  CampusAmbassadorPage,
-  CareersPage,
   FeaturesPage,
   LoginPage,
   ProgramsPage,
-  RequestCallbackPage,
-  ReviewsPage
+  RequestCallbackPage
 } from "../pages/PublicPages";
 import { StudentOnboardingPage } from "../pages/StudentOnboardingPage";
 import { ProtectedRoute } from "./ProtectedRoute";
@@ -30,9 +27,6 @@ export function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/programs" element={<ProgramsPage />} />
           <Route path="/features" element={<FeaturesPage />} />
-          <Route path="/campus-ambassador" element={<CampusAmbassadorPage />} />
-          <Route path="/reviews" element={<ReviewsPage />} />
-          <Route path="/careers" element={<CareersPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/request-callback" element={<RequestCallbackPage />} />

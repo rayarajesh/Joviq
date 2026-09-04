@@ -153,7 +153,7 @@ internal sealed class AwsS3AssetStorageProvider : IAssetStorageProvider
 
     public Task<AssetLocalFile> OpenLocalFileAsync(
         Asset asset,
-        string token,
+        string? token,
         CancellationToken cancellationToken)
     {
         throw new AppException("Local asset files are not enabled for AWS S3 storage.", 404, "local_assets_not_enabled");

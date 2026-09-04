@@ -18,7 +18,6 @@ Only these roles are used:
 
 ```text
 Admin
-Mentor
 Student
 ```
 

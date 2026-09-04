@@ -42,8 +42,6 @@ public sealed class LearningProgram : AuditableEntity
 
     public string LearningMode { get; set; } = string.Empty;
 
-    public string MentorSummary { get; set; } = string.Empty;
-
     public string CertificationName { get; set; } = string.Empty;
 
     public string? ThumbnailUrl { get; set; }

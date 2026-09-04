@@ -12,8 +12,6 @@ public sealed class UserConsent : AuditableEntity
 
     public string PrivacyPolicyVersion { get; set; } = string.Empty;
 
-    public string RefundPolicyVersion { get; set; } = string.Empty;
-
     public DateTimeOffset AcceptedAt { get; set; }
 
     public string? IpAddress { get; set; }

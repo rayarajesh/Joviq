@@ -13,6 +13,8 @@ public interface IAdminUserService
 
     Task<AdminUserResponse> CreateUserAsync(CreateAdminUserRequest request, CancellationToken cancellationToken);
 
+    Task<AdminUserResponse> UpdateUserAsync(Guid userId, UpdateAdminUserRequest request, CancellationToken cancellationToken);
+
     Task<AdminUserResponse> UpdateStatusAsync(Guid userId, UpdateUserStatusRequest request, CancellationToken cancellationToken);
 
     Task<AdminUserResponse> UpdateRolesAsync(Guid userId, UpdateUserRolesRequest request, CancellationToken cancellationToken);

@@ -9,10 +9,8 @@ export type Program = {
   curriculum: string[];
   duration: string;
   mode: string;
-  mentor: string;
+  expert: string;
   projects: string[];
-  assignments: string[];
-  assessments: string[];
   certification: string;
   outcomes: string[];
   interviewPrep: string[];
@@ -43,11 +41,11 @@ export type ProgramCategory = {
 const commonFaqs = [
   {
     question: "Will I get a certificate?",
-    answer: "Yes. Learners receive a Joviq completion certificate after finishing projects, assignments, and assessments."
+    answer: "Yes. Learners receive a Joviq completion certificate after finishing required project work and reviews."
   },
   {
     question: "Are projects included?",
-    answer: "Yes. Every program includes 5 to 6 real-time project examples and mentor-reviewed practice work."
+    answer: "Yes. Every program includes 5 to 6 real-time project examples and expert-reviewed practice work."
   },
   {
     question: "Is placement support included?",
@@ -64,11 +62,11 @@ export const defaultProgramPlans: ProgramPlan[] = [
     reserveAmount: 999,
     features: [
       "16 Live Sessions",
-      "Recorded Classes",
+      "Recorded Lessons",
       "Hands-on Learning",
       "Real-Time Project",
       "Doubt-Solving Support",
-      "Basic Mentor Support",
+      "Basic Expert Support",
       "Interview Assistance",
       "6 Months LMS Access",
       "QR-Verified Certification"
@@ -83,12 +81,12 @@ export const defaultProgramPlans: ProgramPlan[] = [
     reserveAmount: 999,
     features: [
       "22 Live Sessions",
-      "Recorded Classes",
+      "Recorded Lessons",
       "Hands-on Learning",
       "Real-Time Projects",
-      "Personal Mentor Support",
+      "Personal Expert Support",
       "Doubt-Solving Support",
-      "Mentor Guidance & Review",
+      "Expert Guidance & Review",
       "Interview Preparation & Assistance",
       "Placement Support",
       "6 Months LMS Access",
@@ -104,11 +102,11 @@ export const defaultProgramPlans: ProgramPlan[] = [
     reserveAmount: 999,
     features: [
       "28 Live Sessions",
-      "Recorded Classes",
+      "Recorded Lessons",
       "Advanced Hands-on Learning",
       "Multiple Real-Time Projects",
-      "Personal Mentor Support",
-      "Detailed Mentor Review",
+      "Personal Expert Support",
+      "Detailed Expert Review",
       "Doubt-Solving Support",
       "Advanced Interview Preparation",
       "Placement Assistance & Support",
@@ -162,11 +160,9 @@ const csPrograms = [
     skills: ["Prompt engineering", "RAG architecture", "Vector databases", "AI agents", "API integration", "Evaluation and safety"],
     curriculum: ["AI foundations", "Prompt design", "Embeddings and retrieval", "RAG applications", "Agent workflows", "Deployment and monitoring"],
     duration: "10 weeks",
-    mode: "Live mentor-led online classes with project labs",
-    mentor: "AI product mentor with applied GenAI project experience",
+    mode: "Live expert-led online classes with project labs",
+    expert: "AI product expert with applied GenAI project experience",
     projects: ["Resume screening assistant", "Customer support chatbot", "Document Q&A knowledge base", "AI content workflow", "Sales email copilot", "Policy search assistant"],
-    assignments: ["Prompt lab submissions", "RAG design review", "API integration task", "Model evaluation worksheet"],
-    assessments: ["Weekly quizzes", "Project rubric", "Capstone demo", "Mentor viva"],
     certification: "Generative AI Project Certification",
     outcomes: ["AI developer intern", "Prompt engineer", "Junior AI product builder", "Automation analyst"],
     interviewPrep: ["AI fundamentals Q&A", "Portfolio walkthrough", "System design for RAG", "Mock technical interview"],
@@ -185,11 +181,9 @@ const csPrograms = [
     skills: ["React", "TypeScript", "REST APIs", "ASP.NET Core", "PostgreSQL", "Authentication", "Deployment"],
     curriculum: ["HTML/CSS fundamentals", "React components", "API design", "Database modeling", "Auth and roles", "Cloud deployment"],
     duration: "14 weeks",
-    mode: "Hybrid live sessions, code labs, and mentor reviews",
-    mentor: "Senior full stack engineer and project reviewer",
+    mode: "Hybrid live sessions, code labs, and expert reviews",
+    expert: "Senior full stack engineer and project reviewer",
     projects: ["LMS dashboard", "E-commerce checkout flow", "Job portal", "CRM lead tracker", "Blog CMS", "Authentication system"],
-    assignments: ["Component build", "API endpoint task", "Database schema task", "Deployment checklist"],
-    assessments: ["Code review", "Timed coding tasks", "Capstone demo", "API design test"],
     certification: "Full Stack Web Development Certification",
     outcomes: ["Frontend developer", "Backend developer", "Full stack developer", "Web application intern"],
     interviewPrep: ["DSA basics", "React interview set", "API and database Q&A", "GitHub portfolio review"],
@@ -208,11 +202,9 @@ const csPrograms = [
     skills: ["Python", "Pandas", "Scikit-learn", "Feature engineering", "Model metrics", "Experiment tracking"],
     curriculum: ["Python for ML", "Data preprocessing", "Regression and classification", "Clustering", "Model selection", "ML project deployment"],
     duration: "12 weeks",
-    mode: "Online mentor-led with notebook labs",
-    mentor: "Machine learning practitioner with analytics delivery experience",
+    mode: "Online expert-led with notebook labs",
+    expert: "Machine learning practitioner with analytics delivery experience",
     projects: ["House price prediction", "Loan approval model", "Customer churn prediction", "Movie recommendation engine", "Fraud pattern detection", "Demand forecasting"],
-    assignments: ["Data cleaning notebooks", "Model comparison task", "Metrics report", "Feature engineering challenge"],
-    assessments: ["Notebook review", "ML quiz", "Capstone model evaluation", "Mentor viva"],
     certification: "Machine Learning Certification",
     outcomes: ["ML intern", "Data science trainee", "AI analyst", "Junior ML engineer"],
     interviewPrep: ["ML algorithm Q&A", "Python coding rounds", "Project explanation practice", "Case study preparation"],
@@ -232,10 +224,8 @@ const csPrograms = [
     curriculum: ["Security basics", "Network scanning", "Linux security", "Web app testing", "OWASP Top 10", "SOC workflows"],
     duration: "12 weeks",
     mode: "Live lab-led online training",
-    mentor: "Cyber security mentor with ethical testing experience",
-    projects: ["Web vulnerability report", "Network scan assessment", "Phishing awareness simulation", "Log analysis case study", "Password policy audit", "Secure API checklist"],
-    assignments: ["Lab reports", "Threat model task", "OWASP worksheet", "Security remediation plan"],
-    assessments: ["Lab practical", "Security quiz", "Report quality review", "Scenario viva"],
+    expert: "Cyber security expert with ethical testing experience",
+    projects: ["Web vulnerability report", "Network scan report", "Phishing awareness simulation", "Log analysis case study", "Password policy audit", "Secure API checklist"],
     certification: "Cyber Security Foundations Certification",
     outcomes: ["Security analyst intern", "SOC trainee", "Cyber security associate", "IT security support"],
     interviewPrep: ["Networking Q&A", "OWASP questions", "Scenario interviews", "Report presentation"],
@@ -249,16 +239,14 @@ const csPrograms = [
     title: "Data Analytics",
     domain: "Computer Science & IT",
     shortDescription: "Excel, SQL, dashboards, business metrics, and insight storytelling.",
-    overview: "A job-focused analytics program for learners who want to turn raw data into dashboards, reports, and business decisions.",
+    overview: "A job-focused analytics program for learners who want to turn raw data into dashboards, insights, and business decisions.",
     audience: ["Fresh graduates", "Business teams", "Excel users moving to analytics", "Career switchers"],
     skills: ["Excel", "SQL", "Power BI", "Data cleaning", "Dashboard design", "Business storytelling"],
     curriculum: ["Spreadsheet analytics", "SQL queries", "Data cleaning", "Power BI dashboards", "KPI design", "Business case reporting"],
     duration: "8 weeks",
     mode: "Online classes with dashboard practice",
-    mentor: "Data analytics mentor with reporting and BI experience",
+    expert: "Data analytics expert with reporting and BI experience",
     projects: ["Sales dashboard", "HR attrition dashboard", "Retail revenue analysis", "Finance expense tracker", "Customer segmentation report", "Marketing campaign dashboard"],
-    assignments: ["SQL query sets", "Dashboard review", "KPI worksheet", "Insight summary"],
-    assessments: ["Dashboard rubric", "SQL test", "Business case presentation", "Mentor review"],
     certification: "Data Analytics Certification",
     outcomes: ["Data analyst intern", "BI trainee", "MIS executive", "Reporting analyst"],
     interviewPrep: ["SQL interview practice", "Dashboard portfolio review", "Analytics case questions", "Excel and BI rounds"],
@@ -271,17 +259,15 @@ const csPrograms = [
     slug: "data-science",
     title: "Data Science",
     domain: "Computer Science & IT",
-    shortDescription: "Python, statistics, ML, dashboards, AI assessments, and career projects.",
+    shortDescription: "Python, statistics, ML, dashboards, Project reviews, and career projects.",
     overview: "An industry-focused data science track covering analytics, statistics, machine learning, project delivery, and interview preparation.",
     audience: ["Students targeting data roles", "Analytics learners", "Python beginners", "Professionals moving into AI/data"],
     skills: ["Python", "Statistics", "SQL", "Machine learning", "Visualization", "Model evaluation", "Storytelling"],
     curriculum: ["Python and data wrangling", "Statistics", "SQL for analysis", "Visualization", "Machine learning", "Capstone delivery"],
     duration: "16 weeks",
-    mode: "Mentor-led online program with project studio",
-    mentor: "Data science mentor with applied ML and analytics experience",
+    mode: "Expert-led online program with project studio",
+    expert: "Data science expert with applied ML and analytics experience",
     projects: ["Customer churn prediction", "Sales forecasting model", "Credit risk analysis", "Healthcare appointment no-show prediction", "Retail basket analysis", "HR attrition prediction"],
-    assignments: ["Python notebooks", "Statistics worksheets", "SQL analytics tasks", "Model report"],
-    assessments: ["AI-assisted quizzes", "Project rubric", "Capstone presentation", "Mock interview"],
     certification: "Data Science Career Certification",
     outcomes: ["Data analyst", "Data science intern", "ML trainee", "Business intelligence analyst"],
     interviewPrep: ["Statistics Q&A", "Python coding practice", "SQL interview rounds", "Project storytelling"],
@@ -300,11 +286,9 @@ const csPrograms = [
     skills: ["Cloud architecture", "Compute services", "Storage", "Networking", "IAM basics", "Monitoring"],
     curriculum: ["Cloud fundamentals", "Virtual machines", "Storage and databases", "Networking", "Security and IAM", "Deployment operations"],
     duration: "10 weeks",
-    mode: "Online cloud labs with mentor support",
-    mentor: "Cloud engineer mentor with deployment experience",
+    mode: "Online cloud labs with expert support",
+    expert: "Cloud engineer expert with deployment experience",
     projects: ["Static website hosting", "API deployment", "Cloud database setup", "Monitoring dashboard", "Backup strategy plan", "Secure network design"],
-    assignments: ["Architecture diagram", "Deployment checklist", "Cost estimate", "Security review"],
-    assessments: ["Cloud quiz", "Lab submission", "Architecture viva", "Capstone review"],
     certification: "Cloud Computing Certification",
     outcomes: ["Cloud support associate", "Junior cloud engineer", "DevOps trainee", "Deployment engineer intern"],
     interviewPrep: ["Cloud concepts", "Architecture questions", "Cost and security cases", "Scenario mock interviews"],
@@ -324,10 +308,8 @@ const csPrograms = [
     curriculum: ["Linux and Git", "Shell scripting", "Docker", "CI/CD pipelines", "Infrastructure basics", "Observability"],
     duration: "12 weeks",
     mode: "Live online labs and pipeline practice",
-    mentor: "DevOps engineer mentor with release automation experience",
+    expert: "DevOps engineer expert with release automation experience",
     projects: ["CI/CD pipeline for web app", "Dockerized API", "Monitoring dashboard", "Blue-green deployment plan", "Infrastructure checklist", "Automated backup job"],
-    assignments: ["Git workflow task", "Docker build", "Pipeline config", "Incident response drill"],
-    assessments: ["Lab practical", "Pipeline review", "Troubleshooting test", "Capstone viva"],
     certification: "DevOps Engineering Certification",
     outcomes: ["DevOps trainee", "Cloud operations intern", "Release engineer", "Site reliability trainee"],
     interviewPrep: ["Linux Q&A", "Docker questions", "CI/CD scenarios", "Troubleshooting interviews"],
@@ -350,10 +332,8 @@ const electricalPrograms = [
     curriculum: ["Embedded C", "Microcontroller architecture", "GPIO and timers", "Communication protocols", "Sensors", "IoT project integration"],
     duration: "12 weeks",
     mode: "Lab-focused online and kit-based practice",
-    mentor: "Embedded engineer mentor with firmware project experience",
+    expert: "Embedded engineer expert with firmware project experience",
     projects: ["Smart energy meter prototype", "IoT weather station", "Line follower robot", "Sensor data logger", "Home automation controller", "Motor speed control"],
-    assignments: ["Firmware exercises", "Protocol worksheet", "Sensor calibration task", "Debug report"],
-    assessments: ["Lab demo", "Code review", "Hardware viva", "Project rubric"],
     certification: "Embedded Systems Certification",
     outcomes: ["Embedded intern", "Firmware trainee", "IoT project associate", "Hardware test trainee"],
     interviewPrep: ["Embedded C questions", "Protocol Q&A", "Hardware debugging cases", "Project explanation"],
@@ -372,11 +352,9 @@ const electricalPrograms = [
     skills: ["Digital logic", "Verilog basics", "Verification concepts", "Timing analysis", "Testbench writing", "EDA workflow"],
     curriculum: ["Digital fundamentals", "HDL basics", "Combinational design", "Sequential design", "Verification", "Timing and synthesis overview"],
     duration: "14 weeks",
-    mode: "Online mentor-led classes with design labs",
-    mentor: "VLSI mentor with digital design and verification experience",
+    mode: "Online expert-led classes with design labs",
+    expert: "VLSI expert with digital design and verification experience",
     projects: ["ALU design", "FIFO design", "UART transmitter", "Traffic light controller", "Memory controller testbench", "Simple RISC block"],
-    assignments: ["Logic design problems", "HDL coding tasks", "Testbench exercise", "Timing worksheet"],
-    assessments: ["Design review", "Verification quiz", "Lab demo", "Mock technical viva"],
     certification: "VLSI Design Foundations Certification",
     outcomes: ["VLSI trainee", "Verification intern", "Semiconductor fresher", "Digital design trainee"],
     interviewPrep: ["Digital design Q&A", "Verilog interview set", "Timing basics", "Project walkthrough"],
@@ -398,11 +376,9 @@ const mechanicalPrograms = [
     skills: ["Part modeling", "Assemblies", "2D drawings", "Sheet metal basics", "Design intent", "Rendering"],
     curriculum: ["Sketching", "Part features", "Assemblies", "Drawings", "Sheet metal", "Design project"],
     duration: "8 weeks",
-    mode: "Software lab sessions with mentor review",
-    mentor: "Mechanical design mentor with CAD portfolio experience",
+    mode: "Software lab sessions with expert review",
+    expert: "Mechanical design expert with CAD portfolio experience",
     projects: ["Gearbox assembly", "Sheet metal enclosure", "Bottle jack model", "Conveyor roller assembly", "Bracket design", "Product casing render"],
-    assignments: ["Sketch constraints", "Part modeling task", "Assembly exercise", "Drawing sheet"],
-    assessments: ["CAD file review", "Design viva", "Drawing accuracy test", "Portfolio review"],
     certification: "SolidWorks Design Certification",
     outcomes: ["CAD designer trainee", "Mechanical design intern", "Product design assistant", "Drafting associate"],
     interviewPrep: ["CAD command practice", "Drawing interpretation", "Portfolio explanation", "Design intent questions"],
@@ -421,11 +397,9 @@ const mechanicalPrograms = [
     skills: ["Parametric modeling", "Assembly constraints", "Drawing creation", "Surface basics", "Design changes", "Manufacturing awareness"],
     curriculum: ["Sketch tools", "Solid features", "Assemblies", "Drawings", "Surface intro", "Design project"],
     duration: "8 weeks",
-    mode: "CAD lab training with guided assignments",
-    mentor: "Creo mentor with mechanical design experience",
+    mode: "CAD lab training with guided practice",
+    expert: "Creo expert with mechanical design experience",
     projects: ["Pump casing model", "Piston assembly", "Fixture design", "Consumer product housing", "Gear train assembly", "Manufacturing drawing set"],
-    assignments: ["Feature practice", "Assembly task", "Drawing creation", "Design modification challenge"],
-    assessments: ["CAD review", "Drawing quality check", "Assembly constraints test", "Portfolio viva"],
     certification: "Creo Parametric Certification",
     outcomes: ["CAD trainee", "Design engineer intern", "Drafting associate", "Product modeling assistant"],
     interviewPrep: ["Creo tools Q&A", "Drawing standards", "Portfolio review", "Mechanical design basics"],
@@ -445,10 +419,8 @@ const mechanicalPrograms = [
     curriculum: ["Drawing tools", "Modify tools", "Layers and blocks", "Annotations", "Layouts", "Project drawing"],
     duration: "6 weeks",
     mode: "Online drafting labs and drawing reviews",
-    mentor: "CAD drafting mentor with industry drawing experience",
+    expert: "CAD drafting expert with industry drawing experience",
     projects: ["Residential floor plan", "Mechanical bracket drawing", "Electrical panel layout", "Site layout draft", "Manufacturing drawing sheet", "Office interior plan"],
-    assignments: ["Layer setup", "Dimensioning exercise", "Block creation", "Plot layout task"],
-    assessments: ["Drawing accuracy test", "Layout review", "Timed drafting task", "Portfolio feedback"],
     certification: "AutoCAD Drafting Certification",
     outcomes: ["CAD drafter", "Civil drafting intern", "Mechanical drafting trainee", "Design office assistant"],
     interviewPrep: ["Drawing commands", "Layer standards", "Plan reading", "Portfolio discussion"],
@@ -468,10 +440,8 @@ const mechanicalPrograms = [
     curriculum: ["EV and HEV fundamentals", "Battery systems", "Motor and controller basics", "Regenerative braking", "Thermal management", "Vehicle project study"],
     duration: "10 weeks",
     mode: "Online technical sessions with case-based projects",
-    mentor: "Automotive systems mentor with EV project exposure",
+    expert: "Automotive systems expert with EV project exposure",
     projects: ["HEV architecture comparison", "Battery pack sizing study", "Regenerative braking model", "Thermal management case", "Charging strategy analysis", "Vehicle energy dashboard"],
-    assignments: ["Component mapping", "Battery calculations", "Case analysis", "System block diagram"],
-    assessments: ["Technical quiz", "Project report", "Case viva", "Design review"],
     certification: "HEV Management Certification",
     outcomes: ["EV trainee", "Automotive systems intern", "Battery analysis trainee", "Mobility project associate"],
     interviewPrep: ["EV fundamentals", "Battery Q&A", "System design cases", "Automotive project walkthrough"],
@@ -493,11 +463,9 @@ const managementPrograms = [
     skills: ["Financial statements", "Budgeting", "Ratio analysis", "Excel modeling", "Valuation basics", "Reporting"],
     curriculum: ["Accounting basics", "Financial statements", "Budgeting", "Ratio analysis", "Valuation intro", "Finance dashboard"],
     duration: "8 weeks",
-    mode: "Online live classes with spreadsheet labs",
-    mentor: "Finance mentor with business analysis experience",
+    mode: "Online classes with spreadsheet labs",
+    expert: "Finance expert with business analysis experience",
     projects: ["Company financial analysis", "Budget planning model", "Cash flow dashboard", "Startup valuation sheet", "Expense optimization report", "Investment comparison model"],
-    assignments: ["Statement analysis", "Excel model", "Ratio worksheet", "Finance presentation"],
-    assessments: ["Spreadsheet review", "Finance quiz", "Case presentation", "Mentor viva"],
     certification: "Finance Analytics Certification",
     outcomes: ["Finance analyst intern", "Accounts analyst trainee", "Business finance associate", "MIS finance analyst"],
     interviewPrep: ["Finance fundamentals", "Excel rounds", "Case interviews", "Portfolio walkthrough"],
@@ -517,10 +485,8 @@ const managementPrograms = [
     curriculum: ["Market foundations", "Charts and indicators", "Fundamental research", "Risk and psychology", "Portfolio basics", "Research project"],
     duration: "6 weeks",
     mode: "Online sessions with market case studies",
-    mentor: "Market mentor with research and risk management experience",
+    expert: "Market expert with research and risk management experience",
     projects: ["Stock research report", "Technical chart journal", "Portfolio tracker", "Risk management plan", "Sector comparison dashboard", "Earnings summary note"],
-    assignments: ["Chart analysis", "Company profile", "Risk worksheet", "Research presentation"],
-    assessments: ["Market quiz", "Research review", "Case discussion", "Portfolio viva"],
     certification: "Stock Market Foundations Certification",
     outcomes: ["Research intern", "Market analyst trainee", "Finance content analyst", "Portfolio operations trainee"],
     interviewPrep: ["Market basics Q&A", "Research presentation", "Risk scenarios", "Finance interview prep"],
@@ -540,10 +506,8 @@ const managementPrograms = [
     curriculum: ["Marketing foundations", "SEO", "Social media campaigns", "Paid ads", "Analytics", "Growth project"],
     duration: "8 weeks",
     mode: "Live online classes with campaign labs",
-    mentor: "Growth marketing mentor with campaign delivery experience",
+    expert: "Growth marketing expert with campaign delivery experience",
     projects: ["SEO audit", "Instagram campaign plan", "Google ads structure", "Lead generation landing page", "Analytics report", "Content calendar"],
-    assignments: ["Keyword research", "Ad copy task", "Campaign dashboard", "Competitor analysis"],
-    assessments: ["Campaign rubric", "Marketing quiz", "Analytics viva", "Portfolio review"],
     certification: "Digital Marketing Certification",
     outcomes: ["Digital marketing intern", "SEO trainee", "Social media executive", "Growth marketing associate"],
     interviewPrep: ["Marketing funnel Q&A", "Campaign case studies", "Analytics questions", "Portfolio presentation"],
@@ -562,11 +526,9 @@ const managementPrograms = [
     skills: ["Business metrics", "Excel", "SQL basics", "Dashboarding", "Case analysis", "Presentation"],
     curriculum: ["Business problem framing", "Excel analytics", "SQL basics", "Dashboard design", "Forecasting basics", "Case project"],
     duration: "10 weeks",
-    mode: "Online mentor-led with business cases",
-    mentor: "Business analytics mentor with BI and operations experience",
+    mode: "Online expert-led with business cases",
+    expert: "Business analytics expert with BI and operations experience",
     projects: ["Sales performance dashboard", "Customer cohort analysis", "Inventory optimization case", "Revenue forecast", "Marketing ROI report", "Operations KPI scorecard"],
-    assignments: ["Case worksheet", "Dashboard task", "SQL practice", "Presentation deck"],
-    assessments: ["Case presentation", "Dashboard review", "Business quiz", "Mentor viva"],
     certification: "Business Analytics Certification",
     outcomes: ["Business analyst intern", "Operations analyst trainee", "BI associate", "Strategy analyst trainee"],
     interviewPrep: ["Case interviews", "Metric questions", "Dashboard walkthrough", "Business communication practice"],
@@ -586,10 +548,8 @@ const managementPrograms = [
     curriculum: ["International business basics", "Trade and documentation", "Global marketing", "Market entry strategy", "Operations", "Business project"],
     duration: "8 weeks",
     mode: "Online classes with business case projects",
-    mentor: "Business management mentor with international operations exposure",
+    expert: "Business management expert with international operations exposure",
     projects: ["Market entry plan", "Export documentation checklist", "Country risk report", "Global competitor analysis", "Supply chain case study", "International pricing plan"],
-    assignments: ["Trade terms worksheet", "Market research task", "Strategy memo", "Presentation deck"],
-    assessments: ["Case review", "Business quiz", "Presentation viva", "Project rubric"],
     certification: "International Business Management Certification",
     outcomes: ["Business development intern", "Operations trainee", "Export documentation assistant", "Management trainee"],
     interviewPrep: ["Business communication", "Case questions", "Trade basics Q&A", "Presentation practice"],
@@ -608,11 +568,9 @@ const managementPrograms = [
     skills: ["Recruitment", "HR operations", "Payroll basics", "Policy awareness", "Employee engagement", "HR analytics"],
     curriculum: ["HR fundamentals", "Recruitment lifecycle", "Onboarding", "Payroll and compliance basics", "Employee engagement", "HR analytics project"],
     duration: "8 weeks",
-    mode: "Online mentor-led with HR case practice",
-    mentor: "HR mentor with recruitment and people operations experience",
+    mode: "Online expert-led with HR case practice",
+    expert: "HR expert with recruitment and people operations experience",
     projects: ["Recruitment funnel dashboard", "Onboarding checklist", "Employee engagement survey", "Payroll data tracker", "Policy comparison note", "Attrition analysis report"],
-    assignments: ["JD writing task", "Interview scorecard", "HR policy worksheet", "Analytics dashboard"],
-    assessments: ["HR case review", "Process viva", "Recruitment role play", "Portfolio check"],
     certification: "HRM Career Certification",
     outcomes: ["HR intern", "Recruiter trainee", "HR operations assistant", "Talent acquisition associate"],
     interviewPrep: ["HR scenario questions", "Recruitment role play", "Communication practice", "Policy Q&A"],
@@ -646,10 +604,8 @@ const uiUxPrograms = [
     ],
     duration: "10 weeks",
     mode: "Live design studio sessions with recorded access and critique reviews",
-    mentor: "Product design mentor with UX research, interface design, and portfolio review experience",
+    expert: "Product design expert with UX research, interface design, and portfolio review experience",
     projects: ["Mobile app onboarding redesign", "SaaS dashboard UX case study", "E-commerce checkout prototype", "Portfolio website design", "Design system starter kit", "Usability test report"],
-    assignments: ["Persona worksheet", "Wireframe review", "Prototype submission", "Case study draft"],
-    assessments: ["Design critique", "Prototype walkthrough", "Portfolio review", "Mentor viva"],
     certification: "UI/UX Design QR-Verified Certification",
     outcomes: ["UI/UX designer intern", "Product design trainee", "UX research assistant", "Visual designer fresher"],
     interviewPrep: ["Portfolio storytelling", "Design challenge practice", "UX process Q&A", "Mock design interview"],
@@ -682,11 +638,9 @@ const solidWorksCreoPrograms = [
       "Mechanical CAD portfolio capstone"
     ],
     duration: "10 weeks",
-    mode: "CAD lab training with live mentor review and recorded practice access",
-    mentor: "Mechanical CAD mentor with product modeling and drawing review experience",
+    mode: "CAD lab training with live expert review and recorded practice access",
+    expert: "Mechanical CAD expert with product modeling and drawing review experience",
     projects: ["Gearbox assembly", "Pump casing model", "Sheet metal enclosure", "Fixture design", "Consumer product housing", "Manufacturing drawing set"],
-    assignments: ["Sketch constraint task", "SolidWorks part model", "Creo assembly task", "Drawing sheet review"],
-    assessments: ["CAD file review", "Assembly constraints test", "Drawing accuracy check", "Portfolio viva"],
     certification: "SolidWorks & Creo QR-Verified Certification",
     outcomes: ["CAD designer trainee", "Mechanical design intern", "Drafting associate", "Product modeling assistant"],
     interviewPrep: ["CAD tool Q&A", "Drawing standards discussion", "Design intent explanation", "Portfolio walkthrough"],
@@ -740,11 +694,11 @@ export const keyStatistics = [
   { value: "20+", label: "Career programs" },
   { value: "100+", label: "Real-time project ideas" },
   { value: "6", label: "Learning domains" },
-  { value: "1:1", label: "Mentor review loops" }
+  { value: "1:1", label: "Expert review loops" }
 ];
 
-export const mentors = [
-  { name: "AI and Data Mentors", role: "Guide learners through ML, GenAI, analytics, and portfolio projects." },
+export const expertGuides = [
+  { name: "AI and Data Experts", role: "Guide learners through ML, GenAI, analytics, and portfolio projects." },
   { name: "Software Engineers", role: "Review React, API, database, DevOps, and deployment work." },
   { name: "Core Engineering Experts", role: "Support VLSI, embedded, CAD, EV, and design practice." },
   { name: "Business Coaches", role: "Prepare learners for finance, HR, marketing, and analytics roles." }
@@ -752,35 +706,24 @@ export const mentors = [
 
 export const recognitions = [
   "Project-first certification model",
-  "AI assessment supported learning",
+  "Project-supported learning",
   "Industry-aligned curriculum",
-  "Mentor reviewed capstones"
-];
-
-export const hiringPartners = [
-  "TCS",
-  "Infosys",
-  "Wipro",
-  "Accenture",
-  "Capgemini",
-  "HCLTech",
-  "Zoho",
-  "Cognizant"
+  "Expert reviewed capstones"
 ];
 
 export const poweredBy = [
   "React LMS",
   "ASP.NET Core API",
   "PostgreSQL",
-  "AI assessments",
-  "Mentor rubrics",
+  "Project reviews",
+  "Expert rubrics",
   "Role based dashboards"
 ];
 
 export const howItWorks = [
   { title: "Choose a program", text: "Search by domain, skill, or career goal and compare project outcomes." },
-  { title: "Learn with mentors", text: "Attend live sessions, complete assignments, and get reviewed by experts." },
-  { title: "Build real projects", text: "Create portfolio-ready work with clear rubrics and assessment checkpoints." },
+  { title: "Learn with experts", text: "Attend live sessions, complete projects, and get reviewed by experts." },
+  { title: "Build real projects", text: "Create portfolio-ready work with clear rubrics and review checkpoints." },
   { title: "Get interview ready", text: "Practice resumes, mock interviews, project explanations, and role-specific Q&A." }
 ];
 
@@ -810,45 +753,27 @@ export const pricingPlans = [
   {
     name: "Launch",
     price: "INR 4,000",
-    description: "For learners who want live structure, recordings, hands-on learning, and basic mentor support.",
+    description: "For learners who want live structure, recordings, hands-on learning, and basic expert support.",
     features: ["16 live sessions", "Real-time project", "Interview assistance", "6 months LMS access"]
   },
   {
     name: "Elevate",
     price: "INR 5,000",
-    description: "For learners who want personal mentor support, deeper project review, and placement readiness.",
-    features: ["22 live sessions", "Personal mentor support", "Mentor guidance & review", "Placement support"]
+    description: "For learners who want personal expert support, deeper project review, and placement readiness.",
+    features: ["22 live sessions", "Personal expert support", "Expert guidance & review", "Placement support"]
   },
   {
     name: "Mastery",
     price: "INR 10,000",
-    description: "For learners who want advanced hands-on projects, detailed mentor review, and full career guidance.",
+    description: "For learners who want advanced hands-on projects, detailed expert review, and full career guidance.",
     features: ["28 live sessions", "Multiple real-time projects", "Advanced interview prep", "Career guidance"]
-  }
-];
-
-export const reviews = [
-  {
-    name: "Priya S.",
-    program: "Data Science",
-    quote: "The project reviews helped me explain my portfolio clearly in interviews."
-  },
-  {
-    name: "Rahul K.",
-    program: "Full Stack Web Development",
-    quote: "Building full applications with auth and APIs made my resume much stronger."
-  },
-  {
-    name: "Meena R.",
-    program: "Digital Marketing",
-    quote: "The campaign projects and analytics reports gave me practical confidence."
   }
 ];
 
 export const homeFaqs = [
   {
     question: "Are programs online or offline?",
-    answer: "Programs are designed for mentor-led online delivery with project labs. Hybrid batches can be offered for partner institutions."
+    answer: "Programs are designed for expert-led online delivery with project labs. Hybrid batches can be offered for partner institutions."
   },
   {
     question: "Can beginners join?",

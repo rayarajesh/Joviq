@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using Joviq.Lms.Application.Common.Validation;
-using Joviq.Lms.Domain.Enums;
 
 namespace Joviq.Lms.Application.Auth;
 
@@ -28,9 +27,6 @@ public sealed record RegisterRequest
 
     [Required]
     public string PrivacyPolicyVersion { get; init; } = string.Empty;
-
-    [Required]
-    public string RefundPolicyVersion { get; init; } = string.Empty;
 }
 
 public sealed record LoginRequest
@@ -78,9 +74,6 @@ public sealed record ExternalLoginRequest
     [MaxLength(64)]
     public string? PrivacyPolicyVersion { get; init; }
 
-    [MaxLength(64)]
-    public string? RefundPolicyVersion { get; init; }
-
     [MaxLength(128)]
     public string? DeviceName { get; init; }
 }
@@ -100,55 +93,16 @@ public sealed record VerifyEmailRequest
     public string Otp { get; init; } = string.Empty;
 }
 
-public sealed record SendPhoneOtpRequest
-{
-    [Required, IndianMobileNumber]
-    public string PhoneNumber { get; init; } = string.Empty;
-
-    public OtpPurpose Purpose { get; init; } = OtpPurpose.PhoneVerification;
-}
-
-public sealed record VerifyPhoneOtpRequest
-{
-    [Required, IndianMobileNumber]
-    public string PhoneNumber { get; init; } = string.Empty;
-
-    public OtpPurpose Purpose { get; init; } = OtpPurpose.PhoneVerification;
-
-    [Required, StringLength(8, MinimumLength = 4)]
-    public string Otp { get; init; } = string.Empty;
-}
-
-public sealed record RequestOtpLoginRequest
-{
-    [Required, IndianMobileNumber]
-    public string PhoneNumber { get; init; } = string.Empty;
-}
-
-public sealed record VerifyOtpLoginRequest
-{
-    [Required, IndianMobileNumber]
-    public string PhoneNumber { get; init; } = string.Empty;
-
-    [Required, StringLength(8, MinimumLength = 4)]
-    public string Otp { get; init; } = string.Empty;
-
-    public bool RememberMe { get; init; }
-
-    [MaxLength(128)]
-    public string? DeviceName { get; init; }
-}
-
 public sealed record ForgotPasswordRequest
 {
-    [Required, MaxLength(256)]
-    public string EmailOrPhone { get; init; } = string.Empty;
+    [Required, EmailAddress, MaxLength(256)]
+    public string Email { get; init; } = string.Empty;
 }
 
 public sealed record VerifyForgotPasswordRequest
 {
-    [Required, MaxLength(256)]
-    public string EmailOrPhone { get; init; } = string.Empty;
+    [Required, EmailAddress, MaxLength(256)]
+    public string Email { get; init; } = string.Empty;
 
     [Required, StringLength(8, MinimumLength = 4)]
     public string Otp { get; init; } = string.Empty;

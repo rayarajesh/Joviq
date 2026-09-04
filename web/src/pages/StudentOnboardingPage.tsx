@@ -814,7 +814,7 @@ export function StudentOnboardingPage() {
                 icon={MapPin}
                 eyebrow="Personal"
                 title="Where are you learning from?"
-                description="Share only what helps mentors support you today."
+                description="Share only what helps experts support you today."
               />
               <div className="onboarding-grid onboarding-grid--two">
                 <label>
@@ -1139,7 +1139,7 @@ export function StudentOnboardingPage() {
                 <p>
                   {profile?.missingFields.length
                     ? `${profile.missingFields.length} optional details are still open. You can continue now and finish them later.`
-                    : "Your profile is ready for learning, projects, and mentor review."}
+                    : "Your profile is ready for learning, projects, and expert review."}
                 </p>
               </div>
             </div>

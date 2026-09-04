@@ -33,16 +33,7 @@ public enum PaymentStatus
 {
     Pending = 1,
     Verified = 2,
-    Failed = 3,
-    Refunded = 4
-}
-
-public enum LiveClassStatus
-{
-    Scheduled = 1,
-    Live = 2,
-    Completed = 3,
-    Cancelled = 4
+    Failed = 3
 }
 
 public enum SubmissionStatus
@@ -51,14 +42,6 @@ public enum SubmissionStatus
     Submitted = 2,
     NeedsRevision = 3,
     Approved = 4
-}
-
-public enum AssessmentAttemptStatus
-{
-    Started = 1,
-    Submitted = 2,
-    Evaluated = 3,
-    Expired = 4
 }
 
 public enum CertificateType
@@ -74,15 +57,6 @@ public enum CertificateStatus
     Draft = 1,
     Issued = 2,
     Revoked = 3
-}
-
-public enum SupportTicketStatus
-{
-    Open = 1,
-    InProgress = 2,
-    WaitingForStudent = 3,
-    Resolved = 4,
-    Closed = 5
 }
 
 public enum LeadStatus
@@ -101,21 +75,6 @@ public enum NotificationStatus
     Archived = 3
 }
 
-public enum AdminContentType
-{
-    WebsiteContent = 1,
-    Testimonial = 2,
-    Review = 3,
-    HiringPartner = 4
-}
-
-public enum AdminContentStatus
-{
-    Draft = 1,
-    Published = 2,
-    Archived = 3
-}
-
 public enum AssetType
 {
     Image = 1,
@@ -130,9 +89,7 @@ public enum AssetPurpose
     ProgramThumbnail = 2,
     LessonVideo = 3,
     LessonResource = 4,
-    AssignmentSubmission = 5,
     ProjectSubmission = 6,
-    SupportAttachment = 7,
     UserProfile = 8
 }
 

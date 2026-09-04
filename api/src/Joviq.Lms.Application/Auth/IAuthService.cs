@@ -22,14 +22,6 @@ public interface IAuthService
 
     Task VerifyEmailAsync(VerifyEmailRequest request, RequestMetadata metadata, CancellationToken cancellationToken);
 
-    Task SendPhoneOtpAsync(SendPhoneOtpRequest request, RequestMetadata metadata, CancellationToken cancellationToken);
-
-    Task VerifyPhoneOtpAsync(VerifyPhoneOtpRequest request, RequestMetadata metadata, CancellationToken cancellationToken);
-
-    Task RequestOtpLoginAsync(RequestOtpLoginRequest request, RequestMetadata metadata, CancellationToken cancellationToken);
-
-    Task<AuthTokenResponse> VerifyOtpLoginAsync(VerifyOtpLoginRequest request, RequestMetadata metadata, CancellationToken cancellationToken);
-
     Task ForgotPasswordAsync(ForgotPasswordRequest request, RequestMetadata metadata, CancellationToken cancellationToken);
 
     Task<PasswordResetVerificationResponse> VerifyForgotPasswordAsync(VerifyForgotPasswordRequest request, RequestMetadata metadata, CancellationToken cancellationToken);

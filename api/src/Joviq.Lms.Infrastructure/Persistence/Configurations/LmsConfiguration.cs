@@ -32,7 +32,6 @@ public sealed class LearningProgramConfiguration : IEntityTypeConfiguration<Lear
         builder.Property(x => x.Level).HasMaxLength(80).IsRequired();
         builder.Property(x => x.Duration).HasMaxLength(80).IsRequired();
         builder.Property(x => x.LearningMode).HasMaxLength(120).IsRequired();
-        builder.Property(x => x.MentorSummary).HasMaxLength(1000).IsRequired();
         builder.Property(x => x.CertificationName).HasMaxLength(180).IsRequired();
         builder.Property(x => x.ThumbnailUrl).HasMaxLength(500);
         builder.Property(x => x.SkillsJson).HasColumnType("jsonb");
@@ -189,66 +188,6 @@ public sealed class CouponConfiguration : IEntityTypeConfiguration<Coupon>
     }
 }
 
-public sealed class LiveClassConfiguration : IEntityTypeConfiguration<LiveClass>
-{
-    public void Configure(EntityTypeBuilder<LiveClass> builder)
-    {
-        builder.ToTable("live_classes");
-        builder.HasKey(x => x.Id);
-        builder.HasIndex(x => new { x.ProgramId, x.StartsAt });
-        builder.Property(x => x.Title).HasMaxLength(180).IsRequired();
-        builder.Property(x => x.Description).HasMaxLength(1200).IsRequired();
-        builder.Property(x => x.JoinUrl).HasMaxLength(500);
-        builder.Property(x => x.RecordingUrl).HasMaxLength(500);
-        builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(64);
-        builder.HasOne(x => x.Program)
-            .WithMany()
-            .HasForeignKey(x => x.ProgramId)
-            .OnDelete(DeleteBehavior.Cascade);
-    }
-}
-
-public sealed class AssignmentConfiguration : IEntityTypeConfiguration<Assignment>
-{
-    public void Configure(EntityTypeBuilder<Assignment> builder)
-    {
-        builder.ToTable("assignments");
-        builder.HasKey(x => x.Id);
-        builder.HasIndex(x => new { x.ProgramId, x.IsPublished });
-        builder.Property(x => x.Title).HasMaxLength(180).IsRequired();
-        builder.Property(x => x.Instructions).HasMaxLength(2500).IsRequired();
-        builder.Property(x => x.MaxScore).HasPrecision(8, 2);
-        builder.HasOne(x => x.Program)
-            .WithMany()
-            .HasForeignKey(x => x.ProgramId)
-            .OnDelete(DeleteBehavior.Cascade);
-    }
-}
-
-public sealed class AssignmentSubmissionConfiguration : IEntityTypeConfiguration<AssignmentSubmission>
-{
-    public void Configure(EntityTypeBuilder<AssignmentSubmission> builder)
-    {
-        builder.ToTable("assignment_submissions");
-        builder.HasKey(x => x.Id);
-        builder.HasIndex(x => new { x.AssignmentId, x.StudentId });
-        builder.Property(x => x.SubmissionUrl).HasMaxLength(500);
-        builder.Property(x => x.FileUrl).HasMaxLength(500);
-        builder.Property(x => x.Notes).HasMaxLength(2000);
-        builder.Property(x => x.Score).HasPrecision(8, 2);
-        builder.Property(x => x.Feedback).HasMaxLength(2500);
-        builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(64);
-        builder.HasOne(x => x.Assignment)
-            .WithMany()
-            .HasForeignKey(x => x.AssignmentId)
-            .OnDelete(DeleteBehavior.Cascade);
-        builder.HasOne(x => x.Enrollment)
-            .WithMany()
-            .HasForeignKey(x => x.EnrollmentId)
-            .OnDelete(DeleteBehavior.SetNull);
-    }
-}
-
 public sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
 {
     public void Configure(EntityTypeBuilder<Project> builder)
@@ -293,83 +232,6 @@ public sealed class ProjectSubmissionConfiguration : IEntityTypeConfiguration<Pr
     }
 }
 
-public sealed class AssessmentConfiguration : IEntityTypeConfiguration<Assessment>
-{
-    public void Configure(EntityTypeBuilder<Assessment> builder)
-    {
-        builder.ToTable("assessments");
-        builder.HasKey(x => x.Id);
-        builder.HasIndex(x => new { x.ProgramId, x.IsPublished });
-        builder.Property(x => x.Title).HasMaxLength(180).IsRequired();
-        builder.Property(x => x.AssessmentType).HasMaxLength(80).IsRequired();
-        builder.Property(x => x.Instructions).HasMaxLength(2500).IsRequired();
-        builder.Property(x => x.PassingPercentage).HasPrecision(8, 2);
-        builder.HasOne(x => x.Program)
-            .WithMany()
-            .HasForeignKey(x => x.ProgramId)
-            .OnDelete(DeleteBehavior.Cascade);
-    }
-}
-
-public sealed class AssessmentQuestionConfiguration : IEntityTypeConfiguration<AssessmentQuestion>
-{
-    public void Configure(EntityTypeBuilder<AssessmentQuestion> builder)
-    {
-        builder.ToTable("assessment_questions");
-        builder.HasKey(x => x.Id);
-        builder.HasIndex(x => new { x.AssessmentId, x.SortOrder });
-        builder.Property(x => x.QuestionType).HasMaxLength(80).IsRequired();
-        builder.Property(x => x.Prompt).HasMaxLength(2500).IsRequired();
-        builder.Property(x => x.OptionsJson).HasColumnType("jsonb");
-        builder.Property(x => x.CorrectAnswer).HasMaxLength(1000);
-        builder.Property(x => x.Score).HasPrecision(8, 2);
-        builder.HasOne(x => x.Assessment)
-            .WithMany(x => x.Questions)
-            .HasForeignKey(x => x.AssessmentId)
-            .OnDelete(DeleteBehavior.Cascade);
-    }
-}
-
-public sealed class AssessmentAttemptConfiguration : IEntityTypeConfiguration<AssessmentAttempt>
-{
-    public void Configure(EntityTypeBuilder<AssessmentAttempt> builder)
-    {
-        builder.ToTable("assessment_attempts");
-        builder.HasKey(x => x.Id);
-        builder.HasIndex(x => new { x.StudentId, x.AssessmentId });
-        builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(64);
-        builder.Property(x => x.Score).HasPrecision(8, 2);
-        builder.Property(x => x.ResultJson).HasColumnType("jsonb");
-        builder.HasOne(x => x.Assessment)
-            .WithMany()
-            .HasForeignKey(x => x.AssessmentId)
-            .OnDelete(DeleteBehavior.Cascade);
-        builder.HasOne(x => x.Enrollment)
-            .WithMany()
-            .HasForeignKey(x => x.EnrollmentId)
-            .OnDelete(DeleteBehavior.SetNull);
-    }
-}
-
-public sealed class AiInterviewAttemptConfiguration : IEntityTypeConfiguration<AiInterviewAttempt>
-{
-    public void Configure(EntityTypeBuilder<AiInterviewAttempt> builder)
-    {
-        builder.ToTable("ai_interview_attempts");
-        builder.HasKey(x => x.Id);
-        builder.HasIndex(x => new { x.StudentId, x.StartedAt });
-        builder.Property(x => x.JobRole).HasMaxLength(180).IsRequired();
-        builder.Property(x => x.Domain).HasMaxLength(120).IsRequired();
-        builder.Property(x => x.InterviewType).HasMaxLength(80).IsRequired();
-        builder.Property(x => x.TechnicalScore).HasPrecision(8, 2);
-        builder.Property(x => x.CommunicationScore).HasPrecision(8, 2);
-        builder.Property(x => x.OverallScore).HasPrecision(8, 2);
-        builder.Property(x => x.TranscriptJson).HasColumnType("jsonb");
-        builder.Property(x => x.RecommendationsJson).HasColumnType("jsonb");
-        builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(64);
-    }
-}
-
 public sealed class CertificateConfiguration : IEntityTypeConfiguration<Certificate>
 {
     public void Configure(EntityTypeBuilder<Certificate> builder)
@@ -396,24 +258,6 @@ public sealed class CertificateConfiguration : IEntityTypeConfiguration<Certific
     }
 }
 
-public sealed class SupportTicketConfiguration : IEntityTypeConfiguration<SupportTicket>
-{
-    public void Configure(EntityTypeBuilder<SupportTicket> builder)
-    {
-        builder.ToTable("support_tickets");
-        builder.HasKey(x => x.Id);
-        builder.HasIndex(x => new { x.Status, x.CreatedAt });
-        builder.Property(x => x.Name).HasMaxLength(160).IsRequired();
-        builder.Property(x => x.Email).HasMaxLength(256).IsRequired();
-        builder.Property(x => x.StudentIdText).HasMaxLength(120);
-        builder.Property(x => x.Issue).HasMaxLength(180).IsRequired();
-        builder.Property(x => x.Description).HasMaxLength(2500).IsRequired();
-        builder.Property(x => x.AttachmentUrl).HasMaxLength(500);
-        builder.Property(x => x.Priority).HasMaxLength(40).IsRequired();
-        builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(64);
-        builder.Property(x => x.AdminNotes).HasMaxLength(2500);
-    }
-}
 
 public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notification>
 {
@@ -458,74 +302,5 @@ public sealed class EnquiryConfiguration : IEntityTypeConfiguration<Enquiry>
         builder.Property(x => x.Topic).HasMaxLength(180).IsRequired();
         builder.Property(x => x.Message).HasMaxLength(2500).IsRequired();
         builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(64);
-    }
-}
-
-public sealed class CampusAmbassadorApplicationConfiguration : IEntityTypeConfiguration<CampusAmbassadorApplication>
-{
-    public void Configure(EntityTypeBuilder<CampusAmbassadorApplication> builder)
-    {
-        builder.ToTable("campus_ambassador_applications");
-        builder.HasKey(x => x.Id);
-        builder.HasIndex(x => new { x.Status, x.CreatedAt });
-        builder.Property(x => x.FullName).HasMaxLength(160).IsRequired();
-        builder.Property(x => x.Email).HasMaxLength(256).IsRequired();
-        builder.Property(x => x.PhoneNumber).HasMaxLength(32).IsRequired();
-        builder.Property(x => x.College).HasMaxLength(220).IsRequired();
-        builder.Property(x => x.City).HasMaxLength(120).IsRequired();
-        builder.Property(x => x.WhyJoin).HasMaxLength(2500).IsRequired();
-        builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(64);
-    }
-}
-
-public sealed class CareerApplicationConfiguration : IEntityTypeConfiguration<CareerApplication>
-{
-    public void Configure(EntityTypeBuilder<CareerApplication> builder)
-    {
-        builder.ToTable("career_applications");
-        builder.HasKey(x => x.Id);
-        builder.HasIndex(x => new { x.Status, x.CreatedAt });
-        builder.Property(x => x.FullName).HasMaxLength(160).IsRequired();
-        builder.Property(x => x.Email).HasMaxLength(256).IsRequired();
-        builder.Property(x => x.PhoneNumber).HasMaxLength(32).IsRequired();
-        builder.Property(x => x.Role).HasMaxLength(160).IsRequired();
-        builder.Property(x => x.ResumeUrl).HasMaxLength(500);
-        builder.Property(x => x.PortfolioUrl).HasMaxLength(500);
-        builder.Property(x => x.CoverNote).HasMaxLength(2500);
-        builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(64);
-    }
-}
-
-public sealed class AdminContentItemConfiguration : IEntityTypeConfiguration<AdminContentItem>
-{
-    public void Configure(EntityTypeBuilder<AdminContentItem> builder)
-    {
-        builder.ToTable("admin_content_items");
-        builder.HasKey(x => x.Id);
-        builder.HasIndex(x => new { x.ContentType, x.Slug }).IsUnique();
-        builder.HasIndex(x => new { x.ContentType, x.Status, x.SortOrder });
-        builder.Property(x => x.ContentType).HasConversion<string>().HasMaxLength(64);
-        builder.Property(x => x.Title).HasMaxLength(180).IsRequired();
-        builder.Property(x => x.Slug).HasMaxLength(180).IsRequired();
-        builder.Property(x => x.Summary).HasMaxLength(800);
-        builder.Property(x => x.Body).HasMaxLength(6000);
-        builder.Property(x => x.ImageUrl).HasMaxLength(500);
-        builder.Property(x => x.ExternalUrl).HasMaxLength(500);
-        builder.Property(x => x.MetadataJson).HasColumnType("jsonb");
-        builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(64);
-    }
-}
-
-public sealed class AdminSettingConfiguration : IEntityTypeConfiguration<AdminSetting>
-{
-    public void Configure(EntityTypeBuilder<AdminSetting> builder)
-    {
-        builder.ToTable("admin_settings");
-        builder.HasKey(x => x.Id);
-        builder.HasIndex(x => new { x.Category, x.Key }).IsUnique();
-        builder.Property(x => x.Category).HasMaxLength(80).IsRequired();
-        builder.Property(x => x.Key).HasMaxLength(120).IsRequired();
-        builder.Property(x => x.Value).HasMaxLength(4000).IsRequired();
-        builder.Property(x => x.Description).HasMaxLength(500);
     }
 }

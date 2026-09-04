@@ -57,8 +57,7 @@ public sealed class AuthController(
         [FromQuery] bool rememberMe,
         [FromQuery] string? phoneNumber,
         [FromQuery] string? termsVersion,
-        [FromQuery] string? privacyPolicyVersion,
-        [FromQuery] string? refundPolicyVersion)
+        [FromQuery] string? privacyPolicyVersion)
     {
         var normalizedReturnUrl = NormalizeReturnUrl(returnUrl);
         if (await authenticationSchemeProvider.GetSchemeAsync("Google") is null)
@@ -78,7 +77,6 @@ public sealed class AuthController(
         properties.Items["phoneNumber"] = phoneNumber;
         properties.Items["termsVersion"] = NormalizePolicyVersion(termsVersion);
         properties.Items["privacyPolicyVersion"] = NormalizePolicyVersion(privacyPolicyVersion);
-        properties.Items["refundPolicyVersion"] = NormalizePolicyVersion(refundPolicyVersion);
 
         return Challenge(properties, "Google");
     }
@@ -123,7 +121,6 @@ public sealed class AuthController(
                     PhoneNumber = GetAuthenticationProperty(authenticateResult, "phoneNumber"),
                     TermsVersion = GetAuthenticationProperty(authenticateResult, "termsVersion"),
                     PrivacyPolicyVersion = GetAuthenticationProperty(authenticateResult, "privacyPolicyVersion"),
-                    RefundPolicyVersion = GetAuthenticationProperty(authenticateResult, "refundPolicyVersion"),
                     DeviceName = "Joviq Web OAuth"
                 },
                 RequestMetadata("Joviq Web OAuth"),
@@ -198,39 +195,6 @@ public sealed class AuthController(
     {
         await authService.VerifyEmailAsync(request, RequestMetadata(), cancellationToken);
         return Ok(ApiResponse.Ok("Email verified successfully.", CorrelationId));
-    }
-
-    [HttpPost("phone-otp/send")]
-    [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse>> SendPhoneOtp(SendPhoneOtpRequest request, CancellationToken cancellationToken)
-    {
-        await authService.SendPhoneOtpAsync(request, RequestMetadata(), cancellationToken);
-        return Ok(ApiResponse.Ok("OTP sent successfully.", CorrelationId));
-    }
-
-    [HttpPost("phone-otp/verify")]
-    [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse>> VerifyPhoneOtp(VerifyPhoneOtpRequest request, CancellationToken cancellationToken)
-    {
-        await authService.VerifyPhoneOtpAsync(request, RequestMetadata(), cancellationToken);
-        return Ok(ApiResponse.Ok("OTP verified successfully.", CorrelationId));
-    }
-
-    [HttpPost("login/otp/request")]
-    [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse>> RequestOtpLogin(RequestOtpLoginRequest request, CancellationToken cancellationToken)
-    {
-        await authService.RequestOtpLoginAsync(request, RequestMetadata(), cancellationToken);
-        return Ok(ApiResponse.Ok("If the account exists, an OTP has been sent.", CorrelationId));
-    }
-
-    [HttpPost("login/otp/verify")]
-    [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<AuthTokenResponse>>> VerifyOtpLogin(VerifyOtpLoginRequest request, CancellationToken cancellationToken)
-    {
-        var result = await authService.VerifyOtpLoginAsync(request, RequestMetadata(request.DeviceName), cancellationToken);
-        SetRefreshTokenCookieIfPresent(result);
-        return Ok(ApiResponse<AuthTokenResponse>.Ok(result, "Login successful.", CorrelationId));
     }
 
     [HttpPost("forgot-password")]

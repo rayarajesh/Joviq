@@ -175,7 +175,7 @@ const outcomeStories = [
     name: "Tanvi Joshi",
     program: "CSE - Final Year",
     badge: "Job Offer",
-    quote: "Expert reviews exposed weak spots before the real interview.",
+    quote: "Expert feedback exposed weak spots before the real interview.",
     result: "Converted final HR discussion",
     portraitPosition: "50% 100%",
     accent: "#61a66b"
@@ -194,7 +194,7 @@ const outcomeStories = [
 const certificationProofs = [
   {
     title: "Outcome-based credential",
-    description: "Issued after the required projects, assessments, and mentor review are complete."
+    description: "Issued after the required project work and expert review are complete."
   },
   {
     title: "Unique verification record",
@@ -221,7 +221,7 @@ const certificateProgress = [
   },
   {
     label: "Learn",
-    action: "Attend live sessions and use recorded classes for revision.",
+    action: "Join guided sessions and use lesson replays for revision.",
     proof: "Module progress, quizzes, and practice work are tracked."
   },
   {
@@ -231,7 +231,7 @@ const certificateProgress = [
   },
   {
     label: "Review",
-    action: "Get mentor feedback, improve submissions, and clear assessments.",
+    action: "Get expert feedback, improve submissions, and complete review checkpoints.",
     proof: "Rubric scores and expert review notes validate your skills."
   },
   {
@@ -242,9 +242,9 @@ const certificateProgress = [
 ];
 
 const pricingLabels = ["Basic", "Standard", "Pro"];
-const pricingArtLabels = ["play", "mentor", "target"];
+const pricingArtLabels = ["play", "expert", "target"];
 const pricingBenefits = [
-  { title: "Expert Mentors", text: "Learn from industry professionals.", icon: ShieldCheck },
+  { title: "Expert Experts", text: "Learn from industry professionals.", icon: ShieldCheck },
   { title: "Project-Based Learning", text: "Build real-world projects and portfolios.", icon: Award },
   { title: "Placement Support", text: "Resume, mock interviews & job assistance.", icon: BarChart3 },
   { title: "Lifetime Access", text: "Access recordings & resources whenever you need.", icon: PhoneCall }
@@ -256,7 +256,7 @@ const roadmapSteps = [
     label: "Register",
     duration: "2 min",
     description: "Set up one learner profile with your background, current skills, and availability.",
-    outcome: "A clear starting point your mentors can act on.",
+    outcome: "A clear starting point your experts can act on.",
     highlights: ["One simple account", "Current skills captured", "Preferences saved from day one"],
     icon: UserPlus
   },
@@ -266,7 +266,7 @@ const roadmapSteps = [
     duration: "10 min",
     description: "Tell us the role, skills, or career move you are working toward so your path has a real destination.",
     outcome: "A focused learning goal instead of a generic course list.",
-    highlights: ["Role and skill priorities", "Timeline that fits your life", "Mentor-ready context"],
+    highlights: ["Role and skill priorities", "Timeline that fits your life", "Expert-ready context"],
     icon: Lightbulb
   },
   {
@@ -291,7 +291,7 @@ const roadmapSteps = [
     title: "Build job-ready proof",
     label: "Start learning",
     duration: "Week 1",
-    description: "Learn through guided projects, expert reviews, and feedback that improves both your work and your story.",
+    description: "Learn through guided projects and feedback that improves both your work and your story.",
     outcome: "Reviewed work you can confidently show in interviews.",
     highlights: ["Hands-on project work", "Expert feedback loops", "Portfolio-ready evidence"],
     icon: BookOpenCheck
@@ -516,7 +516,6 @@ export function LandingPage() {
       ".outcome-story-grid article",
       ".certificate-section > *",
       ".pricing-grid article",
-      ".faq-showcase",
       ".mini-split > *",
       ".public-footer__top",
       ".public-footer__grid"
@@ -643,8 +642,7 @@ export function LandingPage() {
         phoneNumber: allowSignUp ? phoneNumber : undefined,
         rememberMe,
         termsVersion: policyVersion,
-        privacyPolicyVersion: policyVersion,
-        refundPolicyVersion: policyVersion
+        privacyPolicyVersion: policyVersion
       })
     );
   }
@@ -674,8 +672,7 @@ export function LandingPage() {
         confirmPassword,
         acceptedTerms: form.get("acceptedTerms") === "on",
         termsVersion: policyVersion,
-        privacyPolicyVersion: policyVersion,
-        refundPolicyVersion: policyVersion
+        privacyPolicyVersion: policyVersion
       });
 
       setPendingEmail(email);
@@ -828,7 +825,7 @@ export function LandingPage() {
             </h1>
             <div className="hero-title-accent" aria-hidden="true" />
             <p>
-              Real projects. Expert mentors. Career support. Everything you need to go from learner to leader.
+              Real projects, expert review, and practical guidance to go from learner to leader.
             </p>
             <div className="site-hero__actions">
               <Link className="site-button site-button--primary" to="/programs">
@@ -845,11 +842,11 @@ export function LandingPage() {
               </span>
               <span>
                 <CheckCircle2 size={16} />
-                Mentor Reviewed Projects
+                Expert Reviewed Projects
               </span>
               <span>
                 <CheckCircle2 size={16} />
-                Career Support
+                Career Guidance
               </span>
             </div>
           </div>
@@ -865,7 +862,7 @@ export function LandingPage() {
               <Star size={25} />
               <small>Learner Rating</small>
               <strong>4.9/5</strong>
-              <span>From 1000+ reviews</span>
+              <span>Learner trust signal</span>
             </div>
             <div>
               <UsersRound size={25} />
@@ -911,32 +908,32 @@ export function LandingPage() {
               <div>
                 <Star size={20} />
                 <strong>Weekly</strong>
-                <span>Expert Reviews</span>
+                <span>Expert Feedback</span>
               </div>
             </div>
           </aside>
         </div>
       </section>
 
-      <section id="features" className="site-section mentor-showcase">
-        <div className="mentor-showcase__intro">
+      <section id="features" className="site-section expert-showcase">
+        <div className="expert-showcase__intro">
           <span className="apt-pill">
             <UsersRound size={15} />
-            Industry-led mentorship
+            Industry-led guidance
           </span>
           <h2>
             Learn from experts
             <br />
             who build <span>what&apos;s next.</span>
           </h2>
-          <p>Real-world knowledge, practical reviews, and industry standards shaped by leaders at top global companies.</p>
+          <p>Real-world knowledge, practical feedback, and industry standards shaped by leaders at top global companies.</p>
         </div>
-        <div className="mentor-showcase__carousel" aria-label="Companies represented by Joviq mentors">
+        <div className="expert-showcase__carousel" aria-label="Companies represented by Joviq experts">
           <BrandGrid items={expertCompanies} tone="prime" />
-          <span className="mentor-showcase__next" aria-hidden="true">
+          <span className="expert-showcase__next" aria-hidden="true">
             <ArrowRight size={20} />
           </span>
-          <div className="mentor-showcase__dots" aria-hidden="true">
+          <div className="expert-showcase__dots" aria-hidden="true">
             {expertCompanies.slice(0, 5).map((company, index) => (
               <span className={index === 0 ? "is-active" : undefined} key={company.name} />
             ))}
@@ -1203,7 +1200,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section id="reviews" className="site-section apt-section apt-outcomes apt-centered outcomes-showcase">
+      <section id="outcomes" className="site-section apt-section apt-outcomes apt-centered outcomes-showcase">
         <div className="outcomes-showcase__plane" aria-hidden="true" />
         <div className="outcomes-showcase__intro">
           <span className="apt-pill apt-pill--dark">
@@ -1522,7 +1519,7 @@ export function LandingPage() {
         <aside>
           <span>Got questions?</span>
           <h2>Questions & Answers</h2>
-          <p>Clear answers on programs, projects, certificates, and career support.</p>
+          <p>Clear answers on programs, projects, certificates, and learner guidance.</p>
           <div>
             <span>Expert-led cohorts</span>
             <span>Portfolio-grade projects</span>
@@ -1530,9 +1527,9 @@ export function LandingPage() {
           </div>
         </aside>
         <div className="faq-grid">
-          {homeFaqs.map((faq) => (
-            <details key={faq.question}>
-              <summary>{faq.question}</summary>
+          {homeFaqs.map((faq, index) => (
+            <details key={faq.question} open={index === 0}>
+              <summary><span>{faq.question}</span></summary>
               <p>{faq.answer}</p>
             </details>
           ))}
@@ -1551,7 +1548,7 @@ export function LandingPage() {
           </div>
           <h2>{mode === "register" || mode === "verify-email" ? "Create your learning account." : "Welcome back to your workspace."}</h2>
           <p>
-            Continue into role-based dashboards for students, mentors, and admins with secure access and project-driven
+            Continue into role-based dashboards for students and admins with secure access and project-driven
             learning.
           </p>
           <div className="auth-dialog__metrics">
@@ -1702,7 +1699,7 @@ function BrandGrid({ items, tone }: { items: Array<string | CompanyLogo>; tone: 
     const scrollingItems = [...logoItems, ...logoItems];
 
     return (
-      <div className="brand-grid brand-grid--prime" aria-label="Company logos from expert mentor backgrounds">
+      <div className="brand-grid brand-grid--prime" aria-label="Company logos from expert backgrounds">
         <div className="brand-grid__track">
           {scrollingItems.map((item, index) => {
             const isDuplicate = index >= logoItems.length;
@@ -1968,7 +1965,7 @@ function RegisterForm({
             checked={acceptedOAuthTerms}
             onChange={(event) => onAcceptedOAuthTermsChange(event.currentTarget.checked)}
           />
-          <span>I accept the terms, privacy policy, and refund policy.</span>
+          <span>I accept the terms and privacy policy.</span>
         </label>
         <OAuthButton isSubmitting={isSubmitting} onClick={onGoogle} label="Create account with Google" />
       </div>
@@ -1994,7 +1991,7 @@ function RegisterForm({
       </label>
       <label className="checkbox-row">
         <input name="acceptedTerms" type="checkbox" required />
-        <span>I accept the terms, privacy policy, and refund policy.</span>
+        <span>I accept the terms and privacy policy.</span>
       </label>
       <button type="submit" disabled={isSubmitting}>
         {isSubmitting ? "Creating" : "Register as student"}

@@ -7,9 +7,6 @@ import { ProgramsMegaMenu } from "./ProgramsMegaMenu";
 const publicNavItems = [
   { label: "Programs", to: "/programs", hasMegaMenu: true },
   { label: "Features", to: "/features" },
-  { label: "Campus Ambassador", to: "/campus-ambassador" },
-  { label: "Reviews", to: "/reviews" },
-  { label: "Careers", to: "/careers" },
   { label: "About Us", to: "/about" }
 ];
 

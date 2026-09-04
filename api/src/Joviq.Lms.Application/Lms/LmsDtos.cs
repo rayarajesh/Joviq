@@ -10,6 +10,7 @@ public sealed record ProgramCategoryResponse(
     string Slug,
     string Description,
     int SortOrder,
+    bool IsPublished,
     IReadOnlyList<ProgramSummaryResponse> Programs);
 
 public sealed record ProgramSummaryResponse(
@@ -38,7 +39,6 @@ public sealed record ProgramDetailsResponse(
     string Level,
     string Duration,
     string LearningMode,
-    string MentorSummary,
     string CertificationName,
     string ThumbnailUrl,
     string Status,
@@ -47,9 +47,7 @@ public sealed record ProgramDetailsResponse(
     IReadOnlyList<FaqItemResponse> Faqs,
     IReadOnlyList<ProgramPlanResponse> Plans,
     IReadOnlyList<CurriculumModuleResponse> Curriculum,
-    IReadOnlyList<ProjectResponse> Projects,
-    IReadOnlyList<AssignmentResponse> Assignments,
-    IReadOnlyList<AssessmentResponse> Assessments);
+    IReadOnlyList<ProjectResponse> Projects);
 
 public sealed record ProgramPlanResponse(
     Guid Id,
@@ -107,23 +105,14 @@ public sealed record StudentLmsDashboardResponse(
     int LearningProgressPercentage,
     int CompletedLessons,
     int TotalLessons,
-    int PendingAssignments,
     int PendingProjects,
-    int UpcomingAssessments,
-    LiveClassResponse? UpcomingClass,
-    AssignmentResponse? PendingAssignment,
-    AssessmentResponse? UpcomingAssessment,
     CertificateResponse? LatestCertificate,
     decimal BalanceDue,
     IReadOnlyList<NotificationResponse> Notifications);
 
 public sealed record StudentProgramWorkspaceResponse(
     EnrollmentResponse? Enrollment,
-    IReadOnlyList<CurriculumModuleResponse> Curriculum,
-    IReadOnlyList<LiveClassResponse> LiveClasses,
-    IReadOnlyList<AssignmentResponse> Assignments,
     IReadOnlyList<ProjectResponse> Projects,
-    IReadOnlyList<AssessmentResponse> Assessments,
     IReadOnlyList<CertificateResponse> Certificates,
     IReadOnlyList<PaymentTransactionResponse> Payments);
 
@@ -141,27 +130,6 @@ public sealed record PaymentTransactionResponse(
     string Currency,
     DateTimeOffset CreatedAt,
     DateTimeOffset? VerifiedAt);
-
-public sealed record LiveClassResponse(
-    Guid Id,
-    Guid ProgramId,
-    string Title,
-    string Description,
-    DateTimeOffset StartsAt,
-    DateTimeOffset EndsAt,
-    string? JoinUrl,
-    string? RecordingUrl,
-    string Status);
-
-public sealed record AssignmentResponse(
-    Guid Id,
-    Guid ProgramId,
-    string Title,
-    string Instructions,
-    DateTimeOffset? DueAt,
-    decimal MaxScore,
-    bool IsPublished,
-    SubmissionResponse? LatestSubmission);
 
 public sealed record ProjectResponse(
     Guid Id,
@@ -190,17 +158,6 @@ public sealed record SubmissionResponse(
     DateTimeOffset CreatedAt,
     DateTimeOffset? ReviewedAt);
 
-public sealed record AssessmentResponse(
-    Guid Id,
-    Guid ProgramId,
-    string Title,
-    string AssessmentType,
-    string Instructions,
-    int DurationMinutes,
-    decimal PassingPercentage,
-    bool IsAiPowered,
-    bool IsPublished);
-
 public sealed record CertificateResponse(
     Guid Id,
     Guid StudentId,
@@ -224,22 +181,6 @@ public sealed record CertificateVerificationResponse(
     DateTimeOffset? IssuedAt,
     string Status);
 
-public sealed record SupportTicketResponse(
-    Guid Id,
-    Guid? UserId,
-    Guid? ProgramId,
-    string Name,
-    string Email,
-    string? StudentIdText,
-    string Issue,
-    string Description,
-    string? AttachmentUrl,
-    string Priority,
-    string Status,
-    string? AdminNotes,
-    DateTimeOffset CreatedAt,
-    DateTimeOffset? UpdatedAt);
-
 public sealed record NotificationResponse(
     Guid Id,
     string Title,
@@ -257,80 +198,8 @@ public sealed record AdminLmsSummaryResponse(
     int Enrollments,
     int ActiveEnrollments,
     decimal VerifiedRevenue,
-    int PendingAssignmentReviews,
     int PendingProjectReviews,
-    int OpenSupportTickets,
     int NewCallbackRequests);
-
-public sealed record MentorDashboardResponse(
-    int AssignedLiveClasses,
-    int PendingAssignmentReviews,
-    int PendingProjectReviews,
-    int ReviewedSubmissions);
-
-public sealed record MentorReviewQueueResponse(
-    IReadOnlyList<SubmissionResponse> AssignmentSubmissions,
-    IReadOnlyList<SubmissionResponse> ProjectSubmissions);
-
-public sealed record RecordedClassResponse(
-    Guid LessonId,
-    Guid ModuleId,
-    string ModuleTitle,
-    string Title,
-    string Summary,
-    string? VideoUrl,
-    string? NotesUrl,
-    int DurationMinutes,
-    bool IsLocked,
-    int ProgressPercentage,
-    bool IsCompleted);
-
-public sealed record AssessmentAttemptResponse(
-    Guid Id,
-    Guid AssessmentId,
-    string AssessmentTitle,
-    Guid StudentId,
-    Guid? EnrollmentId,
-    string Status,
-    DateTimeOffset StartedAt,
-    DateTimeOffset? SubmittedAt,
-    decimal? Score,
-    string? ResultJson);
-
-public sealed record AiInterviewAttemptResponse(
-    Guid Id,
-    Guid StudentId,
-    Guid? EnrollmentId,
-    string JobRole,
-    string Domain,
-    string InterviewType,
-    decimal? TechnicalScore,
-    decimal? CommunicationScore,
-    decimal? OverallScore,
-    string? TranscriptJson,
-    string? RecommendationsJson,
-    string Status,
-    DateTimeOffset StartedAt,
-    DateTimeOffset? CompletedAt);
-
-public sealed record CareerSupportResponse(
-    string ResumeStatus,
-    string LinkedInStatus,
-    string GitHubStatus,
-    string PortfolioStatus,
-    IReadOnlyList<string> InterviewFocusAreas,
-    IReadOnlyList<SupportTicketResponse> Requests);
-
-public sealed record MentorLearnerResponse(
-    Guid StudentId,
-    string FullName,
-    string Email,
-    string? PhoneNumber,
-    Guid EnrollmentId,
-    string ProgramTitle,
-    string EnrollmentStatus,
-    int ProgressPercentage,
-    DateTimeOffset EnrolledAt);
 
 public sealed record CouponResponse(
     Guid Id,
@@ -341,42 +210,6 @@ public sealed record CouponResponse(
     bool IsActive,
     DateTimeOffset? StartsAt,
     DateTimeOffset? ExpiresAt);
-
-public sealed record AdminReportResponse(
-    AdminLmsSummaryResponse Summary,
-    IReadOnlyList<ProgramSummaryResponse> Programs,
-    IReadOnlyList<EnrollmentResponse> RecentEnrollments,
-    IReadOnlyList<PaymentTransactionResponse> RecentPayments,
-    IReadOnlyList<SupportTicketResponse> OpenSupportTickets);
-
-public sealed record AdminContentItemResponse(
-    Guid Id,
-    string ContentType,
-    string Title,
-    string Slug,
-    string? Summary,
-    string? Body,
-    string? ImageUrl,
-    string? ExternalUrl,
-    string MetadataJson,
-    string Status,
-    bool IsFeatured,
-    int SortOrder,
-    DateTimeOffset CreatedAt,
-    DateTimeOffset? UpdatedAt);
-
-public sealed record AdminLeadResponse(
-    Guid Id,
-    string LeadType,
-    string FullName,
-    string Email,
-    string PhoneNumber,
-    string? Subject,
-    string? Secondary,
-    string? Message,
-    string Status,
-    DateTimeOffset CreatedAt,
-    DateTimeOffset? UpdatedAt);
 
 public sealed record AdminNotificationResponse(
     Guid Id,
@@ -389,24 +222,6 @@ public sealed record AdminNotificationResponse(
     string Status,
     DateTimeOffset CreatedAt,
     DateTimeOffset? ReadAt);
-
-public sealed record AdminSettingResponse(
-    Guid Id,
-    string Category,
-    string Key,
-    string Value,
-    string? Description,
-    bool IsSecret,
-    DateTimeOffset CreatedAt,
-    DateTimeOffset? UpdatedAt);
-
-public sealed record AdminAiFeatureSummaryResponse(
-    int AiAssessments,
-    int AiAssessmentAttempts,
-    int AiInterviewAttempts,
-    int CompletedAiInterviews,
-    decimal AverageAssessmentScore,
-    decimal AverageInterviewScore);
 
 public sealed class ProgramListRequest
 {
@@ -443,38 +258,6 @@ public sealed class EnquiryCreateRequest
     public string Message { get; init; } = string.Empty;
 }
 
-public sealed class CampusAmbassadorApplyRequest
-{
-    public string FullName { get; init; } = string.Empty;
-
-    public string Email { get; init; } = string.Empty;
-
-    public string PhoneNumber { get; init; } = string.Empty;
-
-    public string College { get; init; } = string.Empty;
-
-    public string City { get; init; } = string.Empty;
-
-    public string WhyJoin { get; init; } = string.Empty;
-}
-
-public sealed class CareerApplyRequest
-{
-    public string FullName { get; init; } = string.Empty;
-
-    public string Email { get; init; } = string.Empty;
-
-    public string PhoneNumber { get; init; } = string.Empty;
-
-    public string Role { get; init; } = string.Empty;
-
-    public string? ResumeUrl { get; init; }
-
-    public string? PortfolioUrl { get; init; }
-
-    public string? CoverNote { get; init; }
-}
-
 public sealed class CreateProgramRequest
 {
     public Guid CategoryId { get; init; }
@@ -492,8 +275,6 @@ public sealed class CreateProgramRequest
     public string Duration { get; init; } = string.Empty;
 
     public string LearningMode { get; init; } = string.Empty;
-
-    public string MentorSummary { get; init; } = string.Empty;
 
     public string CertificationName { get; init; } = string.Empty;
 
@@ -525,8 +306,6 @@ public sealed class UpdateProgramRequest
     public string Duration { get; init; } = string.Empty;
 
     public string LearningMode { get; init; } = string.Empty;
-
-    public string MentorSummary { get; init; } = string.Empty;
 
     public string CertificationName { get; init; } = string.Empty;
 
@@ -591,40 +370,6 @@ public sealed class CreateLessonRequest
     public ContentAccessLevel AccessLevel { get; init; } = ContentAccessLevel.Full;
 }
 
-public sealed class CreateLiveClassRequest
-{
-    public Guid ProgramId { get; init; }
-
-    public Guid? MentorId { get; init; }
-
-    public string Title { get; init; } = string.Empty;
-
-    public string Description { get; init; } = string.Empty;
-
-    public DateTimeOffset StartsAt { get; init; }
-
-    public DateTimeOffset EndsAt { get; init; }
-
-    public string? JoinUrl { get; init; }
-
-    public string? RecordingUrl { get; init; }
-}
-
-public sealed class CreateAssignmentRequest
-{
-    public Guid ProgramId { get; init; }
-
-    public string Title { get; init; } = string.Empty;
-
-    public string Instructions { get; init; } = string.Empty;
-
-    public DateTimeOffset? DueAt { get; init; }
-
-    public decimal MaxScore { get; init; } = 100;
-
-    public bool IsPublished { get; init; } = true;
-}
-
 public sealed class CreateProjectRequest
 {
     public Guid ProgramId { get; init; }
@@ -636,25 +381,6 @@ public sealed class CreateProjectRequest
     public IReadOnlyList<string> RequiredArtifacts { get; init; } = [];
 
     public decimal MaxScore { get; init; } = 100;
-
-    public bool IsPublished { get; init; } = true;
-}
-
-public sealed class CreateAssessmentRequest
-{
-    public Guid ProgramId { get; init; }
-
-    public string Title { get; init; } = string.Empty;
-
-    public string AssessmentType { get; init; } = string.Empty;
-
-    public string Instructions { get; init; } = string.Empty;
-
-    public int DurationMinutes { get; init; }
-
-    public decimal PassingPercentage { get; init; } = 70;
-
-    public bool IsAiPowered { get; init; }
 
     public bool IsPublished { get; init; } = true;
 }
@@ -693,43 +419,6 @@ public sealed class UpdatePaymentStatusRequest
     public string? FailureReason { get; init; }
 }
 
-public sealed class RefundPaymentRequest
-{
-    public string? Reason { get; init; }
-}
-
-public sealed class CreateAdminContentItemRequest
-{
-    public AdminContentType ContentType { get; init; } = AdminContentType.WebsiteContent;
-
-    public string Title { get; init; } = string.Empty;
-
-    public string? Slug { get; init; }
-
-    public string? Summary { get; init; }
-
-    public string? Body { get; init; }
-
-    public string? ImageUrl { get; init; }
-
-    public string? ExternalUrl { get; init; }
-
-    public string? MetadataJson { get; init; }
-
-    public AdminContentStatus Status { get; init; } = AdminContentStatus.Draft;
-
-    public bool IsFeatured { get; init; }
-
-    public int SortOrder { get; init; }
-}
-
-public sealed class UpdateLeadStatusRequest
-{
-    public LeadStatus Status { get; init; }
-
-    public string? Notes { get; init; }
-}
-
 public sealed class CreateAdminNotificationRequest
 {
     public Guid? UserId { get; init; }
@@ -744,16 +433,6 @@ public sealed class CreateAdminNotificationRequest
 
     public bool SendToAllStudents { get; init; }
 
-    public bool SendToAllMentors { get; init; }
-}
-
-public sealed class UpsertAdminSettingRequest
-{
-    public string Value { get; init; } = string.Empty;
-
-    public string? Description { get; init; }
-
-    public bool IsSecret { get; init; }
 }
 
 public sealed class VerifyPaymentRequest
@@ -763,36 +442,6 @@ public sealed class VerifyPaymentRequest
     public string? GatewayOrderId { get; init; }
 
     public string? GatewayPaymentId { get; init; }
-}
-
-public sealed class SubmitAssessmentAttemptRequest
-{
-    public decimal? Score { get; init; }
-
-    public string? ResultJson { get; init; }
-}
-
-public sealed class StartAiInterviewRequest
-{
-    public string JobRole { get; init; } = string.Empty;
-
-    public string Domain { get; init; } = string.Empty;
-
-    public string InterviewType { get; init; } = "Technical";
-}
-
-public sealed class UpdateLessonProgressRequest
-{
-    public int ProgressPercentage { get; init; }
-}
-
-public sealed class SubmitAssignmentRequest
-{
-    public string? SubmissionUrl { get; init; }
-
-    public string? FileUrl { get; init; }
-
-    public string? Notes { get; init; }
 }
 
 public sealed class SubmitProjectRequest
@@ -841,39 +490,4 @@ public sealed class IssueCertificateRequest
 public sealed class UpdateCertificateStatusRequest
 {
     public CertificateStatus Status { get; init; } = CertificateStatus.Issued;
-}
-
-public sealed class CreateSupportTicketRequest
-{
-    public Guid? ProgramId { get; init; }
-
-    public string Name { get; init; } = string.Empty;
-
-    public string Email { get; init; } = string.Empty;
-
-    public string? StudentIdText { get; init; }
-
-    public string Issue { get; init; } = string.Empty;
-
-    public string Description { get; init; } = string.Empty;
-
-    public string? AttachmentUrl { get; init; }
-
-    public string Priority { get; init; } = "Normal";
-}
-
-public sealed class ReviewSubmissionRequest
-{
-    public decimal Score { get; init; }
-
-    public string Feedback { get; init; } = string.Empty;
-
-    public SubmissionStatus Status { get; init; } = SubmissionStatus.Approved;
-}
-
-public sealed class UpdateSupportTicketRequest
-{
-    public SupportTicketStatus Status { get; init; }
-
-    public string? AdminNotes { get; init; }
 }

@@ -5,23 +5,19 @@ import { BrandLogo } from "./BrandLogo";
 
 const platformLinks = [
   { label: "Home", href: "/" },
-  { label: "Open Support Ticket", href: "/request-callback" },
   { label: "Joviq LMS", href: "/login" },
-  { label: "Campus Ambassador", href: "/campus-ambassador" },
+  { label: "Programs", href: "/programs" },
 ];
 
 const legalLinks = [
   { label: "Privacy Policy", href: "/privacy-policy" },
-  { label: "Refund Policy", href: "/refund-policy" },
-  { label: "Certification Refund Policy", href: "/certification-refund-policy" },
   { label: "Return Policy", href: "/return-policy" },
   { label: "Terms & Conditions", href: "/terms" }
 ];
 
 const companyLinks = [
   { label: "About Us", href: "/about" },
-  { label: "College Collaboration", href: "/request-callback" },
-  { label: "Review", href: "/reviews" }
+  { label: "College Collaboration", href: "/request-callback" }
 ];
 
 const socialLinks = [

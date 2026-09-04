@@ -43,6 +43,16 @@ public sealed class AdminUsersController(
         return Ok(ApiResponse<AdminUserResponse>.Ok(result, "User created.", CorrelationId));
     }
 
+    [HttpPut("{userId:guid}")]
+    public async Task<ActionResult<ApiResponse<AdminUserResponse>>> UpdateUser(
+        Guid userId,
+        UpdateAdminUserRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await adminUserService.UpdateUserAsync(userId, request, cancellationToken);
+        return Ok(ApiResponse<AdminUserResponse>.Ok(result, "User updated.", CorrelationId));
+    }
+
     [HttpPatch("{userId:guid}/status")]
     public async Task<ActionResult<ApiResponse<AdminUserResponse>>> UpdateStatus(Guid userId, UpdateUserStatusRequest request, CancellationToken cancellationToken)
     {

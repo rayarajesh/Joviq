@@ -1,13 +1,5 @@
-export type RoleName = "Admin" | "Mentor" | "Student";
-export type AssignableRoleName = "Mentor" | "Student";
-
-export type OtpPurpose =
-  | "EmailVerification"
-  | "PhoneVerification"
-  | "Login"
-  | "ForgotPassword"
-  | "ChangePassword"
-  | "DeleteAccount";
+export type RoleName = "Admin" | "Student";
+export type AssignableRoleName = "Student";
 
 export type RegisterRequest = {
   fullName: string;
@@ -18,13 +10,11 @@ export type RegisterRequest = {
   acceptedTerms: boolean;
   termsVersion: string;
   privacyPolicyVersion: string;
-  refundPolicyVersion: string;
 };
 
 export type RegisterResponse = {
   userId: string;
   emailVerificationRequired: boolean;
-  phoneVerificationRequired: boolean;
 };
 
 export type LoginRequest = {
@@ -83,6 +73,7 @@ export type AdminUserResponse = {
   fullName: string;
   email: string;
   phoneNumber?: string;
+  profilePhotoUrl?: string;
   emailConfirmed: boolean;
   roles: RoleName[];
   accountStatus: string;
@@ -94,7 +85,6 @@ export type AdminUserResponse = {
 export type AdminUserSummaryResponse = {
   totalUsers: number;
   students: number;
-  mentors: number;
   admins: number;
   active: number;
   locked: number;
@@ -115,4 +105,12 @@ export type UpdateUserStatusRequest = {
 
 export type UpdateUserRolesRequest = {
   roles: RoleName[];
+};
+
+export type UpdateAdminUserRequest = {
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  role: AssignableRoleName;
+  accountStatus: string;
 };

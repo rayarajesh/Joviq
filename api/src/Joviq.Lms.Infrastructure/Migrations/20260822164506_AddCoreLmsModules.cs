@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -11,31 +11,6 @@ namespace Joviq.Lms.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
-                name: "ai_interview_attempts",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    StudentId = table.Column<Guid>(type: "uuid", nullable: false),
-                    EnrollmentId = table.Column<Guid>(type: "uuid", nullable: true),
-                    JobRole = table.Column<string>(type: "character varying(180)", maxLength: 180, nullable: false),
-                    Domain = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
-                    InterviewType = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: false),
-                    TechnicalScore = table.Column<decimal>(type: "numeric(8,2)", precision: 8, scale: 2, nullable: true),
-                    CommunicationScore = table.Column<decimal>(type: "numeric(8,2)", precision: 8, scale: 2, nullable: true),
-                    OverallScore = table.Column<decimal>(type: "numeric(8,2)", precision: 8, scale: 2, nullable: true),
-                    TranscriptJson = table.Column<string>(type: "jsonb", nullable: true),
-                    RecommendationsJson = table.Column<string>(type: "jsonb", nullable: true),
-                    Status = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    StartedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    CompletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ai_interview_attempts", x => x.Id);
-                });
 
             migrationBuilder.CreateTable(
                 name: "callback_requests",
@@ -54,47 +29,6 @@ namespace Joviq.Lms.Infrastructure.Persistence.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_callback_requests", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "campus_ambassador_applications",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    FullName = table.Column<string>(type: "character varying(160)", maxLength: 160, nullable: false),
-                    Email = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
-                    PhoneNumber = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
-                    College = table.Column<string>(type: "character varying(220)", maxLength: 220, nullable: false),
-                    City = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
-                    WhyJoin = table.Column<string>(type: "character varying(2500)", maxLength: 2500, nullable: false),
-                    Status = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_campus_ambassador_applications", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "career_applications",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    FullName = table.Column<string>(type: "character varying(160)", maxLength: 160, nullable: false),
-                    Email = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
-                    PhoneNumber = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
-                    Role = table.Column<string>(type: "character varying(160)", maxLength: 160, nullable: false),
-                    ResumeUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    PortfolioUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    CoverNote = table.Column<string>(type: "character varying(2500)", maxLength: 2500, nullable: true),
-                    Status = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_career_applications", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -186,7 +120,6 @@ namespace Joviq.Lms.Infrastructure.Persistence.Migrations
                     Level = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: false),
                     Duration = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: false),
                     LearningMode = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
-                    MentorSummary = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
                     CertificationName = table.Column<string>(type: "character varying(180)", maxLength: 180, nullable: false),
                     ThumbnailUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     SkillsJson = table.Column<string>(type: "jsonb", nullable: false),
@@ -209,58 +142,6 @@ namespace Joviq.Lms.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "assessments",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    ProgramId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Title = table.Column<string>(type: "character varying(180)", maxLength: 180, nullable: false),
-                    AssessmentType = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: false),
-                    Instructions = table.Column<string>(type: "character varying(2500)", maxLength: 2500, nullable: false),
-                    DurationMinutes = table.Column<int>(type: "integer", nullable: false),
-                    PassingPercentage = table.Column<decimal>(type: "numeric(8,2)", precision: 8, scale: 2, nullable: false),
-                    IsAiPowered = table.Column<bool>(type: "boolean", nullable: false),
-                    IsPublished = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_assessments", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_assessments_programs_ProgramId",
-                        column: x => x.ProgramId,
-                        principalTable: "programs",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "assignments",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    ProgramId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Title = table.Column<string>(type: "character varying(180)", maxLength: 180, nullable: false),
-                    Instructions = table.Column<string>(type: "character varying(2500)", maxLength: 2500, nullable: false),
-                    DueAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    MaxScore = table.Column<decimal>(type: "numeric(8,2)", precision: 8, scale: 2, nullable: false),
-                    IsPublished = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_assignments", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_assignments_programs_ProgramId",
-                        column: x => x.ProgramId,
-                        principalTable: "programs",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "curriculum_modules",
                 columns: table => new
                 {
@@ -277,34 +158,6 @@ namespace Joviq.Lms.Infrastructure.Persistence.Migrations
                     table.PrimaryKey("PK_curriculum_modules", x => x.Id);
                     table.ForeignKey(
                         name: "FK_curriculum_modules_programs_ProgramId",
-                        column: x => x.ProgramId,
-                        principalTable: "programs",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "live_classes",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    ProgramId = table.Column<Guid>(type: "uuid", nullable: false),
-                    MentorId = table.Column<Guid>(type: "uuid", nullable: true),
-                    Title = table.Column<string>(type: "character varying(180)", maxLength: 180, nullable: false),
-                    Description = table.Column<string>(type: "character varying(1200)", maxLength: 1200, nullable: false),
-                    StartsAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    EndsAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    JoinUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    RecordingUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    Status = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_live_classes", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_live_classes_programs_ProgramId",
                         column: x => x.ProgramId,
                         principalTable: "programs",
                         principalColumn: "Id",
@@ -360,61 +213,6 @@ namespace Joviq.Lms.Infrastructure.Persistence.Migrations
                         name: "FK_projects_programs_ProgramId",
                         column: x => x.ProgramId,
                         principalTable: "programs",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "support_tickets",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    UserId = table.Column<Guid>(type: "uuid", nullable: true),
-                    ProgramId = table.Column<Guid>(type: "uuid", nullable: true),
-                    Name = table.Column<string>(type: "character varying(160)", maxLength: 160, nullable: false),
-                    Email = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
-                    StudentIdText = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: true),
-                    Issue = table.Column<string>(type: "character varying(180)", maxLength: 180, nullable: false),
-                    Description = table.Column<string>(type: "character varying(2500)", maxLength: 2500, nullable: false),
-                    AttachmentUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    Priority = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false),
-                    Status = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    AdminNotes = table.Column<string>(type: "character varying(2500)", maxLength: 2500, nullable: true),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_support_tickets", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_support_tickets_programs_ProgramId",
-                        column: x => x.ProgramId,
-                        principalTable: "programs",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "assessment_questions",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    AssessmentId = table.Column<Guid>(type: "uuid", nullable: false),
-                    QuestionType = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: false),
-                    Prompt = table.Column<string>(type: "character varying(2500)", maxLength: 2500, nullable: false),
-                    OptionsJson = table.Column<string>(type: "jsonb", nullable: false),
-                    CorrectAnswer = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
-                    Score = table.Column<decimal>(type: "numeric(8,2)", precision: 8, scale: 2, nullable: false),
-                    SortOrder = table.Column<int>(type: "integer", nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_assessment_questions", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_assessment_questions_assessments_AssessmentId",
-                        column: x => x.AssessmentId,
-                        principalTable: "assessments",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -528,75 +326,6 @@ namespace Joviq.Lms.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "assessment_attempts",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    AssessmentId = table.Column<Guid>(type: "uuid", nullable: false),
-                    StudentId = table.Column<Guid>(type: "uuid", nullable: false),
-                    EnrollmentId = table.Column<Guid>(type: "uuid", nullable: true),
-                    Status = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    StartedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    SubmittedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    Score = table.Column<decimal>(type: "numeric(8,2)", precision: 8, scale: 2, nullable: true),
-                    ResultJson = table.Column<string>(type: "jsonb", nullable: true),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_assessment_attempts", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_assessment_attempts_assessments_AssessmentId",
-                        column: x => x.AssessmentId,
-                        principalTable: "assessments",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_assessment_attempts_enrollments_EnrollmentId",
-                        column: x => x.EnrollmentId,
-                        principalTable: "enrollments",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "assignment_submissions",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    AssignmentId = table.Column<Guid>(type: "uuid", nullable: false),
-                    StudentId = table.Column<Guid>(type: "uuid", nullable: false),
-                    EnrollmentId = table.Column<Guid>(type: "uuid", nullable: true),
-                    SubmissionUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    FileUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    Notes = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
-                    Score = table.Column<decimal>(type: "numeric(8,2)", precision: 8, scale: 2, nullable: true),
-                    Feedback = table.Column<string>(type: "character varying(2500)", maxLength: 2500, nullable: true),
-                    Status = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    ReviewedById = table.Column<Guid>(type: "uuid", nullable: true),
-                    ReviewedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_assignment_submissions", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_assignment_submissions_assignments_AssignmentId",
-                        column: x => x.AssignmentId,
-                        principalTable: "assignments",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_assignment_submissions_enrollments_EnrollmentId",
-                        column: x => x.EnrollmentId,
-                        principalTable: "enrollments",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "certificates",
                 columns: table => new
                 {
@@ -703,63 +432,8 @@ namespace Joviq.Lms.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_ai_interview_attempts_StudentId_StartedAt",
-                table: "ai_interview_attempts",
-                columns: new[] { "StudentId", "StartedAt" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_assessment_attempts_AssessmentId",
-                table: "assessment_attempts",
-                column: "AssessmentId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_assessment_attempts_EnrollmentId",
-                table: "assessment_attempts",
-                column: "EnrollmentId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_assessment_attempts_StudentId_AssessmentId",
-                table: "assessment_attempts",
-                columns: new[] { "StudentId", "AssessmentId" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_assessment_questions_AssessmentId_SortOrder",
-                table: "assessment_questions",
-                columns: new[] { "AssessmentId", "SortOrder" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_assessments_ProgramId_IsPublished",
-                table: "assessments",
-                columns: new[] { "ProgramId", "IsPublished" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_assignment_submissions_AssignmentId_StudentId",
-                table: "assignment_submissions",
-                columns: new[] { "AssignmentId", "StudentId" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_assignment_submissions_EnrollmentId",
-                table: "assignment_submissions",
-                column: "EnrollmentId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_assignments_ProgramId_IsPublished",
-                table: "assignments",
-                columns: new[] { "ProgramId", "IsPublished" });
-
-            migrationBuilder.CreateIndex(
                 name: "IX_callback_requests_Status_CreatedAt",
                 table: "callback_requests",
-                columns: new[] { "Status", "CreatedAt" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_campus_ambassador_applications_Status_CreatedAt",
-                table: "campus_ambassador_applications",
-                columns: new[] { "Status", "CreatedAt" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_career_applications_Status_CreatedAt",
-                table: "career_applications",
                 columns: new[] { "Status", "CreatedAt" });
 
             migrationBuilder.CreateIndex(
@@ -837,11 +511,6 @@ namespace Joviq.Lms.Infrastructure.Persistence.Migrations
                 columns: new[] { "ModuleId", "SortOrder" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_live_classes_ProgramId_StartsAt",
-                table: "live_classes",
-                columns: new[] { "ProgramId", "StartsAt" });
-
-            migrationBuilder.CreateIndex(
                 name: "IX_notifications_UserId_Status_CreatedAt",
                 table: "notifications",
                 columns: new[] { "UserId", "Status", "CreatedAt" });
@@ -899,41 +568,14 @@ namespace Joviq.Lms.Infrastructure.Persistence.Migrations
                 name: "IX_projects_ProgramId_IsPublished",
                 table: "projects",
                 columns: new[] { "ProgramId", "IsPublished" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_support_tickets_ProgramId",
-                table: "support_tickets",
-                column: "ProgramId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_support_tickets_Status_CreatedAt",
-                table: "support_tickets",
-                columns: new[] { "Status", "CreatedAt" });
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "ai_interview_attempts");
-
-            migrationBuilder.DropTable(
-                name: "assessment_attempts");
-
-            migrationBuilder.DropTable(
-                name: "assessment_questions");
-
-            migrationBuilder.DropTable(
-                name: "assignment_submissions");
 
             migrationBuilder.DropTable(
                 name: "callback_requests");
-
-            migrationBuilder.DropTable(
-                name: "campus_ambassador_applications");
-
-            migrationBuilder.DropTable(
-                name: "career_applications");
 
             migrationBuilder.DropTable(
                 name: "certificates");
@@ -951,9 +593,6 @@ namespace Joviq.Lms.Infrastructure.Persistence.Migrations
                 name: "lesson_resources");
 
             migrationBuilder.DropTable(
-                name: "live_classes");
-
-            migrationBuilder.DropTable(
                 name: "notifications");
 
             migrationBuilder.DropTable(
@@ -961,15 +600,6 @@ namespace Joviq.Lms.Infrastructure.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "project_submissions");
-
-            migrationBuilder.DropTable(
-                name: "support_tickets");
-
-            migrationBuilder.DropTable(
-                name: "assessments");
-
-            migrationBuilder.DropTable(
-                name: "assignments");
 
             migrationBuilder.DropTable(
                 name: "lessons");

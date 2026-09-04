@@ -147,9 +147,7 @@ public static class DependencyInjection
         services.AddAuthorization(options =>
         {
             options.AddPolicy("AdminOnly", policy => policy.RequireRole(RoleNames.Admin));
-            options.AddPolicy("MentorOnly", policy => policy.RequireRole(RoleNames.Mentor));
             options.AddPolicy("StudentOnly", policy => policy.RequireRole(RoleNames.Student));
-            options.AddPolicy("MentorOrAdmin", policy => policy.RequireRole(RoleNames.Mentor, RoleNames.Admin));
             options.AddPolicy("StudentOrAdmin", policy => policy.RequireRole(RoleNames.Student, RoleNames.Admin));
         });
 
@@ -166,7 +164,6 @@ public static class DependencyInjection
         services.AddScoped<IOtpService, OtpService>();
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
-        services.AddScoped<ISmsSender, NoOpSmsSender>();
         services.AddHostedService<AuditLogRetentionService>();
 
         var assetStorageOptions = configuration.GetSection(AssetStorageOptions.SectionName).Get<AssetStorageOptions>() ?? new AssetStorageOptions();

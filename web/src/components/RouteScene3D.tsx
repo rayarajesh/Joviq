@@ -5,17 +5,14 @@ import {
   BufferAttribute,
   BufferGeometry,
   Color,
-  DodecahedronGeometry,
   EdgesGeometry,
   Group,
-  IcosahedronGeometry,
   LineBasicMaterial,
   LineSegments,
   Mesh,
   MeshBasicMaterial,
   MeshPhysicalMaterial,
   MeshStandardMaterial,
-  OctahedronGeometry,
   PerspectiveCamera,
   PointLight,
   Points,
@@ -30,13 +27,10 @@ import {
   WebGLRenderer
 } from "three";
 
-export type RouteSceneVariant = "features" | "ambassador" | "reviews" | "careers" | "about";
+export type RouteSceneVariant = "features" | "about";
 
 const scenePalettes: Record<RouteSceneVariant, [string, string, string]> = {
   features: ["#59b7ff", "#32dfc3", "#ffca58"],
-  ambassador: ["#69a7ff", "#58e0ba", "#ff9d5c"],
-  reviews: ["#8ab4ff", "#67e8c5", "#f7c85e"],
-  careers: ["#62b5ff", "#8b9dff", "#ffb04f"],
   about: ["#58c7ff", "#53dfc0", "#d7a7ff"]
 };
 
@@ -44,12 +38,6 @@ function createCoreGeometry(variant: RouteSceneVariant) {
   switch (variant) {
     case "features":
       return new TorusKnotGeometry(1.25, 0.35, 150, 22, 2, 3);
-    case "ambassador":
-      return new IcosahedronGeometry(1.5, 2);
-    case "reviews":
-      return new OctahedronGeometry(1.55, 2);
-    case "careers":
-      return new DodecahedronGeometry(1.5, 1);
     case "about":
       return new SphereGeometry(1.5, 42, 42);
   }

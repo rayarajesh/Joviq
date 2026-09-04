@@ -9,7 +9,6 @@ import {
   BookOpenCheck,
   CalendarClock,
   CheckCircle2,
-  ClipboardCheck,
   Code2,
   FolderKanban,
   GraduationCap,
@@ -19,7 +18,6 @@ import {
   Send,
   ShieldCheck,
   Sparkles,
-  Target,
   UserPlus,
   UsersRound,
   Video,
@@ -54,10 +52,8 @@ type ProgramViewModel = {
   curriculum: CurriculumItem[];
   duration: string;
   mode: string;
-  mentor: string;
+  guidance: string;
   projects: ProjectItem[];
-  assignments: DetailItem[];
-  assessments: DetailItem[];
   certification: string;
   outcomes: string[];
   interviewPrep: string[];
@@ -69,9 +65,9 @@ type ProgramViewModel = {
 const domainFeatures: DomainFeatureItem[] = [
   {
     icon: <CalendarClock size={28} />,
-    title: "Live + Recorded Classes",
-    text: "Attend live classes and watch recordings anytime",
-    bullets: ["Live interactive sessions", "Recorded classes", "Industry-relevant curriculum"]
+    title: "Guided + Lesson Replays",
+    text: "Follow guided sessions and watch recordings anytime",
+    bullets: ["Guided interactive sessions", "Lesson replays", "Industry-relevant curriculum"]
   },
   {
     icon: <CalendarClock size={28} />,
@@ -83,7 +79,7 @@ const domainFeatures: DomainFeatureItem[] = [
     icon: <UsersRound size={28} />,
     title: "Hands-on Projects",
     text: "Work on real industry-level problems",
-    bullets: ["Hands-on experience", "Real-time projects", "Personal mentor support"]
+    bullets: ["Hands-on experience", "Real-time projects", "Personal expert support"]
   },
   {
     icon: <Video size={28} />,
@@ -95,7 +91,7 @@ const domainFeatures: DomainFeatureItem[] = [
     icon: <Headphones size={28} />,
     title: "Doubt Solving",
     text: "Ask doubts anytime via LMS or chat",
-    bullets: ["Mentor-led doubt solving", "Fast response time", "Detailed explanations"]
+    bullets: ["Expert-led doubt solving", "Fast response time", "Detailed explanations"]
   },
   {
     icon: <CheckCircle2 size={28} />,
@@ -212,7 +208,7 @@ export function ProgramDetailsPage() {
               <span><CalendarClock size={18} /><small>Duration</small><strong>{program.duration}</strong></span>
               <span><Video size={18} /><small>Learning mode</small><strong>{program.mode}</strong></span>
               <span><GraduationCap size={18} /><small>Level</small><strong>{program.level}</strong></span>
-              <span><UsersRound size={18} /><small>Mentor</small><strong>Expert reviewed</strong></span>
+              <span><UsersRound size={18} /><small>Review</small><strong>Expert reviewed</strong></span>
             </div>
           </div>
           <aside className="pd-audience">
@@ -226,7 +222,7 @@ export function ProgramDetailsPage() {
         <div className="pd-skill-band__intro">
           <span className="pd-kicker"><Code2 size={15} /> Domain Features</span>
           <h2>Domain Features</h2>
-          <p>Everything you need - structured learning, real projects, mentor support & certification.</p>
+          <p>Everything you need - structured learning, real projects, expert support & certification.</p>
         </div>
         <div className="pd-skill-band__grid">
           {domainFeatures.map((feature) => (
@@ -288,24 +284,16 @@ export function ProgramDetailsPage() {
         </div>
       </section>
 
-      <section className="pd-section pd-practice">
-        <div className="pd-section-heading"><span>Practice and evaluation</span><h2>Frequent checkpoints make progress visible.</h2></div>
-        <div className="pd-practice__grid">
-          <PracticeColumn icon={<ClipboardCheck size={23} />} items={program.assignments} title="Assignments" />
-          <PracticeColumn icon={<Target size={23} />} items={program.assessments} title="Assessments" />
-        </div>
-      </section>
-
       <section className="pd-credential" id="certification">
-        <div className="pd-credential__mentor">
-          <span className="pd-kicker"><UsersRound size={15} /> Expert mentorship</span>
-          <h2>Review from someone who understands the work.</h2><p>{program.mentor}</p>
+        <div className="pd-credential__expert">
+          <span className="pd-kicker"><UsersRound size={15} /> Expert guidance</span>
+          <h2>Review from someone who understands the work.</h2><p>{program.guidance}</p>
           <div><Headphones size={20} /><span>Live guidance, project reviews, doubt support, and interview feedback.</span></div>
         </div>
         <div className="pd-credential__certificate">
           <header><Award size={30} /><span>Verified achievement</span></header><small>Joviq Technologies</small>
           <h3>{program.certification}</h3>
-          <p>Issued after the required projects, assignments, and assessments are successfully completed.</p>
+          <p>Issued after the required project work is successfully completed.</p>
           <footer><ShieldCheck size={20} /><strong>Project-backed credential</strong></footer>
         </div>
       </section>
@@ -325,7 +313,7 @@ export function ProgramDetailsPage() {
         <div className="pd-pricing__head">
           <span className="pd-kicker"><WalletCards size={15} /> Program plans</span>
           <h2>Choose the support level that fits your goal.</h2>
-          <p>Every plan provides structured learning and certification. Upgrade when you want deeper review and career support.</p>
+          <p>Every plan provides structured learning and certification. Upgrade when you want deeper expert review.</p>
         </div>
         <div className="pd-pricing__grid">
           {program.plans.map((plan) => <PlanCard key={plan.code} onChoose={() => choosePlan(plan.code)} plan={plan} />)}
@@ -336,7 +324,7 @@ export function ProgramDetailsPage() {
       <section className="pd-section pd-faq" id="faq">
         <div className="pd-section-heading pd-section-heading--split">
           <div><span>FAQ</span><h2>Questions before you enroll.</h2></div>
-          <p>Clear answers about eligibility, projects, certification, and career support.</p>
+          <p>Clear answers about eligibility, projects, certification, and learner guidance.</p>
         </div>
         <div className="pd-faq__grid">
           {program.faqs.map((faq, index) => (
@@ -364,15 +352,6 @@ export function ProgramDetailsPage() {
 
 function Metric({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return <span>{icon}<small>{label}</small><strong>{value}</strong></span>;
-}
-
-function PracticeColumn({ icon, items, title }: { icon: ReactNode; items: DetailItem[]; title: string }) {
-  return (
-    <article>
-      <header>{icon}<h3>{title}</h3><span>{String(items.length).padStart(2, "0")}</span></header>
-      <div>{items.map((item) => <section key={item.title}><CheckCircle2 size={17} /><div><strong>{item.title}</strong><p>{item.text}</p></div></section>)}</div>
-    </article>
-  );
 }
 
 function PlanCard({ onChoose, plan }: { onChoose: () => void; plan: ProgramPlan }) {
@@ -474,7 +453,7 @@ function buildProgramViewModel(local: Program | undefined, remote: ProgramDetail
   const remoteProjects = remote?.projects.map((project) => ({ title: project.title, text: project.description, artifacts: project.requiredArtifacts })) ?? [];
   const localProjects = (local?.projects ?? []).map((project) => ({
     title: project,
-    text: `Create a portfolio-ready ${project.toLowerCase()} with clear deliverables and mentor feedback.`,
+    text: `Create a portfolio-ready ${project.toLowerCase()} with clear deliverables and expert feedback.`,
     artifacts: ["Project output", "Documentation", "Interview walkthrough"]
   }));
   const projects = completeProjectExamples(remoteProjects.length ? remoteProjects : localProjects, title);
@@ -502,24 +481,14 @@ function buildProgramViewModel(local: Program | undefined, remote: ProgramDetail
     title,
     domain: remote?.categoryName ?? local?.domain ?? "Career Program",
     shortDescription: remote?.shortDescription ?? local?.shortDescription ?? "Practical learning, reviewed projects, and career preparation.",
-    overview: remote?.overview ?? local?.overview ?? "Build practical capability through guided learning, projects, review, and assessment.",
+    overview: remote?.overview ?? local?.overview ?? "Build practical capability through guided learning, projects, and review.",
     audience: local?.audience ?? ["Students building career skills", "Fresh graduates preparing for roles", "Working professionals changing domains"],
     skills: remote?.skills.length ? remote.skills : local?.skills.length ? local.skills : ["Core foundations", "Industry tools", "Applied problem solving", "Project delivery", "Quality review", "Interview communication"],
     curriculum,
     duration: remote?.duration ?? local?.duration ?? "8 to 16 weeks",
     mode: remote?.learningMode ?? local?.mode ?? "Live and recorded online learning",
-    mentor: remote?.mentorSummary ?? local?.mentor ?? "Experienced domain mentor with project and interview review experience.",
+    guidance: local?.expert ?? "Experienced domain experts provide project and interview review support.",
     projects,
-    assignments: remote?.assignments.length
-      ? remote.assignments.map((item) => ({ title: item.title, text: item.instructions }))
-      : local?.assignments.length
-        ? local.assignments.map((item) => ({ title: item, text: "A practical submission reviewed against a clear rubric." }))
-        : createFallbackAssignments(title),
-    assessments: remote?.assessments.length
-      ? remote.assessments.map((item) => ({ title: item.title, text: item.instructions }))
-      : local?.assessments.length
-        ? local.assessments.map((item) => ({ title: item, text: "Validate your understanding and receive focused improvement feedback." }))
-        : createFallbackAssessments(title),
     certification: remote?.certificationName ?? local?.certification ?? `Joviq ${title} Certification`,
     outcomes: remote?.outcomes.length ? remote.outcomes : local?.outcomes ?? [],
     interviewPrep: local?.interviewPrep ?? ["Resume and portfolio review", "Project explanation practice", "Technical mock interview", "HR interview preparation"],
@@ -591,7 +560,7 @@ function createModuleLessons(title: string, module: string) {
     `${module} tools and workflows`,
     "Guided practical exercise",
     "Industry use case review",
-    "Mentor feedback checkpoint"
+    "Feedback checkpoint"
   ];
 }
 
@@ -603,25 +572,11 @@ function createFallbackCurriculum(title: string): CurriculumItem[] {
   }));
 }
 
-function createFallbackAssignments(title: string): DetailItem[] {
-  return ["Foundations exercise", "Tool workflow submission", "Applied case assignment", "Portfolio documentation"].map((item) => ({
-    title: `${title} ${item}`,
-    text: "Submit practical work against a clear rubric and use the review to improve the next iteration."
-  }));
-}
-
-function createFallbackAssessments(title: string): DetailItem[] {
-  return ["Knowledge checkpoint", "Practical review", "Capstone presentation"].map((item) => ({
-    title: `${title} ${item}`,
-    text: "Validate technical understanding, execution quality, and the ability to explain key decisions."
-  }));
-}
-
 function createFallbackFaqs(title: string) {
   return [
     { question: `Do I need prior ${title} experience?`, answer: "No. The learning path begins with foundations and progresses into applied project work." },
     { question: "Are projects included?", answer: "Yes. The program includes six portfolio-oriented project examples with clear deliverables." },
-    { question: "Will I receive a certificate?", answer: "Yes. Certification is issued after the required projects, assignments, and assessments are completed." },
+    { question: "Will I receive a certificate?", answer: "Yes. Certification is issued after the required project work is completed." },
     { question: "Is interview preparation included?", answer: "Yes. Support varies by plan and can include portfolio review, mock interviews, and technical preparation." }
   ];
 }

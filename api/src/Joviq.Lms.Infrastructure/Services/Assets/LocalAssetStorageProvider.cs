@@ -2,6 +2,7 @@ using System.Text.Json;
 using Joviq.Lms.Application.Common.Exceptions;
 using Joviq.Lms.Application.Common.Options;
 using Joviq.Lms.Domain.Entities;
+using Joviq.Lms.Domain.Enums;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -36,7 +37,15 @@ internal sealed class LocalAssetStorageProvider : IAssetStorageProvider
 
     public string ContainerName => "local";
 
-    public string? GetPublicUrl(Asset asset) => null;
+    public string? GetPublicUrl(Asset asset)
+    {
+        if (asset.Visibility != AssetVisibility.Public)
+        {
+            return null;
+        }
+
+        return $"{BaseUrl}/api/v1/assets/public-files/{asset.Id:D}";
+    }
 
     public AssetUploadInstructions CreateUploadInstructions(
         Asset asset,
@@ -122,13 +131,21 @@ internal sealed class LocalAssetStorageProvider : IAssetStorageProvider
 
     public Task<AssetLocalFile> OpenLocalFileAsync(
         Asset asset,
-        string token,
+        string? token,
         CancellationToken cancellationToken)
     {
-        var readToken = ValidateReadToken(asset, token);
-        if (readToken.ExpiresAtUtc <= DateTime.UtcNow)
+        if (asset.Visibility != AssetVisibility.Public)
         {
-            throw new AppException("Asset link has expired.", 403, "asset_link_expired");
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                throw new AppException("Asset link token is required.", 401, "asset_link_token_required");
+            }
+
+            var readToken = ValidateReadToken(asset, token);
+            if (readToken.ExpiresAtUtc <= DateTime.UtcNow)
+            {
+                throw new AppException("Asset link has expired.", 403, "asset_link_expired");
+            }
         }
 
         var path = GetSafePath(asset.StorageKey);

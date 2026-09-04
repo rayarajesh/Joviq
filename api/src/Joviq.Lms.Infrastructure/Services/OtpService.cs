@@ -66,7 +66,7 @@ public sealed class OtpService(
         string code,
         CancellationToken cancellationToken)
     {
-        var normalizedDestination = NormalizeDestination(destination, GuessDestinationType(destination));
+        var normalizedDestination = NormalizeDestination(destination, OtpDestinationType.Email);
         var otp = await dbContext.UserOtps
             .Where(x => x.Destination == normalizedDestination && x.Purpose == purpose && x.ConsumedAt == null)
             .OrderByDescending(x => x.CreatedAt)
@@ -92,15 +92,8 @@ public sealed class OtpService(
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    private static OtpDestinationType GuessDestinationType(string destination)
-    {
-        return destination.Contains('@') ? OtpDestinationType.Email : OtpDestinationType.Phone;
-    }
-
     private static string NormalizeDestination(string destination, OtpDestinationType destinationType)
     {
-        return destinationType == OtpDestinationType.Email
-            ? destination.Trim().ToLowerInvariant()
-            : destination.Trim();
+        return destination.Trim().ToLowerInvariant();
     }
 }

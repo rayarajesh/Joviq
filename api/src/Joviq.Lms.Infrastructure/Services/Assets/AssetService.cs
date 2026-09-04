@@ -222,6 +222,25 @@ internal sealed class AssetService(
         return new AssetFileDownload(file.Content, file.ContentType, file.FileName, file.LastModified);
     }
 
+    public async Task<AssetFileDownload> OpenPublicLocalAssetAsync(
+        Guid assetId,
+        CancellationToken cancellationToken)
+    {
+        var asset = await GetAssetEntityAsync(assetId, cancellationToken);
+        if (asset.StorageProvider != storageProvider.ProviderName || storageProvider.ProviderName != "Local")
+        {
+            throw new AppException("Local asset files are not enabled.", 404, "local_assets_not_enabled");
+        }
+
+        if (asset.Status != AssetStatus.Ready || asset.Visibility != AssetVisibility.Public)
+        {
+            throw new AppException("Asset file was not found.", 404, "asset_file_not_found");
+        }
+
+        var file = await storageProvider.OpenLocalFileAsync(asset, null, cancellationToken);
+        return new AssetFileDownload(file.Content, file.ContentType, file.FileName, file.LastModified);
+    }
+
     private async Task<NormalizedAssetUpload> ValidateCreateRequestAsync(
         Guid userId,
         CreateAssetUploadRequest request,
@@ -294,7 +313,7 @@ internal sealed class AssetService(
 
     private void EnsureCanManage(Guid userId, Asset asset)
     {
-        if (IsAdminOrMentor() || asset.OwnerUserId == userId)
+        if (IsAdmin() || asset.OwnerUserId == userId)
         {
             return;
         }
@@ -304,7 +323,7 @@ internal sealed class AssetService(
 
     private async Task EnsureCanReadAsync(Guid userId, Asset asset, CancellationToken cancellationToken)
     {
-        if (asset.Visibility == AssetVisibility.Public || IsAdminOrMentor() || asset.OwnerUserId == userId)
+        if (asset.Visibility == AssetVisibility.Public || IsAdmin() || asset.OwnerUserId == userId)
         {
             return;
         }
@@ -355,25 +374,23 @@ internal sealed class AssetService(
     private void EnsureUploadPermission(Guid userId, CreateAssetUploadRequest request)
     {
         _ = userId;
-        var privileged = IsAdminOrMentor();
+        var privileged = IsAdmin();
 
         if (request.Visibility == AssetVisibility.Public && !privileged)
         {
-            throw new AppException("Only admins or mentors can upload public assets.", 403, "public_asset_forbidden");
+            throw new AppException("Only admins can upload public assets.", 403, "public_asset_forbidden");
         }
 
         if (request.Purpose is AssetPurpose.ProgramThumbnail or AssetPurpose.LessonVideo or AssetPurpose.LessonResource &&
             !privileged)
         {
-            throw new AppException("Only admins or mentors can upload LMS content assets.", 403, "lms_asset_forbidden");
+            throw new AppException("Only admins can upload LMS content assets.", 403, "lms_asset_forbidden");
         }
     }
 
-    private bool IsAdminOrMentor()
+    private bool IsAdmin()
     {
-        return currentUser.Roles.Any(role =>
-            role.Equals(RoleNames.Admin, StringComparison.OrdinalIgnoreCase) ||
-            role.Equals(RoleNames.Mentor, StringComparison.OrdinalIgnoreCase));
+        return currentUser.Roles.Any(role => role.Equals(RoleNames.Admin, StringComparison.OrdinalIgnoreCase));
     }
 
     private bool IsStudent()

@@ -40,41 +40,17 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
     public DbSet<Coupon> Coupons => Set<Coupon>();
 
-    public DbSet<LiveClass> LiveClasses => Set<LiveClass>();
-
-    public DbSet<Assignment> Assignments => Set<Assignment>();
-
-    public DbSet<AssignmentSubmission> AssignmentSubmissions => Set<AssignmentSubmission>();
-
     public DbSet<Project> Projects => Set<Project>();
 
     public DbSet<ProjectSubmission> ProjectSubmissions => Set<ProjectSubmission>();
 
-    public DbSet<Assessment> Assessments => Set<Assessment>();
-
-    public DbSet<AssessmentQuestion> AssessmentQuestions => Set<AssessmentQuestion>();
-
-    public DbSet<AssessmentAttempt> AssessmentAttempts => Set<AssessmentAttempt>();
-
-    public DbSet<AiInterviewAttempt> AiInterviewAttempts => Set<AiInterviewAttempt>();
-
     public DbSet<Certificate> Certificates => Set<Certificate>();
-
-    public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
 
     public DbSet<Notification> Notifications => Set<Notification>();
 
     public DbSet<CallbackRequest> CallbackRequests => Set<CallbackRequest>();
 
     public DbSet<Enquiry> Enquiries => Set<Enquiry>();
-
-    public DbSet<CampusAmbassadorApplication> CampusAmbassadorApplications => Set<CampusAmbassadorApplication>();
-
-    public DbSet<CareerApplication> CareerApplications => Set<CareerApplication>();
-
-    public DbSet<AdminContentItem> AdminContentItems => Set<AdminContentItem>();
-
-    public DbSet<AdminSetting> AdminSettings => Set<AdminSetting>();
 
     public DbSet<Asset> Assets => Set<Asset>();
 

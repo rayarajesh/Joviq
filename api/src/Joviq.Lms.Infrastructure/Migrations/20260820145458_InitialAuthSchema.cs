@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -114,7 +114,6 @@ namespace Joviq.Lms.Infrastructure.Migrations
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),
                     TermsVersion = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     PrivacyPolicyVersion = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    RefundPolicyVersion = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     AcceptedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     IpAddress = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
                     UserAgent = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),
