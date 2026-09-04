@@ -227,12 +227,13 @@ export function DashboardPage() {
 
   const usesAdminModuleHero = primaryRole === "Admin"
     && (activeModule === "Students" || activeModule === "Categories" || activeModule === "Programs");
+  const hideDashboardHeader = usesAdminModuleHero || (primaryRole === "Admin" && activeModule === "Overview");
 
   return (
     <main className={`dashboard-shell dashboard-shell--${primaryRole.toLowerCase()}`}>
       <DashboardSidebar activeModule={activeModule} onModuleChange={selectModule} role={primaryRole} />
       <section className="dashboard-main">
-        {!usesAdminModuleHero ? (
+        {!hideDashboardHeader ? (
           <header className="dashboard-header">
             <div>
               <span className="eyebrow">Joviq LMS</span>
@@ -312,25 +313,6 @@ function AdminDashboard({ activeModule, currentUserId }: { activeModule: string;
   const [creatingRole, setCreatingRole] = useState<AssignableRoleName | null>(null);
   const [actionUserId, setActionUserId] = useState<string | null>(null);
   const students = studentsPage?.items ?? [];
-
-  const metrics = useMemo(
-    () => [
-      { icon: UsersRound, label: "Total users", value: summary?.totalUsers ?? "-" },
-      { icon: GraduationCap, label: "Students", value: summary?.students ?? "-" },
-      { icon: ShieldCheck, label: "Admins", value: summary?.admins ?? "-" }
-    ],
-    [summary]
-  );
-
-  const lmsMetrics = useMemo(
-    () => [
-      { icon: BookOpen, label: "Programs", value: lmsSummary?.programs ?? "-" },
-      { icon: GraduationCap, label: "Enrollments", value: lmsSummary?.enrollments ?? "-" },
-      { icon: CircleDollarSign, label: "Verified revenue", value: formatCurrency(lmsSummary?.verifiedRevenue ?? 0) },
-      { icon: FolderKanban, label: "Project reviews", value: lmsSummary?.pendingProjectReviews ?? "-" }
-    ],
-    [lmsSummary]
-  );
 
   const loadDashboard = useCallback(async () => {
     setIsLoading(true);
@@ -501,19 +483,19 @@ function AdminDashboard({ activeModule, currentUserId }: { activeModule: string;
   return (
     <section className="dashboard-stack">
       {showOverview ? (
-        <section className="metric-grid">
-          {metrics.map((metric) => (
-            <DashboardMetric key={metric.label} icon={metric.icon} label={metric.label} value={metric.value} />
-          ))}
-        </section>
-      ) : null}
-
-      {showOverview ? (
-        <section className="metric-grid metric-grid--lms">
-          {lmsMetrics.map((metric) => (
-            <DashboardMetric key={metric.label} icon={metric.icon} label={metric.label} value={metric.value} />
-          ))}
-        </section>
+        <AdminOverview
+          auditLogs={auditLogs}
+          categories={programCategories}
+          certificates={adminCertificates}
+          coupons={adminCoupons}
+          enrollments={adminEnrollments}
+          isLoading={isLoading}
+          payments={adminPayments}
+          programs={lmsPrograms}
+          projects={adminProjects}
+          summary={summary}
+          lmsSummary={lmsSummary}
+        />
       ) : null}
 
       {message ? <MessageBox message={message} /> : null}
@@ -539,7 +521,7 @@ function AdminDashboard({ activeModule, currentUserId }: { activeModule: string;
         />
       ) : null}
 
-      {!showPeopleModule ? <AdminLmsPanel
+      {!showOverview && !showPeopleModule ? <AdminLmsPanel
         activeModule={activeModule}
         adminCertificates={adminCertificates}
         adminCoupons={adminCoupons}
@@ -556,6 +538,201 @@ function AdminDashboard({ activeModule, currentUserId }: { activeModule: string;
         onMessage={setMessage}
         onRefresh={loadDashboard}
       /> : null}
+    </section>
+  );
+}
+
+function AdminOverview({
+  auditLogs,
+  categories,
+  certificates,
+  coupons,
+  enrollments,
+  isLoading,
+  lmsSummary,
+  payments,
+  programs,
+  projects,
+  summary
+}: {
+  auditLogs: AuditLogResponse[];
+  categories: ProgramCategoryResponse[];
+  certificates: CertificateResponse[];
+  coupons: CouponResponse[];
+  enrollments: EnrollmentResponse[];
+  isLoading: boolean;
+  lmsSummary: AdminLmsSummaryResponse | null;
+  payments: PaymentTransactionResponse[];
+  programs: ProgramSummaryResponse[];
+  projects: ProjectResponse[];
+  summary: AdminUserSummaryResponse | null;
+}) {
+  const navigate = useNavigate();
+  const totalUsers = summary?.totalUsers ?? 0;
+  const activeUsers = summary?.active ?? 0;
+  const pendingUsers = summary?.pendingEmailVerification ?? 0;
+  const publishedPrograms = lmsSummary?.publishedPrograms ?? programs.filter((program) => program.status === "Published").length;
+  const totalPrograms = lmsSummary?.programs ?? programs.length;
+  const totalEnrollments = lmsSummary?.enrollments ?? enrollments.length;
+  const activeEnrollments = lmsSummary?.activeEnrollments ?? enrollments.filter((enrollment) => enrollment.status === "Active").length;
+  const verifiedPayments = payments.filter((payment) => payment.status === "Verified").length;
+  const verifiedRevenue = lmsSummary?.verifiedRevenue ?? payments
+    .filter((payment) => payment.status === "Verified")
+    .reduce((total, payment) => total + payment.amount, 0);
+  const projectReviews = lmsSummary?.pendingProjectReviews ?? projects.filter((project) => !project.latestSubmission).length;
+  const activeCoupons = coupons.filter((coupon) => coupon.isActive).length;
+  const issuedCertificates = certificates.filter((certificate) => certificate.status === "Issued").length;
+  const catalogHealth = percent(publishedPrograms, totalPrograms);
+  const enrollmentHealth = percent(activeEnrollments, totalEnrollments);
+  const paymentHealth = percent(verifiedPayments, payments.length);
+
+  const kpis = [
+    { icon: UsersRound, label: "Users", value: totalUsers, detail: `${activeUsers} active`, tone: "violet" },
+    { icon: GraduationCap, label: "Students", value: summary?.students ?? 0, detail: `${pendingUsers} pending email`, tone: "blue" },
+    { icon: Tags, label: "Categories", value: categories.length, detail: `${totalPrograms} programs`, tone: "green" },
+    { icon: BookOpen, label: "Programs", value: publishedPrograms, detail: `${totalPrograms} total`, tone: "amber" },
+    { icon: ClipboardList, label: "Enrollments", value: totalEnrollments, detail: `${activeEnrollments} active`, tone: "teal" },
+    { icon: FolderKanban, label: "Reviews", value: projectReviews, detail: "Project queue", tone: "rose" }
+  ];
+
+  const healthRows = [
+    { label: "Catalog", value: catalogHealth, meta: `${publishedPrograms}/${totalPrograms} published` },
+    { label: "Enrollment", value: enrollmentHealth, meta: `${activeEnrollments}/${totalEnrollments} active` },
+    { label: "Payments", value: paymentHealth, meta: `${verifiedPayments}/${payments.length} verified` }
+  ];
+
+  const priorities = [
+    { icon: FolderKanban, label: "Project reviews", value: projectReviews, module: "Projects" },
+    { icon: Mail, label: "Pending email", value: pendingUsers, module: "Students" },
+    { icon: BadgePercent, label: "Active coupons", value: activeCoupons, module: "Coupons" },
+    { icon: Award, label: "Issued certificates", value: issuedCertificates, module: "Certificates" }
+  ];
+
+  function openModule(module: string) {
+    navigate(`/dashboard?section=${encodeURIComponent(module)}`);
+  }
+
+  return (
+    <section className="admin-overview">
+      <section className="admin-overview-hero">
+        <div className="admin-overview-hero__main">
+          <div>
+            <span className="admin-overview-kicker">Operations center</span>
+            <h2>Current operational snapshot</h2>
+            <p>{publishedPrograms} published programs, {activeEnrollments} active enrollments, and {projectReviews} review items.</p>
+          </div>
+          <div className="admin-overview-actions">
+            <button className="primary-action" type="button" onClick={() => openModule("Categories")}>
+              <Tags size={17} />
+              Manage catalog
+            </button>
+            <button className="secondary-action" type="button" onClick={() => openModule("Students")}>
+              <UsersRound size={17} />
+              Review students
+            </button>
+          </div>
+          <div className="admin-overview-hero__stats" aria-label="Admin dashboard highlights">
+            <span>
+              <strong>{categories.length}</strong>
+              Categories
+            </span>
+            <span>
+              <strong>{totalEnrollments}</strong>
+              Enrollments
+            </span>
+            <span>
+              <strong>{pendingUsers}</strong>
+              Pending
+            </span>
+          </div>
+        </div>
+        <div className="admin-overview-revenue">
+          <span>{isLoading ? "Refreshing" : "Verified revenue"}</span>
+          <strong>{formatCurrency(verifiedRevenue)}</strong>
+          <small>{verifiedPayments} verified payments</small>
+        </div>
+      </section>
+
+      <section className="admin-overview-kpi-grid">
+        {kpis.map((item) => {
+          const Icon = item.icon;
+          return (
+            <article className={`admin-kpi-card admin-kpi-card--${item.tone}`} key={item.label}>
+              <Icon size={20} />
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+              <small>{item.detail}</small>
+            </article>
+          );
+        })}
+      </section>
+
+      <section className="admin-overview-panels">
+        <article className="admin-overview-panel">
+          <div className="admin-overview-panel__head">
+            <div>
+              <span>Health</span>
+              <h3>Operating rhythm</h3>
+            </div>
+            <RefreshCw size={18} />
+          </div>
+          <div className="admin-health-list">
+            {healthRows.map((row) => (
+              <div className="admin-health-row" key={row.label}>
+                <div>
+                  <strong>{row.label}</strong>
+                  <span>{row.meta}</span>
+                </div>
+                <div className="admin-health-meter" aria-label={`${row.label} ${row.value}%`}>
+                  <span style={{ width: `${row.value}%` }} />
+                </div>
+                <b>{row.value}%</b>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="admin-overview-panel">
+          <div className="admin-overview-panel__head">
+            <div>
+              <span>Queue</span>
+              <h3>Needs attention</h3>
+            </div>
+            <Zap size={18} />
+          </div>
+          <div className="admin-priority-list">
+            {priorities.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button type="button" key={item.label} onClick={() => openModule(item.module)}>
+                  <Icon size={17} />
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </button>
+              );
+            })}
+          </div>
+        </article>
+
+        <article className="admin-overview-panel">
+          <div className="admin-overview-panel__head">
+            <div>
+              <span>Recent</span>
+              <h3>Activity trail</h3>
+            </div>
+            <ShieldCheck size={18} />
+          </div>
+          <div className="admin-activity-mini">
+            {auditLogs.slice(0, 4).map((log) => (
+              <div key={log.id}>
+                <strong>{formatEventType(log.eventType)}</strong>
+                <span>{formatShortDate(log.createdAt)}</span>
+              </div>
+            ))}
+            {auditLogs.length === 0 ? <div className="admin-activity-empty">No recent activity.</div> : null}
+          </div>
+        </article>
+      </section>
     </section>
   );
 }
@@ -1271,7 +1448,7 @@ function AdminLmsPanel({
     }))
   );
 
-  const showPrograms = activeModule === "Overview" || activeModule === "Programs";
+  const showPrograms = activeModule === "Programs";
   const showModule = (module: string) => activeModule === module;
 
   return (
@@ -1302,7 +1479,7 @@ function AdminLmsPanel({
         <div className="card-title-row">
           <div>
             <span className="eyebrow">LMS engine</span>
-            <h2>{activeModule === "Overview" ? "Programs, payments, and operations" : activeModule}</h2>
+            <h2>{activeModule}</h2>
             <p>
               {summary?.publishedPrograms ?? 0} published programs, {summary?.activeEnrollments ?? 0} active enrollments.
             </p>
@@ -2970,6 +3147,40 @@ function formatCurrency(value: number) {
     currency: "INR",
     maximumFractionDigits: 0
   }).format(value);
+}
+
+function formatShortDate(value?: string) {
+  if (!value) {
+    return "Recently";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "Recently";
+  }
+
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
+}
+
+function formatEventType(value: string) {
+  return value
+    .replace(/\./g, " ")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function percent(value: number, total: number) {
+  if (total <= 0) {
+    return 0;
+  }
+
+  return Math.min(100, Math.round((value / total) * 100));
 }
 
 function toPeopleListParams(role: AssignableRoleName, query: PeopleQueryState) {
