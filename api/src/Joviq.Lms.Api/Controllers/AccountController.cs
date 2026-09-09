@@ -13,6 +13,22 @@ public sealed class AccountController(
     ICurrentUserService currentUser)
     : ApiControllerBase(currentUser)
 {
+    [HttpGet("profile")]
+    public async Task<ActionResult<ApiResponse<AccountProfileResponse>>> GetProfile(CancellationToken cancellationToken)
+    {
+        var result = await authService.GetProfileAsync(RequiredUserId, cancellationToken);
+        return Ok(ApiResponse<AccountProfileResponse>.Ok(result, "Profile loaded.", CorrelationId));
+    }
+
+    [HttpPut("profile")]
+    public async Task<ActionResult<ApiResponse<AccountProfileResponse>>> UpdateProfile(
+        UpdateAccountProfileRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await authService.UpdateProfileAsync(RequiredUserId, request, RequestMetadata(), cancellationToken);
+        return Ok(ApiResponse<AccountProfileResponse>.Ok(result, "Profile saved.", CorrelationId));
+    }
+
     [HttpPost("delete/request")]
     public async Task<ActionResult<ApiResponse>> RequestDelete(CancellationToken cancellationToken)
     {

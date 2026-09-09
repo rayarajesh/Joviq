@@ -3,17 +3,20 @@ using System;
 using Joviq.Lms.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Joviq.Lms.Infrastructure.Migrations
+namespace Joviq.Lms.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260909140645_AddProjectManagement")]
+    partial class AddProjectManagement
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -448,12 +451,6 @@ namespace Joviq.Lms.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<int>("AccessCycle")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTimeOffset?>("AccessExpiresAt")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -817,9 +814,6 @@ namespace Joviq.Lms.Infrastructure.Migrations
                         .HasPrecision(12, 2)
                         .HasColumnType("numeric(12,2)");
 
-                    b.Property<DateTimeOffset?>("CheckoutExpiresAt")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -848,10 +842,6 @@ namespace Joviq.Lms.Infrastructure.Migrations
                     b.Property<string>("GatewayPaymentId")
                         .HasMaxLength(160)
                         .HasColumnType("character varying(160)");
-
-                    b.Property<string>("InvoiceNumber")
-                        .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
 
                     b.Property<string>("Mode")
                         .IsRequired()
@@ -884,10 +874,6 @@ namespace Joviq.Lms.Infrastructure.Migrations
 
                     b.HasIndex("GatewayOrderId")
                         .IsUnique();
-
-                    b.HasIndex("GatewayPaymentId")
-                        .IsUnique()
-                        .HasFilter("\"GatewayPaymentId\" IS NOT NULL");
 
                     b.HasIndex("StudentId", "Status");
 
@@ -1062,9 +1048,6 @@ namespace Joviq.Lms.Infrastructure.Migrations
                     b.Property<string>("Feedback")
                         .HasMaxLength(2500)
                         .HasColumnType("character varying(2500)");
-
-                    b.Property<Guid?>("FileAssetId")
-                        .HasColumnType("uuid");
 
                     b.Property<string>("GitHubUrl")
                         .HasMaxLength(500)
@@ -1373,11 +1356,6 @@ namespace Joviq.Lms.Infrastructure.Migrations
                         .IsUnique();
 
                     b.HasIndex("UserId");
-
-                    b.HasIndex("UserId", "DeviceId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_user_sessions_UserId_DeviceId_Active")
-                        .HasFilter("\"DeviceId\" IS NOT NULL AND \"RevokedAt\" IS NULL");
 
                     b.ToTable("user_sessions", (string)null);
                 });

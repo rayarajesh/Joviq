@@ -3,6 +3,7 @@ using System;
 using Joviq.Lms.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Joviq.Lms.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260909160341_AddPaymentAccessControls")]
+    partial class AddPaymentAccessControls
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1062,9 +1065,6 @@ namespace Joviq.Lms.Infrastructure.Migrations
                     b.Property<string>("Feedback")
                         .HasMaxLength(2500)
                         .HasColumnType("character varying(2500)");
-
-                    b.Property<Guid?>("FileAssetId")
-                        .HasColumnType("uuid");
 
                     b.Property<string>("GitHubUrl")
                         .HasMaxLength(500)

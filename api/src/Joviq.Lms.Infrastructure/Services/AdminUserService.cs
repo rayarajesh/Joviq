@@ -317,11 +317,12 @@ public sealed class AdminUserService(
 
     public async Task<IReadOnlyList<SessionResponse>> GetSessionsAsync(Guid userId, CancellationToken cancellationToken)
     {
-        return await dbContext.UserSessions
+        var sessions = await dbContext.UserSessions
             .Where(x => x.UserId == userId && x.RevokedAt == null && x.ExpiresAt > DateTimeOffset.UtcNow)
             .OrderByDescending(x => x.LastSeenAt ?? x.CreatedAt)
             .Select(x => new SessionResponse(
                 x.Id,
+                x.DeviceId,
                 x.DeviceName,
                 x.Browser,
                 x.OperatingSystem,
@@ -331,6 +332,8 @@ public sealed class AdminUserService(
                 x.ExpiresAt,
                 false))
             .ToListAsync(cancellationToken);
+
+        return sessions.CollapseDuplicateDevices();
     }
 
     public async Task RevokeSessionAsync(Guid userId, Guid sessionId, CancellationToken cancellationToken)

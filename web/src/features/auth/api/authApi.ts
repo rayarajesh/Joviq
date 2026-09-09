@@ -1,8 +1,9 @@
 import { env } from "../../../config/env";
-import { request } from "../../../lib/api/httpClient";
+import { getClientDeviceId, request } from "../../../lib/api/httpClient";
 import type {
   AdminUserResponse,
   AdminUserSummaryResponse,
+  AccountProfile,
   AuthTokenResponse,
   CreateAdminUserRequest,
   PagedResult,
@@ -10,6 +11,7 @@ import type {
   RegisterRequest,
   RegisterResponse,
   SessionResponse,
+  UpdateAccountProfileRequest,
   UpdateAdminUserRequest,
   UpdateUserRolesRequest,
   UpdateUserStatusRequest,
@@ -34,6 +36,11 @@ export const authApi = {
     search.set("acceptedTerms", String(options.acceptedTerms ?? false));
     search.set("allowSignUp", String(options.allowSignUp ?? false));
     search.set("rememberMe", String(options.rememberMe ?? false));
+
+    const deviceId = getClientDeviceId();
+    if (deviceId) {
+      search.set("deviceId", deviceId);
+    }
 
     if (options.phoneNumber) {
       search.set("phoneNumber", options.phoneNumber);
@@ -91,6 +98,14 @@ export const authApi = {
 
   me() {
     return request<UserSummary>("/api/v1/auth/me");
+  },
+
+  getProfile() {
+    return request<AccountProfile>("/api/v1/account/profile");
+  },
+
+  updateProfile(body: UpdateAccountProfileRequest) {
+    return request<AccountProfile>("/api/v1/account/profile", { method: "PUT", body });
   },
 
   sendEmailVerification(email: string) {

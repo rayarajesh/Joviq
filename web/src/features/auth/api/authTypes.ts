@@ -37,6 +37,32 @@ export type UserSummary = {
   onboardingStatus: string;
 };
 
+export type AccountProfile = {
+  userId: string;
+  fullName: string;
+  email: string;
+  phoneNumber?: string;
+  profilePhotoUrl?: string;
+  emailConfirmed: boolean;
+  phoneNumberConfirmed: boolean;
+  roles: RoleName[];
+  accountStatus: string;
+  onboardingStatus: string;
+  dateOfBirth?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+};
+
+export type UpdateAccountProfileRequest = {
+  fullName: string;
+  phoneNumber?: string | null;
+  dateOfBirth?: string | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+};
+
 export type AuthTokenResponse = {
   accessToken?: string;
   expiresIn: number;
@@ -45,6 +71,7 @@ export type AuthTokenResponse = {
 
 export type SessionResponse = {
   id: string;
+  deviceId?: string;
   deviceName?: string;
   browser?: string;
   operatingSystem?: string;

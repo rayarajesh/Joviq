@@ -91,16 +91,25 @@ public sealed record EnrollmentResponse(
     Guid Id,
     Guid StudentId,
     Guid ProgramId,
+    string ProgramSlug,
     string ProgramTitle,
     Guid? ProgramPlanId,
     string? ProgramPlanName,
+    string? ProgramPlanCode,
     string Status,
     decimal TotalAmount,
     decimal PaidAmount,
     decimal BalanceAmount,
     DateTimeOffset EnrolledAt,
     DateTimeOffset? FullAccessUnlockedAt,
-    string? LockedReason);
+    string? LockedReason,
+    DateTimeOffset? AccessExpiresAt,
+    bool IsAccessExpired,
+    bool HasFullAccess,
+    int AccessCycle,
+    string? StudentName = null,
+    string? StudentEmail = null,
+    string? StudentPhone = null);
 
 public sealed record StudentLmsDashboardResponse(
     EnrollmentResponse? Enrollment,
@@ -119,6 +128,17 @@ public sealed record StudentProgramWorkspaceResponse(
     IReadOnlyList<CertificateResponse> Certificates,
     IReadOnlyList<PaymentTransactionResponse> Payments);
 
+public sealed record StudentEnrolledProgramResponse(
+    EnrollmentResponse Enrollment,
+    ProgramDetailsResponse Program,
+    int CompletedLessons,
+    int TotalLessons,
+    int ProgressPercentage,
+    IReadOnlyList<CertificateResponse> Certificates);
+
+public sealed record StudentMyProgramsResponse(
+    IReadOnlyList<StudentEnrolledProgramResponse> Programs);
+
 public sealed record PaymentTransactionResponse(
     Guid Id,
     Guid? EnrollmentId,
@@ -132,7 +152,58 @@ public sealed record PaymentTransactionResponse(
     decimal Amount,
     string Currency,
     DateTimeOffset CreatedAt,
-    DateTimeOffset? VerifiedAt);
+    DateTimeOffset? VerifiedAt,
+    string? InvoiceNumber,
+    string? FailureReason);
+
+public sealed record PaymentCheckoutResponse(
+    PaymentTransactionResponse Transaction,
+    string Provider,
+    string PublicKey,
+    string GatewayOrderId,
+    long AmountInMinorUnits,
+    string Currency,
+    DateTimeOffset ExpiresAt);
+
+public sealed record PaymentReceiptResponse(
+    Guid PaymentId,
+    string InvoiceNumber,
+    string Status,
+    string StudentName,
+    string StudentEmail,
+    string ProgramTitle,
+    string PlanName,
+    string PaymentMode,
+    decimal Amount,
+    string Currency,
+    string Gateway,
+    string GatewayOrderId,
+    string? GatewayPaymentId,
+    DateTimeOffset? PaidAt,
+    DateTimeOffset CreatedAt);
+
+public sealed record ProjectLinkResponse(string Label, string Url);
+
+public sealed record ProjectStudentResponse(
+    Guid StudentId,
+    Guid EnrollmentId,
+    string FullName,
+    string Email,
+    Guid ProgramId,
+    string ProgramTitle,
+    DateTimeOffset EnrolledAt);
+
+public sealed record ProjectSubmissionReviewResponse(
+    Guid Id,
+    Guid ProjectId,
+    Guid ProgramId,
+    string ProjectTitle,
+    string ProgramTitle,
+    Guid StudentId,
+    string StudentName,
+    string StudentEmail,
+    decimal MaxScore,
+    SubmissionResponse Submission);
 
 public sealed record ProjectResponse(
     Guid Id,
@@ -140,8 +211,12 @@ public sealed record ProjectResponse(
     string Title,
     string Description,
     IReadOnlyList<string> RequiredArtifacts,
+    IReadOnlyList<ProjectLinkResponse> UsefulLinks,
+    string? ReferenceMediaUrl,
+    DateTimeOffset? Deadline,
     decimal MaxScore,
     bool IsPublished,
+    int AssignedStudentCount,
     SubmissionResponse? LatestSubmission);
 
 public sealed record SubmissionResponse(
@@ -153,6 +228,7 @@ public sealed record SubmissionResponse(
     string? Feedback,
     string? SubmissionUrl,
     string? FileUrl,
+    Guid? FileAssetId,
     string? GitHubUrl,
     string? DemoUrl,
     string? DocumentationUrl,
@@ -407,9 +483,27 @@ public sealed class CreateProjectRequest
 
     public IReadOnlyList<string> RequiredArtifacts { get; init; } = [];
 
+    public IReadOnlyList<ProjectLinkRequest> UsefulLinks { get; init; } = [];
+
+    public string? ReferenceMediaUrl { get; init; }
+
+    public DateTimeOffset? Deadline { get; init; }
+
     public decimal MaxScore { get; init; } = 100;
 
-    public bool IsPublished { get; init; } = true;
+    public bool IsPublished { get; init; }
+}
+
+public sealed class ProjectLinkRequest
+{
+    public string Label { get; init; } = string.Empty;
+
+    public string Url { get; init; } = string.Empty;
+}
+
+public sealed class PublishProjectRequest
+{
+    public IReadOnlyList<Guid> StudentIds { get; init; } = [];
 }
 
 public sealed class CreateEnrollmentRequest
@@ -469,10 +563,14 @@ public sealed class VerifyPaymentRequest
     public string? GatewayOrderId { get; init; }
 
     public string? GatewayPaymentId { get; init; }
+
+    public string? GatewaySignature { get; init; }
 }
 
 public sealed class SubmitProjectRequest
 {
+    public Guid? FileAssetId { get; init; }
+
     public string? GitHubUrl { get; init; }
 
     public string? DemoUrl { get; init; }
@@ -482,6 +580,15 @@ public sealed class SubmitProjectRequest
     public string? PresentationUrl { get; init; }
 
     public string? Notes { get; init; }
+}
+
+public sealed class ReviewProjectSubmissionRequest
+{
+    public SubmissionStatus Status { get; init; } = SubmissionStatus.Approved;
+
+    public decimal? Score { get; init; }
+
+    public string? Feedback { get; init; }
 }
 
 public sealed class CreateCouponRequest

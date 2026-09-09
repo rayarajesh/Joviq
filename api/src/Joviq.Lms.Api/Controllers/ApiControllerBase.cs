@@ -15,12 +15,22 @@ public abstract class ApiControllerBase(ICurrentUserService currentUser) : Contr
 
     protected string CorrelationId => HttpContext.TraceIdentifier;
 
-    protected RequestMetadata RequestMetadata(string? deviceName = null)
+    protected RequestMetadata RequestMetadata(string? deviceName = null, string? deviceId = null)
     {
+        var requestDeviceId = Request.Headers["X-Device-Id"].ToString();
+        var resolvedDeviceId = string.IsNullOrWhiteSpace(deviceId) ? requestDeviceId : deviceId;
+        resolvedDeviceId = NormalizeDeviceId(resolvedDeviceId);
+
         return new RequestMetadata(
             HttpContext.Connection.RemoteIpAddress?.ToString(),
             Request.Headers.UserAgent.ToString(),
             deviceName,
-            Request.Headers["X-Device-Id"].ToString());
+            resolvedDeviceId);
+    }
+
+    private static string? NormalizeDeviceId(string? deviceId)
+    {
+        var normalized = deviceId?.Trim();
+        return string.IsNullOrWhiteSpace(normalized) || normalized.Length > 128 ? null : normalized;
     }
 }

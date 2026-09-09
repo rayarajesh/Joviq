@@ -4,9 +4,12 @@ import { useLocation } from "react-router-dom";
 import { ScrollToTopButton } from "../components/ScrollToTopButton";
 import { AuthProvider } from "../features/auth/context/AuthContext";
 import { DashboardPage } from "../pages/DashboardPage";
+import { CoursePlayerPage } from "../pages/CoursePlayerPage";
+import { EnrollmentCheckoutPage } from "../pages/EnrollmentCheckoutPage";
 import { LandingPage } from "../pages/LandingPage";
 import { OAuthCallbackPage } from "../pages/OAuthCallbackPage";
 import { ProgramDetailsPage } from "../pages/ProgramDetailsPage";
+import { ProfilePage } from "../pages/ProfilePage";
 import {
   AboutPage,
   FeaturesPage,
@@ -42,10 +45,34 @@ export function App() {
             }
           />
           <Route
+            path="/learning/:programId"
+            element={
+              <ProtectedRoute>
+                <CoursePlayerPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/checkout"
+            element={
+              <ProtectedRoute allowIncompleteProfile>
+                <EnrollmentCheckoutPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/student/onboarding"
             element={
               <ProtectedRoute allowIncompleteProfile>
                 <StudentOnboardingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute allowIncompleteProfile>
+                <ProfilePage />
               </ProtectedRoute>
             }
           />

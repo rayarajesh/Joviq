@@ -1,6 +1,6 @@
 export type AssetType = 1 | 2 | 3 | 4;
 
-export type AssetPurpose = 1 | 2 | 3 | 4 | 6 | 8;
+export type AssetPurpose = 1 | 2 | 3 | 4 | 5 | 6 | 8;
 
 export type AssetVisibility = 1 | 2;
 
@@ -76,6 +76,7 @@ export const assetPurposes = {
   programThumbnail: 2,
   lessonVideo: 3,
   lessonResource: 4,
+  projectReference: 5,
   projectSubmission: 6,
   userProfile: 8
 } as const;

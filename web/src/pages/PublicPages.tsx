@@ -43,6 +43,7 @@ import {
 import { getProgramImage } from "../data/programVisuals";
 import { authApi } from "../features/auth/api/authApi";
 import { useAuth } from "../features/auth/context/useAuth";
+import { normalizeOAuthReturnUrl } from "../features/auth/oauthPopup";
 import { formatApiError } from "../lib/api/httpClient";
 import { toIndiaMobileNumber } from "../lib/validation/indiaMobile";
 
@@ -539,6 +540,8 @@ export function RequestCallbackPage() {
 export function LoginPage() {
   const auth = useAuth();
   const navigate = useNavigate();
+  const [loginSearchParams] = useSearchParams();
+  const returnUrl = normalizeOAuthReturnUrl(loginSearchParams.get("returnUrl"));
   const [mode, setMode] = useState<AuthPageMode>("login");
   const [message, setMessage] = useState<PageMessage>(null);
   const [pendingEmail, setPendingEmail] = useState("");
@@ -558,12 +561,11 @@ export function LoginPage() {
       const response = await authApi.login({
         email: String(form.get("email") ?? "").trim().toLowerCase(),
         password: String(form.get("password") ?? ""),
-        rememberMe,
-        deviceName: "Joviq Web"
+        rememberMe
       });
 
       auth.applyAuthResponse(response.data);
-      navigate("/dashboard");
+      navigate(returnUrl);
     } catch (error) {
       setMessage({ tone: "error", text: formatApiError(error) });
     } finally {
@@ -649,7 +651,7 @@ export function LoginPage() {
     setMessage({ tone: "success", text: "Redirecting to Google..." });
     window.location.assign(
       authApi.oauthStartUrl("google", {
-        returnUrl: "/dashboard",
+        returnUrl,
         acceptedTerms: allowSignUp ? acceptedOAuthTerms : false,
         allowSignUp,
         phoneNumber: allowSignUp ? phoneNumber : undefined,

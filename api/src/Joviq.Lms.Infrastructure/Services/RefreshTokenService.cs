@@ -27,9 +27,41 @@ public sealed class RefreshTokenService(
         CancellationToken cancellationToken)
     {
         var rawRefreshToken = SecureTokenHasher.NewUrlSafeToken();
-        var session = BuildSession(userId, jwtId, rawRefreshToken, rememberMe, metadata, Guid.NewGuid());
+        var existingSessions = string.IsNullOrWhiteSpace(metadata.DeviceId)
+            ? []
+            : await dbContext.UserSessions
+                .Where(x => x.UserId == userId && x.DeviceId == metadata.DeviceId)
+                .OrderByDescending(x => x.LastSeenAt ?? x.CreatedAt)
+                .ToListAsync(cancellationToken);
 
-        dbContext.UserSessions.Add(session);
+        var session = existingSessions.FirstOrDefault();
+        if (session is null)
+        {
+            session = BuildSession(userId, jwtId, rawRefreshToken, rememberMe, metadata, Guid.NewGuid());
+            dbContext.UserSessions.Add(session);
+        }
+        else
+        {
+            ApplySessionMetadata(session, metadata);
+            session.RefreshTokenHash = SecureTokenHasher.Hash(rawRefreshToken);
+            session.RefreshTokenFamilyId = Guid.NewGuid();
+            session.JwtId = jwtId;
+            session.LastSeenAt = clock.UtcNow;
+            session.ExpiresAt = clock.UtcNow.AddDays(rememberMe ? _options.RememberMeDays : _options.DefaultDays);
+            session.IsPersistent = rememberMe;
+            session.RevokedAt = null;
+            session.RevokedByIp = null;
+            session.RevocationReason = null;
+            session.ReplacedBySessionId = null;
+
+            foreach (var duplicate in existingSessions.Skip(1).Where(x => x.RevokedAt is null))
+            {
+                duplicate.RevokedAt = clock.UtcNow;
+                duplicate.RevokedByIp = metadata.IpAddress;
+                duplicate.RevocationReason = "Duplicate device session replaced.";
+            }
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return (session, rawRefreshToken);
@@ -77,7 +109,11 @@ public sealed class RefreshTokenService(
             jwtId,
             newRawRefreshToken,
             session.IsPersistent,
-            metadata,
+            metadata with
+            {
+                DeviceId = metadata.DeviceId ?? session.DeviceId,
+                DeviceName = metadata.DeviceName ?? session.DeviceName
+            },
             session.RefreshTokenFamilyId);
 
         session.RevokedAt = clock.UtcNow;
@@ -102,9 +138,19 @@ public sealed class RefreshTokenService(
             return;
         }
 
-        session.RevokedAt ??= clock.UtcNow;
-        session.RevokedByIp = ipAddress;
-        session.RevocationReason = reason;
+        var sessions = string.IsNullOrWhiteSpace(session.DeviceId)
+            ? [session]
+            : await dbContext.UserSessions
+                .Where(x => x.UserId == userId && x.DeviceId == session.DeviceId && x.RevokedAt == null)
+                .ToListAsync(cancellationToken);
+
+        foreach (var deviceSession in sessions)
+        {
+            deviceSession.RevokedAt ??= clock.UtcNow;
+            deviceSession.RevokedByIp = ipAddress;
+            deviceSession.RevocationReason = reason;
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
@@ -164,26 +210,46 @@ public sealed class RefreshTokenService(
         RequestMetadata metadata,
         Guid familyId)
     {
-        var clientInfo = string.IsNullOrWhiteSpace(metadata.UserAgent)
-            ? null
-            : UserAgentParser.Parse(metadata.UserAgent);
-
-        return new UserSession
+        var session = new UserSession
         {
             Id = Guid.NewGuid(),
             UserId = userId,
             RefreshTokenHash = SecureTokenHasher.Hash(rawRefreshToken),
             RefreshTokenFamilyId = familyId,
             JwtId = jwtId,
-            DeviceId = metadata.DeviceId,
-            DeviceName = metadata.DeviceName,
-            Browser = clientInfo?.UA.Family,
-            OperatingSystem = clientInfo?.OS.Family,
-            IpAddress = metadata.IpAddress,
-            UserAgent = metadata.UserAgent,
             LastSeenAt = clock.UtcNow,
             ExpiresAt = clock.UtcNow.AddDays(rememberMe ? _options.RememberMeDays : _options.DefaultDays),
             IsPersistent = rememberMe
         };
+
+        ApplySessionMetadata(session, metadata);
+        return session;
+    }
+
+    private static void ApplySessionMetadata(UserSession session, RequestMetadata metadata)
+    {
+        var clientInfo = string.IsNullOrWhiteSpace(metadata.UserAgent)
+            ? null
+            : UserAgentParser.Parse(metadata.UserAgent);
+        var parsedDeviceName = string.Join(
+            " on ",
+            new[] { clientInfo?.UA.Family, clientInfo?.OS.Family }.Where(x => !string.IsNullOrWhiteSpace(x)));
+
+        session.DeviceId = metadata.DeviceId ?? session.DeviceId;
+        session.DeviceName = IsGenericDeviceName(metadata.DeviceName)
+            ? (string.IsNullOrWhiteSpace(parsedDeviceName) ? session.DeviceName : parsedDeviceName)
+            : metadata.DeviceName;
+        session.Browser = clientInfo?.UA.Family ?? session.Browser;
+        session.OperatingSystem = clientInfo?.OS.Family ?? session.OperatingSystem;
+        session.IpAddress = metadata.IpAddress ?? session.IpAddress;
+        session.UserAgent = metadata.UserAgent ?? session.UserAgent;
+    }
+
+    private static bool IsGenericDeviceName(string? deviceName)
+    {
+        return string.IsNullOrWhiteSpace(deviceName) ||
+            deviceName.Equals("Joviq Web", StringComparison.OrdinalIgnoreCase) ||
+            deviceName.Equals("Joviq Web OAuth", StringComparison.OrdinalIgnoreCase) ||
+            deviceName.Equals("Google OAuth", StringComparison.OrdinalIgnoreCase);
     }
 }

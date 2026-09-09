@@ -18,6 +18,14 @@ public interface IAuthService
 
     Task<UserSummaryResponse> GetMeAsync(Guid userId, CancellationToken cancellationToken);
 
+    Task<AccountProfileResponse> GetProfileAsync(Guid userId, CancellationToken cancellationToken);
+
+    Task<AccountProfileResponse> UpdateProfileAsync(
+        Guid userId,
+        UpdateAccountProfileRequest request,
+        RequestMetadata metadata,
+        CancellationToken cancellationToken);
+
     Task SendEmailVerificationAsync(EmailRequest request, RequestMetadata metadata, CancellationToken cancellationToken);
 
     Task VerifyEmailAsync(VerifyEmailRequest request, RequestMetadata metadata, CancellationToken cancellationToken);

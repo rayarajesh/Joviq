@@ -15,6 +15,7 @@ export class ApiError extends Error {
 
 let accessToken: string | null = null;
 let unauthorizedHandler: (() => Promise<string | null>) | null = null;
+const clientDeviceStorageKey = "joviq-device-id";
 
 export const tokenStore = {
   get: () => accessToken,
@@ -34,6 +35,11 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
 async function send<T>(path: string, options: RequestOptions, hasRetried: boolean): Promise<ApiResponse<T>> {
   const headers = new Headers(options.headers);
   headers.set("Accept", "application/json");
+
+  const clientDeviceId = getClientDeviceId();
+  if (clientDeviceId) {
+    headers.set("X-Device-Id", clientDeviceId);
+  }
 
   const formDataBody = typeof FormData !== "undefined" && options.body instanceof FormData ? options.body : null;
   const isFormData = formDataBody !== null;
@@ -111,4 +117,25 @@ function formatFieldName(field: string) {
   return field
     .replace(/([a-z])([A-Z])/g, "$1 $2")
     .replace(/^\w/, (value) => value.toUpperCase());
+}
+
+export function getClientDeviceId() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const existing = window.localStorage.getItem(clientDeviceStorageKey);
+    if (existing) {
+      return existing;
+    }
+
+    const created = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+    window.localStorage.setItem(clientDeviceStorageKey, created);
+    return created;
+  } catch {
+    return null;
+  }
 }

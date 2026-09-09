@@ -89,6 +89,7 @@ public enum AssetPurpose
     ProgramThumbnail = 2,
     LessonVideo = 3,
     LessonResource = 4,
+    ProjectReference = 5,
     ProjectSubmission = 6,
     UserProfile = 8
 }

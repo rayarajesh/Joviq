@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using Joviq.Lms.Application.Auth;
 using Joviq.Lms.Application.Common.Exceptions;
@@ -233,7 +234,7 @@ public sealed class AuthService(
         var result = await IssueTokenPairAsync(
             user,
             request.RememberMe,
-            metadata with { DeviceName = request.DeviceName ?? metadata.DeviceName ?? $"{provider} OAuth" },
+            metadata with { DeviceName = request.DeviceName ?? metadata.DeviceName },
             cancellationToken);
 
         await transaction.CommitAsync(cancellationToken);
@@ -289,6 +290,51 @@ public sealed class AuthService(
             ?? throw new AppException("User was not found.", 404, "user_not_found");
 
         return await BuildUserSummaryAsync(user);
+    }
+
+    public async Task<AccountProfileResponse> GetProfileAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString())
+            ?? throw new AppException("User was not found.", 404, "user_not_found");
+
+        return await BuildAccountProfileAsync(user);
+    }
+
+    public async Task<AccountProfileResponse> UpdateProfileAsync(
+        Guid userId,
+        UpdateAccountProfileRequest request,
+        RequestMetadata metadata,
+        CancellationToken cancellationToken)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString())
+            ?? throw new AppException("User was not found.", 404, "user_not_found");
+
+        var fullName = request.FullName.Trim();
+        if (fullName.Length < 2)
+        {
+            throw new AppException("Full name must contain at least 2 characters.", 400, "invalid_full_name");
+        }
+
+        var phoneNumber = IndianMobileNumber.Normalize(request.PhoneNumber);
+        if (phoneNumber is not null && await dbContext.Users.AnyAsync(
+                x => x.Id != user.Id && x.PhoneNumber == phoneNumber,
+                cancellationToken))
+        {
+            throw new AppException("Phone number is already registered.", 409, "phone_exists");
+        }
+
+        user.FullName = fullName;
+        user.PhoneNumber = phoneNumber;
+        user.DateOfBirth = ParseProfileDateOfBirth(request.DateOfBirth);
+        user.Address = NormalizeOptionalProfileText(request.Address, nameof(request.Address), 3, 500);
+        user.City = NormalizeOptionalProfileText(request.City, nameof(request.City), 2, 120);
+        user.State = NormalizeOptionalProfileText(request.State, nameof(request.State), 2, 120);
+
+        EnsureIdentitySucceeded(await userManager.UpdateAsync(user));
+        AddAudit(user.Id, "ProfileUpdated", user.Email, user.PhoneNumber, metadata);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return await BuildAccountProfileAsync(user);
     }
 
     public async Task SendEmailVerificationAsync(EmailRequest request, RequestMetadata metadata, CancellationToken cancellationToken)
@@ -388,11 +434,12 @@ public sealed class AuthService(
 
     public async Task<IReadOnlyList<SessionResponse>> GetSessionsAsync(Guid userId, Guid? currentSessionId, CancellationToken cancellationToken)
     {
-        return await dbContext.UserSessions
+        var sessions = await dbContext.UserSessions
             .Where(x => x.UserId == userId && x.RevokedAt == null && x.ExpiresAt > clock.UtcNow)
             .OrderByDescending(x => x.LastSeenAt ?? x.CreatedAt)
             .Select(x => new SessionResponse(
                 x.Id,
+                x.DeviceId,
                 x.DeviceName,
                 x.Browser,
                 x.OperatingSystem,
@@ -402,6 +449,8 @@ public sealed class AuthService(
                 x.ExpiresAt,
                 x.Id == currentSessionId))
             .ToListAsync(cancellationToken);
+
+        return sessions.CollapseDuplicateDevices();
     }
 
     public Task RevokeSessionAsync(Guid userId, Guid sessionId, string? ipAddress, CancellationToken cancellationToken)
@@ -460,6 +509,26 @@ public sealed class AuthService(
             RefreshTokenExpiresAt = session.ExpiresAt,
             User = await BuildUserSummaryAsync(user)
         };
+    }
+
+    private async Task<AccountProfileResponse> BuildAccountProfileAsync(ApplicationUser user)
+    {
+        var roles = await userManager.GetRolesAsync(user);
+        return new AccountProfileResponse(
+            user.Id,
+            user.FullName,
+            user.Email ?? string.Empty,
+            user.PhoneNumber,
+            user.ProfilePhotoUrl,
+            user.EmailConfirmed,
+            user.PhoneNumberConfirmed,
+            roles.ToList(),
+            user.AccountStatus.ToString(),
+            user.OnboardingStatus.ToString(),
+            user.DateOfBirth?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            user.Address,
+            user.City,
+            user.State);
     }
 
     private async Task<UserSummaryResponse> BuildUserSummaryAsync(ApplicationUser user)
@@ -545,6 +614,47 @@ public sealed class AuthService(
     private static string NormalizeEmail(string email)
     {
         return email.Trim().ToLowerInvariant();
+    }
+
+    private DateTimeOffset? ParseProfileDateOfBirth(string? value)
+    {
+        var trimmed = value?.Trim();
+        if (string.IsNullOrWhiteSpace(trimmed))
+        {
+            return null;
+        }
+
+        if (!DateOnly.TryParseExact(trimmed, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+        {
+            throw new AppException("Date of birth must use yyyy-MM-dd format.", 400, "invalid_date_of_birth");
+        }
+
+        var today = DateOnly.FromDateTime(clock.UtcNow.UtcDateTime);
+        if (date > today || date < new DateOnly(1900, 1, 1))
+        {
+            throw new AppException("Date of birth must be a valid past date.", 400, "invalid_date_of_birth");
+        }
+
+        return new DateTimeOffset(date.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+    }
+
+    private static string? NormalizeOptionalProfileText(string? value, string fieldName, int minLength, int maxLength)
+    {
+        var trimmed = value?.Trim();
+        if (string.IsNullOrWhiteSpace(trimmed))
+        {
+            return null;
+        }
+
+        if (trimmed.Length < minLength || trimmed.Length > maxLength)
+        {
+            throw new ValidationAppException(new Dictionary<string, string[]>
+            {
+                [fieldName] = [$"{fieldName} must be {minLength} to {maxLength} characters."]
+            });
+        }
+
+        return trimmed;
     }
 
     private static string NormalizeProvider(string provider)

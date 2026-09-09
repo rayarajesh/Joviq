@@ -57,7 +57,8 @@ public sealed class AuthController(
         [FromQuery] bool rememberMe,
         [FromQuery] string? phoneNumber,
         [FromQuery] string? termsVersion,
-        [FromQuery] string? privacyPolicyVersion)
+        [FromQuery] string? privacyPolicyVersion,
+        [FromQuery] string? deviceId)
     {
         var normalizedReturnUrl = NormalizeReturnUrl(returnUrl);
         if (await authenticationSchemeProvider.GetSchemeAsync("Google") is null)
@@ -77,6 +78,7 @@ public sealed class AuthController(
         properties.Items["phoneNumber"] = phoneNumber;
         properties.Items["termsVersion"] = NormalizePolicyVersion(termsVersion);
         properties.Items["privacyPolicyVersion"] = NormalizePolicyVersion(privacyPolicyVersion);
+        properties.Items["deviceId"] = deviceId;
 
         return Challenge(properties, "Google");
     }
@@ -121,9 +123,9 @@ public sealed class AuthController(
                     PhoneNumber = GetAuthenticationProperty(authenticateResult, "phoneNumber"),
                     TermsVersion = GetAuthenticationProperty(authenticateResult, "termsVersion"),
                     PrivacyPolicyVersion = GetAuthenticationProperty(authenticateResult, "privacyPolicyVersion"),
-                    DeviceName = "Joviq Web OAuth"
+                    DeviceName = null
                 },
-                RequestMetadata("Joviq Web OAuth"),
+                RequestMetadata(deviceId: GetAuthenticationProperty(authenticateResult, "deviceId")),
                 cancellationToken);
 
             SetRefreshTokenCookieIfPresent(result);

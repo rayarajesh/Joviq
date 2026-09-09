@@ -42,6 +42,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
     public DbSet<Project> Projects => Set<Project>();
 
+    public DbSet<ProjectAssignment> ProjectAssignments => Set<ProjectAssignment>();
+
     public DbSet<ProjectSubmission> ProjectSubmissions => Set<ProjectSubmission>();
 
     public DbSet<Certificate> Certificates => Set<Certificate>();

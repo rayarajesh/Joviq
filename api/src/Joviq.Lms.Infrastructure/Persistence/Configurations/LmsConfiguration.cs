@@ -170,6 +170,10 @@ public sealed class PaymentTransactionConfiguration : IEntityTypeConfiguration<P
         builder.Property(x => x.Amount).HasPrecision(12, 2);
         builder.Property(x => x.Currency).HasMaxLength(12).IsRequired();
         builder.Property(x => x.FailureReason).HasMaxLength(500);
+        builder.Property(x => x.InvoiceNumber).HasMaxLength(80);
+        builder.HasIndex(x => x.GatewayPaymentId)
+            .IsUnique()
+            .HasFilter("\"GatewayPaymentId\" IS NOT NULL");
         builder.HasOne(x => x.Enrollment)
             .WithMany()
             .HasForeignKey(x => x.EnrollmentId)
@@ -200,11 +204,32 @@ public sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
         builder.Property(x => x.Title).HasMaxLength(180).IsRequired();
         builder.Property(x => x.Description).HasMaxLength(2500).IsRequired();
         builder.Property(x => x.RequiredArtifactsJson).HasColumnType("jsonb");
+        builder.Property(x => x.UsefulLinksJson).HasColumnType("jsonb");
+        builder.Property(x => x.ReferenceMediaUrl).HasMaxLength(1000);
         builder.Property(x => x.MaxScore).HasPrecision(8, 2);
         builder.HasOne(x => x.Program)
             .WithMany()
             .HasForeignKey(x => x.ProgramId)
             .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public sealed class ProjectAssignmentConfiguration : IEntityTypeConfiguration<ProjectAssignment>
+{
+    public void Configure(EntityTypeBuilder<ProjectAssignment> builder)
+    {
+        builder.ToTable("project_assignments");
+        builder.HasKey(x => x.Id);
+        builder.HasIndex(x => new { x.ProjectId, x.StudentId }).IsUnique();
+        builder.HasIndex(x => new { x.StudentId, x.ProjectId });
+        builder.HasOne(x => x.Project)
+            .WithMany(x => x.Assignments)
+            .HasForeignKey(x => x.ProjectId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne(x => x.Enrollment)
+            .WithMany()
+            .HasForeignKey(x => x.EnrollmentId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }
 

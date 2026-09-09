@@ -20,13 +20,21 @@ public interface ILmsPortalService
 
     Task<StudentProgramWorkspaceResponse> GetStudentWorkspaceAsync(Guid studentId, CancellationToken cancellationToken);
 
+    Task<StudentMyProgramsResponse> GetStudentMyProgramsAsync(Guid studentId, CancellationToken cancellationToken);
+
     Task<ProgramDetailsResponse> GetStudentMyProgramAsync(Guid studentId, CancellationToken cancellationToken);
 
     Task<EnrollmentResponse> CreateEnrollmentAsync(Guid studentId, CreateEnrollmentRequest request, CancellationToken cancellationToken);
 
-    Task<PaymentTransactionResponse> CreatePaymentCheckoutAsync(Guid studentId, CreatePaymentCheckoutRequest request, CancellationToken cancellationToken);
+    Task<PaymentCheckoutResponse> CreatePaymentCheckoutAsync(Guid studentId, CreatePaymentCheckoutRequest request, CancellationToken cancellationToken);
 
     Task<PaymentTransactionResponse> VerifyPaymentAsync(Guid studentId, VerifyPaymentRequest request, CancellationToken cancellationToken);
+
+    Task<PaymentTransactionResponse> MarkPaymentFailedAsync(Guid studentId, Guid paymentId, string? failureReason, CancellationToken cancellationToken);
+
+    Task<PaymentReceiptResponse> GetPaymentReceiptAsync(Guid studentId, Guid paymentId, CancellationToken cancellationToken);
+
+    Task ProcessPaymentWebhookAsync(string payload, string signature, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<ProjectResponse>> GetStudentProjectsAsync(Guid studentId, CancellationToken cancellationToken);
 
@@ -82,9 +90,19 @@ public interface ILmsPortalService
 
     Task<IReadOnlyList<ProjectResponse>> GetAdminProjectsAsync(CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<ProjectSubmissionReviewResponse>> GetAdminProjectSubmissionsAsync(Guid? projectId, CancellationToken cancellationToken);
+
+    Task<SubmissionResponse> ReviewProjectSubmissionAsync(Guid submissionId, ReviewProjectSubmissionRequest request, CancellationToken cancellationToken);
+
     Task<ProjectResponse> CreateProjectAsync(CreateProjectRequest request, CancellationToken cancellationToken);
 
     Task<ProjectResponse> UpdateProjectAsync(Guid projectId, CreateProjectRequest request, CancellationToken cancellationToken);
+
+    Task DeleteProjectAsync(Guid projectId, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<ProjectStudentResponse>> GetProjectStudentsAsync(Guid programId, CancellationToken cancellationToken);
+
+    Task<ProjectResponse> PublishProjectAsync(Guid projectId, PublishProjectRequest request, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<EnrollmentResponse>> GetAdminEnrollmentsAsync(CancellationToken cancellationToken);
 

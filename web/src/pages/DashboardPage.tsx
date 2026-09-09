@@ -10,6 +10,7 @@ import {
   Bell,
   BookMarked,
   BookOpen,
+  CalendarDays,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -20,15 +21,19 @@ import {
   CreditCard,
   Eye,
   EyeOff,
+  ExternalLink,
+  FileText,
   FolderKanban,
   GraduationCap,
   Image,
   Layers3,
+  Link2,
   LayoutDashboard,
   Lock,
   Mail,
   Pencil,
   PlayCircle,
+  Plus,
   RefreshCw,
   RotateCcw,
   Save,
@@ -37,6 +42,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Tags,
+  Trash2,
   Trophy,
   Unlock,
   UploadCloud,
@@ -50,6 +56,7 @@ import {
 } from "lucide-react";
 import { IndiaMobileInput } from "../components/IndiaMobileInput";
 import { CurriculumAdminPanel } from "../components/CurriculumAdminPanel";
+import { StudentMyProgramLibrary } from "../components/StudentMyProgramLibrary";
 import { ToastMessage } from "../components/ToastMessage";
 import { env } from "../config/env";
 import { assetsApi } from "../features/assets/api/assetsApi";
@@ -63,6 +70,7 @@ import type {
 } from "../features/auth/api/authTypes";
 import { useAuth } from "../features/auth/context/useAuth";
 import { adminLmsApi, publicLmsApi, studentLmsApi } from "../features/lms/api/lmsApi";
+import { savePendingEnrollment } from "../features/lms/checkout";
 import type {
   AdminNotificationResponse,
   AdminLmsSummaryResponse,
@@ -77,7 +85,10 @@ import type {
   ProgramPlanResponse,
   ProgramSummaryResponse,
   ProjectResponse,
+  ProjectSubmissionReviewResponse,
+  ProjectStudentResponse,
   StudentLmsDashboardResponse,
+  StudentMyProgramsResponse,
   StudentProgramWorkspaceResponse,
   SubmissionResponse
 } from "../features/lms/api/lmsTypes";
@@ -86,7 +97,7 @@ import { getProgramImage } from "../data/programVisuals";
 import { formatApiError } from "../lib/api/httpClient";
 import { toIndiaMobileNumber } from "../lib/validation/indiaMobile";
 
-type PrimaryRole = "Admin" | "Student";
+export type PrimaryRole = "Admin" | "Student";
 type DashboardNavGroup = { label?: string; items: string[] };
 type MessageState = { tone: "success" | "error"; text: string } | null;
 type PeopleStatusFilter = "All" | "Active" | "PendingEmailVerification" | "Locked";
@@ -227,7 +238,9 @@ export function DashboardPage() {
 
   const usesAdminModuleHero = primaryRole === "Admin"
     && (activeModule === "Students" || activeModule === "Categories" || activeModule === "Programs" || activeModule === "Curriculum");
-  const hideDashboardHeader = usesAdminModuleHero || (primaryRole === "Admin" && activeModule === "Overview");
+  const hideDashboardHeader = usesAdminModuleHero
+    || (primaryRole === "Admin" && activeModule === "Overview")
+    || (primaryRole === "Student" && activeModule === "My Program");
 
   return (
     <main className={`dashboard-shell dashboard-shell--${primaryRole.toLowerCase()}`}>
@@ -250,7 +263,7 @@ export function DashboardPage() {
   );
 }
 
-function DashboardSidebar({
+export function DashboardSidebar({
   activeModule,
   onModuleChange,
   role
@@ -650,7 +663,62 @@ function AdminLmsPanel({
   const [categoryDialogMode, setCategoryDialogMode] = useState<"create" | "edit" | null>(null);
   const [categoryEditor, setCategoryEditor] = useState<ProgramCategoryResponse | null>(null);
   const [isSavingCategory, setIsSavingCategory] = useState(false);
-  const hasOpenAdminDialog = Boolean(categoryDialogMode || programDialogMode || planEditorProgram);
+  const [projectDialogMode, setProjectDialogMode] = useState<"create" | "edit" | null>(null);
+  const [projectEditor, setProjectEditor] = useState<ProjectResponse | null>(null);
+  const [projectReferenceFile, setProjectReferenceFile] = useState<File | null>(null);
+  const [isSavingProject, setIsSavingProject] = useState(false);
+  const [projectAudience, setProjectAudience] = useState<ProjectResponse | null>(null);
+  const [projectStudents, setProjectStudents] = useState<ProjectStudentResponse[]>([]);
+  const [selectedProjectStudentIds, setSelectedProjectStudentIds] = useState<string[]>([]);
+  const [projectStudentSearch, setProjectStudentSearch] = useState("");
+  const [isProjectStudentsLoading, setIsProjectStudentsLoading] = useState(false);
+  const [isPublishingProject, setIsPublishingProject] = useState(false);
+  const [projectReviewProject, setProjectReviewProject] = useState<ProjectResponse | null>(null);
+  const [projectReviews, setProjectReviews] = useState<ProjectSubmissionReviewResponse[]>([]);
+  const [isProjectReviewsLoading, setIsProjectReviewsLoading] = useState(false);
+  const [projectReviewDrafts, setProjectReviewDrafts] = useState<Record<string, { status: "NeedsRevision" | "Approved"; score: string; feedback: string }>>({});
+  const [isReviewingProject, setIsReviewingProject] = useState<string | null>(null);
+  const [enrollmentSearch, setEnrollmentSearch] = useState("");
+  const [enrollmentStatusFilter, setEnrollmentStatusFilter] = useState("All");
+  const hasOpenAdminDialog = Boolean(categoryDialogMode || programDialogMode || planEditorProgram || projectDialogMode || projectAudience || projectReviewProject);
+
+  const enrollmentStats = useMemo(() => {
+    const expiringSoon = adminEnrollments.filter((enrollment) => {
+      if (!enrollment.accessExpiresAt || enrollment.isAccessExpired) {
+        return false;
+      }
+
+      const daysUntilExpiry = (new Date(enrollment.accessExpiresAt).getTime() - Date.now()) / 86400000;
+      return daysUntilExpiry >= 0 && daysUntilExpiry <= 30;
+    }).length;
+
+    return {
+      total: adminEnrollments.length,
+      active: adminEnrollments.filter((enrollment) => enrollment.status === "Active").length,
+      reserved: adminEnrollments.filter((enrollment) => enrollment.status === "Reserved").length,
+      completed: adminEnrollments.filter((enrollment) => enrollment.status === "Completed").length,
+      expiringSoon,
+      collected: adminEnrollments.reduce((total, enrollment) => total + enrollment.paidAmount, 0)
+    };
+  }, [adminEnrollments]);
+
+  const visibleEnrollments = useMemo(() => {
+    const query = enrollmentSearch.trim().toLowerCase();
+
+    return adminEnrollments.filter((enrollment) => {
+      const matchesStatus = enrollmentStatusFilter === "All" || enrollment.status === enrollmentStatusFilter;
+      const searchText = [
+        enrollment.studentName,
+        enrollment.studentEmail,
+        enrollment.studentPhone,
+        enrollment.programTitle,
+        enrollment.programPlanName,
+        enrollment.programPlanCode
+      ].filter(Boolean).join(" ").toLowerCase();
+
+      return matchesStatus && (!query || searchText.includes(query));
+    });
+  }, [adminEnrollments, enrollmentSearch, enrollmentStatusFilter]);
 
   useEffect(() => {
     if (!hasOpenAdminDialog) {
@@ -1009,44 +1077,244 @@ function AdminLmsPanel({
     }
   }
 
-  async function createProject(event: FormEvent<HTMLFormElement>) {
+  function openProjectDialog(project?: ProjectResponse) {
+    setProjectEditor(project ?? null);
+    setProjectReferenceFile(null);
+    setProjectDialogMode(project ? "edit" : "create");
+  }
+
+  function closeProjectDialog() {
+    setProjectDialogMode(null);
+    setProjectEditor(null);
+    setProjectReferenceFile(null);
+  }
+
+  async function uploadProjectReference(file: File, programId: string) {
+    const type = file.type.startsWith("image/")
+      ? assetTypes.image
+      : file.type.startsWith("video/")
+        ? assetTypes.video
+        : file.type.startsWith("text/") || file.type.includes("pdf") || file.type.includes("document")
+          ? assetTypes.document
+          : assetTypes.other;
+    const uploadResponse = await assetsApi.uploadFile(file, {
+      type,
+      purpose: assetPurposes.projectReference,
+      visibility: assetVisibilities.public,
+      programId
+    });
+
+    if (uploadResponse.data.deliveryUrl || uploadResponse.data.publicUrl) {
+      return toApiAcceptableThumbnailUrl(uploadResponse.data.deliveryUrl ?? uploadResponse.data.publicUrl ?? "") ?? "";
+    }
+
+    const accessResponse = await assetsApi.getAccessUrl(uploadResponse.data.id);
+    return toApiAcceptableThumbnailUrl(accessResponse.data.url) ?? "";
+  }
+
+  async function saveProject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
+    const programId = String(form.get("programId") ?? "");
+    const title = String(form.get("title") ?? "").trim();
+    const description = String(form.get("description") ?? "").trim();
+    const labels = form.getAll("linkLabel").map(String);
+    const urls = form.getAll("linkUrl").map(String);
+    const usefulLinks = labels
+      .map((label, index) => ({ label: label.trim(), url: (urls[index] ?? "").trim() }))
+      .filter((link) => link.label || link.url);
+    const deadlineInput = String(form.get("deadline") ?? "");
+    const wantsPublish = form.get("status") === "publish";
+    const payload = {
+      programId,
+      title,
+      description,
+      requiredArtifacts: parseCommaList(String(form.get("requiredArtifacts") ?? "")),
+      usefulLinks,
+      referenceMediaUrl: projectEditor?.referenceMediaUrl,
+      deadline: deadlineInput ? new Date(deadlineInput).toISOString() : undefined,
+      maxScore: Number(form.get("maxScore") ?? 100),
+      isPublished: false
+    };
+
+    if (!programId || !title || !description) {
+      onMessage({ tone: "error", text: "Choose a program and complete the project title and description." });
+      return;
+    }
+
+    setIsSavingProject(true);
+    onMessage(null);
 
     try {
-      await adminLmsApi.createProject({
-        programId: String(form.get("programId") ?? ""),
-        title: String(form.get("title") ?? "").trim(),
-        description: String(form.get("description") ?? "").trim(),
-        requiredArtifacts: parseCommaList(String(form.get("requiredArtifacts") ?? "")),
-        maxScore: Number(form.get("maxScore") ?? 100),
-        isPublished: form.get("isPublished") === "on"
-      });
-      formElement.reset();
-      onMessage({ tone: "success", text: "Project created." });
+      let savedProject = projectEditor
+        ? (await adminLmsApi.updateProject(projectEditor.id, payload)).data
+        : (await adminLmsApi.createProject(payload)).data;
+
+      if (projectReferenceFile) {
+        const referenceMediaUrl = await uploadProjectReference(projectReferenceFile, programId);
+        savedProject = (await adminLmsApi.updateProject(savedProject.id, {
+          ...payload,
+          referenceMediaUrl,
+          isPublished: false
+        })).data;
+      }
+
+      closeProjectDialog();
       await onRefresh();
+
+      if (wantsPublish) {
+        onMessage({ tone: "success", text: "Project saved. Choose the active students who should receive it." });
+        await openProjectAudience(savedProject);
+      } else {
+        onMessage({ tone: "success", text: projectEditor ? "Project updated as a draft." : "Project saved as a draft." });
+      }
+    } catch (error) {
+      onMessage({ tone: "error", text: formatApiError(error) });
+    } finally {
+      setIsSavingProject(false);
+    }
+  }
+
+  async function openProjectAudience(project: ProjectResponse) {
+    setProjectAudience(project);
+    setSelectedProjectStudentIds([]);
+    setProjectStudentSearch("");
+    setIsProjectStudentsLoading(true);
+
+    try {
+      const response = await adminLmsApi.getProjectStudents(project.programId);
+      setProjectStudents(response.data);
+    } catch (error) {
+      onMessage({ tone: "error", text: formatApiError(error) });
+    } finally {
+      setIsProjectStudentsLoading(false);
+    }
+  }
+
+  async function openProjectReviews(project: ProjectResponse) {
+    setProjectReviewProject(project);
+    setProjectReviews([]);
+    setProjectReviewDrafts({});
+    setIsProjectReviewsLoading(true);
+
+    try {
+      const response = await adminLmsApi.getProjectSubmissions(project.id);
+      setProjectReviews(response.data);
+      setProjectReviewDrafts(Object.fromEntries(response.data.map((review) => [review.id, {
+        status: review.submission.status === "NeedsRevision" ? "NeedsRevision" : "Approved",
+        score: review.submission.score === undefined || review.submission.score === null ? "" : String(review.submission.score),
+        feedback: review.submission.feedback ?? ""
+      }])));
+    } catch (error) {
+      setProjectReviewProject(null);
+      onMessage({ tone: "error", text: formatApiError(error) });
+    } finally {
+      setIsProjectReviewsLoading(false);
+    }
+  }
+
+  async function openProjectSubmissionFile(fileAssetId: string) {
+    try {
+      const response = await assetsApi.getAccessUrl(fileAssetId);
+      window.open(response.data.url, "_blank", "noopener,noreferrer");
     } catch (error) {
       onMessage({ tone: "error", text: formatApiError(error) });
     }
   }
 
-  async function editProject(project: ProjectResponse) {
-    const title = window.prompt("Project title", project.title);
-    if (title === null) {
+  function closeProjectReviews() {
+    setProjectReviewProject(null);
+    setProjectReviews([]);
+    setProjectReviewDrafts({});
+  }
+
+  async function reviewProjectSubmission(review: ProjectSubmissionReviewResponse) {
+    const draft = projectReviewDrafts[review.id];
+    if (!draft) return;
+
+    if (draft.status === "Approved" && !draft.score.trim()) {
+      onMessage({ tone: "error", text: "Add the awarded score before approving the submission." });
+      return;
+    }
+
+    const score = draft.score.trim() ? Number(draft.score) : undefined;
+    if (score !== undefined && (!Number.isFinite(score) || score < 0 || score > review.maxScore)) {
+      onMessage({ tone: "error", text: `Score must be between 0 and ${review.maxScore}.` });
+      return;
+    }
+
+    setIsReviewingProject(review.id);
+    try {
+      await adminLmsApi.reviewProjectSubmission(review.id, {
+        status: draft.status,
+        score,
+        feedback: draft.feedback.trim() || undefined
+      });
+      onMessage({ tone: "success", text: `${review.studentName}'s submission was reviewed.` });
+      const refreshed = await adminLmsApi.getProjectSubmissions(review.projectId);
+      setProjectReviews(refreshed.data);
+      setProjectReviewDrafts(Object.fromEntries(refreshed.data.map((item) => [item.id, {
+        status: item.submission.status === "NeedsRevision" ? "NeedsRevision" : "Approved",
+        score: item.submission.score === undefined || item.submission.score === null ? "" : String(item.submission.score),
+        feedback: item.submission.feedback ?? ""
+      }])));
+      await onRefresh();
+    } catch (error) {
+      onMessage({ tone: "error", text: formatApiError(error) });
+    } finally {
+      setIsReviewingProject(null);
+    }
+  }
+
+  function closeProjectAudience() {
+    setProjectAudience(null);
+    setProjectStudents([]);
+    setSelectedProjectStudentIds([]);
+    setProjectStudentSearch("");
+  }
+
+  function toggleProjectStudent(studentId: string) {
+    setSelectedProjectStudentIds((selected) => selected.includes(studentId)
+      ? selected.filter((id) => id !== studentId)
+      : [...selected, studentId]);
+  }
+
+  function toggleAllProjectStudents() {
+    const visibleIds = filteredProjectStudents.map((student) => student.studentId);
+    const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedProjectStudentIds.includes(id));
+    setSelectedProjectStudentIds((selected) => allVisibleSelected
+      ? selected.filter((id) => !visibleIds.includes(id))
+      : [...new Set([...selected, ...visibleIds])]);
+  }
+
+  async function publishProject() {
+    if (!projectAudience || selectedProjectStudentIds.length === 0) {
+      onMessage({ tone: "error", text: "Select at least one active student before publishing." });
+      return;
+    }
+
+    setIsPublishingProject(true);
+    try {
+      await adminLmsApi.publishProject(projectAudience.id, { studentIds: selectedProjectStudentIds });
+      closeProjectAudience();
+      onMessage({ tone: "success", text: `Project published to ${selectedProjectStudentIds.length} student${selectedProjectStudentIds.length === 1 ? "" : "s"}.` });
+      await onRefresh();
+    } catch (error) {
+      onMessage({ tone: "error", text: formatApiError(error) });
+    } finally {
+      setIsPublishingProject(false);
+    }
+  }
+
+  async function deleteProject(project: ProjectResponse) {
+    if (!window.confirm(`Delete “${project.title}”? This will also remove its student submissions.`)) {
       return;
     }
 
     try {
-      await adminLmsApi.updateProject(project.id, {
-        programId: project.programId,
-        title,
-        description: project.description,
-        requiredArtifacts: project.requiredArtifacts,
-        maxScore: project.maxScore,
-        isPublished: project.isPublished
-      });
-      onMessage({ tone: "success", text: "Project updated." });
+      await adminLmsApi.deleteProject(project.id);
+      onMessage({ tone: "success", text: "Project deleted." });
       await onRefresh();
     } catch (error) {
       onMessage({ tone: "error", text: formatApiError(error) });
@@ -1187,6 +1455,12 @@ function AdminLmsPanel({
     draft: visiblePrograms.filter((program) => program.status === "Draft").length,
     archived: visiblePrograms.filter((program) => program.status === "Archived").length
   };
+  const filteredProjectStudents = projectStudents.filter((student) => {
+    const query = projectStudentSearch.trim().toLowerCase();
+    return !query || `${student.fullName} ${student.email}`.toLowerCase().includes(query);
+  });
+  const allVisibleProjectStudentsSelected = filteredProjectStudents.length > 0 &&
+    filteredProjectStudents.every((student) => selectedProjectStudentIds.includes(student.studentId));
   const showPrograms = activeModule === "Programs";
   const showModule = (module: string) => activeModule === module;
 
@@ -1777,66 +2051,394 @@ function AdminLmsPanel({
         ) : null}
 
         {showModule("Projects") ? (
-          <section className="lms-list-panel lms-list-panel--wide">
-            <h3>Projects</h3>
-            <form className="lms-mini-form lms-mini-form--inline" onSubmit={createProject}>
-              <select name="programId" required>
-                <option value="">Choose program</option>
-                {programs.map((program) => (
-                  <option key={program.id} value={program.id}>{program.title}</option>
-                ))}
-              </select>
-              <input name="title" placeholder="Project title" required />
-              <input name="description" placeholder="Project description" required />
-              <input name="requiredArtifacts" placeholder="GitHub, Demo, Report" />
-              <input name="maxScore" type="number" min="1" max="100" defaultValue="100" />
-              <label className="inline-check">
-                <input name="isPublished" type="checkbox" defaultChecked />
-                Published
-              </label>
-              <button className="primary-action" type="submit">Create project</button>
-            </form>
-            <div className="lms-scroll-list">
-              {adminProjects.length === 0 ? <div className="table-state">No projects yet.</div> : null}
-              {adminProjects.map((project) => (
-                <article key={project.id} className="lms-list-item">
-                  <div>
-                    <strong>{project.title}</strong>
-                    <span>{project.requiredArtifacts.join(", ") || project.description}</span>
-                  </div>
-                  <div className="lms-row-actions">
-                    <small>{project.isPublished ? "Published" : "Draft"}</small>
-                    <button type="button" onClick={() => void editProject(project)}>Edit</button>
-                  </div>
-                </article>
-              ))}
+          <section className="project-admin-workspace">
+            <div className="project-admin-hero">
+              <div>
+                <span className="eyebrow">Project studio</span>
+                <h2>Build work that proves the skill</h2>
+                <p>Create a brief, attach helpful references, set the rubric, then publish it only to active students in the program.</p>
+              </div>
+              <button className="primary-action project-create-button" type="button" onClick={() => openProjectDialog()}>
+                <Plus size={18} />
+                Create project
+              </button>
+            </div>
+
+            <div className="project-admin-stats" aria-label="Project summary">
+              <span><strong>{adminProjects.length}</strong><small>Total projects</small></span>
+              <span><strong>{adminProjects.filter((project) => project.isPublished).length}</strong><small>Published</small></span>
+              <span><strong>{adminProjects.filter((project) => !project.isPublished).length}</strong><small>Drafts</small></span>
+              <span><strong>{adminProjects.reduce((total, project) => total + (project.assignedStudentCount ?? 0), 0)}</strong><small>Student assignments</small></span>
+            </div>
+
+            <div className="project-admin-grid">
+              {adminProjects.length === 0 ? (
+                <div className="project-empty-state">
+                  <span className="project-empty-state__icon"><FolderKanban size={24} /></span>
+                  <strong>Your project board is ready.</strong>
+                  <p>Start with a clear brief and give students the references they need to do their best work.</p>
+                  <button className="secondary-action" type="button" onClick={() => openProjectDialog()}>
+                    <Plus size={17} /> Create the first project
+                  </button>
+                </div>
+              ) : null}
+              {adminProjects.map((project) => {
+                const programTitle = programs.find((program) => program.id === project.programId)?.title ?? "Program not found";
+                const usefulLinks = project.usefulLinks ?? [];
+                return (
+                  <article key={project.id} className={`project-admin-card${project.isPublished ? " is-published" : " is-draft"}`}>
+                    <div className="project-admin-card__topline">
+                      <span className="project-program-label"><FolderKanban size={15} /> {programTitle}</span>
+                      <span className={`project-status-badge${project.isPublished ? " is-published" : " is-draft"}`}>
+                        <span /> {project.isPublished ? "Published" : "Draft"}
+                      </span>
+                    </div>
+                    <div className="project-admin-card__body">
+                      <h3>{project.title}</h3>
+                      <p>{project.description}</p>
+                    </div>
+                    <div className="project-admin-card__meta">
+                      <span><CalendarDays size={15} /> {project.deadline ? `Due ${formatDateTime(project.deadline)}` : "No deadline"}</span>
+                      <span><Trophy size={15} /> {project.maxScore} points</span>
+                      <span><UsersRound size={15} /> {project.assignedStudentCount ?? 0} assigned</span>
+                    </div>
+                    {usefulLinks.length > 0 ? (
+                      <div className="project-admin-card__links">
+                        {usefulLinks.map((link) => (
+                          <a key={`${project.id}-${link.url}`} href={toApiAcceptableThumbnailUrl(link.url)} target="_blank" rel="noreferrer">
+                            <Link2 size={14} /> {link.label} <ExternalLink size={13} />
+                          </a>
+                        ))}
+                      </div>
+                    ) : null}
+                    {project.referenceMediaUrl ? (
+                      <a className="project-reference-chip" href={toApiAcceptableThumbnailUrl(project.referenceMediaUrl)} target="_blank" rel="noreferrer">
+                        <FileText size={15} /> View reference media <ExternalLink size={13} />
+                      </a>
+                    ) : null}
+                    <div className="project-admin-card__actions">
+                      <button type="button" onClick={() => openProjectDialog(project)}><Pencil size={16} /> Edit</button>
+                      <button type="button" onClick={() => void openProjectReviews(project)}><ClipboardList size={16} /> Review submissions</button>
+                      <button type="button" onClick={() => void openProjectAudience(project)}>
+                        <UsersRound size={16} /> {project.isPublished ? "Manage students" : "Publish to students"}
+                      </button>
+                      <button className="is-danger" type="button" onClick={() => void deleteProject(project)}><Trash2 size={16} /> Delete</button>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           </section>
         ) : null}
 
+        {showModule("Projects") && projectDialogMode ? createPortal((
+          <div className="category-dialog-backdrop" role="presentation" onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              closeProjectDialog();
+            }
+          }}>
+            <section className="project-editor-dialog" role="dialog" aria-modal="true" aria-labelledby="project-editor-dialog-title">
+              <div className="project-editor-dialog__header">
+                <span className="project-editor-dialog__icon"><FolderKanban size={22} /></span>
+                <div>
+                  <span className="eyebrow">Project brief</span>
+                  <h3 id="project-editor-dialog-title">{projectDialogMode === "edit" ? "Edit project" : "Create project"}</h3>
+                  <p>Give students a focused outcome, practical references, and a clear finish line.</p>
+                </div>
+                <button type="button" onClick={closeProjectDialog} title="Close dialog"><X size={19} /></button>
+              </div>
+
+              <form className="project-editor-dialog__form" key={projectEditor?.id ?? "create-project"} onSubmit={saveProject}>
+                <div className="project-form-section">
+                  <div className="project-form-section__heading"><span>01</span><div><strong>Project basics</strong><small>What should students build?</small></div></div>
+                  <label>
+                    <span>Program</span>
+                    <select name="programId" defaultValue={projectEditor?.programId ?? ""} required>
+                      <option value="">Choose the program</option>
+                      {programs.map((program) => <option key={program.id} value={program.id}>{program.title}</option>)}
+                    </select>
+                  </label>
+                  <label>
+                    <span>Project title</span>
+                    <input name="title" defaultValue={projectEditor?.title ?? ""} minLength={2} placeholder="Example: Build a finance KPI dashboard" required />
+                  </label>
+                  <label>
+                    <span>Project description</span>
+                    <textarea name="description" defaultValue={projectEditor?.description ?? ""} minLength={10} placeholder="Explain the outcome, context, and what a good submission should demonstrate." required />
+                  </label>
+                </div>
+
+                <div className="project-form-section">
+                  <div className="project-form-section__heading"><span>02</span><div><strong>Helpful references</strong><small>Links and media students can use</small></div></div>
+                  <div className="project-link-fields">
+                    {[0, 1, 2].map((index) => (
+                      <div className="project-link-row" key={index}>
+                        <input name="linkLabel" defaultValue={projectEditor?.usefulLinks?.[index]?.label ?? ""} placeholder={index === 0 ? "GitHub" : index === 1 ? "Reference" : "Demo / docs"} aria-label={`Reference link ${index + 1} label`} />
+                        <input name="linkUrl" type="url" defaultValue={projectEditor?.usefulLinks?.[index]?.url ?? ""} placeholder="https://..." aria-label={`Reference link ${index + 1} URL`} />
+                      </div>
+                    ))}
+                  </div>
+                  <label>
+                    <span>Submission requirements <small>(comma separated)</small></span>
+                    <input name="requiredArtifacts" defaultValue={projectEditor?.requiredArtifacts?.join(", ") ?? "GitHub link, Demo, Report"} placeholder="GitHub link, Demo, Report" />
+                  </label>
+                  <label className="project-upload-field">
+                    <span>Reference media <small>(image, video, PDF, or document)</small></span>
+                    <span className="project-upload-control">
+                      <UploadCloud size={18} />
+                      <span>{projectReferenceFile?.name ?? (projectEditor?.referenceMediaUrl ? "Replace attached reference media" : "Upload a reference file")}</span>
+                      <input type="file" accept="image/*,video/*,.pdf,.doc,.docx,.ppt,.pptx,.zip" onChange={(event) => {
+                        const file = event.target.files?.[0] ?? null;
+                        if (file && file.size > 25 * 1024 * 1024) {
+                          onMessage({ tone: "error", text: "Reference media must be 25 MB or smaller." });
+                          event.currentTarget.value = "";
+                          return;
+                        }
+                        setProjectReferenceFile(file);
+                      }} />
+                    </span>
+                  </label>
+                </div>
+
+                <div className="project-form-section project-form-section--compact">
+                  <div className="project-form-section__heading"><span>03</span><div><strong>Scoring and access</strong><small>Set expectations before you publish</small></div></div>
+                  <div className="project-form-grid">
+                    <label>
+                      <span>Deadline</span>
+                      <input name="deadline" type="datetime-local" defaultValue={toDateTimeLocalValue(projectEditor?.deadline)} />
+                    </label>
+                    <label>
+                      <span>Grade points</span>
+                      <input name="maxScore" type="number" min="1" max="100" defaultValue={projectEditor?.maxScore ?? 100} required />
+                    </label>
+                  </div>
+                  <label>
+                    <span>Project status</span>
+                    <select name="status" defaultValue={projectEditor?.isPublished ? "publish" : "draft"}>
+                      <option value="draft">Save as draft</option>
+                      <option value="publish">Publish to selected students</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div className="project-editor-dialog__actions">
+                  <button className="secondary-action" type="button" onClick={closeProjectDialog}>Cancel</button>
+                  <button className="primary-action" type="submit" disabled={isSavingProject}>
+                    <Save size={17} /> {isSavingProject ? "Saving project..." : projectDialogMode === "edit" ? "Save changes" : "Save project"}
+                  </button>
+                </div>
+              </form>
+            </section>
+          </div>
+        ), document.body) : null}
+
+        {showModule("Projects") && projectAudience ? createPortal((
+          <div className="category-dialog-backdrop" role="presentation" onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              closeProjectAudience();
+            }
+          }}>
+            <section className="project-audience-dialog" role="dialog" aria-modal="true" aria-labelledby="project-audience-dialog-title">
+              <div className="project-audience-dialog__header">
+                <span className="project-editor-dialog__icon"><UsersRound size={22} /></span>
+                <div>
+                  <span className="eyebrow">Publish audience</span>
+                  <h3 id="project-audience-dialog-title">Choose active students</h3>
+                  <p>{projectAudience.title} will appear only for the students you select.</p>
+                </div>
+                <button type="button" onClick={closeProjectAudience} title="Close dialog"><X size={19} /></button>
+              </div>
+
+              <div className="project-audience-dialog__content">
+                <div className="project-audience-toolbar">
+                  <label className="project-student-search">
+                    <Search size={17} />
+                    <input value={projectStudentSearch} onChange={(event) => setProjectStudentSearch(event.target.value)} placeholder="Search active students" />
+                  </label>
+                  <label className="project-select-all">
+                    <input type="checkbox" checked={allVisibleProjectStudentsSelected} onChange={toggleAllProjectStudents} disabled={filteredProjectStudents.length === 0} />
+                    <span>Select all</span>
+                  </label>
+                </div>
+                <div className="project-audience-summary">
+                  <strong>{selectedProjectStudentIds.length} selected</strong>
+                  <span>{isProjectStudentsLoading ? "Loading active enrollments..." : `${projectStudents.length} active student${projectStudents.length === 1 ? "" : "s"} in this program`}</span>
+                </div>
+                <div className="project-student-list">
+                  {isProjectStudentsLoading ? <div className="project-student-empty">Finding active students...</div> : null}
+                  {!isProjectStudentsLoading && filteredProjectStudents.length === 0 ? <div className="project-student-empty">No active students found for this program.</div> : null}
+                  {!isProjectStudentsLoading ? filteredProjectStudents.map((student) => (
+                    <label className={`project-student-option${selectedProjectStudentIds.includes(student.studentId) ? " is-selected" : ""}`} key={student.studentId}>
+                      <input type="checkbox" checked={selectedProjectStudentIds.includes(student.studentId)} onChange={() => toggleProjectStudent(student.studentId)} />
+                      <span className="project-student-avatar">{student.fullName.trim().slice(0, 1).toUpperCase() || "S"}</span>
+                      <span className="project-student-option__details"><strong>{student.fullName}</strong><small>{student.email}</small></span>
+                      {selectedProjectStudentIds.includes(student.studentId) ? <CheckCircle2 size={18} /> : null}
+                    </label>
+                  )) : null}
+                </div>
+              </div>
+
+              <div className="project-audience-dialog__actions">
+                <button className="secondary-action" type="button" onClick={closeProjectAudience}>Cancel</button>
+                <button className="primary-action" type="button" onClick={() => void publishProject()} disabled={isPublishingProject || isProjectStudentsLoading || selectedProjectStudentIds.length === 0}>
+                  <Send size={17} /> {isPublishingProject ? "Publishing..." : `Publish to ${selectedProjectStudentIds.length || "selected"}`}
+                </button>
+              </div>
+            </section>
+          </div>
+        ), document.body) : null}
+
+        {showModule("Projects") && projectReviewProject ? createPortal((
+          <div className="category-dialog-backdrop" role="presentation" onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              closeProjectReviews();
+            }
+          }}>
+            <section className="project-review-dialog" role="dialog" aria-modal="true" aria-labelledby="project-review-dialog-title">
+              <div className="project-audience-dialog__header">
+                <span className="project-editor-dialog__icon"><ClipboardList size={22} /></span>
+                <div>
+                  <span className="eyebrow">Project review queue</span>
+                  <h3 id="project-review-dialog-title">Review submissions</h3>
+                  <p>{projectReviewProject.title} · award points and send feedback to each student.</p>
+                </div>
+                <button type="button" onClick={closeProjectReviews} title="Close dialog"><X size={19} /></button>
+              </div>
+
+              <div className="project-review-dialog__content">
+                {isProjectReviewsLoading ? <div className="project-student-empty">Loading student submissions...</div> : null}
+                {!isProjectReviewsLoading && projectReviews.length === 0 ? (
+                  <div className="project-student-empty">No student submissions have been received yet.</div>
+                ) : null}
+                {!isProjectReviewsLoading ? projectReviews.map((review) => {
+                  const draft = projectReviewDrafts[review.id] ?? {
+                    status: "Approved" as const,
+                    score: review.submission.score === undefined || review.submission.score === null ? "" : String(review.submission.score),
+                    feedback: review.submission.feedback ?? ""
+                  };
+                  return (
+                    <article className="project-review-card" key={review.id}>
+                      <div className="project-review-card__student">
+                        <span className="project-student-avatar">{review.studentName.trim().slice(0, 1).toUpperCase() || "S"}</span>
+                        <div><strong>{review.studentName}</strong><small>{review.studentEmail}</small></div>
+                        <span className={`project-review-status is-${review.submission.status.toLowerCase()}`}>{review.submission.status}</span>
+                      </div>
+                      <div className="project-review-card__artifacts">
+                        {review.submission.fileAssetId ? (
+                          <button type="button" onClick={() => void openProjectSubmissionFile(review.submission.fileAssetId!)}><FileText size={14} /> Open submitted file</button>
+                        ) : null}
+                        {review.submission.gitHubUrl ? <a href={review.submission.gitHubUrl} target="_blank" rel="noreferrer"><Link2 size={14} /> GitHub</a> : null}
+                        {review.submission.demoUrl ? <a href={review.submission.demoUrl} target="_blank" rel="noreferrer"><ExternalLink size={14} /> Demo</a> : null}
+                        <small>Submitted {formatDateTime(review.submission.createdAt)}</small>
+                      </div>
+                      <div className="project-review-card__form">
+                        <label>Status<select value={draft.status} onChange={(event) => setProjectReviewDrafts((items) => ({ ...items, [review.id]: { ...draft, status: event.target.value as "NeedsRevision" | "Approved" } }))}><option value="Approved">Approved</option><option value="NeedsRevision">Needs revision</option></select></label>
+                        <label>Score / {review.maxScore}<input type="number" min="0" max={review.maxScore} step="0.5" value={draft.score} onChange={(event) => setProjectReviewDrafts((items) => ({ ...items, [review.id]: { ...draft, score: event.target.value } }))} /></label>
+                        <label className="project-review-card__feedback">Message / feedback<textarea value={draft.feedback} maxLength={2500} placeholder="Share clear next steps or encouragement..." onChange={(event) => setProjectReviewDrafts((items) => ({ ...items, [review.id]: { ...draft, feedback: event.target.value } }))} /></label>
+                      </div>
+                      <button className="primary-action project-review-card__save" type="button" onClick={() => void reviewProjectSubmission(review)} disabled={isReviewingProject === review.id}><Save size={16} /> {isReviewingProject === review.id ? "Saving review..." : "Save review"}</button>
+                    </article>
+                  );
+                }) : null}
+              </div>
+
+              <div className="project-audience-dialog__actions"><button className="secondary-action" type="button" onClick={closeProjectReviews}>Close</button></div>
+            </section>
+          </div>
+        ), document.body) : null}
+
         {showModule("Enrollments") ? (
-          <section className="lms-list-panel lms-list-panel--wide">
-            <h3>Enrollments</h3>
-            <div className="lms-scroll-list">
-              {adminEnrollments.length === 0 ? <div className="table-state">No enrollments yet.</div> : null}
-              {adminEnrollments.map((enrollment) => (
-                <article key={enrollment.id} className="lms-list-item">
-                  <div>
-                    <strong>{enrollment.programTitle}</strong>
-                    <span>{formatCurrency(enrollment.paidAmount)} paid of {formatCurrency(enrollment.totalAmount)}</span>
-                  </div>
-                  <div className="lms-row-actions">
-                    <small>{enrollment.status}</small>
-                    {enrollment.status !== "Active" ? (
-                      <button type="button" onClick={() => void updateEnrollment(enrollment, 2)}>Activate</button>
-                    ) : null}
-                    {enrollment.status !== "Cancelled" ? (
-                      <button type="button" onClick={() => void updateEnrollment(enrollment, 4)}>Cancel</button>
-                    ) : null}
-                  </div>
-                </article>
-              ))}
-            </div>
+          <section className="enrollment-admin-page">
+            <section className="enrollment-admin-hero">
+              <div className="enrollment-admin-hero__copy">
+                <span className="enrollment-admin-eyebrow"><Layers3 size={16} /> Enrollment command center</span>
+                <h2>Understand every learner journey at a glance.</h2>
+                <p>Track who joined, what they paid, how much is due, and whether their learning access is healthy.</p>
+              </div>
+              <div className="enrollment-admin-hero__badge">
+                <ShieldCheck size={22} />
+                <strong>{enrollmentStats.active} active</strong>
+                <span>currently learning</span>
+              </div>
+            </section>
+
+            <section className="enrollment-admin-kpis" aria-label="Enrollment summary">
+              <article className="enrollment-admin-kpi enrollment-admin-kpi--purple"><span><UsersRound size={18} /> Total enrollments</span><strong>{enrollmentStats.total}</strong><small>All learner records</small></article>
+              <article className="enrollment-admin-kpi enrollment-admin-kpi--green"><span><CheckCircle2 size={18} /> Active access</span><strong>{enrollmentStats.active}</strong><small>Access is available</small></article>
+              <article className="enrollment-admin-kpi enrollment-admin-kpi--gold"><span><WalletCards size={18} /> Collected</span><strong>{formatCurrency(enrollmentStats.collected)}</strong><small>Verified and recorded</small></article>
+              <article className="enrollment-admin-kpi enrollment-admin-kpi--rose"><span><CalendarDays size={18} /> Expiring soon</span><strong>{enrollmentStats.expiringSoon}</strong><small>Within the next 30 days</small></article>
+            </section>
+
+            <section className="enrollment-admin-workspace">
+              <div className="enrollment-admin-toolbar">
+                <div>
+                  <span className="enrollment-admin-eyebrow">Learner register</span>
+                  <h3>All enrollments</h3>
+                  <p>{visibleEnrollments.length} of {adminEnrollments.length} enrollment{adminEnrollments.length === 1 ? "" : "s"} shown</p>
+                </div>
+                <div className="enrollment-admin-toolbar__controls">
+                  <label className="enrollment-admin-search"><Search size={17} /><span className="sr-only">Search enrollments</span><input value={enrollmentSearch} onChange={(event) => setEnrollmentSearch(event.target.value)} placeholder="Search student or program" /></label>
+                  <label className="enrollment-admin-filter"><SlidersHorizontal size={16} /><span className="sr-only">Filter by status</span><select value={enrollmentStatusFilter} onChange={(event) => setEnrollmentStatusFilter(event.target.value)}><option value="All">All statuses</option><option value="Active">Active</option><option value="Reserved">Reserved</option><option value="Completed">Completed</option><option value="Cancelled">Cancelled</option></select></label>
+                </div>
+              </div>
+
+              <div className="enrollment-admin-list">
+                {visibleEnrollments.length === 0 ? (
+                  <div className="enrollment-admin-empty"><Search size={24} /><strong>{adminEnrollments.length === 0 ? "No enrollments yet" : "No enrollments match your filters"}</strong><span>Try a different student, program, or status.</span></div>
+                ) : null}
+                {visibleEnrollments.map((enrollment) => {
+                  const relatedPayments = adminPayments.filter((payment) => payment.enrollmentId === enrollment.id);
+                  const paidPercent = enrollment.totalAmount > 0 ? Math.min(100, Math.round((enrollment.paidAmount / enrollment.totalAmount) * 100)) : 0;
+                  const studentName = enrollment.studentName || `Student ${enrollment.studentId.slice(0, 8)}`;
+                  const accessLabel = enrollment.isAccessExpired
+                    ? "Access expired"
+                    : enrollment.accessExpiresAt
+                      ? `Access until ${formatDate(enrollment.accessExpiresAt)}`
+                      : "Access expiry not set";
+
+                  return (
+                    <article key={enrollment.id} className="enrollment-admin-card">
+                      <div className="enrollment-admin-card__header">
+                        <div className="enrollment-admin-card__student">
+                          <span className="enrollment-admin-avatar">{getInitials(studentName)}</span>
+                          <div><strong>{studentName}</strong><span>{enrollment.studentEmail || "Student account"}</span>{enrollment.studentPhone ? <small>{enrollment.studentPhone}</small> : null}</div>
+                        </div>
+                        <div className="enrollment-admin-card__heading">
+                          <span className={`enrollment-admin-status is-${toKebabCase(enrollment.status)}`}>{formatStatusLabel(enrollment.status)}</span>
+                          <strong>{enrollment.programTitle}</strong>
+                          <span>{enrollment.programPlanName || enrollment.programPlanCode || "Standard enrollment"}</span>
+                        </div>
+                        <div className="enrollment-admin-card__actions">
+                          {enrollment.status !== "Active" ? <button className="enrollment-admin-button enrollment-admin-button--primary" type="button" onClick={() => void updateEnrollment(enrollment, 2)}>Activate</button> : null}
+                          {enrollment.status !== "Cancelled" ? <button className="enrollment-admin-button" type="button" onClick={() => void updateEnrollment(enrollment, 4)}>Cancel</button> : null}
+                        </div>
+                      </div>
+
+                      <div className="enrollment-admin-card__grid">
+                        <div className="enrollment-admin-detail"><span>Enrollment date</span><strong>{formatDate(enrollment.enrolledAt)}</strong><small>Cycle {enrollment.accessCycle || 1}</small></div>
+                        <div className="enrollment-admin-detail"><span>Plan total</span><strong>{formatCurrency(enrollment.totalAmount)}</strong><small>{enrollment.programPlanCode || "Plan pricing"}</small></div>
+                        <div className="enrollment-admin-detail"><span>Paid so far</span><strong>{formatCurrency(enrollment.paidAmount)}</strong><small>{enrollment.hasFullAccess ? "Full access unlocked" : "Partial access"}</small></div>
+                        <div className={`enrollment-admin-detail ${enrollment.balanceAmount > 0 ? "is-warning" : "is-success"}`}><span>Balance due</span><strong>{formatCurrency(enrollment.balanceAmount)}</strong><small>{enrollment.balanceAmount > 0 ? "Payment remains" : "Paid in full"}</small></div>
+                      </div>
+
+                      <div className="enrollment-admin-card__footer">
+                        <div className="enrollment-admin-progress"><div className="enrollment-admin-progress__label"><span>Payment progress</span><strong>{paidPercent}%</strong></div><div className="enrollment-admin-progress__track"><span style={{ width: `${paidPercent}%` }} /></div></div>
+                        <div className={`enrollment-admin-access ${enrollment.isAccessExpired ? "is-expired" : ""}`}><span><GraduationCap size={16} /> {accessLabel}</span>{enrollment.lockedReason ? <small>{enrollment.lockedReason}</small> : <small>{enrollment.hasFullAccess ? "Projects, reviews and certificate enabled" : "Full payment unlocks all course content"}</small>}</div>
+                      </div>
+
+                      <details className="enrollment-admin-payments">
+                        <summary><span><CreditCard size={17} /> Payment history</span><strong>{relatedPayments.length} transaction{relatedPayments.length === 1 ? "" : "s"}</strong></summary>
+                        <div className="enrollment-admin-payment-list">
+                          {relatedPayments.length === 0 ? <p className="enrollment-admin-payment-empty">No payment transactions are linked to this enrollment yet.</p> : relatedPayments.map((payment) => (
+                            <div className="enrollment-admin-payment" key={payment.id}><div><strong>{formatCurrency(payment.amount)}</strong><span>{payment.mode} · {formatDateTime(payment.createdAt)}</span></div><div><span className={`enrollment-admin-payment-status is-${toKebabCase(payment.status)}`}>{formatStatusLabel(payment.status)}</span>{payment.invoiceNumber ? <small>Invoice {payment.invoiceNumber}</small> : null}</div></div>
+                          ))}
+                        </div>
+                      </details>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
           </section>
         ) : null}
 
@@ -2387,24 +2989,29 @@ function StudentDashboard({ activeModule }: { activeModule: string }) {
   const navigate = useNavigate();
   const [dashboard, setDashboard] = useState<StudentLmsDashboardResponse | null>(null);
   const [workspace, setWorkspace] = useState<StudentProgramWorkspaceResponse | null>(null);
+  const [myPrograms, setMyPrograms] = useState<StudentMyProgramsResponse | null>(null);
   const [programs, setPrograms] = useState<ProgramSummaryResponse[]>([]);
   const [message, setMessage] = useState<MessageState>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
   const [projectDrafts, setProjectDrafts] = useState<Record<string, string>>({});
+  const [projectSubmissionNotes, setProjectSubmissionNotes] = useState<Record<string, string>>({});
+  const [projectSubmissionFiles, setProjectSubmissionFiles] = useState<Record<string, File | null>>({});
 
   const loadStudentDashboard = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [dashboardResponse, workspaceResponse, programsResponse] = await Promise.all([
+      const [dashboardResponse, workspaceResponse, programsResponse, myProgramsResponse] = await Promise.all([
         studentLmsApi.getDashboard(),
         studentLmsApi.getWorkspace(),
-        publicLmsApi.getPrograms()
+        publicLmsApi.getPrograms(),
+        studentLmsApi.getMyPrograms()
       ]);
 
       setDashboard(dashboardResponse.data);
       setWorkspace(workspaceResponse.data);
       setPrograms(programsResponse.data);
+      setMyPrograms(myProgramsResponse.data);
     } catch (error) {
       setMessage({ tone: "error", text: formatApiError(error) });
     } finally {
@@ -2422,25 +3029,16 @@ function StudentDashboard({ activeModule }: { activeModule: string }) {
         details.data.plans.find((item) => item.code === "INTERMEDIATE" && item.isActive) ??
         details.data.plans.find((item) => item.isActive);
 
-      const enrollmentResponse = await studentLmsApi.createEnrollment({
+      if (!plan) throw new Error("This program has no active plan available.");
+      savePendingEnrollment({
+        slug: program.slug,
         programId: program.id,
-        programPlanId: plan?.id
+        planId: plan.id,
+        planCode: plan.code,
+        programTitle: program.title,
+        paymentMode: 1
       });
-
-      await studentLmsApi.createPaymentCheckout({
-        programId: program.id,
-        programPlanId: plan?.id,
-        enrollmentId: enrollmentResponse.data.id,
-        mode
-      });
-
-      setMessage({
-        tone: "success",
-        text: mode === 1
-          ? "Seat reserved. Payment is pending verification from admin."
-          : "Enrollment created. Payment is pending verification from admin."
-      });
-      await loadStudentDashboard();
+      navigate("/checkout");
     } catch (error) {
       setMessage({ tone: "error", text: formatApiError(error) });
     } finally {
@@ -2448,8 +3046,8 @@ function StudentDashboard({ activeModule }: { activeModule: string }) {
     }
   }
 
-  async function payBalance(mode: 1 | 2 | 3) {
-    const enrollment = workspace?.enrollment ?? dashboard?.enrollment;
+  async function payBalance(mode: 1 | 2 | 3, targetEnrollment?: EnrollmentResponse) {
+    const enrollment = targetEnrollment ?? workspace?.enrollment ?? dashboard?.enrollment;
     if (!enrollment) {
       return;
     }
@@ -2458,14 +3056,28 @@ function StudentDashboard({ activeModule }: { activeModule: string }) {
     setMessage(null);
 
     try {
-      await studentLmsApi.createPaymentCheckout({
+      savePendingEnrollment({
+        slug: enrollment.programSlug,
         programId: enrollment.programId,
-        programPlanId: enrollment.programPlanId,
-        enrollmentId: enrollment.id,
-        mode
+        planId: enrollment.programPlanId,
+        planCode: enrollment.programPlanCode ?? "INTERMEDIATE",
+        programTitle: enrollment.programTitle,
+        paymentMode: mode === 1 ? 1 : 3,
+        amount: mode === 1 ? undefined : enrollment.balanceAmount
       });
-      setMessage({ tone: "success", text: "Payment request created. Admin verification will update access." });
-      await loadStudentDashboard();
+      navigate("/checkout");
+    } catch (error) {
+      setMessage({ tone: "error", text: formatApiError(error) });
+    } finally {
+      setActionId(null);
+    }
+  }
+
+  async function viewReceipt(paymentId: string) {
+    setActionId(`receipt-${paymentId}`);
+    setMessage(null);
+    try {
+      await openPaymentReceipt(paymentId);
     } catch (error) {
       setMessage({ tone: "error", text: formatApiError(error) });
     } finally {
@@ -2475,8 +3087,10 @@ function StudentDashboard({ activeModule }: { activeModule: string }) {
 
   async function submitProject(projectId: string) {
     const value = projectDrafts[projectId]?.trim();
-    if (!value) {
-      setMessage({ tone: "error", text: "Add a GitHub, demo, or document URL first." });
+    const notes = projectSubmissionNotes[projectId]?.trim();
+    const file = projectSubmissionFiles[projectId] ?? null;
+    if (!value && !notes && !file) {
+      setMessage({ tone: "error", text: "Attach your project work, add a project link, or write submission notes." });
       return;
     }
 
@@ -2484,14 +3098,41 @@ function StudentDashboard({ activeModule }: { activeModule: string }) {
     setMessage(null);
 
     try {
-      await studentLmsApi.submitProject(projectId, { gitHubUrl: value });
+      const project = projects.find((item) => item.id === projectId);
+      const fileAssetId = file
+        ? (await assetsApi.uploadFile(file, {
+            type: file.type.startsWith("image/")
+              ? assetTypes.image
+              : file.type.startsWith("video/")
+                ? assetTypes.video
+                : file.type.startsWith("text/") || file.type.includes("pdf") || file.type.includes("document")
+                  ? assetTypes.document
+                  : assetTypes.other,
+            purpose: assetPurposes.projectSubmission,
+            visibility: assetVisibilities.private,
+            programId: project?.programId
+          })).data.id
+        : undefined;
+
+      await studentLmsApi.submitProject(projectId, { gitHubUrl: value || undefined, fileAssetId, notes: notes || undefined });
       setProjectDrafts((drafts) => ({ ...drafts, [projectId]: "" }));
+      setProjectSubmissionNotes((items) => ({ ...items, [projectId]: "" }));
+      setProjectSubmissionFiles((items) => ({ ...items, [projectId]: null }));
       setMessage({ tone: "success", text: "Project submitted for review." });
       await loadStudentDashboard();
     } catch (error) {
       setMessage({ tone: "error", text: formatApiError(error) });
     } finally {
       setActionId(null);
+    }
+  }
+
+  async function openStudentSubmissionFile(fileAssetId: string) {
+    try {
+      const response = await assetsApi.getAccessUrl(fileAssetId);
+      window.open(response.data.url, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      setMessage({ tone: "error", text: formatApiError(error) });
     }
   }
 
@@ -2550,7 +3191,7 @@ function StudentDashboard({ activeModule }: { activeModule: string }) {
         </section>
       ) : null}
 
-      {!isLoading && !enrollment && activeModule !== "Profile" ? (
+      {!isLoading && !enrollment && activeModule !== "Profile" && activeModule !== "My Program" ? (
         <section className="dashboard-card student-marketplace">
           <div className="card-title-row">
             <div>
@@ -2596,7 +3237,15 @@ function StudentDashboard({ activeModule }: { activeModule: string }) {
         </section>
       ) : null}
 
-      {!isLoading && enrollment ? (
+      {!isLoading && activeModule === "My Program" ? (
+        <StudentMyProgramLibrary
+          programs={myPrograms?.programs ?? []}
+          onOpenCourse={(programId) => navigate(`/learning/${programId}`)}
+          onPay={(courseEnrollment, mode) => void payBalance(mode, courseEnrollment)}
+        />
+      ) : null}
+
+      {!isLoading && enrollment && activeModule !== "My Program" ? (
         <section className="student-lms-grid">
           {showStudentModule("My Program") ? (
           <section className="dashboard-card student-program-hero">
@@ -2619,17 +3268,21 @@ function StudentDashboard({ activeModule }: { activeModule: string }) {
                 <span className="eyebrow">Payments</span>
                 <h2>Access status</h2>
                 <p>{enrollment.status} - paid {formatCurrency(enrollment.paidAmount)} of {formatCurrency(enrollment.totalAmount)}.</p>
+                <small>{enrollment.isAccessExpired ? "Access expired — renew to continue." : enrollment.accessExpiresAt ? `Access until ${formatDateTime(enrollment.accessExpiresAt)}.` : "Access begins after payment verification."}</small>
               </div>
               <CreditCard size={23} />
             </div>
-            {enrollment.balanceAmount > 0 ? (
+            {enrollment.isAccessExpired || enrollment.balanceAmount > 0 ? (
               <div className="payment-actions">
-                <button className="secondary-action" type="button" onClick={() => void payBalance(1)} disabled={actionId === "payment-1"}>
-                  Reserve
-                </button>
-                <button className="primary-action" type="button" onClick={() => void payBalance(3)} disabled={actionId === "payment-3"}>
-                  Pay balance
-                </button>
+                {enrollment.isAccessExpired || enrollment.paidAmount <= 0 ? (
+                  <button className="primary-action" type="button" onClick={() => void payBalance(1)} disabled={actionId === "payment-1"}>
+                    <CreditCard size={16} /> Pay initial amount
+                  </button>
+                ) : (
+                  <button className="primary-action" type="button" onClick={() => void payBalance(3)} disabled={actionId === "payment-3"}>
+                    <CreditCard size={16} /> Pay balance
+                  </button>
+                )}
               </div>
             ) : (
               <span className="status-pill status-pill--active">Full access unlocked</span>
@@ -2640,6 +3293,11 @@ function StudentDashboard({ activeModule }: { activeModule: string }) {
                   <span>{payment.mode}</span>
                   <strong>{formatCurrency(payment.amount)}</strong>
                   <small>{payment.status}</small>
+                  {payment.status === "Verified" ? (
+                    <button type="button" onClick={() => void viewReceipt(payment.id)} disabled={actionId === `receipt-${payment.id}`} title="View receipt">
+                      <FileText size={14} /> Receipt
+                    </button>
+                  ) : null}
                 </article>
               ))}
             </div>
@@ -2656,24 +3314,48 @@ function StudentDashboard({ activeModule }: { activeModule: string }) {
               <FolderKanban size={23} />
             </div>
             <div className="submission-list">
-              {projects.slice(0, 5).map((project) => (
-                <article key={project.id}>
-                  <div>
-                    <strong>{project.title}</strong>
-                    <span>{project.latestSubmission ? `Status: ${project.latestSubmission.status}` : project.requiredArtifacts.join(", ")}</span>
-                  </div>
-                  <div className="submission-inline-form">
-                    <input
-                      value={projectDrafts[project.id] ?? ""}
-                      onChange={(event) => setProjectDrafts((drafts) => ({ ...drafts, [project.id]: event.target.value }))}
-                      placeholder="https://github.com/your/project"
-                    />
-                    <button type="button" onClick={() => void submitProject(project.id)} disabled={actionId === `project-${project.id}`}>
-                      <Send size={16} />
-                    </button>
-                  </div>
-                </article>
-              ))}
+              {!enrollment.hasFullAccess ? (
+                <div className="access-locked-notice">
+                  <Lock size={18} />
+                  <div><strong>Projects are locked</strong><span>{enrollment.isAccessExpired ? "Renew your two-month access first." : "Pay the remaining balance to submit projects and unlock your certificate."}</span></div>
+                  <button className="secondary-action" type="button" onClick={() => void payBalance(enrollment.isAccessExpired || enrollment.paidAmount <= 0 ? 1 : 3)}>Open payment</button>
+                </div>
+              ) : null}
+              {enrollment.hasFullAccess && projects.length === 0 ? <div className="project-empty-state"><FolderKanban size={24} /><strong>No projects assigned yet.</strong><p>Your assigned project work will appear here when the admin publishes it to you.</p></div> : null}
+              {projects.map((project) => {
+                const submission = project.latestSubmission;
+                const selectedFile = projectSubmissionFiles[project.id];
+                return (
+                  <article key={project.id} className="student-project-card">
+                    <div className="student-project-card__header">
+                      <div><span className="eyebrow">Assigned project</span><h3>{project.title}</h3></div>
+                      {submission ? <span className={`project-review-status is-${submission.status.toLowerCase()}`}>{submission.status === "NeedsRevision" ? "Needs revision" : submission.status}</span> : <span className="project-review-status is-pending">Not submitted</span>}
+                    </div>
+                    <p className="student-project-card__description">{project.description}</p>
+                    <div className="student-project-meta"><small><CalendarDays size={14} /> {project.deadline ? `Due ${formatDateTime(project.deadline)}` : "No deadline"}</small><small><Trophy size={14} /> {project.maxScore} grade points</small></div>
+                    {project.requiredArtifacts.length > 0 ? <div className="student-project-requirements"><strong>Submit</strong>{project.requiredArtifacts.map((artifact) => <span key={artifact}>{artifact}</span>)}</div> : null}
+                    {(project.usefulLinks?.length ?? 0) > 0 || project.referenceMediaUrl ? (
+                      <div className="student-project-resources">
+                        {(project.usefulLinks ?? []).map((link) => <a key={`${project.id}-${link.url}`} href={toApiAcceptableThumbnailUrl(link.url)} target="_blank" rel="noreferrer"><Link2 size={13} /> {link.label}</a>)}
+                        {project.referenceMediaUrl ? <a href={toApiAcceptableThumbnailUrl(project.referenceMediaUrl)} target="_blank" rel="noreferrer"><FileText size={13} /> Reference media</a> : null}
+                      </div>
+                    ) : null}
+                    {submission?.score !== undefined || submission?.feedback ? (
+                      <div className="student-project-review">
+                        <div><strong>{submission.score !== undefined && submission.score !== null ? `Awarded ${submission.score} / ${project.maxScore}` : "Admin feedback"}</strong>{submission.reviewedAt ? <small>Reviewed {formatDateTime(submission.reviewedAt)}</small> : null}</div>
+                        {submission.feedback ? <p>{submission.feedback}</p> : null}
+                        {submission.fileAssetId ? <button type="button" onClick={() => void openStudentSubmissionFile(submission.fileAssetId!)}><FileText size={14} /> Open submitted file</button> : null}
+                      </div>
+                    ) : null}
+                    <div className="student-project-submit-form">
+                      <label><span>GitHub or project link <small>optional</small></span><input value={projectDrafts[project.id] ?? ""} onChange={(event) => setProjectDrafts((drafts) => ({ ...drafts, [project.id]: event.target.value }))} placeholder="https://github.com/your/project" disabled={!enrollment.hasFullAccess} /></label>
+                      <label className="student-project-file"><span>Project work / media <small>PDF, ZIP, image, video · max 25 MB</small></span><span className="student-project-file__control"><UploadCloud size={17} /><span>{selectedFile?.name ?? "Choose your project file"}</span><input type="file" accept="image/*,video/*,.pdf,.doc,.docx,.ppt,.pptx,.zip,.txt,.md" disabled={!enrollment.hasFullAccess} onChange={(event) => { const file = event.target.files?.[0] ?? null; if (file && file.size > 25 * 1024 * 1024) { setMessage({ tone: "error", text: "Project files must be 25 MB or smaller." }); event.currentTarget.value = ""; return; } setProjectSubmissionFiles((items) => ({ ...items, [project.id]: file })); }} /></span></label>
+                      <label><span>Notes for admin <small>explain your work or add context</small></span><textarea value={projectSubmissionNotes[project.id] ?? ""} onChange={(event) => setProjectSubmissionNotes((items) => ({ ...items, [project.id]: event.target.value }))} placeholder="Tell the reviewer what you built, what to test, and anything you want feedback on..." disabled={!enrollment.hasFullAccess} /></label>
+                      <button className="primary-action" type="button" onClick={() => void submitProject(project.id)} disabled={!enrollment.hasFullAccess || actionId === `project-${project.id}`}><Send size={16} /> {actionId === `project-${project.id}` ? "Submitting..." : submission?.status === "NeedsRevision" ? "Resubmit project" : "Submit project"}</button>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           </section>
           ) : null}
@@ -2797,12 +3479,53 @@ function formatDateTime(value?: string) {
   }).format(new Date(value));
 }
 
+function toDateTimeLocalValue(value?: string) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return localDate.toISOString().slice(0, 16);
+}
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
     maximumFractionDigits: 0
   }).format(value);
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>'"]/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "'": "&#39;",
+    '"': "&quot;"
+  })[character] ?? character);
+}
+
+async function openPaymentReceipt(paymentId: string) {
+  const receiptWindow = window.open("", "_blank", "width=760,height=820");
+  if (!receiptWindow) {
+    throw new Error("Allow pop-ups to view your payment receipt.");
+  }
+
+  try {
+    const response = await studentLmsApi.getPaymentReceipt(paymentId);
+    const receipt = response.data;
+    receiptWindow.document.write(`<!doctype html><html><head><title>${escapeHtml(receipt.invoiceNumber)}</title><style>body{font-family:Arial,sans-serif;color:#182744;padding:44px;max-width:680px;margin:auto}header{display:flex;justify-content:space-between;border-bottom:2px solid #5148a8;padding-bottom:24px;margin-bottom:30px}h1{margin:0 0 8px}p{color:#61718b}.row{display:flex;justify-content:space-between;gap:24px;border-bottom:1px solid #e7ebf2;padding:13px 0}.total{font-size:22px;font-weight:700;color:#5148a8}@media print{button{display:none}}</style></head><body><header><div><h1>Joviq Technologies</h1><p>Payment receipt</p></div><strong>${escapeHtml(receipt.invoiceNumber)}</strong></header><p><strong>Billed to:</strong><br>${escapeHtml(receipt.studentName)}<br>${escapeHtml(receipt.studentEmail)}</p><div class="row"><span>Program</span><strong>${escapeHtml(receipt.programTitle)}</strong></div><div class="row"><span>Plan</span><strong>${escapeHtml(receipt.planName)}</strong></div><div class="row"><span>Payment type</span><strong>${escapeHtml(receipt.paymentMode)}</strong></div><div class="row total"><span>Amount paid</span><strong>${escapeHtml(formatCurrency(receipt.amount))}</strong></div><div class="row"><span>Gateway</span><span>${escapeHtml(receipt.gateway)}</span></div><div class="row"><span>Gateway payment ID</span><span>${escapeHtml(receipt.gatewayPaymentId ?? "-")}</span></div><p>Paid on ${escapeHtml(formatDateTime(receipt.paidAt ?? receipt.createdAt))}</p><button onclick="window.print()">Print / Save as PDF</button></body></html>`);
+    receiptWindow.document.close();
+  } catch (error) {
+    receiptWindow.close();
+    throw error;
+  }
 }
 
 function formatShortDate(value?: string) {

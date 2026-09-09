@@ -1,6 +1,6 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
@@ -23,19 +23,15 @@ import {
   Video,
   WalletCards
 } from "lucide-react";
-import { IndiaMobileInput } from "../components/IndiaMobileInput";
 import { PublicNavbar } from "../components/PublicNavbar";
 import { SiteFooter } from "../components/SiteFooter";
-import { ToastMessage } from "../components/ToastMessage";
 import { allPrograms, defaultProgramPlans, findProgramBySlug } from "../data/siteContent";
 import type { Program, ProgramPlan } from "../data/siteContent";
 import { getProgramImage } from "../data/programVisuals";
+import { useAuth } from "../features/auth/context/useAuth";
 import { publicLmsApi } from "../features/lms/api/lmsApi";
+import { savePendingEnrollment } from "../features/lms/checkout";
 import type { ProgramDetailsResponse } from "../features/lms/api/lmsTypes";
-import { toIndiaMobileNumber } from "../lib/validation/indiaMobile";
-
-const emailPattern = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$";
-type FormMessage = { tone: "success" | "error"; text: string } | null;
 
 type DetailItem = { title: string; text: string };
 type CurriculumItem = DetailItem & { lessons: string[] };
@@ -72,7 +68,7 @@ const domainFeatures: DomainFeatureItem[] = [
   },
   {
     icon: <CalendarClock size={28} />,
-    title: "6 Months LMS Access",
+    title: "2 Months LMS Access",
     text: "Access videos, files, quizzes & resources anytime",
     bullets: ["Complete materials", "Self-paced learning", "Extra downloadable files"]
   },
@@ -104,6 +100,8 @@ const domainFeatures: DomainFeatureItem[] = [
 
 export function ProgramDetailsPage() {
   const { slug } = useParams();
+  const auth = useAuth();
+  const navigate = useNavigate();
   const localProgram = findProgramBySlug(slug);
   const [remoteProgram, setRemoteProgram] = useState<ProgramDetailsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(!localProgram);
@@ -155,11 +153,23 @@ export function ProgramDetailsPage() {
 
   if (!program) return <ProgramNotFound />;
 
-  const heroImage = getProgramImage(program.slug, program.domain);
+  const currentProgram = program;
+  const heroImage = getProgramImage(currentProgram.slug, currentProgram.domain);
 
   function choosePlan(planCode: string) {
     setSelectedPlanCode(planCode);
     document.getElementById("enroll")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function beginCheckout(plan: ProgramPlan) {
+    savePendingEnrollment({
+      slug: currentProgram.slug,
+      programId: remoteProgram?.id,
+      planId: plan.id,
+      planCode: plan.code,
+      programTitle: currentProgram.title
+    });
+    navigate(auth.user ? "/checkout" : "/login?returnUrl=%2Fcheckout");
   }
 
   return (
@@ -339,11 +349,11 @@ export function ProgramDetailsPage() {
       <section className="pd-enroll" id="enroll">
         <div className="pd-enroll__copy">
           <span className="pd-kicker"><Send size={15} /> Enroll now</span><h2>Start your {program.title} journey.</h2>
-          <p>Choose your plan and share your details. The Joviq team will confirm the batch, payment, and onboarding steps.</p>
+          <p>Choose your plan, create your student account, and pay the compulsory initial amount securely. Full access starts after payment verification.</p>
           <div><CheckCircle2 size={18} /> No hidden plan features</div><div><CheckCircle2 size={18} /> Guided onboarding</div>
           <div><CheckCircle2 size={18} /> Secure LMS access</div>
         </div>
-        <EnrollForm onPlanChange={setSelectedPlanCode} plans={program.plans} programTitle={program.title} selectedPlanCode={selectedPlanCode} />
+        <EnrollForm onCheckout={beginCheckout} onPlanChange={setSelectedPlanCode} plans={program.plans} programTitle={program.title} selectedPlanCode={selectedPlanCode} />
       </section>
 
       <SiteFooter />
@@ -373,53 +383,34 @@ function PlanCard({ onChoose, plan }: { onChoose: () => void; plan: ProgramPlan 
       </div>
       {includedPlan ? <p className="pd-plan-includes">{includedPlan}</p> : null}
       <ul>{plan.features.map((feature) => <li key={feature}><CheckCircle2 size={16} /> {feature}</li>)}</ul>
+      <small className="pd-plan-deposit">Pay {formatInr(plan.reserveAmount)} initially · access starts after verification</small>
       <button onClick={onChoose} type="button">Choose {plan.name}<ArrowRight size={17} /></button>
     </article>
   );
 }
 
-function EnrollForm({ onPlanChange, plans, programTitle, selectedPlanCode }: {
+function EnrollForm({ onCheckout, onPlanChange, plans, programTitle, selectedPlanCode }: {
+  onCheckout: (plan: ProgramPlan) => void;
   onPlanChange: (code: string) => void;
   plans: ProgramPlan[];
   programTitle: string;
   selectedPlanCode: string;
 }) {
-  const [message, setMessage] = useState<FormMessage>(null);
   const selectedPlan = plans.find((plan) => plan.code === selectedPlanCode) ?? plans[0];
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const formElement = event.currentTarget;
-    const form = new FormData(formElement);
-    const phoneNumber = toIndiaMobileNumber(form.get("phoneNumber"));
-
-    if (!phoneNumber) {
-      setMessage({ tone: "error", text: "Phone must be a valid India +91 mobile number with exactly 10 digits." });
-      return;
-    }
-
-    formElement.reset();
-    setMessage({ tone: "success", text: `Enrollment request captured for ${programTitle} - ${selectedPlan?.name ?? "program plan"}.` });
-  }
-
   return (
-    <form className="pd-enroll-form" onSubmit={handleSubmit}>
-      <div className="pd-enroll-form__summary"><span>Selected plan</span><strong>{selectedPlan?.name ?? "Choose a plan"}</strong><small>{selectedPlan ? formatInr(selectedPlan.offerPrice) : "Pricing unavailable"}</small></div>
-      <div className="pd-enroll-form__two">
-        <label>Full name<input name="fullName" placeholder="Your name" required /></label>
-        <label>Email<input name="email" type="email" autoComplete="email" maxLength={256} pattern={emailPattern} required /></label>
-      </div>
-      <IndiaMobileInput label="Phone" name="phoneNumber" required />
+    <div className="pd-enroll-form">
+      <div className="pd-enroll-form__summary"><span>Selected plan</span><strong>{selectedPlan?.name ?? "Choose a plan"}</strong><small>{selectedPlan ? `${formatInr(selectedPlan.offerPrice)} full plan` : "Pricing unavailable"}</small></div>
       <label>
         Plan
         <select name="planCode" value={selectedPlanCode} onChange={(event) => onPlanChange(event.target.value)}>
           {plans.map((plan) => <option key={plan.code} value={plan.code}>{plan.name} - {formatInr(plan.offerPrice)}</option>)}
         </select>
       </label>
-      <input name="program" type="hidden" value={programTitle} />
-      <button type="submit"><Send size={18} /> Submit enrollment request</button>
-      <ToastMessage message={message} onDismiss={() => setMessage(null)} />
-    </form>
+      <div className="pd-enroll-form__payment-note"><ShieldCheck size={17} /><span>Create or sign in to your student account, verify your email, then pay {selectedPlan ? formatInr(selectedPlan.reserveAmount) : "the initial amount"} securely. Your dashboard stays locked until payment is confirmed.</span></div>
+      <button type="button" disabled={!selectedPlan} onClick={() => selectedPlan && onCheckout(selectedPlan)}><Send size={18} /> Create account &amp; pay initial amount</button>
+      <small className="pd-enroll-form__program-label">{programTitle} · UPI, UPI QR, cards, and net banking supported by the payment gateway.</small>
+    </div>
   );
 }
 

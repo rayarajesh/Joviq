@@ -57,9 +57,9 @@ export const defaultProgramPlans: ProgramPlan[] = [
   {
     name: "Launch",
     code: "SELF",
-    actualPrice: 4000,
-    offerPrice: 4000,
-    reserveAmount: 999,
+    actualPrice: 8000,
+    offerPrice: 8000,
+    reserveAmount: 1500,
     features: [
       "16 Live Sessions",
       "Recorded Lessons",
@@ -68,7 +68,7 @@ export const defaultProgramPlans: ProgramPlan[] = [
       "Doubt-Solving Support",
       "Basic Expert Support",
       "Interview Assistance",
-      "6 Months LMS Access",
+      "2 Months LMS Access",
       "QR-Verified Certification"
     ],
     isActive: true
@@ -76,9 +76,9 @@ export const defaultProgramPlans: ProgramPlan[] = [
   {
     name: "Elevate",
     code: "INTERMEDIATE",
-    actualPrice: 5000,
-    offerPrice: 5000,
-    reserveAmount: 999,
+    actualPrice: 10000,
+    offerPrice: 10000,
+    reserveAmount: 1500,
     features: [
       "22 Live Sessions",
       "Recorded Lessons",
@@ -89,7 +89,7 @@ export const defaultProgramPlans: ProgramPlan[] = [
       "Expert Guidance & Review",
       "Interview Preparation & Assistance",
       "Placement Support",
-      "6 Months LMS Access",
+      "2 Months LMS Access",
       "QR-Verified Certification"
     ],
     isActive: true
@@ -97,9 +97,9 @@ export const defaultProgramPlans: ProgramPlan[] = [
   {
     name: "Mastery",
     code: "MASTER",
-    actualPrice: 10000,
-    offerPrice: 10000,
-    reserveAmount: 999,
+    actualPrice: 15000,
+    offerPrice: 15000,
+    reserveAmount: 3000,
     features: [
       "28 Live Sessions",
       "Recorded Lessons",
@@ -111,7 +111,7 @@ export const defaultProgramPlans: ProgramPlan[] = [
       "Advanced Interview Preparation",
       "Placement Assistance & Support",
       "Career Guidance",
-      "6 Months LMS Access",
+      "2 Months LMS Access",
       "QR-Verified Certification"
     ],
     isActive: true
@@ -752,19 +752,19 @@ export const successOutcomes = [
 export const pricingPlans = [
   {
     name: "Launch",
-    price: "INR 4,000",
-    description: "For learners who want live structure, recordings, hands-on learning, and basic expert support.",
-    features: ["16 live sessions", "Real-time project", "Interview assistance", "6 months LMS access"]
+    price: "INR 8,000",
+    description: "For learners who want a strong, structured start with guided learning and essential support.",
+    features: ["16 live sessions", "Real-time project", "Interview assistance", "2 months LMS access"]
   },
   {
     name: "Elevate",
-    price: "INR 5,000",
+    price: "INR 10,000",
     description: "For learners who want personal expert support, deeper project review, and placement readiness.",
     features: ["22 live sessions", "Personal expert support", "Expert guidance & review", "Placement support"]
   },
   {
     name: "Mastery",
-    price: "INR 10,000",
+    price: "INR 15,000",
     description: "For learners who want advanced hands-on projects, detailed expert review, and full career guidance.",
     features: ["28 live sessions", "Multiple real-time projects", "Advanced interview prep", "Career guidance"]
   }

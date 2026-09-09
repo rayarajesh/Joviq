@@ -27,6 +27,10 @@ public sealed class Enrollment : AuditableEntity
 
     public DateTimeOffset? FullAccessUnlockedAt { get; set; }
 
+    public DateTimeOffset? AccessExpiresAt { get; set; }
+
+    public int AccessCycle { get; set; } = 1;
+
     public string? LockedReason { get; set; }
 }
 
@@ -61,6 +65,10 @@ public sealed class PaymentTransaction : AuditableEntity
     public string? FailureReason { get; set; }
 
     public DateTimeOffset? VerifiedAt { get; set; }
+
+    public DateTimeOffset? CheckoutExpiresAt { get; set; }
+
+    public string? InvoiceNumber { get; set; }
 }
 
 public sealed class Coupon : AuditableEntity
@@ -96,9 +104,34 @@ public sealed class Project : AuditableEntity
 
     public string RequiredArtifactsJson { get; set; } = "[]";
 
+    public string UsefulLinksJson { get; set; } = "[]";
+
+    public string? ReferenceMediaUrl { get; set; }
+
+    public DateTimeOffset? Deadline { get; set; }
+
     public decimal MaxScore { get; set; } = 100;
 
     public bool IsPublished { get; set; }
+
+    public ICollection<ProjectAssignment> Assignments { get; set; } = new List<ProjectAssignment>();
+}
+
+public sealed class ProjectAssignment : AuditableEntity
+{
+    public Guid Id { get; set; }
+
+    public Guid ProjectId { get; set; }
+
+    public Project? Project { get; set; }
+
+    public Guid StudentId { get; set; }
+
+    public Guid? EnrollmentId { get; set; }
+
+    public Enrollment? Enrollment { get; set; }
+
+    public DateTimeOffset AssignedAt { get; set; }
 }
 
 public sealed class ProjectSubmission : AuditableEntity
@@ -122,6 +155,8 @@ public sealed class ProjectSubmission : AuditableEntity
     public string? DocumentationUrl { get; set; }
 
     public string? PresentationUrl { get; set; }
+
+    public Guid? FileAssetId { get; set; }
 
     public string? Notes { get; set; }
 

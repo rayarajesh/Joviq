@@ -21,6 +21,10 @@ public sealed class UserSessionConfiguration : IEntityTypeConfiguration<UserSess
         builder.Property(x => x.RevokedByIp).HasMaxLength(64);
         builder.Property(x => x.RevocationReason).HasMaxLength(256);
         builder.HasIndex(x => x.UserId);
+        builder.HasIndex(x => new { x.UserId, x.DeviceId })
+            .HasDatabaseName("IX_user_sessions_UserId_DeviceId_Active")
+            .HasFilter("\"DeviceId\" IS NOT NULL AND \"RevokedAt\" IS NULL")
+            .IsUnique();
         builder.HasIndex(x => x.RefreshTokenHash).IsUnique();
         builder.HasIndex(x => x.RefreshTokenFamilyId);
     }

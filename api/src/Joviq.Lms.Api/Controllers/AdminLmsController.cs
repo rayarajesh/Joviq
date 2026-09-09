@@ -208,6 +208,25 @@ public sealed class AdminLmsController(
         return Ok(ApiResponse<IReadOnlyList<ProjectResponse>>.Ok(result, "Projects loaded.", CorrelationId));
     }
 
+    [HttpGet("project-submissions")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectSubmissionReviewResponse>>>> GetProjectSubmissions(
+        [FromQuery] Guid? projectId,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.GetAdminProjectSubmissionsAsync(projectId, cancellationToken);
+        return Ok(ApiResponse<IReadOnlyList<ProjectSubmissionReviewResponse>>.Ok(result, "Project submissions loaded.", CorrelationId));
+    }
+
+    [HttpPatch("project-submissions/{submissionId:guid}")]
+    public async Task<ActionResult<ApiResponse<SubmissionResponse>>> ReviewProjectSubmission(
+        Guid submissionId,
+        ReviewProjectSubmissionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.ReviewProjectSubmissionAsync(submissionId, request, cancellationToken);
+        return Ok(ApiResponse<SubmissionResponse>.Ok(result, "Project submission reviewed.", CorrelationId));
+    }
+
     [HttpPost("projects")]
     public async Task<ActionResult<ApiResponse<ProjectResponse>>> CreateProject(
         CreateProjectRequest request,
@@ -225,6 +244,34 @@ public sealed class AdminLmsController(
     {
         var result = await lmsPortalService.UpdateProjectAsync(projectId, request, cancellationToken);
         return Ok(ApiResponse<ProjectResponse>.Ok(result, "Project updated.", CorrelationId));
+    }
+
+    [HttpDelete("projects/{projectId:guid}")]
+    public async Task<ActionResult<ApiResponse>> DeleteProject(
+        Guid projectId,
+        CancellationToken cancellationToken)
+    {
+        await lmsPortalService.DeleteProjectAsync(projectId, cancellationToken);
+        return Ok(ApiResponse.Ok("Project deleted.", CorrelationId));
+    }
+
+    [HttpGet("programs/{programId:guid}/active-students")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectStudentResponse>>>> GetProjectStudents(
+        Guid programId,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.GetProjectStudentsAsync(programId, cancellationToken);
+        return Ok(ApiResponse<IReadOnlyList<ProjectStudentResponse>>.Ok(result, "Active program students loaded.", CorrelationId));
+    }
+
+    [HttpPost("projects/{projectId:guid}/publish")]
+    public async Task<ActionResult<ApiResponse<ProjectResponse>>> PublishProject(
+        Guid projectId,
+        PublishProjectRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.PublishProjectAsync(projectId, request, cancellationToken);
+        return Ok(ApiResponse<ProjectResponse>.Ok(result, "Project published to selected students.", CorrelationId));
     }
 
     [HttpGet("enrollments")]

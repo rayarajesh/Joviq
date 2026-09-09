@@ -135,6 +135,27 @@ public sealed record ChangePasswordRequest
     public string ConfirmPassword { get; init; } = string.Empty;
 }
 
+public sealed record UpdateAccountProfileRequest
+{
+    [Required, MinLength(2), MaxLength(160)]
+    public string FullName { get; init; } = string.Empty;
+
+    [IndianMobileNumber, MaxLength(16)]
+    public string? PhoneNumber { get; init; }
+
+    [MaxLength(10)]
+    public string? DateOfBirth { get; init; }
+
+    [MaxLength(500)]
+    public string? Address { get; init; }
+
+    [MaxLength(120)]
+    public string? City { get; init; }
+
+    [MaxLength(120)]
+    public string? State { get; init; }
+}
+
 public sealed record ConfirmAccountDeletionRequest
 {
     [Required]

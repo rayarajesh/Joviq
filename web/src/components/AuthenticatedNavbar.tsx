@@ -20,7 +20,7 @@ export function AuthenticatedNavbar() {
 
   const user = auth.user;
   const isStudent = user?.roles.includes("Student") ?? false;
-  const profilePath = isStudent ? "/student/onboarding" : "/dashboard";
+  const profilePath = "/profile";
   const supportPath = isStudent && user?.onboardingStatus !== "Completed"
     ? "/request-callback"
     : "/dashboard?section=Support";
@@ -223,7 +223,7 @@ export function AuthenticatedNavbar() {
                 </div>
                 <Link to={profilePath}>
                   <UserRound size={17} />
-                  {isStudent ? "View profile" : "Account overview"}
+                  Profile
                 </Link>
                 <Link to="/dashboard">
                   <LayoutDashboard size={17} />

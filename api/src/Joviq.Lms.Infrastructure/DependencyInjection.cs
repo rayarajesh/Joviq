@@ -36,6 +36,7 @@ public static class DependencyInjection
         services.Configure<EmailSettingsOptions>(configuration.GetSection(EmailSettingsOptions.SectionName));
         services.Configure<ExternalAuthOptions>(configuration.GetSection(ExternalAuthOptions.SectionName));
         services.Configure<AssetStorageOptions>(configuration.GetSection(AssetStorageOptions.SectionName));
+        services.Configure<PaymentOptions>(configuration.GetSection(PaymentOptions.SectionName));
 
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? "Host=localhost;Port=5432;Database=joviq_lms;Username=postgres;Password=s";
@@ -90,6 +91,36 @@ public static class DependencyInjection
                     NameClaimType = "sub",
                     RoleClaimType = "role",
                     ClockSkew = TimeSpan.FromSeconds(30)
+                };
+                options.Events = new JwtBearerEvents
+                {
+                    OnTokenValidated = async context =>
+                    {
+                        var userIdValue = context.Principal?.FindFirstValue("sub");
+                        var sessionIdValue = context.Principal?.FindFirstValue("sid");
+                        var jwtId = context.Principal?.FindFirstValue("jti");
+
+                        if (!Guid.TryParse(userIdValue, out var userId) ||
+                            !Guid.TryParse(sessionIdValue, out var sessionId) ||
+                            string.IsNullOrWhiteSpace(jwtId))
+                        {
+                            context.Fail("The access token is missing its session claims.");
+                            return;
+                        }
+
+                        var dbContext = context.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
+                        var session = await dbContext.UserSessions
+                            .AsNoTracking()
+                            .SingleOrDefaultAsync(x => x.Id == sessionId && x.UserId == userId, context.HttpContext.RequestAborted);
+
+                        if (session is null ||
+                            session.RevokedAt is not null ||
+                            session.ExpiresAt <= DateTimeOffset.UtcNow ||
+                            !string.Equals(session.JwtId, jwtId, StringComparison.Ordinal))
+                        {
+                            context.Fail("The session is no longer active.");
+                        }
+                    }
                 };
             });
 
@@ -157,6 +188,11 @@ public static class DependencyInjection
         services.AddScoped<IAssetService, AssetService>();
         services.AddScoped<IAdminUserService, AdminUserService>();
         services.AddScoped<ILmsPortalService, LmsPortalService>();
+        services.AddHttpClient<IPaymentGateway, RazorpayPaymentGateway>(client =>
+        {
+            client.BaseAddress = new Uri("https://api.razorpay.com/v1/");
+            client.Timeout = TimeSpan.FromSeconds(20);
+        });
         services.AddScoped<IStudentOnboardingService, StudentOnboardingService>();
         services.AddScoped<IAuditLogService, AuditLogService>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();

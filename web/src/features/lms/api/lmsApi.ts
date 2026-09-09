@@ -19,6 +19,8 @@ import type {
   EnrollmentResponse,
   IssueCertificateRequest,
   LessonResponse,
+  PaymentCheckoutResponse,
+  PaymentReceiptResponse,
   PaymentTransactionResponse,
   ProgramCategoryResponse,
   ProgramDetailsResponse,
@@ -26,8 +28,12 @@ import type {
   ProgramPlanResponse,
   ProgramSummaryResponse,
   ProjectResponse,
+  ProjectSubmissionReviewResponse,
+  ProjectStudentResponse,
+  PublishProjectRequest,
   ReorderItemsRequest,
   StudentLmsDashboardResponse,
+  StudentMyProgramsResponse,
   StudentProgramWorkspaceResponse,
   SubmissionResponse,
   UpdateCertificateStatusRequest,
@@ -75,16 +81,28 @@ export const studentLmsApi = {
     return request<ProgramDetailsResponse>("/api/v1/student/lms/my-program");
   },
 
+  getMyPrograms() {
+    return request<StudentMyProgramsResponse>("/api/v1/student/lms/my-programs");
+  },
+
   createEnrollment(body: CreateEnrollmentRequest) {
     return request<EnrollmentResponse>("/api/v1/student/lms/enrollments", { method: "POST", body });
   },
 
   createPaymentCheckout(body: CreatePaymentCheckoutRequest) {
-    return request<PaymentTransactionResponse>("/api/v1/student/lms/payments/checkout", { method: "POST", body });
+    return request<PaymentCheckoutResponse>("/api/v1/student/lms/payments/checkout", { method: "POST", body });
   },
 
   verifyPayment(body: VerifyPaymentRequest) {
     return request<PaymentTransactionResponse>("/api/v1/student/lms/payments/verify", { method: "POST", body });
+  },
+
+  markPaymentFailed(paymentId: string, body: { failureReason?: string } = {}) {
+    return request<PaymentTransactionResponse>(`/api/v1/student/lms/payments/${paymentId}/failed`, { method: "POST", body });
+  },
+
+  getPaymentReceipt(paymentId: string) {
+    return request<PaymentReceiptResponse>(`/api/v1/student/lms/payments/${paymentId}/receipt`);
   },
 
   getProjects() {
@@ -94,6 +112,7 @@ export const studentLmsApi = {
   submitProject(
     projectId: string,
     body: {
+      fileAssetId?: string;
       gitHubUrl?: string;
       demoUrl?: string;
       documentationUrl?: string;
@@ -197,12 +216,32 @@ export const adminLmsApi = {
     return request<ProjectResponse[]>("/api/v1/admin/lms/projects");
   },
 
+  getProjectSubmissions(projectId?: string) {
+    return request<ProjectSubmissionReviewResponse[]>(`/api/v1/admin/lms/project-submissions${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ""}`);
+  },
+
+  reviewProjectSubmission(submissionId: string, body: { status: "NeedsRevision" | "Approved"; score?: number; feedback?: string }) {
+    return request<SubmissionResponse>(`/api/v1/admin/lms/project-submissions/${submissionId}`, { method: "PATCH", body });
+  },
+
   createProject(body: CreateProjectRequest) {
     return request<ProjectResponse>("/api/v1/admin/lms/projects", { method: "POST", body });
   },
 
   updateProject(projectId: string, body: CreateProjectRequest) {
     return request<ProjectResponse>(`/api/v1/admin/lms/projects/${projectId}`, { method: "PUT", body });
+  },
+
+  deleteProject(projectId: string) {
+    return request(`/api/v1/admin/lms/projects/${projectId}`, { method: "DELETE" });
+  },
+
+  getProjectStudents(programId: string) {
+    return request<ProjectStudentResponse[]>(`/api/v1/admin/lms/programs/${programId}/active-students`);
+  },
+
+  publishProject(projectId: string, body: PublishProjectRequest) {
+    return request<ProjectResponse>(`/api/v1/admin/lms/projects/${projectId}/publish`, { method: "POST", body });
   },
 
   getEnrollments() {

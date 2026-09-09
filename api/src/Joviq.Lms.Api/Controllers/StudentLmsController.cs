@@ -36,6 +36,13 @@ public sealed class StudentLmsController(
         return Ok(ApiResponse<ProgramDetailsResponse>.Ok(result, "Student program loaded.", CorrelationId));
     }
 
+    [HttpGet("my-programs")]
+    public async Task<ActionResult<ApiResponse<StudentMyProgramsResponse>>> GetMyPrograms(CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.GetStudentMyProgramsAsync(RequiredUserId, cancellationToken);
+        return Ok(ApiResponse<StudentMyProgramsResponse>.Ok(result, "Enrolled programs loaded.", CorrelationId));
+    }
+
     [HttpPost("enrollments")]
     public async Task<ActionResult<ApiResponse<EnrollmentResponse>>> CreateEnrollment(
         CreateEnrollmentRequest request,
@@ -46,12 +53,12 @@ public sealed class StudentLmsController(
     }
 
     [HttpPost("payments/checkout")]
-    public async Task<ActionResult<ApiResponse<PaymentTransactionResponse>>> CreatePaymentCheckout(
+    public async Task<ActionResult<ApiResponse<PaymentCheckoutResponse>>> CreatePaymentCheckout(
         CreatePaymentCheckoutRequest request,
         CancellationToken cancellationToken)
     {
         var result = await lmsPortalService.CreatePaymentCheckoutAsync(RequiredUserId, request, cancellationToken);
-        return Ok(ApiResponse<PaymentTransactionResponse>.Ok(result, "Payment checkout created.", CorrelationId));
+        return Ok(ApiResponse<PaymentCheckoutResponse>.Ok(result, "Payment checkout created.", CorrelationId));
     }
 
     [HttpPost("payments/verify")]
@@ -61,6 +68,25 @@ public sealed class StudentLmsController(
     {
         var result = await lmsPortalService.VerifyPaymentAsync(RequiredUserId, request, cancellationToken);
         return Ok(ApiResponse<PaymentTransactionResponse>.Ok(result, "Payment verified.", CorrelationId));
+    }
+
+    [HttpPost("payments/{paymentId:guid}/failed")]
+    public async Task<ActionResult<ApiResponse<PaymentTransactionResponse>>> MarkPaymentFailed(
+        Guid paymentId,
+        [FromBody] PaymentFailureRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.MarkPaymentFailedAsync(RequiredUserId, paymentId, request.FailureReason, cancellationToken);
+        return Ok(ApiResponse<PaymentTransactionResponse>.Ok(result, "Payment attempt marked as failed.", CorrelationId));
+    }
+
+    [HttpGet("payments/{paymentId:guid}/receipt")]
+    public async Task<ActionResult<ApiResponse<PaymentReceiptResponse>>> GetPaymentReceipt(
+        Guid paymentId,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.GetPaymentReceiptAsync(RequiredUserId, paymentId, cancellationToken);
+        return Ok(ApiResponse<PaymentReceiptResponse>.Ok(result, "Payment receipt loaded.", CorrelationId));
     }
 
     [HttpGet("projects")]
@@ -114,4 +140,9 @@ public sealed class StudentLmsController(
         return Ok(ApiResponse<NotificationResponse>.Ok(result, "Notification marked as read.", CorrelationId));
     }
 
+}
+
+public sealed class PaymentFailureRequest
+{
+    public string? FailureReason { get; init; }
 }

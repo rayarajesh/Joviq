@@ -91,9 +91,11 @@ export type EnrollmentResponse = {
   id: string;
   studentId: string;
   programId: string;
+  programSlug: string;
   programTitle: string;
   programPlanId?: string;
   programPlanName?: string;
+  programPlanCode?: string;
   status: string;
   totalAmount: number;
   paidAmount: number;
@@ -101,6 +103,13 @@ export type EnrollmentResponse = {
   enrolledAt: string;
   fullAccessUnlockedAt?: string;
   lockedReason?: string;
+  accessExpiresAt?: string;
+  isAccessExpired: boolean;
+  hasFullAccess: boolean;
+  accessCycle: number;
+  studentName?: string;
+  studentEmail?: string;
+  studentPhone?: string;
 };
 
 export type StudentLmsDashboardResponse = {
@@ -122,6 +131,19 @@ export type StudentProgramWorkspaceResponse = {
   payments: PaymentTransactionResponse[];
 };
 
+export type StudentEnrolledProgramResponse = {
+  enrollment: EnrollmentResponse;
+  program: ProgramDetailsResponse;
+  completedLessons: number;
+  totalLessons: number;
+  progressPercentage: number;
+  certificates: CertificateResponse[];
+};
+
+export type StudentMyProgramsResponse = {
+  programs: StudentEnrolledProgramResponse[];
+};
+
 export type PaymentTransactionResponse = {
   id: string;
   enrollmentId?: string;
@@ -136,6 +158,36 @@ export type PaymentTransactionResponse = {
   currency: string;
   createdAt: string;
   verifiedAt?: string;
+  invoiceNumber?: string;
+  failureReason?: string;
+};
+
+export type PaymentCheckoutResponse = {
+  transaction: PaymentTransactionResponse;
+  provider: string;
+  publicKey: string;
+  gatewayOrderId: string;
+  amountInMinorUnits: number;
+  currency: string;
+  expiresAt: string;
+};
+
+export type PaymentReceiptResponse = {
+  paymentId: string;
+  invoiceNumber: string;
+  status: string;
+  studentName: string;
+  studentEmail: string;
+  programTitle: string;
+  planName: string;
+  paymentMode: string;
+  amount: number;
+  currency: string;
+  gateway: string;
+  gatewayOrderId: string;
+  gatewayPaymentId?: string;
+  paidAt?: string;
+  createdAt: string;
 };
 
 export type ProjectResponse = {
@@ -144,9 +196,41 @@ export type ProjectResponse = {
   title: string;
   description: string;
   requiredArtifacts: string[];
+  usefulLinks: ProjectLinkResponse[];
+  referenceMediaUrl?: string;
+  deadline?: string;
   maxScore: number;
   isPublished: boolean;
+  assignedStudentCount: number;
   latestSubmission?: SubmissionResponse;
+};
+
+export type ProjectLinkResponse = {
+  label: string;
+  url: string;
+};
+
+export type ProjectStudentResponse = {
+  studentId: string;
+  enrollmentId: string;
+  fullName: string;
+  email: string;
+  programId: string;
+  programTitle: string;
+  enrolledAt: string;
+};
+
+export type ProjectSubmissionReviewResponse = {
+  id: string;
+  projectId: string;
+  programId: string;
+  projectTitle: string;
+  programTitle: string;
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+  maxScore: number;
+  submission: SubmissionResponse;
 };
 
 export type SubmissionResponse = {
@@ -154,10 +238,11 @@ export type SubmissionResponse = {
   itemId: string;
   itemType: string;
   status: string;
-  score?: number;
-  feedback?: string;
+  score?: number | null;
+  feedback?: string | null;
   submissionUrl?: string;
   fileUrl?: string;
+  fileAssetId?: string | null;
   gitHubUrl?: string;
   demoUrl?: string;
   documentationUrl?: string;
@@ -265,6 +350,7 @@ export type VerifyPaymentRequest = {
   paymentTransactionId?: string;
   gatewayOrderId?: string;
   gatewayPaymentId?: string;
+  gatewaySignature?: string;
 };
 
 export type CreateProgramRequest = {
@@ -335,8 +421,20 @@ export type CreateProjectRequest = {
   title: string;
   description: string;
   requiredArtifacts: string[];
+  usefulLinks: ProjectLinkRequest[];
+  referenceMediaUrl?: string;
+  deadline?: string;
   maxScore?: number;
   isPublished?: boolean;
+};
+
+export type ProjectLinkRequest = {
+  label: string;
+  url: string;
+};
+
+export type PublishProjectRequest = {
+  studentIds: string[];
 };
 
 export type UpdateEnrollmentStatusRequest = {

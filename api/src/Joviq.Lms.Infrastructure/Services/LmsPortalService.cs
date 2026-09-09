@@ -4,19 +4,24 @@ using System.Text.RegularExpressions;
 using Joviq.Lms.Application.Common.Exceptions;
 using Joviq.Lms.Application.Common.Interfaces;
 using Joviq.Lms.Application.Common.Models;
+using Joviq.Lms.Application.Common.Options;
 using Joviq.Lms.Application.Common.Validation;
 using Joviq.Lms.Application.Lms;
 using Joviq.Lms.Domain.Entities;
 using Joviq.Lms.Domain.Enums;
 using Joviq.Lms.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace Joviq.Lms.Infrastructure.Services;
 
 public sealed class LmsPortalService(
     ApplicationDbContext dbContext,
     IDateTimeProvider clock,
-    IAuditLogService auditLog) : ILmsPortalService
+    IAuditLogService auditLog,
+    ICurrentUserService currentUser,
+    IPaymentGateway paymentGateway,
+    IOptions<PaymentOptions> paymentOptions) : ILmsPortalService
 {
     private const string DefaultThumbnailUrl = "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=82";
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
@@ -24,6 +29,15 @@ public sealed class LmsPortalService(
     private static readonly Regex LocalAssetFilePathRegex = new(
         "/api/v1/assets/local-files/([0-9a-fA-F-]{36})",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly IReadOnlyDictionary<string, FixedPlanPricing> FixedPlans =
+        new Dictionary<string, FixedPlanPricing>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["SELF"] = new("Launch", 8000m, 1500m),
+            ["INTERMEDIATE"] = new("Elevate", 10000m, 1500m),
+            ["MASTER"] = new("Mastery", 15000m, 3000m)
+        };
+
+    private PaymentOptions Payments => paymentOptions.Value;
 
     private void Audit(string eventType, object? metadata = null)
         => auditLog.Add($"Lms.{eventType}", metadata);
@@ -205,18 +219,34 @@ public sealed class LmsPortalService(
         }
 
         var progress = await GetLearningProgressAsync(studentId, enrollment.ProgramId, cancellationToken);
-        var projects = await GetStudentProjectsAsync(studentId, cancellationToken);
-        var certificates = await GetStudentCertificatesAsync(studentId, cancellationToken);
+        var hasFullAccess = HasFullAccess(enrollment, clock.UtcNow);
+        var projects = hasFullAccess
+            ? await GetStudentProjectsAsync(studentId, cancellationToken)
+            : [];
+        var certificates = hasFullAccess
+            ? await GetStudentCertificatesAsync(studentId, cancellationToken)
+            : [];
+        var isExpired = IsAccessExpired(enrollment, clock.UtcNow);
+        var programStatus = isExpired
+            ? "Access expired"
+            : hasFullAccess
+                ? "Active"
+                : enrollment.PaidAmount > 0
+                    ? "Preview access"
+                    : "Payment required";
+        var balanceDue = isExpired && enrollment.ProgramPlan is not null
+            ? GetFixedPricing(enrollment.ProgramPlan).ReserveAmount
+            : Math.Max(enrollment.TotalAmount - enrollment.PaidAmount, 0);
 
         return new StudentLmsDashboardResponse(
             MapEnrollment(enrollment),
-            enrollment.Status.ToString(),
+            programStatus,
             progress.Percentage,
             progress.Completed,
             progress.Total,
             projects.Count(x => x.LatestSubmission is null || x.LatestSubmission.Status is "Draft" or "NeedsRevision"),
             certificates.OrderByDescending(x => x.IssuedAt ?? DateTimeOffset.MinValue).FirstOrDefault(),
-            Math.Max(enrollment.TotalAmount - enrollment.PaidAmount, 0),
+            balanceDue,
             notifications.Take(5).ToList());
     }
 
@@ -226,9 +256,107 @@ public sealed class LmsPortalService(
 
         return new StudentProgramWorkspaceResponse(
             enrollment is null ? null : MapEnrollment(enrollment),
-            enrollment is null ? [] : await GetStudentProjectsAsync(studentId, cancellationToken),
-            await GetStudentCertificatesAsync(studentId, cancellationToken),
+            enrollment is null || !HasFullAccess(enrollment, clock.UtcNow) ? [] : await GetStudentProjectsAsync(studentId, cancellationToken),
+            enrollment is null || !HasFullAccess(enrollment, clock.UtcNow) ? [] : await GetStudentCertificatesAsync(studentId, cancellationToken),
             await GetStudentPaymentsAsync(studentId, cancellationToken));
+    }
+
+    public async Task<StudentMyProgramsResponse> GetStudentMyProgramsAsync(
+        Guid studentId,
+        CancellationToken cancellationToken)
+    {
+        var enrollments = await dbContext.Enrollments
+            .AsNoTracking()
+            .Include(x => x.Program)
+                .ThenInclude(x => x!.Category)
+            .Include(x => x.ProgramPlan)
+            .Where(x => x.StudentId == studentId && x.Status != EnrollmentStatus.Cancelled)
+            .OrderByDescending(x => x.Status == EnrollmentStatus.Active)
+            .ThenByDescending(x => x.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        if (enrollments.Count == 0)
+        {
+            return new StudentMyProgramsResponse([]);
+        }
+
+        var programIds = enrollments.Select(x => x.ProgramId).Distinct().ToList();
+        var programs = await dbContext.LearningPrograms
+            .AsNoTracking()
+            .Include(x => x.Category)
+            .Include(x => x.Plans)
+            .Include(x => x.Modules.OrderBy(module => module.SortOrder))
+                .ThenInclude(x => x.Lessons.OrderBy(lesson => lesson.SortOrder))
+                    .ThenInclude(x => x.Resources)
+            .Where(x => programIds.Contains(x.Id))
+            .ToListAsync(cancellationToken);
+
+        var lessonIds = programs
+            .SelectMany(program => program.Modules)
+            .Where(module => module.IsActive)
+            .SelectMany(module => module.Lessons.Where(lesson => lesson.IsActive))
+            .Select(lesson => lesson.Id)
+            .Distinct()
+            .ToList();
+        var progress = lessonIds.Count == 0
+            ? new Dictionary<Guid, LessonProgress>()
+            : await dbContext.LessonProgress
+                .AsNoTracking()
+                .Where(x => x.StudentId == studentId && lessonIds.Contains(x.LessonId))
+                .ToDictionaryAsync(x => x.LessonId, cancellationToken);
+
+        var projects = await dbContext.Projects
+            .AsNoTracking()
+            .Where(x => programIds.Contains(x.ProgramId) && x.IsPublished &&
+                (!dbContext.ProjectAssignments.Any(assignment => assignment.ProjectId == x.Id) ||
+                 dbContext.ProjectAssignments.Any(assignment => assignment.ProjectId == x.Id && assignment.StudentId == studentId)))
+            .OrderBy(x => x.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        var certificatesByProgram = (await dbContext.Certificates
+                .AsNoTracking()
+                .Include(x => x.Program)
+                .Where(x => x.StudentId == studentId && programIds.Contains(x.ProgramId))
+                .OrderByDescending(x => x.IssuedAt ?? x.CreatedAt)
+                .ToListAsync(cancellationToken))
+            .Select(MapCertificate)
+            .GroupBy(certificate => certificate.ProgramId)
+            .ToDictionary(group => group.Key, group => (IReadOnlyList<CertificateResponse>)group.ToList());
+
+        var programsById = programs.ToDictionary(x => x.Id);
+        var result = new List<StudentEnrolledProgramResponse>(enrollments.Count);
+        foreach (var enrollment in enrollments)
+        {
+            if (!programsById.TryGetValue(enrollment.ProgramId, out var program))
+            {
+                continue;
+            }
+
+            var activeLessons = program.Modules
+                .Where(module => module.IsActive)
+                .SelectMany(module => module.Lessons.Where(lesson => lesson.IsActive))
+                .ToList();
+            var completedLessons = activeLessons.Count(lesson =>
+                progress.TryGetValue(lesson.Id, out var lessonProgress) && lessonProgress.IsCompleted);
+            var totalLessons = activeLessons.Count;
+            var programProgress = activeLessons
+                .Select(lesson => lesson.Id)
+                .Where(progress.ContainsKey)
+                .ToDictionary(lessonId => lessonId, lessonId => progress[lessonId]);
+            var programProjects = HasFullAccess(enrollment, clock.UtcNow)
+                ? projects.Where(project => project.ProgramId == program.Id).ToList()
+                : [];
+
+            result.Add(new StudentEnrolledProgramResponse(
+                MapEnrollment(enrollment),
+                MapProgramDetails(program, programProjects, programProgress, includeInactive: false, enrollment),
+                completedLessons,
+                totalLessons,
+                totalLessons == 0 ? 0 : (int)Math.Round(completedLessons / (double)totalLessons * 100),
+                certificatesByProgram.TryGetValue(program.Id, out var certificates) ? certificates : []));
+        }
+
+        return new StudentMyProgramsResponse(result);
     }
 
     public async Task<ProgramDetailsResponse> GetStudentMyProgramAsync(Guid studentId, CancellationToken cancellationToken)
@@ -253,8 +381,18 @@ public sealed class LmsPortalService(
             .AsNoTracking()
             .Where(x => x.StudentId == studentId && lessonIds.Contains(x.LessonId))
             .ToDictionaryAsync(x => x.LessonId, cancellationToken);
-        var projects = await dbContext.Projects.AsNoTracking().Where(x => x.ProgramId == program.Id && x.IsPublished).ToListAsync(cancellationToken);
-        return MapProgramDetails(program, projects, progress, includeInactive: false);
+        var projects = await dbContext.Projects
+            .AsNoTracking()
+            .Where(x => x.ProgramId == program.Id && x.IsPublished &&
+                (!dbContext.ProjectAssignments.Any(assignment => assignment.ProjectId == x.Id) ||
+                 dbContext.ProjectAssignments.Any(assignment => assignment.ProjectId == x.Id && assignment.StudentId == studentId)))
+            .ToListAsync(cancellationToken);
+        return MapProgramDetails(
+            program,
+            HasFullAccess(enrollment, clock.UtcNow) ? projects : [],
+            progress,
+            includeInactive: false,
+            enrollment);
     }
 
     public async Task<EnrollmentResponse> CreateEnrollmentAsync(
@@ -284,15 +422,16 @@ public sealed class LmsPortalService(
             return MapEnrollment(existing);
         }
 
-        var plan = ResolvePlan(program, request.ProgramPlanId);
+        var plan = ResolvePlan(program, request.ProgramPlanId)
+            ?? throw new AppException("A valid program plan is required.", 400, "program_plan_required");
         var enrollment = new Enrollment
         {
             Id = Guid.NewGuid(),
             StudentId = studentId,
             ProgramId = program.Id,
-            ProgramPlanId = plan?.Id,
+            ProgramPlanId = plan.Id,
             Status = EnrollmentStatus.Reserved,
-            TotalAmount = plan?.OfferPrice ?? 0,
+            TotalAmount = GetFixedPricing(plan).TotalAmount,
             PaidAmount = 0,
             EnrolledAt = clock.UtcNow,
             LockedReason = "Reserve payment gives preview access. Pay the remaining balance to unlock the full LMS."
@@ -308,14 +447,14 @@ public sealed class LmsPortalService(
             ActionUrl = "/dashboard"
         });
 
-        Audit("Student.EnrollmentCreated", new { studentId, enrollment.Id, programId = program.Id, planId = plan?.Id });
+        Audit("Student.EnrollmentCreated", new { studentId, enrollment.Id, programId = program.Id, planId = plan.Id });
         await dbContext.SaveChangesAsync(cancellationToken);
         enrollment.Program = program;
         enrollment.ProgramPlan = plan;
         return MapEnrollment(enrollment);
     }
 
-    public async Task<PaymentTransactionResponse> CreatePaymentCheckoutAsync(
+    public async Task<PaymentCheckoutResponse> CreatePaymentCheckoutAsync(
         Guid studentId,
         CreatePaymentCheckoutRequest request,
         CancellationToken cancellationToken)
@@ -340,10 +479,22 @@ public sealed class LmsPortalService(
         var plan = enrollment.ProgramPlan;
         if (plan is null && request.ProgramPlanId.HasValue)
         {
-            plan = await dbContext.ProgramPlans.FirstOrDefaultAsync(x => x.Id == request.ProgramPlanId, cancellationToken);
+            plan = await dbContext.ProgramPlans.FirstOrDefaultAsync(
+                x => x.Id == request.ProgramPlanId && x.ProgramId == enrollment.ProgramId && x.IsActive,
+                cancellationToken);
         }
 
-        var amount = CalculatePaymentAmount(enrollment, plan, request.Mode);
+        if (plan is null)
+        {
+            throw new AppException("A valid plan is required before payment.", 400, "program_plan_required");
+        }
+
+        var pricing = GetFixedPricing(plan);
+        enrollment.TotalAmount = pricing.TotalAmount;
+        enrollment.ProgramPlanId = plan.Id;
+        enrollment.ProgramPlan = plan;
+        var amount = CalculatePaymentAmount(enrollment, plan, request.Mode, clock.UtcNow);
+        var checkoutExpiresAt = clock.UtcNow.AddMinutes(Math.Clamp(Payments.CheckoutExpiryMinutes, 5, 30));
         var transaction = new PaymentTransaction
         {
             Id = Guid.NewGuid(),
@@ -351,17 +502,55 @@ public sealed class LmsPortalService(
             EnrollmentId = enrollment.Id,
             ProgramId = enrollment.ProgramId,
             ProgramPlanId = enrollment.ProgramPlanId,
-            Gateway = "Manual",
-            GatewayOrderId = $"joviq_order_{Guid.NewGuid():N}",
+            Gateway = Payments.Provider,
+            GatewayOrderId = $"pending_{Guid.NewGuid():N}",
             Mode = request.Mode,
             Status = PaymentStatus.Pending,
-            Amount = amount
+            Amount = amount,
+            Currency = Payments.Currency,
+            CheckoutExpiresAt = checkoutExpiresAt
         };
 
         dbContext.PaymentTransactions.Add(transaction);
         Audit("Student.PaymentCheckoutCreated", new { studentId, transaction.Id, transaction.EnrollmentId, transaction.ProgramId, transaction.Mode, transaction.Amount });
         await dbContext.SaveChangesAsync(cancellationToken);
-        return MapPayment(transaction);
+
+        try
+        {
+            var gatewayOrder = await paymentGateway.CreateOrderAsync(
+                transaction.Id,
+                transaction.Amount,
+                transaction.Currency,
+                checkoutExpiresAt,
+                cancellationToken);
+            transaction.Gateway = gatewayOrder.Provider;
+            transaction.GatewayOrderId = gatewayOrder.OrderId;
+            transaction.CheckoutExpiresAt = gatewayOrder.ExpiresAt;
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            return new PaymentCheckoutResponse(
+                MapPayment(transaction),
+                gatewayOrder.Provider,
+                gatewayOrder.PublicKey,
+                gatewayOrder.OrderId,
+                gatewayOrder.AmountInMinorUnits,
+                gatewayOrder.Currency,
+                gatewayOrder.ExpiresAt);
+        }
+        catch (AppException exception)
+        {
+            transaction.Status = PaymentStatus.Failed;
+            transaction.FailureReason = OptionalText(exception.Message, 500);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            throw;
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            transaction.Status = PaymentStatus.Failed;
+            transaction.FailureReason = "Payment gateway request failed.";
+            await dbContext.SaveChangesAsync(cancellationToken);
+            throw new AppException("The payment gateway is temporarily unavailable. Please try again.", 503, "payment_gateway_unavailable");
+        }
     }
 
     public async Task<PaymentTransactionResponse> VerifyPaymentAsync(
@@ -386,25 +575,40 @@ public sealed class LmsPortalService(
             return MapPayment(transaction);
         }
 
-        transaction.Status = PaymentStatus.Verified;
-        transaction.GatewayPaymentId = OptionalText(request.GatewayPaymentId, 160) ?? $"manual_{Guid.NewGuid():N}";
-        transaction.VerifiedAt = clock.UtcNow;
+        var orderId = RequiredText(request.GatewayOrderId ?? string.Empty, nameof(request.GatewayOrderId), 3, 160);
+        var paymentId = RequiredText(request.GatewayPaymentId ?? string.Empty, nameof(request.GatewayPaymentId), 3, 160);
+        var signature = RequiredText(request.GatewaySignature ?? string.Empty, nameof(request.GatewaySignature), 16, 256);
+        if (!string.Equals(transaction.GatewayOrderId, orderId, StringComparison.Ordinal))
+        {
+            throw new AppException("The payment order does not match this checkout.", 400, "payment_order_mismatch");
+        }
 
+        if (transaction.CheckoutExpiresAt.HasValue && transaction.CheckoutExpiresAt <= clock.UtcNow)
+        {
+            transaction.Status = PaymentStatus.Failed;
+            transaction.FailureReason = "Checkout expired.";
+            await dbContext.SaveChangesAsync(cancellationToken);
+            throw new AppException("This payment session expired. Start a new payment attempt.", 400, "payment_expired");
+        }
+
+        if (!paymentGateway.VerifyPaymentSignature(orderId, paymentId, signature))
+        {
+            throw new AppException("Payment verification failed. No access was granted.", 400, "payment_signature_invalid");
+        }
+
+        if (await dbContext.PaymentTransactions.AnyAsync(
+                x => x.GatewayPaymentId == paymentId && x.Id != transaction.Id,
+                cancellationToken))
+        {
+            throw new AppException("This gateway payment was already processed.", 409, "payment_already_processed");
+        }
+
+        transaction.Status = PaymentStatus.Verified;
+        transaction.GatewayPaymentId = paymentId;
+        transaction.VerifiedAt = clock.UtcNow;
+        ApplyVerifiedPayment(transaction, clock.UtcNow);
         if (transaction.Enrollment is not null)
         {
-            transaction.Enrollment.PaidAmount += transaction.Amount;
-            if (transaction.Enrollment.PaidAmount >= transaction.Enrollment.TotalAmount)
-            {
-                transaction.Enrollment.Status = EnrollmentStatus.Active;
-                transaction.Enrollment.FullAccessUnlockedAt ??= clock.UtcNow;
-                transaction.Enrollment.LockedReason = null;
-            }
-            else
-            {
-                transaction.Enrollment.Status = EnrollmentStatus.Reserved;
-                transaction.Enrollment.LockedReason = "Remaining balance payment is required for full LMS access.";
-            }
-
             dbContext.Notifications.Add(new Notification
             {
                 Id = Guid.NewGuid(),
@@ -420,14 +624,147 @@ public sealed class LmsPortalService(
         return MapPayment(transaction);
     }
 
+    public async Task<PaymentTransactionResponse> MarkPaymentFailedAsync(
+        Guid studentId,
+        Guid paymentId,
+        string? failureReason,
+        CancellationToken cancellationToken)
+    {
+        var payment = await dbContext.PaymentTransactions
+            .FirstOrDefaultAsync(x => x.Id == paymentId && x.StudentId == studentId, cancellationToken)
+            ?? throw new AppException("Payment transaction was not found.", 404, "payment_not_found");
+
+        if (payment.Status == PaymentStatus.Pending)
+        {
+            payment.Status = PaymentStatus.Failed;
+            payment.FailureReason = OptionalText(failureReason, 500) ?? "Payment was cancelled or declined.";
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        return MapPayment(payment);
+    }
+
+    public async Task<PaymentReceiptResponse> GetPaymentReceiptAsync(
+        Guid studentId,
+        Guid paymentId,
+        CancellationToken cancellationToken)
+    {
+        var payment = await dbContext.PaymentTransactions
+            .AsNoTracking()
+            .Include(x => x.Enrollment)
+                .ThenInclude(x => x!.Program)
+            .Include(x => x.Enrollment)
+                .ThenInclude(x => x!.ProgramPlan)
+            .FirstOrDefaultAsync(x => x.Id == paymentId && x.StudentId == studentId, cancellationToken)
+            ?? throw new AppException("Payment transaction was not found.", 404, "payment_not_found");
+
+        if (payment.Status != PaymentStatus.Verified)
+        {
+            throw new AppException("A receipt is available after payment verification.", 400, "receipt_not_available");
+        }
+
+        var student = await dbContext.Users
+            .AsNoTracking()
+            .Where(x => x.Id == studentId)
+            .Select(x => new { x.FullName, x.Email })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return new PaymentReceiptResponse(
+            payment.Id,
+            payment.InvoiceNumber ?? $"JOVIQ-{payment.Id.ToString("N")[..10].ToUpperInvariant()}",
+            payment.Status.ToString(),
+            student?.FullName ?? "Joviq Learner",
+            student?.Email ?? string.Empty,
+            payment.Enrollment?.Program?.Title ?? "Joviq Program",
+            payment.Enrollment?.ProgramPlan?.Name ?? "Program plan",
+            payment.Mode.ToString(),
+            payment.Amount,
+            payment.Currency,
+            payment.Gateway,
+            payment.GatewayOrderId,
+            payment.GatewayPaymentId,
+            payment.VerifiedAt,
+            payment.CreatedAt);
+    }
+
+    public async Task ProcessPaymentWebhookAsync(
+        string payload,
+        string signature,
+        CancellationToken cancellationToken)
+    {
+        if (!paymentGateway.VerifyWebhookSignature(payload, signature))
+        {
+            throw new AppException("Invalid payment webhook signature.", 401, "payment_webhook_invalid");
+        }
+
+        using var document = JsonDocument.Parse(payload);
+        var eventName = document.RootElement.TryGetProperty("event", out var eventElement)
+            ? eventElement.GetString()
+            : null;
+        if (!string.Equals(eventName, "payment.captured", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (!document.RootElement.TryGetProperty("payload", out var payloadElement) ||
+            !payloadElement.TryGetProperty("payment", out var paymentElement) ||
+            !paymentElement.TryGetProperty("entity", out var entity))
+        {
+            return;
+        }
+
+        var orderId = entity.TryGetProperty("order_id", out var orderElement) ? orderElement.GetString() : null;
+        var paymentId = entity.TryGetProperty("id", out var paymentIdElement) ? paymentIdElement.GetString() : null;
+        if (string.IsNullOrWhiteSpace(orderId) || string.IsNullOrWhiteSpace(paymentId))
+        {
+            return;
+        }
+
+        var transaction = await dbContext.PaymentTransactions
+            .Include(x => x.Enrollment)
+                .ThenInclude(x => x!.Program)
+            .Include(x => x.Enrollment)
+                .ThenInclude(x => x!.ProgramPlan)
+            .FirstOrDefaultAsync(x => x.GatewayOrderId == orderId, cancellationToken);
+
+        if (transaction is null || transaction.Status == PaymentStatus.Verified)
+        {
+            return;
+        }
+
+        if (await dbContext.PaymentTransactions.AnyAsync(
+                x => x.GatewayPaymentId == paymentId && x.Id != transaction.Id,
+                cancellationToken))
+        {
+            return;
+        }
+
+        transaction.Status = PaymentStatus.Verified;
+        transaction.GatewayPaymentId = paymentId;
+        transaction.VerifiedAt = clock.UtcNow;
+        ApplyVerifiedPayment(transaction, clock.UtcNow);
+        dbContext.Notifications.Add(new Notification
+        {
+            Id = Guid.NewGuid(),
+            UserId = transaction.StudentId,
+            Title = "Payment verified",
+            Body = $"INR {transaction.Amount:n0} payment for {transaction.Enrollment?.Program?.Title ?? "your program"} is verified.",
+            ActionUrl = "/dashboard"
+        });
+        Audit("Student.PaymentVerifiedByWebhook", new { transaction.Id, transaction.StudentId, transaction.EnrollmentId, transaction.GatewayPaymentId });
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<ProjectResponse>> GetStudentProjectsAsync(
         Guid studentId,
         CancellationToken cancellationToken)
     {
         var enrollment = await RequireEnrollmentAsync(studentId, cancellationToken);
+        EnsureFullAccess(enrollment, clock.UtcNow);
         var projects = await dbContext.Projects
             .AsNoTracking()
-            .Where(x => x.ProgramId == enrollment.ProgramId && x.IsPublished)
+            .Where(x => x.ProgramId == enrollment.ProgramId && x.IsPublished &&
+                dbContext.ProjectAssignments.Any(assignment => assignment.ProjectId == x.Id && assignment.StudentId == studentId))
             .OrderBy(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
 
@@ -454,13 +791,26 @@ public sealed class LmsPortalService(
         CancellationToken cancellationToken)
     {
         var enrollment = await RequireEnrollmentAsync(studentId, cancellationToken);
+        EnsureFullAccess(enrollment, clock.UtcNow);
         var project = await dbContext.Projects
-            .FirstOrDefaultAsync(x => x.Id == projectId && x.ProgramId == enrollment.ProgramId && x.IsPublished, cancellationToken)
+            .FirstOrDefaultAsync(x => x.Id == projectId && x.ProgramId == enrollment.ProgramId && x.IsPublished &&
+                dbContext.ProjectAssignments.Any(assignment => assignment.ProjectId == x.Id && assignment.StudentId == studentId), cancellationToken)
             ?? throw new AppException("Project was not found.", 404, "project_not_found");
 
-        if (AllBlank(request.GitHubUrl, request.DemoUrl, request.DocumentationUrl, request.PresentationUrl, request.Notes))
+        if (request.FileAssetId is null && AllBlank(request.GitHubUrl, request.DemoUrl, request.DocumentationUrl, request.PresentationUrl, request.Notes))
         {
-            throw Validation(nameof(request.GitHubUrl), "Add at least one project artifact link or notes.");
+            throw Validation(nameof(request.FileAssetId), "Attach a project file, add an artifact link, or write submission notes.");
+        }
+
+        if (request.FileAssetId.HasValue)
+        {
+            _ = await dbContext.Assets
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == request.FileAssetId.Value &&
+                                          x.OwnerUserId == studentId &&
+                                          x.Purpose == AssetPurpose.ProjectSubmission &&
+                                          x.Status == AssetStatus.Ready, cancellationToken)
+                ?? throw new AppException("The submitted file is not ready or does not belong to you.", 400, "project_submission_file_invalid");
         }
 
         var submission = new ProjectSubmission
@@ -473,6 +823,7 @@ public sealed class LmsPortalService(
             DemoUrl = OptionalUrl(request.DemoUrl, nameof(request.DemoUrl)),
             DocumentationUrl = OptionalUrl(request.DocumentationUrl, nameof(request.DocumentationUrl)),
             PresentationUrl = OptionalUrl(request.PresentationUrl, nameof(request.PresentationUrl)),
+            FileAssetId = request.FileAssetId,
             Notes = OptionalText(request.Notes, 2000),
             Status = SubmissionStatus.Submitted
         };
@@ -500,6 +851,8 @@ public sealed class LmsPortalService(
         Guid studentId,
         CancellationToken cancellationToken)
     {
+        var enrollment = await RequireEnrollmentAsync(studentId, cancellationToken);
+        EnsureFullAccess(enrollment, clock.UtcNow);
         var certificates = await dbContext.Certificates
             .AsNoTracking()
             .Include(x => x.Program)
@@ -718,24 +1071,24 @@ public sealed class LmsPortalService(
             ?? throw new AppException("Program was not found.", 404, "program_not_found");
 
         var code = RequiredText(request.Code, nameof(request.Code), 2, 80).ToUpperInvariant();
+        if (!FixedPlans.TryGetValue(code, out var fixedPricing))
+        {
+            throw new AppException("Use one of the fixed plans: Launch, Elevate, or Mastery.", 400, "invalid_program_plan");
+        }
         if (program.Plans.Any(x => string.Equals(x.Code, code, StringComparison.OrdinalIgnoreCase)))
         {
             throw new AppException("Plan code already exists for this program.", 409, "plan_code_exists");
         }
 
-        EnsureMoney(request.ActualPrice, nameof(request.ActualPrice));
-        EnsureMoney(request.OfferPrice, nameof(request.OfferPrice));
-        EnsureMoney(request.ReserveAmount, nameof(request.ReserveAmount));
-
         var plan = new ProgramPlan
         {
             Id = Guid.NewGuid(),
             ProgramId = program.Id,
-            Name = RequiredText(request.Name, nameof(request.Name), 2, 120),
+            Name = fixedPricing.Name,
             Code = code,
-            ActualPrice = request.ActualPrice,
-            OfferPrice = request.OfferPrice,
-            ReserveAmount = request.ReserveAmount,
+            ActualPrice = fixedPricing.TotalAmount,
+            OfferPrice = fixedPricing.TotalAmount,
+            ReserveAmount = fixedPricing.ReserveAmount,
             FeaturesJson = SerializeList(request.Features),
             IsActive = request.IsActive,
             SortOrder = program.Plans.Count + 1
@@ -755,15 +1108,17 @@ public sealed class LmsPortalService(
         var plan = await dbContext.ProgramPlans.FirstOrDefaultAsync(x => x.Id == planId, cancellationToken)
             ?? throw new AppException("Program plan was not found.", 404, "program_plan_not_found");
 
-        EnsureMoney(request.ActualPrice, nameof(request.ActualPrice));
-        EnsureMoney(request.OfferPrice, nameof(request.OfferPrice));
-        EnsureMoney(request.ReserveAmount, nameof(request.ReserveAmount));
+        var code = RequiredText(request.Code, nameof(request.Code), 2, 80).ToUpperInvariant();
+        if (!FixedPlans.TryGetValue(code, out var fixedPricing))
+        {
+            throw new AppException("Use one of the fixed plans: Launch, Elevate, or Mastery.", 400, "invalid_program_plan");
+        }
 
-        plan.Name = RequiredText(request.Name, nameof(request.Name), 2, 120);
-        plan.Code = RequiredText(request.Code, nameof(request.Code), 2, 80).ToUpperInvariant();
-        plan.ActualPrice = request.ActualPrice;
-        plan.OfferPrice = request.OfferPrice;
-        plan.ReserveAmount = request.ReserveAmount;
+        plan.Name = fixedPricing.Name;
+        plan.Code = code;
+        plan.ActualPrice = fixedPricing.TotalAmount;
+        plan.OfferPrice = fixedPricing.TotalAmount;
+        plan.ReserveAmount = fixedPricing.ReserveAmount;
         plan.FeaturesJson = SerializeList(request.Features);
         plan.IsActive = request.IsActive;
 
@@ -983,11 +1338,107 @@ public sealed class LmsPortalService(
     {
         var projects = await dbContext.Projects
             .AsNoTracking()
+            .Include(x => x.Assignments)
             .OrderByDescending(x => x.CreatedAt)
             .Take(200)
             .ToListAsync(cancellationToken);
 
         return projects.Select(x => MapProject(x, null)).ToList();
+    }
+
+    public async Task<IReadOnlyList<ProjectSubmissionReviewResponse>> GetAdminProjectSubmissionsAsync(
+        Guid? projectId,
+        CancellationToken cancellationToken)
+    {
+        var submissions = await dbContext.ProjectSubmissions
+            .AsNoTracking()
+            .Include(x => x.Project)
+                .ThenInclude(x => x!.Program)
+            .Where(x => projectId == null || x.ProjectId == projectId.Value)
+            .OrderByDescending(x => x.CreatedAt)
+            .ToListAsync(cancellationToken);
+        var latestSubmissions = submissions
+            .GroupBy(x => new { x.ProjectId, x.StudentId })
+            .Select(group => group.First())
+            .ToList();
+
+        var studentIds = latestSubmissions.Select(x => x.StudentId).Distinct().ToList();
+        var students = await dbContext.Users
+            .AsNoTracking()
+            .Where(x => studentIds.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id, cancellationToken);
+
+        return latestSubmissions
+            .Where(x => x.Project?.Program is not null && students.ContainsKey(x.StudentId))
+            .Select(x => new ProjectSubmissionReviewResponse(
+                x.Id,
+                x.ProjectId,
+                x.Project!.ProgramId,
+                x.Project.Title,
+                x.Project.Program!.Title,
+                x.StudentId,
+                students[x.StudentId].FullName,
+                students[x.StudentId].Email ?? string.Empty,
+                x.Project.MaxScore,
+                MapProjectSubmission(x)))
+            .ToList();
+    }
+
+    public async Task<SubmissionResponse> ReviewProjectSubmissionAsync(
+        Guid submissionId,
+        ReviewProjectSubmissionRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request.Status == SubmissionStatus.Draft)
+        {
+            throw Validation(nameof(request.Status), "A reviewed submission cannot be moved back to draft.");
+        }
+
+        var submission = await dbContext.ProjectSubmissions
+            .Include(x => x.Project)
+            .FirstOrDefaultAsync(x => x.Id == submissionId, cancellationToken)
+            ?? throw new AppException("Project submission was not found.", 404, "project_submission_not_found");
+        var project = submission.Project
+            ?? throw new AppException("The project for this submission was not found.", 404, "project_not_found");
+
+        if (request.Score is not null && (request.Score < 0 || request.Score > project.MaxScore))
+        {
+            throw Validation(nameof(request.Score), $"Score must be between 0 and {project.MaxScore}.");
+        }
+
+        if (request.Status == SubmissionStatus.Approved && request.Score is null)
+        {
+            throw Validation(nameof(request.Score), "Add the awarded score before approving the submission.");
+        }
+
+        submission.Status = request.Status;
+        submission.Score = request.Score;
+        submission.Feedback = OptionalText(request.Feedback, 2500);
+        submission.ReviewedById = currentUser.UserId;
+        submission.ReviewedAt = clock.UtcNow;
+
+        var approved = request.Status == SubmissionStatus.Approved;
+        dbContext.Notifications.Add(new Notification
+        {
+            Id = Guid.NewGuid(),
+            UserId = submission.StudentId,
+            Title = approved ? "Project approved" : "Project needs updates",
+            Body = approved
+                ? $"{project.Title} was reviewed and awarded {request.Score:0.##}/{project.MaxScore:0.##} points.{(string.IsNullOrWhiteSpace(submission.Feedback) ? string.Empty : $" Feedback: {submission.Feedback}")}"
+                : $"Your review for {project.Title} needs another update.{(string.IsNullOrWhiteSpace(submission.Feedback) ? string.Empty : $" Feedback: {submission.Feedback}")}",
+            ActionUrl = "/dashboard?section=Projects"
+        });
+
+        Audit("Admin.ProjectSubmissionReviewed", new
+        {
+            submission.Id,
+            submission.ProjectId,
+            submission.StudentId,
+            submission.Status,
+            submission.Score
+        });
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return MapProjectSubmission(submission);
     }
 
     public async Task<ProjectResponse> CreateProjectAsync(
@@ -1003,6 +1454,9 @@ public sealed class LmsPortalService(
             Title = RequiredText(request.Title, nameof(request.Title), 2, 180),
             Description = RequiredText(request.Description, nameof(request.Description), 10, 2500),
             RequiredArtifactsJson = SerializeList(request.RequiredArtifacts),
+            UsefulLinksJson = SerializeProjectLinks(request.UsefulLinks),
+            ReferenceMediaUrl = OptionalMediaUrl(request.ReferenceMediaUrl, nameof(request.ReferenceMediaUrl)),
+            Deadline = request.Deadline,
             MaxScore = request.MaxScore,
             IsPublished = request.IsPublished
         };
@@ -1020,19 +1474,126 @@ public sealed class LmsPortalService(
     {
         await EnsureProgramExistsAsync(request.ProgramId, cancellationToken);
         EnsureScore(request.MaxScore, nameof(request.MaxScore));
-        var project = await dbContext.Projects.FirstOrDefaultAsync(x => x.Id == projectId, cancellationToken)
+        var project = await dbContext.Projects
+            .Include(x => x.Assignments)
+            .FirstOrDefaultAsync(x => x.Id == projectId, cancellationToken)
             ?? throw new AppException("Project was not found.", 404, "project_not_found");
 
+        var programChanged = project.ProgramId != request.ProgramId;
         project.ProgramId = request.ProgramId;
         project.Title = RequiredText(request.Title, nameof(request.Title), 2, 180);
         project.Description = RequiredText(request.Description, nameof(request.Description), 10, 2500);
         project.RequiredArtifactsJson = SerializeList(request.RequiredArtifacts);
+        project.UsefulLinksJson = SerializeProjectLinks(request.UsefulLinks);
+        project.ReferenceMediaUrl = OptionalMediaUrl(request.ReferenceMediaUrl, nameof(request.ReferenceMediaUrl));
+        project.Deadline = request.Deadline;
         project.MaxScore = request.MaxScore;
         project.IsPublished = request.IsPublished;
+
+        if (programChanged && project.Assignments.Count > 0)
+        {
+            dbContext.ProjectAssignments.RemoveRange(project.Assignments);
+        }
 
         Audit("Admin.ProjectUpdated", new { project.Id, project.ProgramId, project.Title, project.IsPublished });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapProject(project, null);
+    }
+
+    public async Task DeleteProjectAsync(Guid projectId, CancellationToken cancellationToken)
+    {
+        var project = await dbContext.Projects
+            .FirstOrDefaultAsync(x => x.Id == projectId, cancellationToken)
+            ?? throw new AppException("Project was not found.", 404, "project_not_found");
+
+        dbContext.Projects.Remove(project);
+        Audit("Admin.ProjectDeleted", new { project.Id, project.ProgramId, project.Title });
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ProjectStudentResponse>> GetProjectStudentsAsync(
+        Guid programId,
+        CancellationToken cancellationToken)
+    {
+        await EnsureProgramExistsAsync(programId, cancellationToken);
+
+        var candidates = await (
+            from enrollment in dbContext.Enrollments.AsNoTracking()
+            join student in dbContext.Users.AsNoTracking() on enrollment.StudentId equals student.Id
+            where enrollment.ProgramId == programId &&
+                  enrollment.Status == EnrollmentStatus.Active &&
+                  student.AccountStatus == AccountStatus.Active
+            select new ProjectStudentResponse(
+                student.Id,
+                enrollment.Id,
+                student.FullName,
+                student.Email ?? string.Empty,
+                enrollment.ProgramId,
+                enrollment.Program!.Title,
+                enrollment.EnrolledAt))
+            .ToListAsync(cancellationToken);
+
+        return candidates
+            .GroupBy(candidate => candidate.StudentId)
+            .Select(group => group.OrderByDescending(candidate => candidate.EnrolledAt).First())
+            .OrderBy(candidate => candidate.FullName)
+            .ThenBy(candidate => candidate.Email)
+            .ToList();
+    }
+
+    public async Task<ProjectResponse> PublishProjectAsync(
+        Guid projectId,
+        PublishProjectRequest request,
+        CancellationToken cancellationToken)
+    {
+        var project = await dbContext.Projects
+            .Include(x => x.Assignments)
+            .FirstOrDefaultAsync(x => x.Id == projectId, cancellationToken)
+            ?? throw new AppException("Project was not found.", 404, "project_not_found");
+
+        var requestedStudentIds = request.StudentIds.Distinct().ToList();
+        if (requestedStudentIds.Count == 0)
+        {
+            throw Validation(nameof(request.StudentIds), "Select at least one active student before publishing.");
+        }
+
+        var candidates = await (
+            from enrollment in dbContext.Enrollments
+            join student in dbContext.Users on enrollment.StudentId equals student.Id
+            where enrollment.ProgramId == project.ProgramId &&
+                  enrollment.Status == EnrollmentStatus.Active &&
+                  student.AccountStatus == AccountStatus.Active &&
+                  requestedStudentIds.Contains(student.Id)
+            select new { enrollment.Id, enrollment.StudentId, enrollment.EnrolledAt })
+            .ToListAsync(cancellationToken);
+
+        var selectedCandidates = candidates
+            .GroupBy(candidate => candidate.StudentId)
+            .Select(group => group.OrderByDescending(candidate => candidate.EnrolledAt).First())
+            .ToList();
+
+        if (selectedCandidates.Count != requestedStudentIds.Count)
+        {
+            throw Validation(nameof(request.StudentIds), "Every selected student must have an active enrollment in this program.");
+        }
+
+        dbContext.ProjectAssignments.RemoveRange(project.Assignments);
+        foreach (var candidate in selectedCandidates)
+        {
+            dbContext.ProjectAssignments.Add(new ProjectAssignment
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = project.Id,
+                StudentId = candidate.StudentId,
+                EnrollmentId = candidate.Id,
+                AssignedAt = clock.UtcNow
+            });
+        }
+
+        project.IsPublished = true;
+        Audit("Admin.ProjectPublished", new { project.Id, project.ProgramId, project.Title, StudentIds = requestedStudentIds });
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return MapProject(project, null, requestedStudentIds.Count);
     }
 
     public async Task<IReadOnlyList<EnrollmentResponse>> GetAdminEnrollmentsAsync(CancellationToken cancellationToken)
@@ -1045,7 +1606,20 @@ public sealed class LmsPortalService(
             .Take(200)
             .ToListAsync(cancellationToken);
 
-        return enrollments.Select(MapEnrollment).ToList();
+        var studentIds = enrollments
+            .Select(enrollment => enrollment.StudentId)
+            .Distinct()
+            .ToList();
+        var students = await dbContext.Users
+            .AsNoTracking()
+            .Where(user => studentIds.Contains(user.Id))
+            .ToDictionaryAsync(user => user.Id, cancellationToken);
+
+        return enrollments
+            .Select(enrollment => students.TryGetValue(enrollment.StudentId, out var student)
+                ? MapEnrollment(enrollment, student.FullName, student.Email, student.PhoneNumber)
+                : MapEnrollment(enrollment))
+            .ToList();
     }
 
     public async Task<EnrollmentResponse> UpdateEnrollmentStatusAsync(
@@ -1095,15 +1669,10 @@ public sealed class LmsPortalService(
         payment.FailureReason = OptionalText(request.FailureReason, 500);
         payment.VerifiedAt = request.Status == PaymentStatus.Verified ? clock.UtcNow : payment.VerifiedAt;
 
-        if (request.Status == PaymentStatus.Verified && payment.Enrollment is not null)
+        var wasVerified = payment.Status == PaymentStatus.Verified;
+        if (request.Status == PaymentStatus.Verified && !wasVerified && payment.Enrollment is not null)
         {
-            payment.Enrollment.PaidAmount = Math.Min(payment.Enrollment.PaidAmount + payment.Amount, payment.Enrollment.TotalAmount);
-            if (payment.Enrollment.PaidAmount >= payment.Enrollment.TotalAmount)
-            {
-                payment.Enrollment.Status = EnrollmentStatus.Active;
-                payment.Enrollment.FullAccessUnlockedAt ??= clock.UtcNow;
-                payment.Enrollment.LockedReason = null;
-            }
+            ApplyVerifiedPayment(payment, clock.UtcNow);
         }
 
         Audit("Admin.PaymentStatusUpdated", new { payment.Id, payment.StudentId, payment.EnrollmentId, payment.Status, payment.Amount });
@@ -1341,7 +1910,11 @@ public sealed class LmsPortalService(
         LearningProgram program,
         CancellationToken cancellationToken)
     {
-        var projects = await dbContext.Projects.AsNoTracking().Where(x => x.ProgramId == program.Id).ToListAsync(cancellationToken);
+        var projects = await dbContext.Projects
+            .AsNoTracking()
+            .Include(x => x.Assignments)
+            .Where(x => x.ProgramId == program.Id)
+            .ToListAsync(cancellationToken);
         return MapProgramDetails(program, projects, new Dictionary<Guid, LessonProgress>(), includeInactive: true);
     }
 
@@ -1356,16 +1929,17 @@ public sealed class LmsPortalService(
             .FirstOrDefaultAsync(x => x.Id == programId, cancellationToken)
             ?? throw new AppException("Program was not found.", 404, "program_not_found");
 
-        var plan = ResolvePlan(program, planId);
+        var plan = ResolvePlan(program, planId)
+            ?? throw new AppException("A valid program plan is required.", 400, "program_plan_required");
         var enrollment = new Enrollment
         {
             Id = Guid.NewGuid(),
             StudentId = studentId,
             ProgramId = program.Id,
             Program = program,
-            ProgramPlanId = plan?.Id,
+            ProgramPlanId = plan.Id,
             ProgramPlan = plan,
-            TotalAmount = plan?.OfferPrice ?? 0,
+            TotalAmount = GetFixedPricing(plan).TotalAmount,
             PaidAmount = 0,
             Status = EnrollmentStatus.Reserved,
             EnrolledAt = clock.UtcNow,
@@ -1430,14 +2004,25 @@ public sealed class LmsPortalService(
             .FirstOrDefault();
     }
 
-    private static decimal CalculatePaymentAmount(Enrollment enrollment, ProgramPlan? plan, PaymentMode mode)
+    private static decimal CalculatePaymentAmount(Enrollment enrollment, ProgramPlan plan, PaymentMode mode, DateTimeOffset now)
     {
-        var total = enrollment.TotalAmount > 0 ? enrollment.TotalAmount : plan?.OfferPrice ?? 0;
-        var reserveAmount = plan?.ReserveAmount > 0 ? plan.ReserveAmount : Math.Min(999, total);
+        var pricing = GetFixedPricing(plan);
+        var total = pricing.TotalAmount;
+        var isExpired = IsAccessExpired(enrollment, now);
+
+        if (mode == PaymentMode.ReserveSeat && !isExpired && enrollment.PaidAmount > 0)
+        {
+            throw new AppException("The initial payment has already been completed for this access period.", 400, "initial_payment_already_paid");
+        }
+
+        if (mode != PaymentMode.ReserveSeat && (enrollment.PaidAmount <= 0 || isExpired))
+        {
+            throw new AppException("Complete the compulsory initial payment before paying the remaining balance.", 400, "initial_payment_required");
+        }
 
         var amount = mode switch
         {
-            PaymentMode.ReserveSeat => reserveAmount,
+            PaymentMode.ReserveSeat => pricing.ReserveAmount,
             PaymentMode.PayInFull => Math.Max(total - enrollment.PaidAmount, 0),
             PaymentMode.RemainingBalance => Math.Max(total - enrollment.PaidAmount, 0),
             _ => throw new AppException("Invalid payment mode.", 400, "invalid_payment_mode")
@@ -1451,11 +2036,81 @@ public sealed class LmsPortalService(
         return amount;
     }
 
+    private static FixedPlanPricing GetFixedPricing(ProgramPlan plan)
+    {
+        return FixedPlans.TryGetValue(plan.Code, out var pricing)
+            ? pricing
+            : throw new AppException("Only the Launch, Elevate, and Mastery plans are available.", 400, "invalid_program_plan");
+    }
+
+    private static decimal GetPlanTotal(ProgramPlan plan)
+        => GetFixedPricing(plan).TotalAmount;
+
+    private static bool IsAccessExpired(Enrollment enrollment, DateTimeOffset now)
+        => enrollment.AccessExpiresAt.HasValue && enrollment.AccessExpiresAt <= now;
+
+    private static bool HasFullAccess(Enrollment enrollment, DateTimeOffset now)
+        => !IsAccessExpired(enrollment, now) && enrollment.PaidAmount >= enrollment.TotalAmount && enrollment.TotalAmount > 0;
+
+    private static void EnsureFullAccess(Enrollment enrollment, DateTimeOffset now)
+    {
+        if (!HasFullAccess(enrollment, now))
+        {
+            throw new AppException(
+                IsAccessExpired(enrollment, now)
+                    ? "Your two-month access period has ended. Renew access to continue."
+                    : "Complete the remaining payment to unlock projects and full course access.",
+                403,
+                IsAccessExpired(enrollment, now) ? "access_expired" : "full_payment_required");
+        }
+    }
+
+    private void ApplyVerifiedPayment(PaymentTransaction payment, DateTimeOffset now)
+    {
+        var enrollment = payment.Enrollment;
+        if (enrollment is null)
+        {
+            return;
+        }
+
+        var isRenewal = IsAccessExpired(enrollment, now);
+        if (isRenewal && payment.Mode == PaymentMode.ReserveSeat)
+        {
+            enrollment.PaidAmount = 0;
+            enrollment.AccessCycle = Math.Max(enrollment.AccessCycle + 1, 2);
+            enrollment.FullAccessUnlockedAt = null;
+        }
+
+        enrollment.TotalAmount = enrollment.ProgramPlan is null
+            ? enrollment.TotalAmount
+            : GetFixedPricing(enrollment.ProgramPlan).TotalAmount;
+        enrollment.PaidAmount = Math.Min(enrollment.PaidAmount + payment.Amount, enrollment.TotalAmount);
+        enrollment.AccessExpiresAt = isRenewal || payment.Mode == PaymentMode.ReserveSeat
+            ? now.AddMonths(Math.Clamp(Payments.AccessDurationMonths, 1, 24))
+            : enrollment.AccessExpiresAt;
+
+        if (enrollment.PaidAmount >= enrollment.TotalAmount)
+        {
+            enrollment.Status = EnrollmentStatus.Active;
+            enrollment.FullAccessUnlockedAt ??= now;
+            enrollment.LockedReason = null;
+        }
+        else
+        {
+            enrollment.Status = EnrollmentStatus.Reserved;
+            enrollment.LockedReason = "Preview access is limited to the first module. Pay the remaining balance to unlock the complete program.";
+        }
+
+        payment.InvoiceNumber ??= $"JOVIQ-{now:yyyyMMdd}-{payment.Id.ToString("N")[..8].ToUpperInvariant()}";
+    }
+
+    private sealed record FixedPlanPricing(string Name, decimal TotalAmount, decimal ReserveAmount);
+
     private static ProgramSummaryResponse MapProgramSummary(LearningProgram program)
     {
         var startingPrice = program.Plans
             .Where(x => x.IsActive)
-            .Select(x => x.OfferPrice)
+            .Select(GetPlanTotal)
             .DefaultIfEmpty(0)
             .Min();
 
@@ -1479,7 +2134,8 @@ public sealed class LmsPortalService(
         LearningProgram program,
         IReadOnlyList<Project> projects,
         IReadOnlyDictionary<Guid, LessonProgress> progress,
-        bool includeInactive)
+        bool includeInactive,
+        Enrollment? enrollment = null)
     {
         return new ProgramDetailsResponse(
             program.Id,
@@ -1502,7 +2158,7 @@ public sealed class LmsPortalService(
             program.Modules
                 .Where(module => includeInactive || module.IsActive)
                 .OrderBy(x => x.SortOrder)
-                .Select(module => MapCurriculumModule(module, null, progress, includeInactive))
+                .Select((module, index) => MapCurriculumModule(module, enrollment, progress, includeInactive, index == 0))
                 .ToList(),
             projects.Select(project => MapProject(project, null)).ToList());
     }
@@ -1544,14 +2200,15 @@ public sealed class LmsPortalService(
 
     private static ProgramPlanResponse MapPlan(ProgramPlan plan)
     {
+        var pricing = GetFixedPricing(plan);
         return new ProgramPlanResponse(
             plan.Id,
             plan.ProgramId,
-            plan.Name,
+            pricing.Name,
             plan.Code,
-            plan.ActualPrice,
-            plan.OfferPrice,
-            plan.ReserveAmount,
+            pricing.TotalAmount,
+            pricing.TotalAmount,
+            pricing.ReserveAmount,
             DeserializeList(plan.FeaturesJson),
             plan.IsActive);
     }
@@ -1560,7 +2217,8 @@ public sealed class LmsPortalService(
         CurriculumModule module,
         Enrollment? enrollment,
         IReadOnlyDictionary<Guid, LessonProgress> progress,
-        bool includeInactive)
+        bool includeInactive,
+        bool isPreviewModule = false)
     {
         return new CurriculumModuleResponse(
             module.Id,
@@ -1572,13 +2230,15 @@ public sealed class LmsPortalService(
             module.Lessons
                 .Where(lesson => includeInactive || lesson.IsActive)
                 .OrderBy(x => x.SortOrder)
-                .Select(lesson => MapLesson(lesson, enrollment, progress.GetValueOrDefault(lesson.Id)))
+                .Select(lesson => MapLesson(lesson, enrollment, progress.GetValueOrDefault(lesson.Id), isPreviewModule))
                 .ToList());
     }
 
-    private static LessonResponse MapLesson(Lesson lesson, Enrollment? enrollment, LessonProgress? progress)
+    private static LessonResponse MapLesson(Lesson lesson, Enrollment? enrollment, LessonProgress? progress, bool isPreviewModule = false)
     {
-        var isLocked = enrollment?.Status == EnrollmentStatus.Reserved && lesson.AccessLevel == ContentAccessLevel.Full;
+        var hasFullAccess = enrollment is null || HasFullAccess(enrollment, DateTimeOffset.UtcNow);
+        var hasPreviewAccess = enrollment is not null && !IsAccessExpired(enrollment, DateTimeOffset.UtcNow) && enrollment.PaidAmount > 0;
+        var isLocked = enrollment is not null && !hasFullAccess && (!hasPreviewAccess || !isPreviewModule);
         return new LessonResponse(
             lesson.Id,
             lesson.ModuleId,
@@ -1600,22 +2260,35 @@ public sealed class LmsPortalService(
                 isLocked ? string.Empty : resource.Url)).ToList());
     }
 
-    private static EnrollmentResponse MapEnrollment(Enrollment enrollment)
+    private static EnrollmentResponse MapEnrollment(
+        Enrollment enrollment,
+        string? studentName = null,
+        string? studentEmail = null,
+        string? studentPhone = null)
     {
         return new EnrollmentResponse(
             enrollment.Id,
             enrollment.StudentId,
             enrollment.ProgramId,
+            enrollment.Program?.Slug ?? string.Empty,
             enrollment.Program?.Title ?? "Program",
             enrollment.ProgramPlanId,
             enrollment.ProgramPlan?.Name,
+            enrollment.ProgramPlan?.Code,
             enrollment.Status.ToString(),
             enrollment.TotalAmount,
             enrollment.PaidAmount,
             Math.Max(enrollment.TotalAmount - enrollment.PaidAmount, 0),
             enrollment.EnrolledAt,
             enrollment.FullAccessUnlockedAt,
-            enrollment.LockedReason);
+            enrollment.LockedReason,
+            enrollment.AccessExpiresAt,
+            IsAccessExpired(enrollment, DateTimeOffset.UtcNow),
+            HasFullAccess(enrollment, DateTimeOffset.UtcNow),
+            enrollment.AccessCycle,
+            studentName,
+            studentEmail,
+            studentPhone);
     }
 
     private static PaymentTransactionResponse MapPayment(PaymentTransaction payment)
@@ -1633,10 +2306,12 @@ public sealed class LmsPortalService(
             payment.Amount,
             payment.Currency,
             payment.CreatedAt,
-            payment.VerifiedAt);
+            payment.VerifiedAt,
+            payment.InvoiceNumber,
+            payment.FailureReason);
     }
 
-    private static ProjectResponse MapProject(Project project, ProjectSubmission? submission)
+    private static ProjectResponse MapProject(Project project, ProjectSubmission? submission, int? assignedStudentCount = null)
     {
         return new ProjectResponse(
             project.Id,
@@ -1644,8 +2319,12 @@ public sealed class LmsPortalService(
             project.Title,
             project.Description,
             DeserializeList(project.RequiredArtifactsJson),
+            DeserializeProjectLinks(project.UsefulLinksJson),
+            project.ReferenceMediaUrl,
+            project.Deadline,
             project.MaxScore,
             project.IsPublished,
+            assignedStudentCount ?? project.Assignments.Count,
             submission is null ? null : MapProjectSubmission(submission));
     }
 
@@ -1660,6 +2339,7 @@ public sealed class LmsPortalService(
             submission.Feedback,
             null,
             null,
+            submission.FileAssetId,
             submission.GitHubUrl,
             submission.DemoUrl,
             submission.DocumentationUrl,
@@ -1765,10 +2445,10 @@ public sealed class LmsPortalService(
         {
             new
             {
-                Name = "Self-Paced",
+                Name = "Launch",
                 Code = "SELF",
-                ActualPrice = 7999m,
-                OfferPrice = 3999m,
+                ActualPrice = 8000m,
+                OfferPrice = 8000m,
                 Features = new[]
                 {
                     "Lesson Replays", "Complete Curriculum", "Projects", "LMS Access",
@@ -1777,10 +2457,10 @@ public sealed class LmsPortalService(
             },
             new
             {
-                Name = "Intermediate",
+                Name = "Elevate",
                 Code = "INTERMEDIATE",
-                ActualPrice = 9999m,
-                OfferPrice = 4999m,
+                ActualPrice = 10000m,
+                OfferPrice = 10000m,
                 Features = new[]
                 {
                     "Live Sessions", "Project Reviews", "Resume Review",
@@ -1789,10 +2469,10 @@ public sealed class LmsPortalService(
             },
             new
             {
-                Name = "Master",
+                Name = "Mastery",
                 Code = "MASTER",
-                ActualPrice = 14999m,
-                OfferPrice = 9999m,
+                ActualPrice = 15000m,
+                OfferPrice = 15000m,
                 Features = new[]
                 {
                     "Additional Live Sessions", "Advanced Project Reviews", "Portfolio Development",
@@ -1814,7 +2494,7 @@ public sealed class LmsPortalService(
                 Code = plan.Code,
                 ActualPrice = plan.ActualPrice,
                 OfferPrice = plan.OfferPrice,
-                ReserveAmount = 999m,
+                ReserveAmount = plan.Code == "MASTER" ? 3000m : 1500m,
                 FeaturesJson = SerializeList(plan.Features),
                 IsActive = true,
                 SortOrder = index + 1
@@ -2105,6 +2785,25 @@ public sealed class LmsPortalService(
         return JsonSerializer.Serialize(normalized, JsonOptions);
     }
 
+    private static string SerializeProjectLinks(IEnumerable<ProjectLinkRequest> values)
+    {
+        var normalized = new List<ProjectLinkResponse>();
+        foreach (var value in values)
+        {
+            if (string.IsNullOrWhiteSpace(value.Label) && string.IsNullOrWhiteSpace(value.Url))
+            {
+                continue;
+            }
+
+            normalized.Add(new ProjectLinkResponse(
+                RequiredText(value.Label, "UsefulLinks", 2, 120),
+                OptionalUrl(value.Url, "UsefulLinks")
+                    ?? throw Validation("UsefulLinks", "Each project link must include a valid URL.")));
+        }
+
+        return JsonSerializer.Serialize(normalized, JsonOptions);
+    }
+
     private static IReadOnlyList<string> DeserializeList(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
@@ -2115,6 +2814,23 @@ public sealed class LmsPortalService(
         try
         {
             return JsonSerializer.Deserialize<IReadOnlyList<string>>(json, JsonOptions) ?? [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
+    private static IReadOnlyList<ProjectLinkResponse> DeserializeProjectLinks(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return [];
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<IReadOnlyList<ProjectLinkResponse>>(json, JsonOptions) ?? [];
         }
         catch (JsonException)
         {

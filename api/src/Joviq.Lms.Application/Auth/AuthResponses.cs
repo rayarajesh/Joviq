@@ -18,6 +18,22 @@ public sealed record UserSummaryResponse(
     string AccountStatus,
     string OnboardingStatus);
 
+public sealed record AccountProfileResponse(
+    Guid UserId,
+    string FullName,
+    string Email,
+    string? PhoneNumber,
+    string? ProfilePhotoUrl,
+    bool EmailConfirmed,
+    bool PhoneNumberConfirmed,
+    IReadOnlyList<string> Roles,
+    string AccountStatus,
+    string OnboardingStatus,
+    string? DateOfBirth,
+    string? Address,
+    string? City,
+    string? State);
+
 public sealed record AuthTokenResponse
 {
     public string? AccessToken { get; init; }
@@ -35,6 +51,7 @@ public sealed record AuthTokenResponse
 
 public sealed record SessionResponse(
     Guid Id,
+    string? DeviceId,
     string? DeviceName,
     string? Browser,
     string? OperatingSystem,
