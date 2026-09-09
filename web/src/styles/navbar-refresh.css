@@ -1,0 +1,13 @@
+/* Compact, aligned public navigation. */
+.site-header,.site-page:has(.learn-hero) .site-header{height:72px;min-height:72px;padding:0 max(24px,calc((100vw - 1400px)/2));gap:24px;background:#fff;border-bottom:1px solid #ece9f5;box-shadow:0 3px 14px #302a7305}
+.site-header .site-header__brand{flex:0 0 auto;display:flex;align-items:center;justify-content:flex-start;height:72px;width:100px;padding:0;margin:0}
+.site-header .site-header__brand .brand-logo{display:block;height:62px;max-height:62px;width:auto;object-fit:contain;margin:0;transform:none}
+.site-header .site-nav{height:40px;min-height:40px;gap:24px;align-items:center}
+.site-header .site-nav__links{gap:12px;align-items:center}
+.site-header .site-nav__links a{font-size:13px;font-weight:500;min-height:36px;display:flex;align-items:center;padding:0 8px}
+.site-header .site-nav__actions{display:flex;align-items:center;gap:10px}
+.site-header .site-nav__actions a,.site-header .site-nav__actions button{font-size:13px;font-weight:600;min-height:38px;height:38px;padding:0 16px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.site-page:has(.learn-hero) .site-nav__actions .is-primary{background:linear-gradient(120deg,#201b59,#504b91 56%,#6c67ae);border-radius:9px;box-shadow:0 5px 13px #504b911b}
+.learn-hero{margin-top:72px}
+@media(max-width:900px){.site-header,.site-page:has(.learn-hero) .site-header{height:64px;min-height:64px;padding-inline:20px}.site-header .site-header__brand{height:64px;width:85px}.site-header .site-header__brand .brand-logo{height:55px;max-height:55px}.learn-hero{margin-top:64px}.site-header .site-nav{gap:12px}.site-header .site-nav__links{gap:3px}}
+@media(max-width:760px){.site-header .site-nav__actions{display:none}.site-header .site-nav__menu-button{height:36px;min-height:36px;width:36px;border-radius:9px}.site-header .site-nav__links{display:none}}

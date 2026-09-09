@@ -1,3 +1,4 @@
+import { AcademyOverview } from "../components/AcademyOverview";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import type { ComponentType } from "react";
 import { createPortal } from "react-dom";
@@ -288,6 +289,7 @@ function DashboardSidebar({
           </div>
         ))}
       </nav>
+      {role === "Admin" ? <button className="admin-sidebar-promo" onClick={() => onModuleChange("Programs")}><span>Build<br />Learn<br />Grow Together</span><ChevronRight size={20} /></button> : null}
     </aside>
   );
 }
@@ -574,17 +576,9 @@ function AdminOverview({
   const totalPrograms = lmsSummary?.programs ?? programs.length;
   const totalEnrollments = lmsSummary?.enrollments ?? enrollments.length;
   const activeEnrollments = lmsSummary?.activeEnrollments ?? enrollments.filter((enrollment) => enrollment.status === "Active").length;
-  const verifiedPayments = payments.filter((payment) => payment.status === "Verified").length;
-  const verifiedRevenue = lmsSummary?.verifiedRevenue ?? payments
-    .filter((payment) => payment.status === "Verified")
-    .reduce((total, payment) => total + payment.amount, 0);
   const projectReviews = lmsSummary?.pendingProjectReviews ?? projects.filter((project) => !project.latestSubmission).length;
   const activeCoupons = coupons.filter((coupon) => coupon.isActive).length;
   const issuedCertificates = certificates.filter((certificate) => certificate.status === "Issued").length;
-  const catalogHealth = percent(publishedPrograms, totalPrograms);
-  const enrollmentHealth = percent(activeEnrollments, totalEnrollments);
-  const paymentHealth = percent(verifiedPayments, payments.length);
-
   const kpis = [
     { icon: UsersRound, label: "Users", value: totalUsers, detail: `${activeUsers} active`, tone: "violet" },
     { icon: GraduationCap, label: "Students", value: summary?.students ?? 0, detail: `${pendingUsers} pending email`, tone: "blue" },
@@ -592,12 +586,6 @@ function AdminOverview({
     { icon: BookOpen, label: "Programs", value: publishedPrograms, detail: `${totalPrograms} total`, tone: "amber" },
     { icon: ClipboardList, label: "Enrollments", value: totalEnrollments, detail: `${activeEnrollments} active`, tone: "teal" },
     { icon: FolderKanban, label: "Reviews", value: projectReviews, detail: "Project queue", tone: "rose" }
-  ];
-
-  const healthRows = [
-    { label: "Catalog", value: catalogHealth, meta: `${publishedPrograms}/${totalPrograms} published` },
-    { label: "Enrollment", value: enrollmentHealth, meta: `${activeEnrollments}/${totalEnrollments} active` },
-    { label: "Payments", value: paymentHealth, meta: `${verifiedPayments}/${payments.length} verified` }
   ];
 
   const priorities = [
@@ -611,129 +599,7 @@ function AdminOverview({
     navigate(`/dashboard?section=${encodeURIComponent(module)}`);
   }
 
-  return (
-    <section className="admin-overview">
-      <section className="admin-overview-hero">
-        <div className="admin-overview-hero__main">
-          <div>
-            <span className="admin-overview-kicker">Operations center</span>
-            <h2>Current operational snapshot</h2>
-            <p>{publishedPrograms} published programs, {activeEnrollments} active enrollments, and {projectReviews} review items.</p>
-          </div>
-          <div className="admin-overview-actions">
-            <button className="primary-action" type="button" onClick={() => openModule("Categories")}>
-              <Tags size={17} />
-              Manage catalog
-            </button>
-            <button className="secondary-action" type="button" onClick={() => openModule("Students")}>
-              <UsersRound size={17} />
-              Review students
-            </button>
-          </div>
-          <div className="admin-overview-hero__stats" aria-label="Admin dashboard highlights">
-            <span>
-              <strong>{categories.length}</strong>
-              Categories
-            </span>
-            <span>
-              <strong>{totalEnrollments}</strong>
-              Enrollments
-            </span>
-            <span>
-              <strong>{pendingUsers}</strong>
-              Pending
-            </span>
-          </div>
-        </div>
-        <div className="admin-overview-revenue">
-          <span>{isLoading ? "Refreshing" : "Verified revenue"}</span>
-          <strong>{formatCurrency(verifiedRevenue)}</strong>
-          <small>{verifiedPayments} verified payments</small>
-        </div>
-      </section>
-
-      <section className="admin-overview-kpi-grid">
-        {kpis.map((item) => {
-          const Icon = item.icon;
-          return (
-            <article className={`admin-kpi-card admin-kpi-card--${item.tone}`} key={item.label}>
-              <Icon size={20} />
-              <span>{item.label}</span>
-              <strong>{item.value}</strong>
-              <small>{item.detail}</small>
-            </article>
-          );
-        })}
-      </section>
-
-      <section className="admin-overview-panels">
-        <article className="admin-overview-panel">
-          <div className="admin-overview-panel__head">
-            <div>
-              <span>Health</span>
-              <h3>Operating rhythm</h3>
-            </div>
-            <RefreshCw size={18} />
-          </div>
-          <div className="admin-health-list">
-            {healthRows.map((row) => (
-              <div className="admin-health-row" key={row.label}>
-                <div>
-                  <strong>{row.label}</strong>
-                  <span>{row.meta}</span>
-                </div>
-                <div className="admin-health-meter" aria-label={`${row.label} ${row.value}%`}>
-                  <span style={{ width: `${row.value}%` }} />
-                </div>
-                <b>{row.value}%</b>
-              </div>
-            ))}
-          </div>
-        </article>
-
-        <article className="admin-overview-panel">
-          <div className="admin-overview-panel__head">
-            <div>
-              <span>Queue</span>
-              <h3>Needs attention</h3>
-            </div>
-            <Zap size={18} />
-          </div>
-          <div className="admin-priority-list">
-            {priorities.map((item) => {
-              const Icon = item.icon;
-              return (
-                <button type="button" key={item.label} onClick={() => openModule(item.module)}>
-                  <Icon size={17} />
-                  <span>{item.label}</span>
-                  <strong>{item.value}</strong>
-                </button>
-              );
-            })}
-          </div>
-        </article>
-
-        <article className="admin-overview-panel">
-          <div className="admin-overview-panel__head">
-            <div>
-              <span>Recent</span>
-              <h3>Activity trail</h3>
-            </div>
-            <ShieldCheck size={18} />
-          </div>
-          <div className="admin-activity-mini">
-            {auditLogs.slice(0, 4).map((log) => (
-              <div key={log.id}>
-                <strong>{formatEventType(log.eventType)}</strong>
-                <span>{formatShortDate(log.createdAt)}</span>
-              </div>
-            ))}
-            {auditLogs.length === 0 ? <div className="admin-activity-empty">No recent activity.</div> : null}
-          </div>
-        </article>
-      </section>
-    </section>
-  );
+  return <AcademyOverview kpis={kpis} priorities={priorities} logs={auditLogs} loading={isLoading} openModule={openModule} enrollmentDates={enrollments.map(item => item.enrolledAt)} paymentDates={payments.filter(item => item.status === "Verified").map(item => item.verifiedAt ?? item.createdAt)} />;
 }
 
 function AdminLmsPanel({

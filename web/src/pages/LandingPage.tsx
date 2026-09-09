@@ -1,3 +1,7 @@
+import { JourneySection } from "../components/JourneySection";
+import { CertificateSection } from "../components/CertificateSection";
+import { ExpertsSection } from "../components/ExpertsSection";
+import { HomeHero } from "../components/HomeHero";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, FormEvent, MouseEvent, ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -63,44 +67,6 @@ type CompanyLogo = {
   src: string;
   accent: string;
 };
-
-const expertCompanies: CompanyLogo[] = [
-  {
-    name: "Microsoft",
-    src: "/assets/company-logos/microsoft.png",
-    accent: "#00a4ef"
-  },
-  {
-    name: "Meta",
-    src: "/assets/company-logos/meta.svg",
-    accent: "#0866ff"
-  },
-  {
-    name: "Apple",
-    src: "/assets/company-logos/apple.svg",
-    accent: "#111827"
-  },
-  {
-    name: "Amazon",
-    src: "/assets/company-logos/amazon.svg",
-    accent: "#ff9900"
-  },
-  {
-    name: "Netflix",
-    src: "/assets/company-logos/netflix.svg",
-    accent: "#e50914"
-  },
-  {
-    name: "Google",
-    src: "/assets/company-logos/google.svg",
-    accent: "#4285f4"
-  },
-  {
-    name: "Adobe",
-    src: "/assets/company-logos/adobe.svg",
-    accent: "#fa0f00"
-  }
-];
 
 const programDomains = ["All", ...programCategories.map((category) => category.domain)];
 
@@ -192,56 +158,6 @@ const outcomeStories = [
   }
 ];
 
-const certificationProofs = [
-  {
-    title: "Outcome-based credential",
-    description: "Issued after the required project work and expert review are complete."
-  },
-  {
-    title: "Unique verification record",
-    description: "Every issued certificate carries its own ID, status, and public verification route."
-  },
-  {
-    title: "Shareable career proof",
-    description: "Built for resumes, portfolios, and the conversations that happen during interviews."
-  }
-];
-
-const certificateTypes = [
-  { label: "Training", icon: GraduationCap, title: "Certificate of Training" },
-  { label: "Internship", icon: BriefcaseBusiness, title: "Certificate of Internship" },
-  { label: "Project", icon: Code2, title: "Certificate of Project" },
-  { label: "Excellence", icon: Award, title: "Certificate of Excellence" }
-];
-
-const certificateProgress = [
-  {
-    label: "Enroll",
-    action: "Choose your program and complete registration.",
-    proof: "Your learner profile and batch access are created."
-  },
-  {
-    label: "Learn",
-    action: "Join guided sessions and use lesson replays for revision.",
-    proof: "Module progress, quizzes, and practice work are tracked."
-  },
-  {
-    label: "Build",
-    action: "Complete hands-on tasks and submit real project work.",
-    proof: "Portfolio artifacts and project documentation are prepared."
-  },
-  {
-    label: "Review",
-    action: "Get expert feedback, improve submissions, and complete review checkpoints.",
-    proof: "Rubric scores and expert review notes validate your skills."
-  },
-  {
-    label: "Certified",
-    action: "Receive your QR-verified certificate after completion approval.",
-    proof: "Certificate ID, status, and verification route become shareable."
-  }
-];
-
 const pricingLabels = ["Basic", "Standard", "Pro"];
 const pricingArtLabels = ["play", "expert", "target"];
 const pricingBenefits = [
@@ -249,54 +165,6 @@ const pricingBenefits = [
   { title: "Project-Based Learning", text: "Build real-world projects and portfolios.", icon: Award },
   { title: "Placement Support", text: "Resume, mock interviews & job assistance.", icon: BarChart3 },
   { title: "Lifetime Access", text: "Access recordings & resources whenever you need.", icon: PhoneCall }
-];
-
-const roadmapSteps = [
-  {
-    title: "Create your profile",
-    label: "Register",
-    duration: "2 min",
-    description: "Set up one learner profile with your background, current skills, and availability.",
-    outcome: "A clear starting point your experts can act on.",
-    highlights: ["One simple account", "Current skills captured", "Preferences saved from day one"],
-    icon: UserPlus
-  },
-  {
-    title: "Set your direction",
-    label: "Share goals",
-    duration: "10 min",
-    description: "Tell us the role, skills, or career move you are working toward so your path has a real destination.",
-    outcome: "A focused learning goal instead of a generic course list.",
-    highlights: ["Role and skill priorities", "Timeline that fits your life", "Expert-ready context"],
-    icon: Lightbulb
-  },
-  {
-    title: "Choose your program",
-    label: "Pick a track",
-    duration: "1 decision",
-    description: "Compare focused tracks by projects, difficulty, and career outcomes before choosing your best fit.",
-    outcome: "The right curriculum for the proof you need to build.",
-    highlights: ["Project-based comparison", "Clear skill progression", "Expert guidance available"],
-    icon: Layers3
-  },
-  {
-    title: "Unlock your workspace",
-    label: "Access",
-    duration: "Instant",
-    description: "Complete secure enrollment and open your learning workspace, schedule, and project resources.",
-    outcome: "Everything you need to begin, organized in one place.",
-    highlights: ["Secure checkout", "Immediate platform access", "Cohort schedule visible"],
-    icon: KeyRound
-  },
-  {
-    title: "Build job-ready proof",
-    label: "Start learning",
-    duration: "Week 1",
-    description: "Learn through guided projects and feedback that improves both your work and your story.",
-    outcome: "Reviewed work you can confidently show in interviews.",
-    highlights: ["Hands-on project work", "Expert feedback loops", "Portfolio-ready evidence"],
-    icon: BookOpenCheck
-  }
 ];
 
 function authModeFromHash(hash: string): AuthMode | null {
@@ -325,32 +193,12 @@ export function LandingPage() {
   const [oauthPhoneNumber, setOauthPhoneNumber] = useState("");
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(authModeFromHash(location.hash) !== null);
   const [isCallbackDialogOpen, setIsCallbackDialogOpen] = useState(false);
-  const [activeRoadmapIndex, setActiveRoadmapIndex] = useState(0);
-  const [activeCertificateType, setActiveCertificateType] = useState(0);
-  const [activeCertificateStep, setActiveCertificateStep] = useState(1);
   const programCarouselRef = useRef<HTMLDivElement>(null);
   const programTabsRef = useRef<HTMLDivElement>(null);
-  const [heroParallax, setHeroParallax] = useState<Record<string, string>>({
-    "--hero-bg-x": "50%",
-    "--hero-bg-y": "50%",
-    "--hero-card-x": "0px",
-    "--hero-card-y": "0px",
-    "--hero-dashboard-x": "0px",
-    "--hero-dashboard-y": "0px",
-    "--hero-line-x": "0px"
-  });
   const [programSearchQuery, setProgramSearchQuery] = useState("");
   const [activeProgramDomain, setActiveProgramDomain] = useState("All");
-  const activeRoadmapStep = roadmapSteps[activeRoadmapIndex];
-  const ActiveRoadmapIcon = activeRoadmapStep.icon;
 
-  useEffect(() => {
-    const interval = window.setInterval(() => {
-      setActiveRoadmapIndex((current) => (current + 1) % roadmapSteps.length);
-    }, 6000);
 
-    return () => window.clearInterval(interval);
-  }, []);
 
   const searchResults = useMemo(() => {
     const query = programSearchQuery.trim().toLowerCase();
@@ -396,34 +244,6 @@ export function LandingPage() {
 
   function scrollToCallback() {
     setIsCallbackDialogOpen(true);
-  }
-
-  function handleHeroPointerMove(event: MouseEvent<HTMLElement>) {
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const x = (event.clientX - bounds.left) / bounds.width - 0.5;
-    const y = (event.clientY - bounds.top) / bounds.height - 0.5;
-
-    setHeroParallax({
-      "--hero-bg-x": `${50 + x * 3}%`,
-      "--hero-bg-y": `${50 + y * 2}%`,
-      "--hero-card-x": `${x * -22}px`,
-      "--hero-card-y": `${y * -18}px`,
-      "--hero-dashboard-x": `${x * 18}px`,
-      "--hero-dashboard-y": `${y * 14}px`,
-      "--hero-line-x": `${x * 34}px`
-    });
-  }
-
-  function resetHeroParallax() {
-    setHeroParallax({
-      "--hero-bg-x": "50%",
-      "--hero-bg-y": "50%",
-      "--hero-card-x": "0px",
-      "--hero-card-y": "0px",
-      "--hero-dashboard-x": "0px",
-      "--hero-dashboard-y": "0px",
-      "--hero-line-x": "0px"
-    });
   }
 
   function handleOutcomeCardMove(event: MouseEvent<HTMLElement>) {
@@ -800,147 +620,9 @@ export function LandingPage() {
     <main className="site-page">
       <PublicNavbar />
 
-      <section
-        id="home"
-        className="site-hero site-hero--studio"
-        aria-labelledby="site-title"
-        onMouseMove={handleHeroPointerMove}
-        onMouseLeave={resetHeroParallax}
-        style={heroParallax as CSSProperties}
-      >
-        <div className="hero-studio__signals" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </div>
+      <HomeHero />
 
-        <div className="site-hero__content">
-          <div className="site-hero__copy-block">
-            <div className="site-kicker">
-              <Sparkles size={18} />
-              <span>AI-powered learning. Expert-led outcomes.</span>
-            </div>
-            <h1 id="site-title">
-              <span>Learn Today.</span>
-              <span>Lead Tomorrow.</span>
-            </h1>
-            <div className="hero-title-accent" aria-hidden="true" />
-            <p>
-              Real projects, expert review, and practical guidance to go from learner to leader.
-            </p>
-            <div className="site-hero__actions">
-              <Link className="site-button site-button--primary" to="/programs">
-                Explore Programs <ArrowRight size={18} />
-              </Link>
-              <Link className="site-button site-button--light" to="/request-callback">
-                Talk to an Advisor <PhoneCall size={18} />
-              </Link>
-            </div>
-            <div className="site-hero__proof" aria-label="Website highlights">
-              <span>
-                <CheckCircle2 size={16} />
-                Live Expert Cohorts
-              </span>
-              <span>
-                <CheckCircle2 size={16} />
-                Expert Reviewed Projects
-              </span>
-              <span>
-                <CheckCircle2 size={16} />
-                Career Guidance
-              </span>
-            </div>
-          </div>
-
-          <aside className="hero-rating-card" aria-label="Learner trust signals">
-            <div>
-              <BadgeCheck size={25} />
-              <small>Projects Completed</small>
-              <strong>24+</strong>
-              <span>Hands-on Projects</span>
-            </div>
-            <div>
-              <Star size={25} />
-              <small>Learner Rating</small>
-              <strong>4.9/5</strong>
-              <span>Learner trust signal</span>
-            </div>
-            <div>
-              <UsersRound size={25} />
-              <small>Learners Trust Joviq</small>
-              <strong>2,500+</strong>
-              <span>And growing</span>
-            </div>
-          </aside>
-
-          <aside className="hero-command-bar" aria-label="Live cohort and program highlights">
-            <div className="hero-command-bar__cohort">
-              <span className="hero-command-bar__live">
-                <GraduationCap size={28} />
-                Admissions open
-              </span>
-              <div className="hero-command-bar__date">
-                <small>Next live cohort</small>
-                <strong>10 Sept 2025</strong>
-                <span>Enroll before seats fill up.</span>
-              </div>
-              <div className="hero-command-bar__seats">
-                <span>
-                  <small>Limited seats left</small>
-                  <strong>12 Seats Left</strong>
-                </span>
-                <div>
-                  <span style={{ width: "68%" }} />
-                </div>
-              </div>
-            </div>
-
-            <div className="hero-command-bar__metrics">
-              <div>
-                <Code2 size={20} />
-                <strong>20+</strong>
-                <span>Career Programs</span>
-              </div>
-              <div>
-                <BriefcaseBusiness size={20} />
-                <strong>5-6</strong>
-                <span>Projects Per Track</span>
-              </div>
-              <div>
-                <Star size={20} />
-                <strong>Weekly</strong>
-                <span>Expert Feedback</span>
-              </div>
-            </div>
-          </aside>
-        </div>
-      </section>
-
-      <section id="features" className="site-section expert-showcase">
-        <div className="expert-showcase__intro">
-          <span className="apt-pill">
-            <UsersRound size={15} />
-            Industry-led guidance
-          </span>
-          <h2>
-            Learn from experts
-            <br />
-            who build <span>what&apos;s next.</span>
-          </h2>
-          <p>Real-world knowledge, practical feedback, and industry standards shaped by leaders at top global companies.</p>
-        </div>
-        <div className="expert-showcase__carousel" aria-label="Companies represented by Joviq experts">
-          <BrandGrid items={expertCompanies} tone="prime" />
-          <span className="expert-showcase__next" aria-hidden="true">
-            <ArrowRight size={20} />
-          </span>
-          <div className="expert-showcase__dots" aria-hidden="true">
-            {expertCompanies.slice(0, 5).map((company, index) => (
-              <span className={index === 0 ? "is-active" : undefined} key={company.name} />
-            ))}
-          </div>
-        </div>
-      </section>
+      <ExpertsSection />
 
       <section id="program-search" className="site-section program-search-section">
         <div className="program-search">
@@ -1024,7 +706,9 @@ export function LandingPage() {
             </button>
           </div>
 
+          <div className="program-directory__cta"><Link to="/programs">View All Programs <ArrowRight size={19} /></Link><span aria-hidden="true">Your Next<br />Opportunity Starts Here</span></div>
           <div className="program-search__carousel-shell">
+            <span className="program-directory__note" aria-hidden="true">Real Skills<br />Real Opportunities</span>
             {searchResults.length > 0 && (
               <button
                 aria-label="View previous programs"
@@ -1059,6 +743,7 @@ export function LandingPage() {
                         <small>{program.domain}</small>
                         <strong>{program.title}</strong>
                         <span>{program.shortDescription}</span>
+                        <span className="program-directory__metadata"><span><BookOpenCheck size={12} />{program.projects.length} Projects</span><span><CalendarClock size={12} />{program.duration}</span><span><BarChart3 size={12} />{program.level}</span></span>
                         <span className="program-showcase-card__action">Explore program <ArrowRight size={18} /></span>
                       </span>
                     </Link>
@@ -1083,366 +768,22 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section id="journey" className="site-section apt-section apt-process">
-        <div className="process-intro">
-          <div className="process-intro__copy">
-            <span className="apt-pill">
-              <Sparkles size={15} />
-              Your Joviq journey
-            </span>
-            <h2>
-              From career goal to <span>proof you can show.</span>
-            </h2>
-            <p>Five focused milestones take you from your first decision to reviewed, interview-ready work.</p>
-          </div>
-          <Link className="site-button site-button--primary process-intro__cta" to="/request-callback">
-            <PhoneCall size={18} />
-            Talk to an advisor
-          </Link>
-        </div>
-        <div className="process-experience">
-          <nav className="process-stepper" aria-label="Your five-step Joviq journey">
-            {roadmapSteps.map((step, index) => {
-              const StepIcon = step.icon;
-              const isActive = index === activeRoadmapIndex;
+      <JourneySection />
 
-              return (
-                <button
-                  aria-current={isActive ? "step" : undefined}
-                  className={isActive ? "is-active" : undefined}
-                  key={step.title}
-                  onClick={() => setActiveRoadmapIndex(index)}
-                  type="button"
-                >
-                  <span className="process-stepper__icon">
-                    <StepIcon size={21} />
-                  </span>
-                  <span className="process-stepper__copy">
-                    <small>
-                      Step {String(index + 1).padStart(2, "0")} / {step.duration}
-                    </small>
-                    <strong>{step.title}</strong>
-                  </span>
-                  <ChevronRight aria-hidden="true" size={18} />
-                </button>
-              );
-            })}
-          </nav>
-
-          <div className="process-panel" aria-live="polite">
-            <div className="process-panel__header">
-              <span className="process-panel__icon">
-                <ActiveRoadmapIcon size={27} />
-              </span>
-              <div>
-                <span className="process-panel__kicker">
-                  Step {String(activeRoadmapIndex + 1).padStart(2, "0")} / {activeRoadmapStep.label}
-                </span>
-                <h3>{activeRoadmapStep.title}</h3>
-              </div>
-              <span className="process-panel__duration">{activeRoadmapStep.duration}</span>
-            </div>
-
-            <p>{activeRoadmapStep.description}</p>
-
-            <div className="process-outcome">
-              <BadgeCheck size={24} />
-              <div>
-                <span>Your outcome</span>
-                <strong>{activeRoadmapStep.outcome}</strong>
-              </div>
-            </div>
-
-            <ul className="process-highlights">
-              {activeRoadmapStep.highlights.map((highlight) => (
-                <li key={highlight}>
-                  <CheckCircle2 size={17} />
-                  {highlight}
-                </li>
-              ))}
-            </ul>
-
-            <div className="process-panel__footer">
-              <div className="process-progress">
-                <span>Journey progress</span>
-                <strong>{Math.round(((activeRoadmapIndex + 1) / roadmapSteps.length) * 100)}%</strong>
-                <div className="process-progress__bar">
-                  <span style={{ width: `${((activeRoadmapIndex + 1) / roadmapSteps.length) * 100}%` }} />
-                </div>
-              </div>
-              <div className="process-actions">
-                <button
-                  aria-label="Previous journey step"
-                  disabled={activeRoadmapIndex === 0}
-                  onClick={() => setActiveRoadmapIndex((current) => Math.max(0, current - 1))}
-                  type="button"
-                >
-                  <ArrowLeft size={17} />
-                  Back
-                </button>
-                {activeRoadmapIndex === roadmapSteps.length - 1 ? (
-                  <Link to="/#program-search">
-                    Explore programs
-                    <ArrowRight size={17} />
-                  </Link>
-                ) : (
-                  <button
-                    className="is-primary"
-                    onClick={() => setActiveRoadmapIndex((current) => Math.min(roadmapSteps.length - 1, current + 1))}
-                    type="button"
-                  >
-                    Next step
-                    <ArrowRight size={17} />
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
+      <section id="outcomes" className="learner-testimonials" aria-labelledby="testimonials-title">
+        <h2 id="testimonials-title">Trusted by Modern <span>Educators and Learners</span></h2>
+        <div className="learner-testimonials__grid">
+          {outcomeStories.map((story, index) => <article key={story.name}>
+            <div className="learner-testimonials__stars" aria-hidden="true">{[0,1,2,3,4].map(star => <Star key={star} size={16} fill="currentColor" />)}</div>
+            <blockquote>{story.quote}</blockquote>
+            <footer><span className={"learner-testimonials__avatar learner-testimonials__avatar--" + index % 3}>{story.name.split(" ").map(part => part[0]).slice(0,2).join("")}</span><div><strong>{story.name}</strong><small>{story.program}</small></div></footer>
+          </article>)}
         </div>
       </section>
 
-      <section id="outcomes" className="site-section apt-section apt-outcomes apt-centered outcomes-showcase">
-        <div className="outcomes-showcase__plane" aria-hidden="true" />
-        <div className="outcomes-showcase__intro">
-          <span className="apt-pill apt-pill--dark">
-            <BookOpenCheck size={15} />
-            Interview-ready outcomes
-          </span>
-          <h2>
-            Build proof. Walk into interviews <span>ready.</span>
-          </h2>
-          <p>Real project practice, direct expert feedback, and a career story you can explain with confidence.</p>
-          <div className="outcomes-showcase__actions">
-            <Link className="site-button site-button--primary" to="/request-callback">
-              Talk to an advisor
-              <ArrowRight size={18} />
-            </Link>
-            <Link className="site-button outcomes-showcase__secondary" to="/programs">
-              Explore programs
-            </Link>
-          </div>
-        </div>
+      <CertificateSection />
 
-        <div className="outcome-story-grid outcome-story-stage">
-          {outcomeStories.map((story) => (
-            <article
-              className="outcome-card-3d"
-              key={story.name}
-              onMouseLeave={resetOutcomeCard}
-              onMouseMove={handleOutcomeCardMove}
-              style={{
-                "--portrait-position": story.portraitPosition,
-                "--story-accent": story.accent
-              } as CSSProperties}
-            >
-              <div className="outcome-card-3d__shine" aria-hidden="true" />
-              <header className="outcome-card-3d__profile">
-                <span
-                  aria-label={`Illustrated profile of ${story.name}`}
-                  className="outcome-card-3d__portrait"
-                  role="img"
-                />
-                <span className="outcome-card-3d__identity">
-                  <strong>{story.name}</strong>
-                  <span>{story.program}</span>
-                </span>
-                <small>
-                  <BadgeCheck size={14} />
-                  {story.badge}
-                </small>
-              </header>
-              <blockquote>{story.quote}</blockquote>
-              <footer>
-                <span>
-                  <small>Outcome</small>
-                  <b>{story.result}</b>
-                </span>
-                <em>
-                  <CheckCircle2 size={15} />
-                  Learner result
-                </em>
-              </footer>
-            </article>
-          ))}
-        </div>
 
-        <div className="outcomes-showcase__closing">
-          <div>
-            <span>Your next move</span>
-            <strong>Build the proof behind your next interview.</strong>
-          </div>
-          <Link className="site-button site-button--primary" to="/request-callback">
-            Talk to an advisor
-            <ArrowRight size={18} />
-          </Link>
-        </div>
-      </section>
-
-      <section id="certifications" className="site-section apt-section certificate-section certificate-showcase">
-        <div className="certificate-showcase__copy">
-          <span className="apt-pill">
-            <Award size={15} />
-            Certification that signals proof
-          </span>
-          <h2>
-            Earn a Credential <span>Built on Proof.</span>
-          </h2>
-          <p>
-            Your certificate represents completed work, assessed skills, and expert-reviewed progress - not attendance
-            alone.
-          </p>
-          <div className="proof-pills">
-            <span><UsersRound size={15} /> Expert-reviewed</span>
-            <span><BookOpenCheck size={15} /> Rubric-scored</span>
-            <span><ShieldCheck size={15} /> Digitally verifiable</span>
-          </div>
-          <div className="credential-list">
-            {certificationProofs.map((proof) => (
-              <article key={proof.title}>
-                <span className="credential-list__icon"><BadgeCheck size={26} /></span>
-                <div>
-                  <strong>{proof.title}</strong>
-                  <span>{proof.description}</span>
-                </div>
-              </article>
-            ))}
-          </div>
-          <Link className="site-button site-button--primary" to="/request-callback">
-            Plan my certification path
-            <ArrowRight size={18} />
-          </Link>
-        </div>
-
-        <div className="certificate-preview-card certificate-preview-stage" aria-label="Interactive certificate preview">
-          <div className="certificate-orbit" aria-hidden="true" />
-          <header className="certificate-preview-stage__header">
-            <div>
-              <span>Original certificate preview</span>
-            </div>
-            <span>
-              <ShieldCheck size={16} />
-              Issued & Verified
-              <i />
-            </span>
-          </header>
-
-          <button
-            className="certificate-floating-badge certificate-floating-badge--verified"
-            onClick={() => setActiveCertificateStep(4)}
-            type="button"
-          >
-            <ShieldCheck size={28} />
-            <span>Verified<br />Credential</span>
-          </button>
-
-          <button
-            className="certificate-floating-badge certificate-floating-badge--chain"
-            onClick={() => setActiveCertificateStep(4)}
-            type="button"
-          >
-            <Code2 size={29} />
-            <span>Blockchain<br />Secured</span>
-          </button>
-
-          <div className="certificate-document certificate-original">
-            <header className="certificate-original__header">
-              <span className="certificate-original__brand">
-                <i><BrandLogo compact /></i>
-                <span>
-                  <strong>Joviq Technologies</strong>
-                  <small>Website and LMS</small>
-                </span>
-              </span>
-              <span className="certificate-original__id">
-                <small>Certificate ID</small>
-                <strong>JOVIQ-2024-TRN-8X7F3A</strong>
-              </span>
-            </header>
-
-            <div className="certificate-original__content">
-              <small>This certifies that</small>
-              <strong className="certificate-original__learner">Learner Name</strong>
-              <span>has successfully completed the requirements for the</span>
-              <h3>{certificateTypes[activeCertificateType].title}</h3>
-              <p>Issued for successful completion of project-based career learning.</p>
-            </div>
-
-            <footer className="certificate-original__footer">
-              <span className="certificate-original__signature">
-                <i />
-                <strong>Authorized Signatory</strong>
-                <small>Joviq Technologies</small>
-              </span>
-              <span className="certificate-original__seal" aria-label="Joviq verified seal">
-                <BadgeCheck size={28} />
-              </span>
-              <span className="certificate-original__verification">
-                <span className="certificate-qr" aria-hidden="true" />
-                <span>
-                  <strong>Digitally verifiable</strong>
-                  <small>Status and issue recorded</small>
-                </span>
-              </span>
-            </footer>
-          </div>
-
-          <footer className="certificate-preview-stage__types" aria-label="Available certificate types">
-            {certificateTypes.map((type, index) => {
-              const Icon = type.icon;
-              return (
-                <button
-                  aria-pressed={activeCertificateType === index}
-                  className={activeCertificateType === index ? "is-active" : undefined}
-                  key={type.label}
-                  onClick={() => setActiveCertificateType(index)}
-                  type="button"
-                >
-                  <Icon size={25} />
-                  {type.label}
-                </button>
-              );
-            })}
-          </footer>
-
-          <div className="certificate-progress" aria-label="Certification progress">
-            {certificateProgress.map((step, index) => (
-              <button
-                aria-pressed={activeCertificateStep === index}
-                className={activeCertificateStep === index ? "is-active" : undefined}
-                key={step.label}
-                onClick={() => setActiveCertificateStep(index)}
-                type="button"
-              >
-                <span />
-                <strong>{step.label}</strong>
-              </button>
-            ))}
-          </div>
-
-          <article className="certificate-step-guide" aria-live="polite">
-            <span>Step {activeCertificateStep + 1}</span>
-            <div>
-              <h3>{certificateProgress[activeCertificateStep].label}</h3>
-              <p>{certificateProgress[activeCertificateStep].action}</p>
-            </div>
-            <strong>{certificateProgress[activeCertificateStep].proof}</strong>
-          </article>
-        </div>
-      </section>
-
-      <section className="site-section apt-section apt-alumni apt-centered alumni-showcase employer-landscape">
-        <div className="alumni-showcase__intro">
-          <span className="apt-pill">
-            <GraduationCap size={15} />
-            Employer landscape
-          </span>
-          <h2>
-            Build skills used across <span>leading teams.</span>
-          </h2>
-          <p>Career-ready capabilities for technology, engineering, finance, consulting, and product organizations.</p>
-        </div>
-        <BrandGrid items={alumniWall} tone="logos" />
-      </section>
 
       <section id="pricing" className="site-section apt-section apt-centered">
         <span className="apt-pill">
@@ -1461,20 +802,14 @@ export function LandingPage() {
               key={plan.name}
               className={`${plan.name === "Elevate" ? "is-featured" : ""} pricing-card--${pricingArtLabels[index]}`}
             >
-              <div className="pricing-card__head">
-                <span>{pricingLabels[index]}</span>
-                {plan.name === "Elevate" ? <strong>Most popular</strong> : null}
-              </div>
-              <div className="pricing-card__body">
-                <div>
-                  <h3>{plan.price.replace("INR", "\u20b9")}</h3>
-                  <p>{plan.description}</p>
+              <div className="pricing-card__summary">
+                <div className="pricing-card__head">
+                  <span>{pricingLabels[index]}</span>
+                  {plan.name === "Elevate" ? <strong>Most popular</strong> : null}
                 </div>
-                <div className="pricing-card-art" aria-hidden="true">
-                  <span />
-                  <i />
-                </div>
+                <h3>{plan.price.replace("INR", "\u20b9")}</h3>
               </div>
+              <p className="pricing-card__description">{plan.description}</p>
               <div className="pricing-meta">
                 <small><CalendarClock size={18} /> Next batch:<br /><b>10 Sept</b></small>
                 <small><UsersRound size={18} /> Limited<br /><b>slots</b></small>
@@ -1513,6 +848,16 @@ export function LandingPage() {
               </article>
             );
           })}
+        </div>
+      </section>
+
+      <section className="joviq-start" aria-labelledby="joviq-start-title">
+        <span className="joviq-start__pill"><Sparkles size={13} />LEARN. BUILD. GROW WITH JOVIQ.</span>
+        <h2 id="joviq-start-title">Ready to Build Your<br />Next Career Chapter?</h2>
+        <p>Turn learning into real skills with Joviq's guided projects, expert feedback, and career-focused programs.</p>
+        <div className="joviq-start__actions">
+          <Link to="/programs">Explore Programs <ArrowRight size={16} /></Link>
+          <Link to="/request-callback">Talk to an Advisor</Link>
         </div>
       </section>
 

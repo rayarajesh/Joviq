@@ -1,3 +1,4 @@
+import { AdminWorkspaceSearch } from "./AdminWorkspaceSearch";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bell, Check, ChevronDown, LayoutDashboard, LifeBuoy, LogOut, UserRound } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -122,6 +123,7 @@ export function AuthenticatedNavbar() {
           </div>
         </Link>
 
+        {user.roles.includes("Admin") ? <AdminWorkspaceSearch /> : null}
         <div className="auth-nav__actions" ref={actionsRef}>
           <Link
             className={`auth-nav__support-link ${location.pathname === "/dashboard" && new URLSearchParams(location.search).get("section") === "Support" ? "is-active" : ""}`}
