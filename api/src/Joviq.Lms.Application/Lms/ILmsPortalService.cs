@@ -68,9 +68,17 @@ public interface ILmsPortalService
 
     Task<CurriculumModuleResponse> UpdateModuleAsync(Guid moduleId, CreateModuleRequest request, CancellationToken cancellationToken);
 
+    Task DeleteModuleAsync(Guid moduleId, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<CurriculumModuleResponse>> ReorderModulesAsync(Guid programId, ReorderItemsRequest request, CancellationToken cancellationToken);
+
     Task<LessonResponse> CreateLessonAsync(Guid moduleId, CreateLessonRequest request, CancellationToken cancellationToken);
 
     Task<LessonResponse> UpdateLessonAsync(Guid lessonId, CreateLessonRequest request, CancellationToken cancellationToken);
+
+    Task DeleteLessonAsync(Guid lessonId, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<CurriculumModuleResponse>> ReorderLessonsAsync(Guid moduleId, ReorderItemsRequest request, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<ProjectResponse>> GetAdminProjectsAsync(CancellationToken cancellationToken);
 

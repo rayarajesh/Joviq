@@ -38,6 +38,7 @@ import {
 import { BrandLogo } from "../components/BrandLogo";
 import { IndiaMobileInput } from "../components/IndiaMobileInput";
 import { PublicNavbar } from "../components/PublicNavbar";
+import { ToastMessage } from "../components/ToastMessage";
 import { SiteFooter } from "../components/SiteFooter";
 import {
   allPrograms,
@@ -1597,7 +1598,7 @@ export function LandingPage() {
             />
           )}
 
-          {message ? <div className={`auth-message auth-message--${message.tone}`}>{message.text}</div> : null}
+          <ToastMessage message={message} onDismiss={() => setMessage(null)} />
         </div>
       </AuthDialog>
 
@@ -1852,7 +1853,7 @@ function CallbackForm() {
         <Send size={18} />
         Submit request
       </button>
-      {message ? <div className={`auth-message auth-message--${message.tone}`}>{message.text}</div> : null}
+      <ToastMessage message={message} onDismiss={() => setMessage(null)} />
     </form>
   );
 }

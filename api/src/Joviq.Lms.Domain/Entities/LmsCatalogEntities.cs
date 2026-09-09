@@ -100,6 +100,8 @@ public sealed class CurriculumModule : AuditableEntity
 
     public int SortOrder { get; set; }
 
+    public bool IsActive { get; set; } = true;
+
     public ICollection<Lesson> Lessons { get; set; } = [];
 }
 
@@ -124,6 +126,8 @@ public sealed class Lesson : AuditableEntity
     public ContentAccessLevel AccessLevel { get; set; } = ContentAccessLevel.Full;
 
     public int SortOrder { get; set; }
+
+    public bool IsActive { get; set; } = true;
 
     public ICollection<LessonResource> Resources { get; set; } = [];
 }

@@ -22,6 +22,7 @@ import {
   X
 } from "lucide-react";
 import { BrandLogo } from "../components/BrandLogo";
+import { ToastMessage } from "../components/ToastMessage";
 import { env } from "../config/env";
 import { studentOnboardingApi } from "../features/student/api/studentOnboardingApi";
 import type { StudentOnboardingResponse } from "../features/student/api/studentOnboardingTypes";
@@ -806,7 +807,7 @@ export function StudentOnboardingPage() {
         </aside>
 
         <section className="onboarding-workspace">
-          {message ? <div className={`onboarding-message onboarding-message--${message.tone}`}>{message.text}</div> : null}
+          <ToastMessage message={message} onDismiss={() => setMessage(null)} />
 
           {activeStep === "personal" ? (
             <form className="onboarding-form" onSubmit={savePersonal} noValidate>

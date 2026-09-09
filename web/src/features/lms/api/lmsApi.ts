@@ -18,6 +18,7 @@ import type {
   CurriculumModuleResponse,
   EnrollmentResponse,
   IssueCertificateRequest,
+  LessonResponse,
   PaymentTransactionResponse,
   ProgramCategoryResponse,
   ProgramDetailsResponse,
@@ -25,6 +26,7 @@ import type {
   ProgramPlanResponse,
   ProgramSummaryResponse,
   ProjectResponse,
+  ReorderItemsRequest,
   StudentLmsDashboardResponse,
   StudentProgramWorkspaceResponse,
   SubmissionResponse,
@@ -167,12 +169,28 @@ export const adminLmsApi = {
     return request<CurriculumModuleResponse>(`/api/v1/admin/lms/modules/${moduleId}`, { method: "PUT", body });
   },
 
+  deleteModule(moduleId: string) {
+    return request(`/api/v1/admin/lms/modules/${moduleId}`, { method: "DELETE" });
+  },
+
+  reorderModules(programId: string, body: ReorderItemsRequest) {
+    return request<CurriculumModuleResponse[]>(`/api/v1/admin/lms/programs/${programId}/modules/order`, { method: "PUT", body });
+  },
+
   createLesson(moduleId: string, body: CreateLessonRequest) {
-    return request(`/api/v1/admin/lms/modules/${moduleId}/lessons`, { method: "POST", body });
+    return request<LessonResponse>(`/api/v1/admin/lms/modules/${moduleId}/lessons`, { method: "POST", body });
   },
 
   updateLesson(lessonId: string, body: CreateLessonRequest) {
-    return request(`/api/v1/admin/lms/lessons/${lessonId}`, { method: "PUT", body });
+    return request<LessonResponse>(`/api/v1/admin/lms/lessons/${lessonId}`, { method: "PUT", body });
+  },
+
+  deleteLesson(lessonId: string) {
+    return request(`/api/v1/admin/lms/lessons/${lessonId}`, { method: "DELETE" });
+  },
+
+  reorderLessons(moduleId: string, body: ReorderItemsRequest) {
+    return request<CurriculumModuleResponse[]>(`/api/v1/admin/lms/modules/${moduleId}/lessons/order`, { method: "PUT", body });
   },
 
   getProjects() {

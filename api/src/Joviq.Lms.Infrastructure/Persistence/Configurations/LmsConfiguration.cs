@@ -71,7 +71,8 @@ public sealed class CurriculumModuleConfiguration : IEntityTypeConfiguration<Cur
     {
         builder.ToTable("curriculum_modules");
         builder.HasKey(x => x.Id);
-        builder.HasIndex(x => new { x.ProgramId, x.SortOrder });
+        builder.HasIndex(x => new { x.ProgramId, x.IsActive, x.SortOrder });
+        builder.Property(x => x.IsActive).HasDefaultValue(true);
         builder.Property(x => x.Title).HasMaxLength(180).IsRequired();
         builder.Property(x => x.Description).HasMaxLength(1200).IsRequired();
         builder.HasOne(x => x.Program)
@@ -87,7 +88,8 @@ public sealed class LessonConfiguration : IEntityTypeConfiguration<Lesson>
     {
         builder.ToTable("lessons");
         builder.HasKey(x => x.Id);
-        builder.HasIndex(x => new { x.ModuleId, x.SortOrder });
+        builder.HasIndex(x => new { x.ModuleId, x.IsActive, x.SortOrder });
+        builder.Property(x => x.IsActive).HasDefaultValue(true);
         builder.Property(x => x.Title).HasMaxLength(180).IsRequired();
         builder.Property(x => x.Summary).HasMaxLength(1200).IsRequired();
         builder.Property(x => x.VideoUrl).HasMaxLength(500);

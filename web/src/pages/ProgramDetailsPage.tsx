@@ -26,6 +26,7 @@ import {
 import { IndiaMobileInput } from "../components/IndiaMobileInput";
 import { PublicNavbar } from "../components/PublicNavbar";
 import { SiteFooter } from "../components/SiteFooter";
+import { ToastMessage } from "../components/ToastMessage";
 import { allPrograms, defaultProgramPlans, findProgramBySlug } from "../data/siteContent";
 import type { Program, ProgramPlan } from "../data/siteContent";
 import { getProgramImage } from "../data/programVisuals";
@@ -417,7 +418,7 @@ function EnrollForm({ onPlanChange, plans, programTitle, selectedPlanCode }: {
       </label>
       <input name="program" type="hidden" value={programTitle} />
       <button type="submit"><Send size={18} /> Submit enrollment request</button>
-      {message ? <div className={`auth-message auth-message--${message.tone}`}>{message.text}</div> : null}
+      <ToastMessage message={message} onDismiss={() => setMessage(null)} />
     </form>
   );
 }

@@ -114,7 +114,7 @@ public sealed class LmsPortalService(
             .OrderBy(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        return MapProgramDetails(program, projects, new Dictionary<Guid, LessonProgress>());
+        return MapProgramDetails(program, projects, new Dictionary<Guid, LessonProgress>(), includeInactive: false);
     }
 
     public async Task<LeadCaptureResponse> CreateCallbackRequestAsync(
@@ -244,13 +244,17 @@ public sealed class LmsPortalService(
             .FirstOrDefaultAsync(x => x.Id == enrollment.ProgramId, cancellationToken)
             ?? throw new AppException("Program was not found.", 404, "program_not_found");
 
-        var lessonIds = program.Modules.SelectMany(x => x.Lessons).Select(x => x.Id).ToList();
+        var lessonIds = program.Modules
+            .Where(module => module.IsActive)
+            .SelectMany(module => module.Lessons.Where(lesson => lesson.IsActive))
+            .Select(x => x.Id)
+            .ToList();
         var progress = await dbContext.LessonProgress
             .AsNoTracking()
             .Where(x => x.StudentId == studentId && lessonIds.Contains(x.LessonId))
             .ToDictionaryAsync(x => x.LessonId, cancellationToken);
         var projects = await dbContext.Projects.AsNoTracking().Where(x => x.ProgramId == program.Id && x.IsPublished).ToListAsync(cancellationToken);
-        return MapProgramDetails(program, projects, progress);
+        return MapProgramDetails(program, projects, progress, includeInactive: false);
     }
 
     public async Task<EnrollmentResponse> CreateEnrollmentAsync(
@@ -788,7 +792,7 @@ public sealed class LmsPortalService(
             .ThenBy(x => x.SortOrder)
             .ToListAsync(cancellationToken);
 
-        return modules.Select(module => MapCurriculumModule(module, null, new Dictionary<Guid, LessonProgress>())).ToList();
+        return modules.Select(module => MapCurriculumModule(module, null, new Dictionary<Guid, LessonProgress>(), includeInactive: true)).ToList();
     }
 
     public async Task<CurriculumModuleResponse> CreateModuleAsync(
@@ -803,13 +807,16 @@ public sealed class LmsPortalService(
             ProgramId = programId,
             Title = RequiredText(request.Title, nameof(request.Title), 2, 180),
             Description = RequiredText(request.Description, nameof(request.Description), 10, 1200),
-            SortOrder = await dbContext.CurriculumModules.CountAsync(x => x.ProgramId == programId, cancellationToken) + 1
+            SortOrder = request.SortOrder.GetValueOrDefault() > 0
+                ? request.SortOrder!.Value
+                : await dbContext.CurriculumModules.CountAsync(x => x.ProgramId == programId, cancellationToken) + 1,
+            IsActive = request.IsActive ?? true
         };
 
         dbContext.CurriculumModules.Add(module);
         Audit("Admin.CurriculumModuleCreated", new { module.Id, module.ProgramId, module.Title });
         await dbContext.SaveChangesAsync(cancellationToken);
-        return MapCurriculumModule(module, null, new Dictionary<Guid, LessonProgress>());
+        return MapCurriculumModule(module, null, new Dictionary<Guid, LessonProgress>(), includeInactive: true);
     }
 
     public async Task<CurriculumModuleResponse> UpdateModuleAsync(
@@ -824,10 +831,49 @@ public sealed class LmsPortalService(
 
         module.Title = RequiredText(request.Title, nameof(request.Title), 2, 180);
         module.Description = RequiredText(request.Description, nameof(request.Description), 10, 1200);
+        if (request.SortOrder.GetValueOrDefault() > 0)
+        {
+            module.SortOrder = request.SortOrder!.Value;
+        }
+
+        if (request.IsActive.HasValue)
+        {
+            module.IsActive = request.IsActive.Value;
+        }
 
         Audit("Admin.CurriculumModuleUpdated", new { module.Id, module.ProgramId, module.Title });
         await dbContext.SaveChangesAsync(cancellationToken);
-        return MapCurriculumModule(module, null, new Dictionary<Guid, LessonProgress>());
+        return MapCurriculumModule(module, null, new Dictionary<Guid, LessonProgress>(), includeInactive: true);
+    }
+
+    public async Task DeleteModuleAsync(Guid moduleId, CancellationToken cancellationToken)
+    {
+        var module = await dbContext.CurriculumModules
+            .FirstOrDefaultAsync(x => x.Id == moduleId, cancellationToken)
+            ?? throw new AppException("Curriculum module was not found.", 404, "module_not_found");
+
+        dbContext.CurriculumModules.Remove(module);
+        Audit("Admin.CurriculumModuleDeleted", new { module.Id, module.ProgramId, module.Title });
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<CurriculumModuleResponse>> ReorderModulesAsync(
+        Guid programId,
+        ReorderItemsRequest request,
+        CancellationToken cancellationToken)
+    {
+        var modules = await dbContext.CurriculumModules
+            .Where(x => x.ProgramId == programId)
+            .OrderBy(x => x.SortOrder)
+            .ToListAsync(cancellationToken);
+
+        ApplyOrder(modules, request.OrderedIds, "module", module => module.Id, (module, order) => module.SortOrder = order);
+        Audit("Admin.CurriculumModulesReordered", new { programId, request.OrderedIds });
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return modules
+            .OrderBy(x => x.SortOrder)
+            .Select(module => MapCurriculumModule(module, null, new Dictionary<Guid, LessonProgress>(), includeInactive: true))
+            .ToList();
     }
 
     public async Task<LessonResponse> CreateLessonAsync(
@@ -848,8 +894,18 @@ public sealed class LmsPortalService(
             NotesUrl = OptionalUrl(request.NotesUrl, nameof(request.NotesUrl)),
             DurationMinutes = request.DurationMinutes <= 0 ? 45 : request.DurationMinutes,
             AccessLevel = request.AccessLevel,
-            SortOrder = await dbContext.Lessons.CountAsync(x => x.ModuleId == moduleId, cancellationToken) + 1
+            SortOrder = request.SortOrder.GetValueOrDefault() > 0
+                ? request.SortOrder!.Value
+                : await dbContext.Lessons.CountAsync(x => x.ModuleId == moduleId, cancellationToken) + 1,
+            IsActive = request.IsActive ?? true
         };
+
+        foreach (var resource in MapLessonResources(request.Resources))
+        {
+            resource.LessonId = lesson.Id;
+            resource.Lesson = lesson;
+            lesson.Resources.Add(resource);
+        }
 
         dbContext.Lessons.Add(lesson);
         Audit("Admin.LessonCreated", new { lesson.Id, lesson.ModuleId, module.ProgramId, lesson.Title, lesson.AccessLevel });
@@ -862,7 +918,9 @@ public sealed class LmsPortalService(
         CreateLessonRequest request,
         CancellationToken cancellationToken)
     {
-        var lesson = await dbContext.Lessons.FirstOrDefaultAsync(x => x.Id == lessonId, cancellationToken)
+        var lesson = await dbContext.Lessons
+            .Include(x => x.Resources)
+            .FirstOrDefaultAsync(x => x.Id == lessonId, cancellationToken)
             ?? throw new AppException("Lesson was not found.", 404, "lesson_not_found");
 
         lesson.Title = RequiredText(request.Title, nameof(request.Title), 2, 180);
@@ -871,10 +929,54 @@ public sealed class LmsPortalService(
         lesson.NotesUrl = OptionalUrl(request.NotesUrl, nameof(request.NotesUrl));
         lesson.DurationMinutes = request.DurationMinutes <= 0 ? 45 : request.DurationMinutes;
         lesson.AccessLevel = request.AccessLevel;
+        if (request.SortOrder.GetValueOrDefault() > 0)
+        {
+            lesson.SortOrder = request.SortOrder!.Value;
+        }
+
+        if (request.IsActive.HasValue)
+        {
+            lesson.IsActive = request.IsActive.Value;
+        }
+
+        dbContext.LessonResources.RemoveRange(lesson.Resources);
+        lesson.Resources.Clear();
+        foreach (var resource in MapLessonResources(request.Resources))
+        {
+            lesson.Resources.Add(resource);
+        }
 
         Audit("Admin.LessonUpdated", new { lesson.Id, lesson.ModuleId, lesson.Title, lesson.AccessLevel });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapLesson(lesson, null, null);
+    }
+
+    public async Task DeleteLessonAsync(Guid lessonId, CancellationToken cancellationToken)
+    {
+        var lesson = await dbContext.Lessons
+            .FirstOrDefaultAsync(x => x.Id == lessonId, cancellationToken)
+            ?? throw new AppException("Lesson was not found.", 404, "lesson_not_found");
+
+        dbContext.Lessons.Remove(lesson);
+        Audit("Admin.LessonDeleted", new { lesson.Id, lesson.ModuleId, lesson.Title });
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<CurriculumModuleResponse>> ReorderLessonsAsync(
+        Guid moduleId,
+        ReorderItemsRequest request,
+        CancellationToken cancellationToken)
+    {
+        var module = await dbContext.CurriculumModules
+            .Include(x => x.Lessons.OrderBy(lesson => lesson.SortOrder))
+                .ThenInclude(x => x.Resources)
+            .FirstOrDefaultAsync(x => x.Id == moduleId, cancellationToken)
+            ?? throw new AppException("Curriculum module was not found.", 404, "module_not_found");
+
+        ApplyOrder(module.Lessons.ToList(), request.OrderedIds, "lesson", lesson => lesson.Id, (lesson, order) => lesson.SortOrder = order);
+        Audit("Admin.LessonsReordered", new { moduleId, request.OrderedIds });
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return [MapCurriculumModule(module, null, new Dictionary<Guid, LessonProgress>(), includeInactive: true)];
     }
 
     public async Task<IReadOnlyList<ProjectResponse>> GetAdminProjectsAsync(CancellationToken cancellationToken)
@@ -1240,7 +1342,7 @@ public sealed class LmsPortalService(
         CancellationToken cancellationToken)
     {
         var projects = await dbContext.Projects.AsNoTracking().Where(x => x.ProgramId == program.Id).ToListAsync(cancellationToken);
-        return MapProgramDetails(program, projects, new Dictionary<Guid, LessonProgress>());
+        return MapProgramDetails(program, projects, new Dictionary<Guid, LessonProgress>(), includeInactive: true);
     }
 
     private async Task<Enrollment> CreateEnrollmentEntityAsync(
@@ -1376,7 +1478,8 @@ public sealed class LmsPortalService(
     private static ProgramDetailsResponse MapProgramDetails(
         LearningProgram program,
         IReadOnlyList<Project> projects,
-        IReadOnlyDictionary<Guid, LessonProgress> progress)
+        IReadOnlyDictionary<Guid, LessonProgress> progress,
+        bool includeInactive)
     {
         return new ProgramDetailsResponse(
             program.Id,
@@ -1396,8 +1499,47 @@ public sealed class LmsPortalService(
             DeserializeList(program.OutcomesJson),
             DeserializeFaqs(program.FaqsJson),
             program.Plans.OrderBy(x => x.SortOrder).Select(MapPlan).ToList(),
-            program.Modules.OrderBy(x => x.SortOrder).Select(module => MapCurriculumModule(module, null, progress)).ToList(),
+            program.Modules
+                .Where(module => includeInactive || module.IsActive)
+                .OrderBy(x => x.SortOrder)
+                .Select(module => MapCurriculumModule(module, null, progress, includeInactive))
+                .ToList(),
             projects.Select(project => MapProject(project, null)).ToList());
+    }
+
+    private static List<LessonResource> MapLessonResources(IEnumerable<LessonResourceRequest> resources)
+    {
+        return resources
+            .Where(resource => !string.IsNullOrWhiteSpace(resource.Url))
+            .Select(resource => new LessonResource
+            {
+                Id = Guid.NewGuid(),
+                Title = RequiredText(resource.Title, nameof(resource.Title), 1, 180),
+                ResourceType = RequiredText(resource.ResourceType, nameof(resource.ResourceType), 1, 80),
+                Url = RequiredText(resource.Url, nameof(resource.Url), 1, 500)
+            })
+            .ToList();
+    }
+
+    private static void ApplyOrder<T>(
+        IReadOnlyList<T> items,
+        IReadOnlyList<Guid> orderedIds,
+        string itemType,
+        Func<T, Guid> getId,
+        Action<T, int> setOrder)
+    {
+        var requestedIds = orderedIds.Distinct().ToList();
+        var currentIds = items.Select(getId).ToHashSet();
+        if (requestedIds.Count != items.Count || requestedIds.Any(id => !currentIds.Contains(id)))
+        {
+            throw Validation("orderedIds", $"The orderedIds list must contain every {itemType} exactly once.");
+        }
+
+        for (var index = 0; index < requestedIds.Count; index++)
+        {
+            var item = items.First(value => getId(value) == requestedIds[index]);
+            setOrder(item, index + 1);
+        }
     }
 
     private static ProgramPlanResponse MapPlan(ProgramPlan plan)
@@ -1417,7 +1559,8 @@ public sealed class LmsPortalService(
     private static CurriculumModuleResponse MapCurriculumModule(
         CurriculumModule module,
         Enrollment? enrollment,
-        IReadOnlyDictionary<Guid, LessonProgress> progress)
+        IReadOnlyDictionary<Guid, LessonProgress> progress,
+        bool includeInactive)
     {
         return new CurriculumModuleResponse(
             module.Id,
@@ -1425,7 +1568,9 @@ public sealed class LmsPortalService(
             module.Title,
             module.Description,
             module.SortOrder,
+            module.IsActive,
             module.Lessons
+                .Where(lesson => includeInactive || lesson.IsActive)
                 .OrderBy(x => x.SortOrder)
                 .Select(lesson => MapLesson(lesson, enrollment, progress.GetValueOrDefault(lesson.Id)))
                 .ToList());
@@ -1443,6 +1588,8 @@ public sealed class LmsPortalService(
             isLocked ? null : lesson.NotesUrl,
             lesson.DurationMinutes,
             lesson.AccessLevel.ToString(),
+            lesson.SortOrder,
+            lesson.IsActive,
             isLocked,
             progress?.ProgressPercentage ?? 0,
             progress?.IsCompleted ?? false,

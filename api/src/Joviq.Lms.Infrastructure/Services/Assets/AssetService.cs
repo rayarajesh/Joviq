@@ -464,7 +464,7 @@ internal sealed class AssetService(
     private static string GetSafeExtension(string fileName, string contentType)
     {
         var extension = Path.GetExtension(fileName).ToLowerInvariant();
-        if (extension is ".jpg" or ".jpeg" or ".png" or ".webp" or ".gif" or ".mp4" or ".webm" or ".mov" or ".pdf" or ".doc" or ".docx" or ".ppt" or ".pptx" or ".zip")
+        if (extension is ".jpg" or ".jpeg" or ".png" or ".webp" or ".gif" or ".mp4" or ".webm" or ".mov" or ".pdf" or ".doc" or ".docx" or ".ppt" or ".pptx" or ".zip" or ".txt" or ".md")
         {
             return extension;
         }
@@ -484,6 +484,8 @@ internal sealed class AssetService(
             "application/vnd.ms-powerpoint" => ".ppt",
             "application/vnd.openxmlformats-officedocument.presentationml.presentation" => ".pptx",
             "application/zip" => ".zip",
+            "text/plain" => ".txt",
+            "text/markdown" => ".md",
             _ => ".bin"
         };
     }

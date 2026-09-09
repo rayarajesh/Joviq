@@ -66,6 +66,7 @@ public sealed record CurriculumModuleResponse(
     string Title,
     string Description,
     int SortOrder,
+    bool IsActive,
     IReadOnlyList<LessonResponse> Lessons);
 
 public sealed record LessonResponse(
@@ -77,6 +78,8 @@ public sealed record LessonResponse(
     string? NotesUrl,
     int DurationMinutes,
     string AccessLevel,
+    int SortOrder,
+    bool IsActive,
     bool IsLocked,
     int ProgressPercentage,
     bool IsCompleted,
@@ -353,6 +356,24 @@ public sealed class CreateModuleRequest
     public string Title { get; init; } = string.Empty;
 
     public string Description { get; init; } = string.Empty;
+
+    public int? SortOrder { get; init; }
+
+    public bool? IsActive { get; init; }
+}
+
+public sealed class ReorderItemsRequest
+{
+    public IReadOnlyList<Guid> OrderedIds { get; init; } = [];
+}
+
+public sealed class LessonResourceRequest
+{
+    public string Title { get; init; } = string.Empty;
+
+    public string ResourceType { get; init; } = string.Empty;
+
+    public string Url { get; init; } = string.Empty;
 }
 
 public sealed class CreateLessonRequest
@@ -368,6 +389,12 @@ public sealed class CreateLessonRequest
     public int DurationMinutes { get; init; }
 
     public ContentAccessLevel AccessLevel { get; init; } = ContentAccessLevel.Full;
+
+    public int? SortOrder { get; init; }
+
+    public bool? IsActive { get; init; }
+
+    public IReadOnlyList<LessonResourceRequest> Resources { get; init; } = [];
 }
 
 public sealed class CreateProjectRequest

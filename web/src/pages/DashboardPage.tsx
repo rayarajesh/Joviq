@@ -48,6 +48,8 @@ import {
   UsersRound
 } from "lucide-react";
 import { IndiaMobileInput } from "../components/IndiaMobileInput";
+import { CurriculumAdminPanel } from "../components/CurriculumAdminPanel";
+import { ToastMessage } from "../components/ToastMessage";
 import { env } from "../config/env";
 import { assetsApi } from "../features/assets/api/assetsApi";
 import { assetPurposes, assetTypes, assetVisibilities } from "../features/assets/api/assetsTypes";
@@ -68,7 +70,6 @@ import type {
   CouponResponse,
   CurriculumModuleResponse,
   EnrollmentResponse,
-  LessonResponse,
   PaymentTransactionResponse,
   ProgramCategoryResponse,
   ProgramDetailsResponse,
@@ -143,7 +144,6 @@ const dashboardNavItems: Record<PrimaryRole, string[]> = {
     "Categories",
     "Programs",
     "Curriculum",
-    "Lessons",
     "Projects",
     "Certificates",
     "Students",
@@ -167,7 +167,7 @@ const studentNavGroups: DashboardNavGroup[] = [
 
 const adminNavGroups: DashboardNavGroup[] = [
   { label: "Main", items: ["Overview"] },
-  { label: "Learning", items: ["Categories", "Programs", "Curriculum", "Lessons", "Projects", "Certificates"] },
+  { label: "Learning", items: ["Categories", "Programs", "Curriculum", "Projects", "Certificates"] },
   { label: "People", items: ["Students", "Enrollments"] },
   { label: "Billing", items: ["Payments", "Coupons"] },
   { label: "System", items: ["Audit Logs"] }
@@ -180,7 +180,6 @@ const moduleIconMap: Record<string, ComponentType<{ size?: number }>> = {
   Categories: Tags,
   Programs: BookOpen,
   Curriculum: ListChecks,
-  Lessons: PlayCircle,
   Projects: FolderKanban,
   Enrollments: ClipboardList,
   Payments: CreditCard,
@@ -226,7 +225,7 @@ export function DashboardPage() {
   }
 
   const usesAdminModuleHero = primaryRole === "Admin"
-    && (activeModule === "Students" || activeModule === "Categories" || activeModule === "Programs");
+    && (activeModule === "Students" || activeModule === "Categories" || activeModule === "Programs" || activeModule === "Curriculum");
   const hideDashboardHeader = usesAdminModuleHero || (primaryRole === "Admin" && activeModule === "Overview");
 
   return (
@@ -498,7 +497,7 @@ function AdminDashboard({ activeModule, currentUserId }: { activeModule: string;
         />
       ) : null}
 
-      {message ? <MessageBox message={message} /> : null}
+      <ToastMessage message={message} onDismiss={() => setMessage(null)} />
 
       {activeModule === "Students" ? (
         <AdminPeoplePanel
@@ -1144,70 +1143,6 @@ function AdminLmsPanel({
     }
   }
 
-  async function createModule(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const formElement = event.currentTarget;
-    const form = new FormData(formElement);
-    const programId = String(form.get("programId") ?? "");
-
-    try {
-      await adminLmsApi.createModule(programId, {
-        title: String(form.get("title") ?? "").trim(),
-        description: String(form.get("description") ?? "").trim()
-      });
-      formElement.reset();
-      onMessage({ tone: "success", text: "Curriculum module created." });
-      await onRefresh();
-    } catch (error) {
-      onMessage({ tone: "error", text: formatApiError(error) });
-    }
-  }
-
-  async function editModule(module: CurriculumModuleResponse) {
-    const title = window.prompt("Module title", module.title);
-    if (title === null) {
-      return;
-    }
-
-    const description = window.prompt("Module description", module.description);
-    if (description === null) {
-      return;
-    }
-
-    try {
-      await adminLmsApi.updateModule(module.id, { title, description });
-      onMessage({ tone: "success", text: "Curriculum module updated." });
-      await onRefresh();
-    } catch (error) {
-      onMessage({ tone: "error", text: formatApiError(error) });
-    }
-  }
-
-  async function addLesson(module: CurriculumModuleResponse) {
-    const title = window.prompt("Lesson title");
-    if (!title) {
-      return;
-    }
-
-    const summary = window.prompt("Lesson summary");
-    if (!summary) {
-      return;
-    }
-
-    try {
-      await adminLmsApi.createLesson(module.id, {
-        title,
-        summary,
-        durationMinutes: 45,
-        accessLevel: 3
-      });
-      onMessage({ tone: "success", text: "Lesson created." });
-      await onRefresh();
-    } catch (error) {
-      onMessage({ tone: "error", text: formatApiError(error) });
-    }
-  }
-
   async function createProject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formElement = event.currentTarget;
@@ -1324,56 +1259,6 @@ function AdminLmsPanel({
     }
   }
 
-  async function createLesson(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const formElement = event.currentTarget;
-    const form = new FormData(formElement);
-    const moduleId = String(form.get("moduleId") ?? "");
-
-    try {
-      await adminLmsApi.createLesson(moduleId, {
-        title: String(form.get("title") ?? "").trim(),
-        summary: String(form.get("summary") ?? "").trim(),
-        videoUrl: String(form.get("videoUrl") ?? "").trim() || undefined,
-        notesUrl: String(form.get("notesUrl") ?? "").trim() || undefined,
-        durationMinutes: Number(form.get("durationMinutes") ?? 45),
-        accessLevel: Number(form.get("accessLevel") ?? 3)
-      });
-      formElement.reset();
-      onMessage({ tone: "success", text: "Lesson created." });
-      await onRefresh();
-    } catch (error) {
-      onMessage({ tone: "error", text: formatApiError(error) });
-    }
-  }
-
-  async function editLesson(lesson: LessonResponse) {
-    const title = window.prompt("Lesson title", lesson.title);
-    if (title === null) {
-      return;
-    }
-
-    const summaryText = window.prompt("Lesson summary", lesson.summary);
-    if (summaryText === null) {
-      return;
-    }
-
-    try {
-      await adminLmsApi.updateLesson(lesson.id, {
-        title,
-        summary: summaryText,
-        videoUrl: lesson.videoUrl,
-        notesUrl: lesson.notesUrl,
-        durationMinutes: lesson.durationMinutes,
-        accessLevel: accessLevelValue(lesson.accessLevel)
-      });
-      onMessage({ tone: "success", text: "Lesson updated." });
-      await onRefresh();
-    } catch (error) {
-      onMessage({ tone: "error", text: formatApiError(error) });
-    }
-  }
-
   async function updateEnrollment(enrollment: EnrollmentResponse, status: number) {
     try {
       await adminLmsApi.updateEnrollmentStatus(enrollment.id, {
@@ -1418,7 +1303,9 @@ function AdminLmsPanel({
 
   const isCategoriesModule = activeModule === "Categories";
   const isProgramsModule = activeModule === "Programs";
+  const isCurriculumModule = activeModule === "Curriculum";
   const usesCatalogModuleHero = isCategoriesModule || isProgramsModule;
+  const showGenericLmsHero = !isCurriculumModule;
   const selectedCategorySlug = searchParams.get("category");
   const selectedProgramCategory = selectedCategorySlug
     ? categories.find((category) => category.slug.toLowerCase() === selectedCategorySlug.toLowerCase())
@@ -1427,12 +1314,6 @@ function AdminLmsPanel({
   const visiblePrograms = selectedProgramCategory
     ? programs.filter((program) => program.categoryId === selectedProgramCategory.id)
     : programs;
-  const visibleCurriculum = selectedProgramId
-    ? adminCurriculum.filter((module) => module.programId === selectedProgramId)
-    : adminCurriculum;
-  const selectedCurriculumProgram = selectedProgramId
-    ? programs.find((program) => program.id === selectedProgramId)
-    : null;
   const categoryProgramCount = categories.reduce((total, category) => total + category.programs.length, 0);
   const visibleProgramCounts = {
     total: visiblePrograms.length,
@@ -1440,19 +1321,11 @@ function AdminLmsPanel({
     draft: visiblePrograms.filter((program) => program.status === "Draft").length,
     archived: visiblePrograms.filter((program) => program.status === "Archived").length
   };
-  const lessons = adminCurriculum.flatMap((module) =>
-    module.lessons.map((lesson) => ({
-      ...lesson,
-      moduleTitle: module.title,
-      programTitle: programs.find((program) => program.id === module.programId)?.title ?? "Program"
-    }))
-  );
-
   const showPrograms = activeModule === "Programs";
   const showModule = (module: string) => activeModule === module;
 
   return (
-    <section className={`dashboard-card lms-admin-panel${usesCatalogModuleHero ? " lms-admin-panel--categories" : ""}`}>
+    <section className={`dashboard-card lms-admin-panel${usesCatalogModuleHero ? " lms-admin-panel--categories" : ""}${isCurriculumModule ? " lms-admin-panel--curriculum" : ""}`}>
       {usesCatalogModuleHero ? (
         <div className="category-page-header">
           <div>
@@ -1475,7 +1348,7 @@ function AdminLmsPanel({
             {isProgramsModule ? "Create program" : "Create category"}
           </button>
         </div>
-      ) : (
+      ) : showGenericLmsHero ? (
         <div className="card-title-row">
           <div>
             <span className="eyebrow">LMS engine</span>
@@ -1486,9 +1359,9 @@ function AdminLmsPanel({
           </div>
           <Layers3 size={23} />
         </div>
-      )}
+      ) : null}
 
-      <div className={usesCatalogModuleHero ? "category-admin-layout" : "lms-admin-grid"}>
+      <div className={usesCatalogModuleHero ? "category-admin-layout" : isCurriculumModule ? "lms-admin-curriculum-layout" : "lms-admin-grid"}>
         {showModule("Categories") ? (
           <section className="category-admin-panel">
             <div className="category-admin-grid">
@@ -2028,92 +1901,13 @@ function AdminLmsPanel({
         ), document.body) : null}
 
         {showModule("Curriculum") ? (
-          <section className="lms-list-panel lms-list-panel--wide">
-            <div className="curriculum-admin-heading">
-              <div>
-                <h3>Curriculum modules</h3>
-                {selectedCurriculumProgram ? <p>Managing curriculum for {selectedCurriculumProgram.title}.</p> : null}
-              </div>
-              {selectedCurriculumProgram ? (
-                <button type="button" onClick={() => navigate("/dashboard?section=Curriculum")}>
-                  Show all modules
-                </button>
-              ) : null}
-            </div>
-            <form
-              className="lms-mini-form lms-mini-form--inline"
-              key={selectedCurriculumProgram?.id ?? "all-curriculum"}
-              onSubmit={createModule}
-            >
-              <select name="programId" defaultValue={selectedCurriculumProgram?.id ?? ""} required>
-                <option value="">Choose program</option>
-                {programs.map((program) => (
-                  <option key={program.id} value={program.id}>{program.title}</option>
-                ))}
-              </select>
-              <input name="title" placeholder="Module title" required />
-              <input name="description" placeholder="Module description" required />
-              <button className="primary-action" type="submit">Create module</button>
-            </form>
-            <div className="lms-scroll-list">
-              {visibleCurriculum.length === 0 ? <div className="table-state">No curriculum modules yet.</div> : null}
-              {visibleCurriculum.map((module) => (
-                <article key={module.id} className="lms-list-item">
-                  <div>
-                    <strong>{module.title}</strong>
-                    <span>{module.description || `${module.lessons.length} lessons configured`}</span>
-                  </div>
-                  <div className="lms-row-actions">
-                    <small>{module.lessons.length} lessons</small>
-                    <button type="button" onClick={() => void editModule(module)}>Edit</button>
-                    <button type="button" onClick={() => void addLesson(module)}>Add lesson</button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-        ) : null}
-
-        {showModule("Lessons") ? (
-          <section className="lms-list-panel lms-list-panel--wide">
-            <h3>Lessons</h3>
-            <form className="lms-mini-form lms-mini-form--inline" onSubmit={createLesson}>
-              <select name="moduleId" required>
-                <option value="">Choose module</option>
-                {adminCurriculum.map((module) => (
-                  <option key={module.id} value={module.id}>
-                    {programs.find((program) => program.id === module.programId)?.title ?? "Program"} - {module.title}
-                  </option>
-                ))}
-              </select>
-              <input name="title" placeholder="Lesson title" required />
-              <input name="summary" placeholder="Lesson summary" required />
-              <input name="durationMinutes" type="number" min="1" defaultValue="45" />
-              <select name="accessLevel" defaultValue="3">
-                <option value="1">Preview</option>
-                <option value="2">Reserved</option>
-                <option value="3">Full</option>
-              </select>
-              <input name="videoUrl" placeholder="Video URL" />
-              <input name="notesUrl" placeholder="Notes URL" />
-              <button className="primary-action" type="submit">Create lesson</button>
-            </form>
-            <div className="lms-scroll-list">
-              {lessons.length === 0 ? <div className="table-state">No lessons yet.</div> : null}
-              {lessons.map((lesson) => (
-                <article key={lesson.id} className="lms-list-item">
-                  <div>
-                    <strong>{lesson.title}</strong>
-                    <span>{lesson.programTitle} - {lesson.moduleTitle} - {lesson.durationMinutes} min</span>
-                  </div>
-                  <div className="lms-row-actions">
-                    <small>{lesson.accessLevel}</small>
-                    <button type="button" onClick={() => void editLesson(lesson)}>Edit</button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
+          <CurriculumAdminPanel
+            modules={adminCurriculum}
+            programs={programs}
+            initialProgramId={selectedProgramId}
+            onMessage={onMessage}
+            onRefresh={onRefresh}
+          />
         ) : null}
 
         {showModule("Projects") ? (
@@ -2873,7 +2667,7 @@ function StudentDashboard({ activeModule }: { activeModule: string }) {
         </section>
       ) : null}
 
-      {message ? <MessageBox message={message} /> : null}
+      <ToastMessage message={message} onDismiss={() => setMessage(null)} />
       {isLoading ? <section className="dashboard-card"><div className="table-state">Loading LMS workspace...</div></section> : null}
 
       {!isLoading && activeModule === "Profile" ? (
@@ -3110,10 +2904,6 @@ function DashboardPanel({ title, items }: { title: string; items: string[] }) {
   );
 }
 
-function MessageBox({ message }: { message: NonNullable<MessageState> }) {
-  return <div className={`dashboard-message dashboard-message--${message.tone}`}>{message.text}</div>;
-}
-
 function generateTemporaryPassword() {
   const randomText = Math.random().toString(36).slice(2, 8);
   const randomNumber = Math.floor(100 + Math.random() * 900);
@@ -3260,12 +3050,6 @@ function toSlug(value: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .replace(/-{2,}/g, "-");
-}
-
-function accessLevelValue(accessLevel: string) {
-  if (accessLevel === "Preview") return 1;
-  if (accessLevel === "Reserved") return 2;
-  return 3;
 }
 
 function programStatusValue(status: string) {

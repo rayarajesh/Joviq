@@ -32,12 +32,30 @@ export const assetsApi = {
       sizeBytes: file.size
     });
 
-    await fetch(upload.data.uploadUrl, {
+    const response = await fetch(toBrowserApiUrl(upload.data.uploadUrl), {
       method: upload.data.httpMethod,
       headers: upload.data.headers,
       body: file
     });
 
+    if (!response.ok) {
+      throw new Error(`Upload failed with ${response.status}.`);
+    }
+
     return assetsApi.completeUpload(upload.data.assetId);
   }
 };
+
+function toBrowserApiUrl(value: string) {
+  try {
+    const url = new URL(value);
+    if (url.hostname === "localhost" && url.port === "7001") {
+      url.hostname = "127.0.0.1";
+      url.protocol = "http:";
+      url.port = "5001";
+    }
+    return url.toString();
+  } catch {
+    return value;
+  }
+}

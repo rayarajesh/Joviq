@@ -59,6 +59,7 @@ export type CurriculumModuleResponse = {
   title: string;
   description: string;
   sortOrder: number;
+  isActive: boolean;
   lessons: LessonResponse[];
 };
 
@@ -71,6 +72,8 @@ export type LessonResponse = {
   notesUrl?: string;
   durationMinutes: number;
   accessLevel: string;
+  sortOrder: number;
+  isActive: boolean;
   isLocked: boolean;
   progressPercentage: number;
   isCompleted: boolean;
@@ -301,6 +304,8 @@ export type CreateCategoryRequest = {
 export type CreateModuleRequest = {
   title: string;
   description: string;
+  sortOrder?: number;
+  isActive?: boolean;
 };
 
 export type CreateLessonRequest = {
@@ -310,6 +315,19 @@ export type CreateLessonRequest = {
   notesUrl?: string;
   durationMinutes: number;
   accessLevel: number;
+  sortOrder?: number;
+  isActive?: boolean;
+  resources?: LessonResourceRequest[];
+};
+
+export type LessonResourceRequest = {
+  title: string;
+  resourceType: string;
+  url: string;
+};
+
+export type ReorderItemsRequest = {
+  orderedIds: string[];
 };
 
 export type CreateProjectRequest = {

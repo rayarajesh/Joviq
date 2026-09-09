@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { IndiaMobileInput } from "../components/IndiaMobileInput";
 import { PublicNavbar } from "../components/PublicNavbar";
+import { ToastMessage } from "../components/ToastMessage";
 import type { RouteSceneVariant } from "../components/RouteScene3D";
 import { SiteFooter } from "../components/SiteFooter";
 import {
@@ -789,7 +790,7 @@ export function LoginPage() {
             </form>
           )}
 
-          {message ? <div className={`auth-message auth-message--${message.tone}`}>{message.text}</div> : null}
+          <ToastMessage message={message} onDismiss={() => setMessage(null)} />
         </div>
       </section>
     </PublicPageShell>
@@ -904,7 +905,7 @@ function CallbackRequestForm() {
         <Send size={18} />
         Submit request
       </button>
-      {message ? <div className={`auth-message auth-message--${message.tone}`}>{message.text}</div> : null}
+      <ToastMessage message={message} onDismiss={() => setMessage(null)} />
     </form>
   );
 }

@@ -142,6 +142,25 @@ public sealed class AdminLmsController(
         return Ok(ApiResponse<CurriculumModuleResponse>.Ok(result, "Curriculum module updated.", CorrelationId));
     }
 
+    [HttpDelete("modules/{moduleId:guid}")]
+    public async Task<ActionResult<ApiResponse>> DeleteModule(
+        Guid moduleId,
+        CancellationToken cancellationToken)
+    {
+        await lmsPortalService.DeleteModuleAsync(moduleId, cancellationToken);
+        return Ok(ApiResponse.Ok("Curriculum module deleted.", CorrelationId));
+    }
+
+    [HttpPut("programs/{programId:guid}/modules/order")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<CurriculumModuleResponse>>>> ReorderModules(
+        Guid programId,
+        ReorderItemsRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.ReorderModulesAsync(programId, request, cancellationToken);
+        return Ok(ApiResponse<IReadOnlyList<CurriculumModuleResponse>>.Ok(result, "Curriculum order updated.", CorrelationId));
+    }
+
     [HttpPost("modules/{moduleId:guid}/lessons")]
     public async Task<ActionResult<ApiResponse<LessonResponse>>> CreateLesson(
         Guid moduleId,
@@ -160,6 +179,25 @@ public sealed class AdminLmsController(
     {
         var result = await lmsPortalService.UpdateLessonAsync(lessonId, request, cancellationToken);
         return Ok(ApiResponse<LessonResponse>.Ok(result, "Lesson updated.", CorrelationId));
+    }
+
+    [HttpDelete("lessons/{lessonId:guid}")]
+    public async Task<ActionResult<ApiResponse>> DeleteLesson(
+        Guid lessonId,
+        CancellationToken cancellationToken)
+    {
+        await lmsPortalService.DeleteLessonAsync(lessonId, cancellationToken);
+        return Ok(ApiResponse.Ok("Lesson deleted.", CorrelationId));
+    }
+
+    [HttpPut("modules/{moduleId:guid}/lessons/order")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<CurriculumModuleResponse>>>> ReorderLessons(
+        Guid moduleId,
+        ReorderItemsRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.ReorderLessonsAsync(moduleId, request, cancellationToken);
+        return Ok(ApiResponse<IReadOnlyList<CurriculumModuleResponse>>.Ok(result, "Lesson order updated.", CorrelationId));
     }
 
     [HttpGet("projects")]
