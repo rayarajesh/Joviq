@@ -8,13 +8,13 @@ import { CoursePlayerPage } from "../pages/CoursePlayerPage";
 import { EnrollmentCheckoutPage } from "../pages/EnrollmentCheckoutPage";
 import { LandingPage } from "../pages/LandingPage";
 import { OAuthCallbackPage } from "../pages/OAuthCallbackPage";
+import { ProgramsPage } from "../pages/ProgramsPage";
 import { ProgramDetailsPage } from "../pages/ProgramDetailsPage";
 import { ProfilePage } from "../pages/ProfilePage";
 import {
   AboutPage,
   FeaturesPage,
   LoginPage,
-  ProgramsPage,
   RequestCallbackPage
 } from "../pages/PublicPages";
 import { StudentOnboardingPage } from "../pages/StudentOnboardingPage";
@@ -99,3 +99,4 @@ function HashScroll() {
 
   return null;
 }
+

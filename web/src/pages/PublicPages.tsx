@@ -1,30 +1,21 @@
-import { FormEvent, lazy, Suspense, useEffect, useMemo, useState } from "react";
+﻿import { FormEvent, lazy, Suspense, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowRight,
   BadgeCheck,
-  Building2,
   CheckCircle2,
-  ChevronDown,
-  Clock3,
-  Code2,
-  Cpu,
-  FolderKanban,
   GraduationCap,
   KeyRound,
   Layers3,
-  Lightbulb,
   MailCheck,
   PhoneCall,
   RefreshCw,
-  Search,
   Send,
   ShieldCheck,
   Sparkles,
   UserPlus,
   UsersRound,
-  Wrench,
   X
 } from "lucide-react";
 import { IndiaMobileInput } from "../components/IndiaMobileInput";
@@ -37,10 +28,8 @@ import {
   expertGuides,
   keyStatistics,
   pricingPlans,
-  programCategories,
   recognitions
 } from "../data/siteContent";
-import { getProgramImage } from "../data/programVisuals";
 import { authApi } from "../features/auth/api/authApi";
 import { useAuth } from "../features/auth/context/useAuth";
 import { normalizeOAuthReturnUrl } from "../features/auth/oauthPopup";
@@ -102,265 +91,7 @@ const featureGroups = [
 ];
 
 const aboutValues = ["Industry-focused education", "Project-first learning", "Expert-reviewed outcomes", "Career preparation"];
-const programCatalogStats = [
-  { value: String(allPrograms.length), label: "Career programs" },
-  { value: String(programCategories.length), label: "Learning domains" },
-  { value: "5-6", label: "Projects per track" },
-  { value: "Weekly", label: "Expert reviews" }
-];
-
-function toDomainSlug(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-function domainFromCategoryParam(value: string | null) {
-  if (!value || value === "all") {
-    return "All";
-  }
-
-  const requestedSlug = toDomainSlug(value);
-  return programCategories.find((category) => toDomainSlug(category.domain) === requestedSlug)?.domain ?? "All";
-}
-
-export function ProgramsPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const categoryParam = searchParams.get("category");
-  const [query, setQuery] = useState("");
-  const [activeDomain, setActiveDomain] = useState(() => domainFromCategoryParam(categoryParam));
-  const [visibleCount, setVisibleCount] = useState(6);
-
-  useEffect(() => {
-    setActiveDomain(domainFromCategoryParam(categoryParam));
-    setVisibleCount(6);
-  }, [categoryParam]);
-
-  const filteredPrograms = useMemo(() => {
-    const search = query.trim().toLowerCase();
-
-    return allPrograms.filter((program) => {
-      const matchesDomain = activeDomain === "All" || program.domain === activeDomain;
-      const searchable = [
-        program.title,
-        program.domain,
-        program.shortDescription,
-        program.level,
-        ...program.skills,
-        ...program.tags
-      ]
-        .join(" ")
-        .toLowerCase();
-
-      return matchesDomain && (!search || searchable.includes(search));
-    });
-  }, [activeDomain, query]);
-
-  const visiblePrograms = filteredPrograms.slice(0, visibleCount);
-  const activeCategory = programCategories.find((category) => category.domain === activeDomain);
-
-  function selectDomain(domain: string) {
-    const nextSearchParams = new URLSearchParams(searchParams);
-    if (domain === "All") {
-      nextSearchParams.delete("category");
-    } else {
-      nextSearchParams.set("category", toDomainSlug(domain));
-    }
-
-    setActiveDomain(domain);
-    setVisibleCount(6);
-    setSearchParams(nextSearchParams, { replace: true });
-  }
-
-  function resetCatalog() {
-    const nextSearchParams = new URLSearchParams(searchParams);
-    nextSearchParams.delete("category");
-
-    setQuery("");
-    setActiveDomain("All");
-    setVisibleCount(6);
-    setSearchParams(nextSearchParams, { replace: true });
-  }
-
-  return (
-    <PublicPageShell>
-      <section className="route-programs-hero" aria-labelledby="programs-page-title">
-        <div className="route-programs-hero__content">
-          <div className="route-programs-hero__copy">
-            <span className="apt-pill apt-pill--dark">
-              <Sparkles size={15} />
-              Joviq career programs
-            </span>
-            <h1 id="programs-page-title">
-              Career programs built for <span>real work.</span>
-            </h1>
-            <p>
-              Build practical projects, get direct expert feedback, and finish with proof you can explain in an
-              interview.
-            </p>
-            <div className="route-programs-hero__actions">
-              <a className="site-button site-button--primary" href="#program-catalog">
-                Explore programs <ArrowRight size={18} />
-              </a>
-              <Link className="site-button route-programs-hero__secondary" to="/request-callback">
-                Talk to an advisor <PhoneCall size={18} />
-              </Link>
-            </div>
-            <div className="route-programs-hero__proof" aria-label="Program experience highlights">
-              <span><CheckCircle2 size={16} /> Live expert-led learning</span>
-              <span><CheckCircle2 size={16} /> Portfolio-grade projects</span>
-              <span><CheckCircle2 size={16} /> Verified certification</span>
-            </div>
-          </div>
-
-          <div className="route-programs-hero__metrics" aria-label="Program catalog statistics">
-            {programCatalogStats.map((stat) => (
-              <div key={stat.label}>
-                <strong>{stat.value}</strong>
-                <span>{stat.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="route-section route-program-catalog" id="program-catalog">
-        <div className="route-toolbar">
-          <header className="route-toolbar__header">
-            <div>
-              <Search size={18} />
-              <span>Program finder</span>
-            </div>
-            <strong aria-live="polite">{filteredPrograms.length} matches</strong>
-          </header>
-          <label className="route-search">
-            <Search size={20} />
-            <input
-              aria-label="Search career programs"
-              value={query}
-              onChange={(event) => {
-                setQuery(event.currentTarget.value);
-                setVisibleCount(6);
-              }}
-              placeholder="Search AI, Full Stack, VLSI, Finance..."
-            />
-            {query ? (
-              <button aria-label="Clear program search" onClick={() => setQuery("")} type="button">
-                <X size={17} />
-              </button>
-            ) : null}
-          </label>
-          <div className="route-tabs" aria-label="Program domains" role="tablist">
-            <button
-              aria-controls="program-catalog-results"
-              aria-selected={activeDomain === "All"}
-              className={activeDomain === "All" ? "is-active" : undefined}
-              onClick={() => selectDomain("All")}
-              role="tab"
-              type="button"
-            >
-              All <span>{allPrograms.length}</span>
-            </button>
-            {programCategories.map((category) => (
-              <button
-                aria-controls="program-catalog-results"
-                aria-selected={activeDomain === category.domain}
-                key={category.domain}
-                className={activeDomain === category.domain ? "is-active" : undefined}
-                role="tab"
-                type="button"
-                onClick={() => selectDomain(category.domain)}
-              >
-                {category.domain.replace("Computer Science & IT", "Computer Science")}
-                <span>{category.programs.length}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="route-program-results-head">
-          <div>
-            <span>{activeDomain === "All" ? "All career tracks" : activeDomain}</span>
-            <h2>{filteredPrograms.length} programs built around practical outcomes.</h2>
-          </div>
-          <p>
-            {activeCategory?.description ??
-              "Technology, core engineering, and management tracks designed around practical work and reviewed progress."}
-          </p>
-        </div>
-
-        {visiblePrograms.length ? (
-          <>
-            <div className="route-program-grid route-program-grid--catalog" id="program-catalog-results" role="tabpanel">
-              {visiblePrograms.map((program, index) => (
-                <Link
-                  className="route-program-card"
-                  data-domain={program.domain}
-                  key={program.slug}
-                  to={`/programs/${program.slug}`}
-                >
-                  <div className="route-program-card__media">
-                    <img
-                      alt={`${program.title} program`}
-                      decoding="async"
-                      loading={index < 6 ? "eager" : "lazy"}
-                      src={getProgramImage(program.slug, program.domain)}
-                    />
-                    <span>
-                      <ProgramIcon domain={program.domain} />
-                      {program.domain}
-                    </span>
-                  </div>
-                  <div className="route-program-card__body">
-                    <div className="route-program-card__meta">
-                      <span>{program.level}</span>
-                      <em><Clock3 size={15} /> {program.duration}</em>
-                    </div>
-                    <strong>{program.title}</strong>
-                    <p>{program.shortDescription}</p>
-                    <div className="route-program-card__skills" aria-label={`${program.title} skills`}>
-                      {program.skills.slice(0, 3).map((skill) => <span key={skill}>{skill}</span>)}
-                    </div>
-                    <div className="route-program-card__footer">
-                      <span><FolderKanban size={16} /> {program.projects.length} projects</span>
-                      <b>View program <ArrowRight size={17} /></b>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-
-            {visiblePrograms.length < filteredPrograms.length ? (
-              <button
-                className="route-program-more"
-                onClick={() => setVisibleCount((current) => current + 6)}
-                type="button"
-              >
-                <span>
-                  Show more programs
-                  <small>{filteredPrograms.length - visiblePrograms.length} remaining</small>
-                </span>
-                <ChevronDown size={20} />
-              </button>
-            ) : null}
-          </>
-        ) : (
-          <div className="route-program-empty" id="program-catalog-results" role="status">
-            <Search size={26} />
-            <h2>No matching programs found.</h2>
-            <p>Try another skill, role, or career domain.</p>
-            <button onClick={resetCatalog} type="button">
-              <RefreshCw size={17} />
-              Show all programs
-            </button>
-          </div>
-        )}
-      </section>
-    </PublicPageShell>
-  );
-}
+export { ProgramsPage } from "./ProgramsPage";
 
 export function FeaturesPage() {
   return (
@@ -912,22 +643,4 @@ function CallbackRequestForm() {
   );
 }
 
-function ProgramIcon({ domain }: { domain: string }) {
-  if (domain.includes("Computer")) {
-    return <Code2 size={22} />;
-  }
 
-  if (domain.includes("Electrical")) {
-    return <Cpu size={22} />;
-  }
-
-  if (domain.includes("Mechanical")) {
-    return <Wrench size={22} />;
-  }
-
-  if (domain.includes("Civil")) {
-    return <Building2 size={22} />;
-  }
-
-  return <Lightbulb size={22} />;
-}
