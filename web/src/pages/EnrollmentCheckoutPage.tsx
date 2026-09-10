@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, Clock3, CreditCard, LockKeyhole, ShieldCheck } from "lucide-react";
+import { ArrowLeft, BadgePercent, CheckCircle2, Clock3, CreditCard, LockKeyhole, ShieldCheck } from "lucide-react";
 import { ToastMessage } from "../components/ToastMessage";
 import { useAuth } from "../features/auth/context/useAuth";
 import { publicLmsApi, studentLmsApi } from "../features/lms/api/lmsApi";
-import type { PaymentCheckoutResponse, ProgramDetailsResponse } from "../features/lms/api/lmsTypes";
+import type { CouponValidationResponse, EnrollmentResponse, PaymentCheckoutResponse, ProgramDetailsResponse } from "../features/lms/api/lmsTypes";
 import { clearPendingEnrollment, readPendingEnrollment } from "../features/lms/checkout";
 import { formatApiError } from "../lib/api/httpClient";
 
@@ -68,10 +68,14 @@ export function EnrollmentCheckoutPage() {
   const navigate = useNavigate();
   const [pending] = useState(readPendingEnrollment);
   const [program, setProgram] = useState<ProgramDetailsResponse | null>(null);
+  const [enrollment, setEnrollment] = useState<EnrollmentResponse | null>(null);
   const [checkout, setCheckout] = useState<PaymentCheckoutResponse | null>(null);
   const [message, setMessage] = useState<PageMessage>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPaying, setIsPaying] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
+  const [couponValidation, setCouponValidation] = useState<CouponValidationResponse | null>(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
 
   useEffect(() => {
@@ -111,7 +115,36 @@ export function EnrollmentCheckoutPage() {
   );
   const paymentMode = pending?.paymentMode ?? 1;
   const paymentPurpose = paymentMode === 1 ? "initial access payment" : "remaining balance payment";
-  const expectedAmount = paymentMode === 1 ? selectedPlan?.reserveAmount : pending?.amount;
+  const expectedAmount = paymentMode === 1 ? selectedPlan?.reserveAmount : couponValidation?.payableAmount ?? pending?.amount;
+
+  async function applyCoupon() {
+    if (!pending || !program || !selectedPlan || paymentMode !== 3 || !couponCode.trim()) return;
+    setIsApplyingCoupon(true);
+    setMessage(null);
+
+    try {
+      const response = await studentLmsApi.validateCoupon({
+        programId: program.id,
+        programPlanId: selectedPlan.id,
+        enrollmentId: enrollment?.id,
+        mode: 3,
+        couponCode: couponCode.trim()
+      });
+      setCouponValidation(response.data);
+      setMessage({ tone: "success", text: `${response.data.code} applied. Your remaining payment was recalculated securely.` });
+    } catch (error) {
+      setCouponValidation(null);
+      setMessage({ tone: "error", text: formatApiError(error) });
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  }
+
+  function removeCoupon() {
+    setCouponCode("");
+    setCouponValidation(null);
+    setMessage(null);
+  }
 
   async function startPayment() {
     if (!pending || !program || !selectedPlan) return;
@@ -119,17 +152,38 @@ export function EnrollmentCheckoutPage() {
     setMessage(null);
 
     try {
-      const enrollment = await studentLmsApi.createEnrollment({
+      const currentEnrollment = enrollment ?? (await studentLmsApi.createEnrollment({
         programId: program.id,
         programPlanId: selectedPlan.id
-      });
+      })).data;
+      setEnrollment(currentEnrollment);
       const response = await studentLmsApi.createPaymentCheckout({
         programId: program.id,
         programPlanId: selectedPlan.id,
-        enrollmentId: enrollment.data.id,
-        mode: paymentMode
+        enrollmentId: currentEnrollment.id,
+        mode: paymentMode,
+        couponCode: paymentMode === 3 ? couponCode.trim() || undefined : undefined
       });
       setCheckout(response.data);
+
+      if (response.data.transaction.couponCode && response.data.transaction.discountAmount > 0) {
+        setCouponValidation((current) => ({
+          code: response.data.transaction.couponCode!,
+          description: current?.description ?? "Coupon applied to remaining balance",
+          originalAmount: response.data.transaction.originalAmount,
+          discountAmount: response.data.transaction.discountAmount,
+          payableAmount: response.data.transaction.amount
+        }));
+      }
+
+      if (response.data.provider === "Free") {
+        await confirmPayment(response.data, {
+          razorpay_order_id: response.data.gatewayOrderId,
+          razorpay_payment_id: `free_${response.data.transaction.id}`,
+          razorpay_signature: "free-payment-no-signature"
+        });
+        return;
+      }
 
       if (response.data.provider === "Development") {
         setMessage({ tone: "success", text: "Development test mode is active. No money will be charged." });
@@ -229,12 +283,17 @@ export function EnrollmentCheckoutPage() {
                 <div><strong>{program.title}</strong><span>{selectedPlan.name} plan</span></div>
               </div>
               <div className="checkout-price-row"><span>{paymentMode === 1 ? "Initial payment today" : "Balance payment today"}</span><strong>{expectedAmount ? formatCurrency(expectedAmount) : "Calculated securely"}</strong></div>
+              {paymentMode === 3 && couponValidation ? <>
+                <div className="checkout-price-row checkout-price-row--muted"><span>Balance before coupon</span><span>{formatCurrency(couponValidation.originalAmount)}</span></div>
+                <div className="checkout-price-row checkout-price-row--discount"><span>Coupon {couponValidation.code}</span><strong>-{formatCurrency(couponValidation.discountAmount)}</strong></div>
+              </> : null}
               <div className="checkout-price-row checkout-price-row--muted"><span>Full plan value</span><span>{formatCurrency(selectedPlan.offerPrice)}</span></div>
               <div className="checkout-rule" />
               <ul className="checkout-benefits">
                 <li><CheckCircle2 size={16} /> Account activation after payment verification</li>
                 {paymentMode === 1 ? <li><CheckCircle2 size={16} /> First module preview for two months</li> : <li><CheckCircle2 size={16} /> Full course access unlocks after the balance is verified</li>}
                 <li><CheckCircle2 size={16} /> {paymentMode === 1 ? "Pay the remaining balance to unlock projects, all modules, and certificate" : "Projects, all modules, and certificate access are protected until verification"}</li>
+                {paymentMode === 1 ? <li><CheckCircle2 size={16} /> Coupons apply only to the remaining balance, never to the initial reserve payment.</li> : null}
               </ul>
             </>
           ) : null}
@@ -244,6 +303,16 @@ export function EnrollmentCheckoutPage() {
           <div className="checkout-security-heading"><LockKeyhole size={20} /><div><strong>{checkout?.provider === "Development" ? "Development test payment" : "Protected payment"}</strong><span>{checkout?.provider === "Development" ? "Local-only test mode · no money charged" : "Processed by Razorpay Secure Checkout"}</span></div></div>
           <h2>{paymentMode === 1 ? "Pay the initial amount" : "Pay the remaining balance"}</h2>
           <p className="checkout-payment-copy">{checkout?.provider === "Development" ? "This local test payment completes the same server-side verification and access flow without charging money." : "UPI, UPI QR, cards, and net banking are shown by the gateway according to the methods enabled on your merchant account."}</p>
+          {paymentMode === 3 ? (
+            <div className="checkout-coupon-box">
+              <label htmlFor="checkout-coupon"><BadgePercent size={17} /> Have a coupon?</label>
+              <div className="checkout-coupon-box__controls">
+                <input id="checkout-coupon" value={couponCode} onChange={(event) => { setCouponCode(event.target.value.toUpperCase()); setCouponValidation(null); }} placeholder="Enter coupon code" autoComplete="off" />
+                {couponValidation ? <button className="secondary-action" type="button" onClick={removeCoupon}>Remove</button> : <button className="secondary-action" type="button" disabled={isApplyingCoupon || !couponCode.trim()} onClick={() => void applyCoupon()}>{isApplyingCoupon ? "Checking..." : "Apply"}</button>}
+              </div>
+              {couponValidation ? <small className="checkout-coupon-box__success">{couponValidation.description}</small> : <small>Eligible coupons reduce only this remaining-balance payment.</small>}
+            </div>
+          ) : null}
           {checkout && secondsLeft !== null ? (
             <div className={`checkout-timer${isExpired ? " is-expired" : ""}`}><Clock3 size={17} /> {isExpired ? "Payment session expired" : `Payment session valid for ${formatCountdown(secondsLeft)}`}</div>
           ) : null}

@@ -302,7 +302,6 @@ export function DashboardSidebar({
           </div>
         ))}
       </nav>
-      {role === "Admin" ? <button className="admin-sidebar-promo" onClick={() => onModuleChange("Programs")}><span>Build<br />Learn<br />Grow Together</span><ChevronRight size={20} /></button> : null}
     </aside>
   );
 }
@@ -679,8 +678,23 @@ function AdminLmsPanel({
   const [projectReviewDrafts, setProjectReviewDrafts] = useState<Record<string, { status: "NeedsRevision" | "Approved"; score: string; feedback: string }>>({});
   const [isReviewingProject, setIsReviewingProject] = useState<string | null>(null);
   const [enrollmentSearch, setEnrollmentSearch] = useState("");
+  const [enrollmentCategoryFilter, setEnrollmentCategoryFilter] = useState("All");
+  const [enrollmentProgramFilter, setEnrollmentProgramFilter] = useState("All");
   const [enrollmentStatusFilter, setEnrollmentStatusFilter] = useState("All");
+  const [paymentSearch, setPaymentSearch] = useState("");
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState("All");
   const hasOpenAdminDialog = Boolean(categoryDialogMode || programDialogMode || planEditorProgram || projectDialogMode || projectAudience || projectReviewProject);
+
+  const enrollmentProgramOptions = useMemo(() => {
+    return programs
+      .filter((program) => enrollmentCategoryFilter === "All" || program.categoryId === enrollmentCategoryFilter)
+      .sort((first, second) => first.title.localeCompare(second.title));
+  }, [programs, enrollmentCategoryFilter]);
+
+  const enrollmentProgramCategoryById = useMemo(
+    () => new Map(programs.map((program) => [program.id, program.categoryId])),
+    [programs]
+  );
 
   const enrollmentStats = useMemo(() => {
     const expiringSoon = adminEnrollments.filter((enrollment) => {
@@ -706,6 +720,8 @@ function AdminLmsPanel({
     const query = enrollmentSearch.trim().toLowerCase();
 
     return adminEnrollments.filter((enrollment) => {
+      const matchesCategory = enrollmentCategoryFilter === "All" || enrollmentProgramCategoryById.get(enrollment.programId) === enrollmentCategoryFilter;
+      const matchesProgram = enrollmentProgramFilter === "All" || enrollment.programId === enrollmentProgramFilter;
       const matchesStatus = enrollmentStatusFilter === "All" || enrollment.status === enrollmentStatusFilter;
       const searchText = [
         enrollment.studentName,
@@ -716,9 +732,40 @@ function AdminLmsPanel({
         enrollment.programPlanCode
       ].filter(Boolean).join(" ").toLowerCase();
 
-      return matchesStatus && (!query || searchText.includes(query));
+      return matchesCategory && matchesProgram && matchesStatus && (!query || searchText.includes(query));
     });
-  }, [adminEnrollments, enrollmentSearch, enrollmentStatusFilter]);
+  }, [adminEnrollments, enrollmentCategoryFilter, enrollmentProgramCategoryById, enrollmentProgramFilter, enrollmentSearch, enrollmentStatusFilter]);
+
+  const paymentStats = useMemo(() => ({
+    pending: adminPayments.filter((payment) => payment.status === "Pending"),
+    verified: adminPayments.filter((payment) => payment.status === "Verified"),
+    failed: adminPayments.filter((payment) => payment.status === "Failed")
+  }), [adminPayments]);
+
+  const visiblePayments = useMemo(() => {
+    const query = paymentSearch.trim().toLowerCase();
+    return adminPayments.filter((payment) => {
+      if (paymentStatusFilter !== "All" && payment.status !== paymentStatusFilter) {
+        return false;
+      }
+
+      if (!query) {
+        return true;
+      }
+
+      return [
+        payment.studentName,
+        payment.studentEmail,
+        payment.programTitle,
+        payment.programPlanName,
+        payment.invoiceNumber,
+        payment.gatewayOrderId,
+        payment.gatewayPaymentId,
+        payment.couponCode,
+        payment.studentId
+      ].some((value) => value?.toLowerCase().includes(query));
+    });
+  }, [adminPayments, paymentSearch, paymentStatusFilter]);
 
   useEffect(() => {
     if (!hasOpenAdminDialog) {
@@ -1331,8 +1378,19 @@ function AdminLmsPanel({
         code: String(form.get("code") ?? "").trim(),
         description: String(form.get("description") ?? "").trim(),
         discountValue: Number(form.get("discountValue") ?? 0),
-        isPercentage: form.get("isPercentage") === "on",
-        isActive: form.get("isActive") === "on"
+        isPercentage: form.get("discountType") === "percentage",
+        isActive: form.get("isActive") === "on",
+        audienceType: Number(form.get("audienceType") ?? 1) as 1 | 2 | 3 | 4,
+        minimumOrderAmount: Number(form.get("minimumOrderAmount") || 0) || undefined,
+        maximumDiscountAmount: Number(form.get("maximumDiscountAmount") || 0) || undefined,
+        maxRedemptions: Number(form.get("maxRedemptions") || 0) || undefined,
+        maxRedemptionsPerStudent: Number(form.get("maxRedemptionsPerStudent") || 1),
+        startsAt: String(form.get("startsAt") ?? "") || undefined,
+        expiresAt: String(form.get("expiresAt") ?? "") || undefined,
+        targetStudentIds: form.getAll("targetStudentIds").map(String),
+        targetStudentEmails: String(form.get("targetStudentEmails") ?? "").split(/[\n,;]+/).map((value) => value.trim()).filter(Boolean),
+        targetProgramIds: form.getAll("targetProgramIds").map(String),
+        targetCategoryIds: form.getAll("targetCategoryIds").map(String)
       });
       formElement.reset();
       onMessage({ tone: "success", text: "Coupon created." });
@@ -1356,7 +1414,16 @@ function AdminLmsPanel({
         isPercentage: coupon.isPercentage,
         isActive: coupon.isActive,
         startsAt: coupon.startsAt,
-        expiresAt: coupon.expiresAt
+        expiresAt: coupon.expiresAt,
+        audienceType: coupon.audienceType,
+        minimumOrderAmount: coupon.minimumOrderAmount,
+        maximumDiscountAmount: coupon.maximumDiscountAmount,
+        maxRedemptions: coupon.maxRedemptions,
+        maxRedemptionsPerStudent: coupon.maxRedemptionsPerStudent,
+        targetStudentIds: coupon.targetStudentIds,
+        targetStudentEmails: coupon.targetStudentEmails,
+        targetProgramIds: coupon.targetProgramIds,
+        targetCategoryIds: coupon.targetCategoryIds
       });
       onMessage({ tone: "success", text: "Coupon updated." });
       await onRefresh();
@@ -1377,6 +1444,24 @@ function AdminLmsPanel({
         gatewayPaymentId: reference.trim() || undefined
       });
       onMessage({ tone: "success", text: "Payment verified." });
+      await onRefresh();
+    } catch (error) {
+      onMessage({ tone: "error", text: formatApiError(error) });
+    }
+  }
+
+  async function failPayment(payment: PaymentTransactionResponse) {
+    const reason = window.prompt("Why is this payment being marked failed?", payment.failureReason ?? "Payment could not be confirmed.");
+    if (reason === null) {
+      return;
+    }
+
+    try {
+      await adminLmsApi.updatePaymentStatus(payment.id, {
+        status: 3,
+        failureReason: reason.trim() || "Payment could not be confirmed."
+      });
+      onMessage({ tone: "success", text: "Payment marked as failed." });
       await onRefresh();
     } catch (error) {
       onMessage({ tone: "error", text: formatApiError(error) });
@@ -2378,6 +2463,8 @@ function AdminLmsPanel({
                 </div>
                 <div className="enrollment-admin-toolbar__controls">
                   <label className="enrollment-admin-search"><Search size={17} /><span className="sr-only">Search enrollments</span><input value={enrollmentSearch} onChange={(event) => setEnrollmentSearch(event.target.value)} placeholder="Search student or program" /></label>
+                  <label className="enrollment-admin-filter"><Layers3 size={16} /><span className="sr-only">Filter by category</span><select value={enrollmentCategoryFilter} onChange={(event) => { setEnrollmentCategoryFilter(event.target.value); setEnrollmentProgramFilter("All"); }}><option value="All">All categories</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
+                  <label className="enrollment-admin-filter"><BookOpen size={16} /><span className="sr-only">Filter by program</span><select value={enrollmentProgramFilter} onChange={(event) => setEnrollmentProgramFilter(event.target.value)}><option value="All">All programs</option>{enrollmentProgramOptions.map((program) => <option key={program.id} value={program.id}>{program.title}</option>)}</select></label>
                   <label className="enrollment-admin-filter"><SlidersHorizontal size={16} /><span className="sr-only">Filter by status</span><select value={enrollmentStatusFilter} onChange={(event) => setEnrollmentStatusFilter(event.target.value)}><option value="All">All statuses</option><option value="Active">Active</option><option value="Reserved">Reserved</option><option value="Completed">Completed</option><option value="Cancelled">Cancelled</option></select></label>
                 </div>
               </div>
@@ -2443,24 +2530,65 @@ function AdminLmsPanel({
         ) : null}
 
         {showModule("Payments") ? (
-          <section className="lms-list-panel lms-list-panel--wide">
-            <h3>Payments</h3>
-            <div className="lms-scroll-list">
-              {adminPayments.length === 0 ? <div className="table-state">No payments yet.</div> : null}
-              {adminPayments.map((payment) => (
-                <article key={payment.id} className="lms-list-item">
-                  <div>
-                    <strong>{formatCurrency(payment.amount)}</strong>
-                    <span>{payment.mode} - {formatDate(payment.createdAt)}</span>
-                  </div>
-                  <div className="lms-row-actions">
-                    <small>{payment.status}</small>
-                    {payment.status !== "Verified" ? (
-                      <button type="button" onClick={() => void verifyPayment(payment)}>Verify</button>
-                    ) : null}
-                  </div>
-                </article>
-              ))}
+          <section className="lms-list-panel lms-list-panel--wide payments-admin-panel">
+            <div className="payments-admin-heading">
+              <div>
+                <span className="enrollment-admin-eyebrow">Payment ledger</span>
+                <h3>Payments</h3>
+                <p>{visiblePayments.length} of {adminPayments.length} payment{adminPayments.length === 1 ? "" : "s"} shown. Review how each student paid, confirm pending payments, and open receipts.</p>
+              </div>
+              <div className="payments-admin-controls">
+                <label className="payments-admin-search"><Search size={16} /><span className="sr-only">Search payments</span><input value={paymentSearch} onChange={(event) => setPaymentSearch(event.target.value)} placeholder="Search student, program, invoice..." /></label>
+                <label className="payments-admin-filter"><SlidersHorizontal size={16} /><span className="sr-only">Filter payments by status</span><select value={paymentStatusFilter} onChange={(event) => setPaymentStatusFilter(event.target.value)}><option value="All">All statuses</option><option value="Pending">Pending review</option><option value="Verified">Verified</option><option value="Failed">Failed</option></select></label>
+              </div>
+            </div>
+
+            <div className="payments-admin-kpis" aria-label="Payment summary">
+              <article><span><CircleDollarSign size={16} /> Collected</span><strong>{formatCurrency(paymentStats.verified.reduce((total, payment) => total + payment.amount, 0))}</strong><small>{paymentStats.verified.length} verified payment{paymentStats.verified.length === 1 ? "" : "s"}</small></article>
+              <article className="is-pending"><span><RefreshCw size={16} /> Pending review</span><strong>{formatCurrency(paymentStats.pending.reduce((total, payment) => total + payment.amount, 0))}</strong><small>{paymentStats.pending.length} payment{paymentStats.pending.length === 1 ? "" : "s"} need action</small></article>
+              <article className="is-discount"><span><BadgePercent size={16} /> Discounts</span><strong>{formatCurrency(paymentStats.verified.reduce((total, payment) => total + payment.discountAmount, 0))}</strong><small>Applied on verified payments</small></article>
+              <article className="is-failed"><span><X size={16} /> Failed attempts</span><strong>{paymentStats.failed.length}</strong><small>Kept for payment history</small></article>
+            </div>
+
+            <div className="payments-admin-list">
+              {visiblePayments.length === 0 ? <div className="table-state">{adminPayments.length === 0 ? "No payments yet." : "No payments match your filters."}</div> : null}
+              {visiblePayments.map((payment) => {
+                const studentName = payment.studentName || `Student ${payment.studentId.slice(0, 8)}`;
+                const isPending = payment.status === "Pending";
+                return (
+                  <article key={payment.id} className={`payment-admin-card is-${toKebabCase(payment.status)}`}>
+                    <div className="payment-admin-card__header">
+                      <div className="payment-admin-student">
+                        <span className="enrollment-admin-avatar">{getInitials(studentName)}</span>
+                        <div><strong>{studentName}</strong><span>{payment.studentEmail || "Student account"}</span></div>
+                      </div>
+                      <div className="payment-admin-card__title">
+                        <span className={`enrollment-admin-payment-status is-${toKebabCase(payment.status)}`}>{formatStatusLabel(payment.status)}</span>
+                        <strong>{formatPaymentMode(payment.mode)}</strong>
+                        <span>{formatDateTime(payment.createdAt)}</span>
+                      </div>
+                      <div className="payment-admin-card__actions">
+                        {isPending ? <button className="enrollment-admin-button enrollment-admin-button--primary" type="button" onClick={() => void verifyPayment(payment)}>Verify payment</button> : null}
+                        {isPending ? <button className="enrollment-admin-button" type="button" onClick={() => void failPayment(payment)}>Mark failed</button> : null}
+                        {payment.status === "Verified" ? <button className="enrollment-admin-button" type="button" onClick={() => void openPaymentReceipt(payment.id, "admin")}><FileText size={15} /> View receipt</button> : null}
+                      </div>
+                    </div>
+
+                    <div className="payment-admin-card__grid">
+                      <div><span>Amount paid</span><strong>{formatCurrency(payment.amount)}</strong><small>{payment.status === "Verified" ? `Verified ${formatDateTime(payment.verifiedAt ?? payment.createdAt)}` : payment.status === "Pending" ? "Awaiting admin confirmation" : "Not collected"}</small></div>
+                      <div><span>Program & plan</span><strong>{payment.programTitle || "Program unavailable"}</strong><small>{payment.programPlanName || "Plan unavailable"}</small></div>
+                      <div><span>Payment method</span><strong>{payment.gateway || "Not selected"}</strong><small>Order {payment.gatewayOrderId || "Not generated"}</small></div>
+                      <div><span>Coupon & pricing</span><strong>{payment.couponCode || "No coupon"}</strong><small>{payment.discountAmount > 0 ? `${formatCurrency(payment.discountAmount)} off ${formatCurrency(payment.originalAmount)}` : `Original ${formatCurrency(payment.originalAmount)}`}</small></div>
+                    </div>
+
+                    <div className="payment-admin-card__footer">
+                      <span>{payment.invoiceNumber ? `Invoice ${payment.invoiceNumber}` : "Invoice generated after verification"}</span>
+                      <span>{payment.gatewayPaymentId ? `Payment ID ${payment.gatewayPaymentId}` : "Gateway payment ID pending"}</span>
+                      {payment.failureReason ? <span className="is-error">Reason: {payment.failureReason}</span> : null}
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           </section>
         ) : null}
@@ -2468,18 +2596,28 @@ function AdminLmsPanel({
         {showModule("Coupons") ? (
           <section className="lms-list-panel lms-list-panel--wide">
             <h3>Coupons</h3>
-            <form className="lms-mini-form lms-mini-form--inline" onSubmit={createCoupon}>
-              <input name="code" placeholder="Code" required />
-              <input name="description" placeholder="Description" required />
-              <input name="discountValue" type="number" min="1" defaultValue="10" required />
-              <label className="inline-check">
-                <input name="isPercentage" type="checkbox" defaultChecked />
-                Percentage
-              </label>
-              <label className="inline-check">
-                <input name="isActive" type="checkbox" defaultChecked />
-                Active
-              </label>
+            <form className="lms-mini-form coupon-admin-form" onSubmit={createCoupon}>
+              <div className="coupon-admin-form__grid">
+                <label>Code<input name="code" placeholder="WELCOME20" required /></label>
+                <label>Description<input name="description" placeholder="Early learner launch discount" required /></label>
+                <label>Discount type<select name="discountType" defaultValue="percentage"><option value="percentage">Percentage</option><option value="fixed">Fixed amount</option></select></label>
+                <label>Discount value<input name="discountValue" type="number" min="0.01" step="0.01" defaultValue="10" required /></label>
+                <label>Eligible audience<select name="audienceType" defaultValue="1"><option value="1">All students</option><option value="2">New students</option><option value="3">Existing students</option><option value="4">Selected students</option></select></label>
+                <label>Minimum remaining balance<input name="minimumOrderAmount" type="number" min="0" step="0.01" placeholder="No minimum" /></label>
+                <label>Maximum discount<input name="maximumDiscountAmount" type="number" min="0" step="0.01" placeholder="No cap" /></label>
+                <label>Maximum total uses<input name="maxRedemptions" type="number" min="1" placeholder="Unlimited" /></label>
+                <label>Uses per student<input name="maxRedemptionsPerStudent" type="number" min="1" defaultValue="1" required /></label>
+                <label>Starts at<input name="startsAt" type="datetime-local" /></label>
+                <label>Expires at<input name="expiresAt" type="datetime-local" /></label>
+                <label className="inline-check"><input name="isActive" type="checkbox" defaultChecked />Active</label>
+              </div>
+              <div className="coupon-admin-form__targets">
+                <label>Target categories<select name="targetCategoryIds" multiple size={4}>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select><small>Leave empty for every category.</small></label>
+                <label>Target programs<select name="targetProgramIds" multiple size={4}>{programs.map((program) => <option key={program.id} value={program.id}>{program.title}</option>)}</select><small>Leave empty for every program.</small></label>
+                <label>Selected student accounts<select name="targetStudentIds" multiple size={4}>{students.map((student) => <option key={student.id} value={student.id}>{student.fullName} · {student.email}</option>)}</select><small>Use this with “Selected students”.</small></label>
+                <label>Student emails<textarea name="targetStudentEmails" rows={4} placeholder="student@example.com, another@example.com" /><small>Comma, semicolon, or newline separated. Works even when the student is not on the current page.</small></label>
+              </div>
+              <p className="coupon-admin-form__note">Coupons are validated server-side and apply only to remaining-balance payments. The initial reserve payment, including ₹1,500, is never discounted.</p>
               <button className="primary-action" type="submit">Create coupon</button>
             </form>
             <div className="lms-scroll-list">
@@ -3511,16 +3649,21 @@ function escapeHtml(value: string) {
   })[character] ?? character);
 }
 
-async function openPaymentReceipt(paymentId: string) {
+async function openPaymentReceipt(paymentId: string, audience: "student" | "admin" = "student") {
   const receiptWindow = window.open("", "_blank", "width=760,height=820");
   if (!receiptWindow) {
     throw new Error("Allow pop-ups to view your payment receipt.");
   }
 
   try {
-    const response = await studentLmsApi.getPaymentReceipt(paymentId);
+    const response = audience === "admin"
+      ? await adminLmsApi.getPaymentReceipt(paymentId)
+      : await studentLmsApi.getPaymentReceipt(paymentId);
     const receipt = response.data;
-    receiptWindow.document.write(`<!doctype html><html><head><title>${escapeHtml(receipt.invoiceNumber)}</title><style>body{font-family:Arial,sans-serif;color:#182744;padding:44px;max-width:680px;margin:auto}header{display:flex;justify-content:space-between;border-bottom:2px solid #5148a8;padding-bottom:24px;margin-bottom:30px}h1{margin:0 0 8px}p{color:#61718b}.row{display:flex;justify-content:space-between;gap:24px;border-bottom:1px solid #e7ebf2;padding:13px 0}.total{font-size:22px;font-weight:700;color:#5148a8}@media print{button{display:none}}</style></head><body><header><div><h1>Joviq Technologies</h1><p>Payment receipt</p></div><strong>${escapeHtml(receipt.invoiceNumber)}</strong></header><p><strong>Billed to:</strong><br>${escapeHtml(receipt.studentName)}<br>${escapeHtml(receipt.studentEmail)}</p><div class="row"><span>Program</span><strong>${escapeHtml(receipt.programTitle)}</strong></div><div class="row"><span>Plan</span><strong>${escapeHtml(receipt.planName)}</strong></div><div class="row"><span>Payment type</span><strong>${escapeHtml(receipt.paymentMode)}</strong></div><div class="row total"><span>Amount paid</span><strong>${escapeHtml(formatCurrency(receipt.amount))}</strong></div><div class="row"><span>Gateway</span><span>${escapeHtml(receipt.gateway)}</span></div><div class="row"><span>Gateway payment ID</span><span>${escapeHtml(receipt.gatewayPaymentId ?? "-")}</span></div><p>Paid on ${escapeHtml(formatDateTime(receipt.paidAt ?? receipt.createdAt))}</p><button onclick="window.print()">Print / Save as PDF</button></body></html>`);
+    const discountRows = receipt.discountAmount > 0
+      ? `<div class="row"><span>Amount before coupon</span><strong>${escapeHtml(formatCurrency(receipt.originalAmount))}</strong></div><div class="row"><span>Coupon${receipt.couponCode ? ` (${escapeHtml(receipt.couponCode)})` : ""}</span><strong>-${escapeHtml(formatCurrency(receipt.discountAmount))}</strong></div>`
+      : "";
+    receiptWindow.document.write(`<!doctype html><html><head><title>${escapeHtml(receipt.invoiceNumber)}</title><style>body{font-family:Arial,sans-serif;color:#182744;padding:44px;max-width:680px;margin:auto}header{display:flex;justify-content:space-between;border-bottom:2px solid #5148a8;padding-bottom:24px;margin-bottom:30px}h1{margin:0 0 8px}p{color:#61718b}.row{display:flex;justify-content:space-between;gap:24px;border-bottom:1px solid #e7ebf2;padding:13px 0}.total{font-size:22px;font-weight:700;color:#5148a8}@media print{button{display:none}}</style></head><body><header><div><h1>Joviq Technologies</h1><p>Payment receipt</p></div><strong>${escapeHtml(receipt.invoiceNumber)}</strong></header><p><strong>Billed to:</strong><br>${escapeHtml(receipt.studentName)}<br>${escapeHtml(receipt.studentEmail)}</p><div class="row"><span>Program</span><strong>${escapeHtml(receipt.programTitle)}</strong></div><div class="row"><span>Plan</span><strong>${escapeHtml(receipt.planName)}</strong></div><div class="row"><span>Payment type</span><strong>${escapeHtml(receipt.paymentMode)}</strong></div>${discountRows}<div class="row total"><span>Amount paid</span><strong>${escapeHtml(formatCurrency(receipt.amount))}</strong></div><div class="row"><span>Gateway</span><span>${escapeHtml(receipt.gateway)}</span></div><div class="row"><span>Gateway payment ID</span><span>${escapeHtml(receipt.gatewayPaymentId ?? "-")}</span></div><p>Paid on ${escapeHtml(formatDateTime(receipt.paidAt ?? receipt.createdAt))}</p><button onclick="window.print()">Print / Save as PDF</button></body></html>`);
     receiptWindow.document.close();
   } catch (error) {
     receiptWindow.close();
@@ -3703,6 +3846,22 @@ function formatStatusLabel(status: string) {
   }
 
   return status.replace(/([a-z])([A-Z])/g, "$1 $2");
+}
+
+function formatPaymentMode(mode: string) {
+  if (mode === "ReserveSeat") {
+    return "Initial reserve payment";
+  }
+
+  if (mode === "RemainingBalance") {
+    return "Remaining balance payment";
+  }
+
+  if (mode === "PayInFull") {
+    return "Paid in full";
+  }
+
+  return formatStatusLabel(mode);
 }
 
 function toKebabCase(value: string) {

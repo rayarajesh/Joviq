@@ -16,6 +16,7 @@ import type {
   CreateProjectRequest,
   CreateProgramRequest,
   CurriculumModuleResponse,
+  CouponValidationResponse,
   EnrollmentResponse,
   IssueCertificateRequest,
   LessonResponse,
@@ -91,6 +92,10 @@ export const studentLmsApi = {
 
   createPaymentCheckout(body: CreatePaymentCheckoutRequest) {
     return request<PaymentCheckoutResponse>("/api/v1/student/lms/payments/checkout", { method: "POST", body });
+  },
+
+  validateCoupon(body: import("./lmsTypes").ValidateCouponRequest) {
+    return request<CouponValidationResponse>("/api/v1/student/lms/payments/coupon/validate", { method: "POST", body });
   },
 
   verifyPayment(body: VerifyPaymentRequest) {
@@ -258,6 +263,10 @@ export const adminLmsApi = {
 
   updatePaymentStatus(paymentId: string, body: UpdatePaymentStatusRequest) {
     return request<PaymentTransactionResponse>(`/api/v1/admin/lms/payments/${paymentId}/verify`, { method: "PATCH", body });
+  },
+
+  getPaymentReceipt(paymentId: string) {
+    return request<PaymentReceiptResponse>(`/api/v1/admin/lms/payments/${paymentId}/receipt`);
   },
 
   getCoupons() {

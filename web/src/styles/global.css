@@ -24780,6 +24780,8 @@ button.hero-button {
 .checkout-price-row strong { font-size: 1.5rem; }
 .checkout-price-row--muted { opacity: .72; font-size: .92rem; }
 .checkout-price-row--muted span:last-child { font-weight: 750; }
+.checkout-price-row--discount { color: #138b72; font-size: .92rem; }
+.checkout-price-row--discount strong { color: #138b72; font-size: 1rem; }
 .checkout-rule { height: 1px; background: rgba(255, 255, 255, .2); margin: 22px 0 17px; }
 
 .checkout-benefits { list-style: none; display: grid; gap: 13px; padding: 0; margin: 0; }
@@ -24787,6 +24789,13 @@ button.hero-button {
 .checkout-benefits svg { flex: 0 0 auto; color: #8de0c0; margin-top: 3px; }
 
 .checkout-payment-copy { color: #6b7890; line-height: 1.65; }
+.checkout-coupon-box { display: grid; gap: 8px; margin: 18px 0 4px; padding: 14px; border: 1px solid #dce8e5; border-radius: 14px; background: #f5fbf9; }
+.checkout-coupon-box > label { display: flex; align-items: center; gap: 7px; color: #206f63; font-size: .85rem; font-weight: 850; }
+.checkout-coupon-box__controls { display: flex; gap: 8px; }
+.checkout-coupon-box__controls input { min-width: 0; flex: 1; min-height: 40px; border: 1px solid #cfe1dc; border-radius: 9px; padding: 0 11px; background: #fff; color: #213452; font: inherit; text-transform: uppercase; }
+.checkout-coupon-box__controls button { flex: 0 0 auto; min-height: 40px; padding: 0 14px; }
+.checkout-coupon-box > small { color: #718b86; font-size: .76rem; line-height: 1.4; }
+.checkout-coupon-box__success { color: #138b72 !important; font-weight: 750; }
 .checkout-timer { display: flex; align-items: center; gap: 8px; padding: 12px 14px; margin: 22px 0; border-radius: 12px; color: #355179; background: #edf5ff; font-weight: 750; }
 .checkout-timer.is-expired { color: #b04444; background: #fff0f0; }
 .checkout-pay-button { width: 100%; justify-content: center; min-height: 52px; }
@@ -24795,6 +24804,74 @@ button.hero-button {
 .checkout-empty { max-width: 680px; margin: 64px auto; text-align: center; color: #53647c; }
 .checkout-empty h1 { color: #192b4a; }
 .checkout-empty .primary-action { display: inline-flex; margin-top: 16px; }
+
+.payments-admin-panel { gap: 18px; }
+.payments-admin-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
+.payments-admin-heading h3 { margin: 5px 0 6px; }
+.payments-admin-heading p { max-width: 720px; margin: 0; color: var(--muted); line-height: 1.5; }
+.payments-admin-controls { display: flex; align-items: center; gap: 8px; flex: 0 1 620px; }
+.payments-admin-search,
+.payments-admin-filter { display: flex; align-items: center; gap: 8px; min-height: 42px; border: 1px solid var(--line); border-radius: 9px; background: #fff; color: #73829a; padding: 0 11px; }
+.payments-admin-search { flex: 1 1 330px; }
+.payments-admin-filter { flex: 0 0 180px; }
+.payments-admin-search input,
+.payments-admin-filter select { min-width: 0; width: 100%; border: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; }
+.payments-admin-filter select { cursor: pointer; }
+.payments-admin-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.payments-admin-kpis article { display: grid; gap: 5px; min-width: 0; border: 1px solid var(--line); border-radius: 10px; background: #fbfcf8; padding: 13px 14px; }
+.payments-admin-kpis article span { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: .76rem; font-weight: 900; text-transform: uppercase; letter-spacing: .03em; }
+.payments-admin-kpis article strong { color: var(--ink); font-size: 1.3rem; }
+.payments-admin-kpis article small { color: #8a98ad; line-height: 1.35; }
+.payments-admin-kpis article.is-pending { border-color: rgba(190, 132, 16, .26); background: #fffaf0; }
+.payments-admin-kpis article.is-pending span { color: #a66b05; }
+.payments-admin-kpis article.is-discount { border-color: rgba(15, 118, 110, .2); background: #f3fbf8; }
+.payments-admin-kpis article.is-discount span { color: #087d6c; }
+.payments-admin-kpis article.is-failed { border-color: rgba(190, 73, 73, .2); background: #fff7f7; }
+.payments-admin-kpis article.is-failed span { color: #b34f55; }
+.payments-admin-list { display: grid; gap: 12px; max-height: none; }
+.payment-admin-card { display: grid; gap: 16px; border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 16px; box-shadow: 0 8px 22px rgba(35, 54, 82, .04); }
+.payment-admin-card.is-pending { border-color: rgba(190, 132, 16, .4); }
+.payment-admin-card.is-failed { border-color: rgba(190, 73, 73, .3); }
+.payment-admin-card__header { display: grid; grid-template-columns: minmax(210px, 1.1fr) minmax(180px, .9fr) auto; align-items: center; gap: 16px; }
+.payment-admin-student { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.payment-admin-student > div,
+.payment-admin-card__title { display: grid; gap: 3px; min-width: 0; }
+.payment-admin-student strong,
+.payment-admin-card__title strong { overflow-wrap: anywhere; color: var(--ink); }
+.payment-admin-student span:not(.enrollment-admin-avatar),
+.payment-admin-card__title > span:last-child { overflow-wrap: anywhere; color: var(--muted); font-size: .83rem; }
+.payment-admin-card__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+.payment-admin-card__actions svg { vertical-align: -3px; }
+.payment-admin-card__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid #e7edf3; border-bottom: 1px solid #e7edf3; }
+.payment-admin-card__grid > div { display: grid; gap: 5px; min-width: 0; padding: 12px 14px; border-right: 1px solid #e7edf3; }
+.payment-admin-card__grid > div:last-child { border-right: 0; }
+.payment-admin-card__grid span { color: #8795aa; font-size: .76rem; font-weight: 850; }
+.payment-admin-card__grid strong { overflow-wrap: anywhere; color: #243756; font-size: 1.03rem; }
+.payment-admin-card__grid small { overflow-wrap: anywhere; color: #8a98ad; line-height: 1.35; }
+.payment-admin-card__footer { display: flex; flex-wrap: wrap; gap: 8px 18px; color: #8291a7; font-size: .78rem; }
+.payment-admin-card__footer .is-error { color: #b34f55; }
+
+@media (max-width: 940px) {
+  .payments-admin-heading { align-items: stretch; flex-direction: column; }
+  .payments-admin-controls { flex: 1 1 auto; max-width: none; }
+  .payment-admin-card__header { grid-template-columns: minmax(0, 1fr) minmax(160px, .75fr); }
+  .payment-admin-card__actions { grid-column: 1 / -1; justify-content: flex-start; }
+  .payment-admin-card__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .payment-admin-card__grid > div:nth-child(2) { border-right: 0; }
+  .payment-admin-card__grid > div:nth-child(-n + 2) { border-bottom: 1px solid #e7edf3; }
+}
+
+@media (max-width: 680px) {
+  .payments-admin-controls { align-items: stretch; flex-direction: column; }
+  .payments-admin-filter { flex-basis: auto; }
+  .payments-admin-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .payment-admin-card { padding: 13px; }
+  .payment-admin-card__header,
+  .payment-admin-card__grid { grid-template-columns: 1fr; }
+  .payment-admin-card__actions { grid-column: auto; }
+  .payment-admin-card__grid > div { border-right: 0; border-bottom: 1px solid #e7edf3; }
+  .payment-admin-card__grid > div:last-child { border-bottom: 0; }
+}
 .access-locked-notice { display: flex; align-items: center; gap: 12px; padding: 16px; border: 1px solid #e4e8f0; border-radius: 14px; background: #f7f9fc; color: #61718b; }
 .access-locked-notice > svg { color: #5148a8; flex: 0 0 auto; }
 .access-locked-notice > div { display: grid; gap: 4px; flex: 1; }
@@ -24805,6 +24882,33 @@ button.hero-button {
 .pd-enroll-form__payment-note { display: flex; gap: 10px; padding: 14px; border-radius: 13px; color: #51627d; background: #effaf7; line-height: 1.5; font-size: .88rem; }
 .pd-enroll-form__payment-note svg { color: #128a77; flex: 0 0 auto; margin-top: 3px; }
 .pd-enroll-form__program-label { display: block; margin-top: 12px; color: #71829c; line-height: 1.5; }
+
+.coupon-admin-form { gap: 16px; padding: 16px; border: 1px solid #e0e6ef; border-radius: 14px; background: #fbfcff; }
+.coupon-admin-form__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.coupon-admin-form__grid label,
+.coupon-admin-form__targets label { display: grid; gap: 6px; color: #5f6d86; font-size: .76rem; font-weight: 800; }
+.coupon-admin-form__grid input,
+.coupon-admin-form__grid select,
+.coupon-admin-form__targets select,
+.coupon-admin-form__targets textarea { width: 100%; min-width: 0; border: 1px solid #d7e0ec; border-radius: 9px; background: #fff; color: #203250; padding: 10px 11px; font: inherit; font-weight: 500; }
+.coupon-admin-form__grid input,
+.coupon-admin-form__grid select { min-height: 42px; }
+.coupon-admin-form__grid .inline-check { display: flex; align-items: center; align-self: end; gap: 8px; min-height: 42px; }
+.coupon-admin-form__grid .inline-check input { width: 17px; min-height: 17px; }
+.coupon-admin-form__targets { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.coupon-admin-form__targets select { min-height: 108px; padding: 6px; }
+.coupon-admin-form__targets textarea { resize: vertical; }
+.coupon-admin-form__targets small,
+.coupon-admin-form__note { color: #8190a8; font-size: .72rem; font-weight: 500; line-height: 1.45; }
+.coupon-admin-form__note { margin: 0; padding: 10px 12px; border-radius: 9px; background: #eef8f5; color: #3d746b; }
+@media (max-width: 1100px) {
+  .coupon-admin-form__grid,
+  .coupon-admin-form__targets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 680px) {
+  .coupon-admin-form__grid,
+  .coupon-admin-form__targets { grid-template-columns: 1fr; }
+}
 
 /* Student learning library */
 .my-program-library { display: grid; gap: 18px; }
@@ -25125,6 +25229,7 @@ button.hero-button {
 /* Admin enrollment command center */
 .enrollment-admin-page {
   display: grid;
+  grid-column: 1 / -1;
   gap: 18px;
 }
 
@@ -25135,8 +25240,8 @@ button.hero-button {
   align-items: center;
   justify-content: space-between;
   gap: 28px;
-  min-height: 190px;
-  padding: 30px 34px;
+  min-height: 150px;
+  padding: 22px 28px;
   border: 1px solid rgba(112, 103, 194, .2);
   border-radius: 24px;
   background:
@@ -25173,7 +25278,7 @@ button.hero-button {
   max-width: 680px;
   margin: 9px 0 8px;
   color: #17243f;
-  font-size: clamp(24px, 3vw, 38px);
+  font-size: clamp(22px, 2.5vw, 32px);
   line-height: 1.08;
   letter-spacing: -.04em;
 }
@@ -25206,7 +25311,7 @@ button.hero-button {
 .enrollment-admin-kpi {
   display: grid;
   gap: 7px;
-  padding: 18px 19px;
+  padding: 14px 16px;
   border: 1px solid #e1e7f2;
   border-radius: 18px;
   background: #fff;
@@ -25222,8 +25327,8 @@ button.hero-button {
 
 .enrollment-admin-workspace {
   display: grid;
-  gap: 18px;
-  padding: 24px;
+  gap: 12px;
+  padding: 18px;
   border: 1px solid #dfe6f2;
   border-radius: 24px;
   background: rgba(255,255,255,.86);
@@ -25234,18 +25339,19 @@ button.hero-button {
   align-items: end;
   justify-content: space-between;
   gap: 18px;
+  flex-wrap: wrap;
 }
-.enrollment-admin-toolbar h3 { margin: 5px 0 3px; color: #182744; font-size: 23px; }
-.enrollment-admin-toolbar__controls { display: flex; align-items: center; gap: 9px; }
+.enrollment-admin-toolbar h3 { margin: 5px 0 3px; color: #182744; font-size: 20px; }
+.enrollment-admin-toolbar__controls { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 7px; }
 .enrollment-admin-search,
 .enrollment-admin-filter {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 42px;
-  padding: 0 12px;
+  min-height: 36px;
+  padding: 0 10px;
   border: 1px solid #dce4f0;
-  border-radius: 12px;
+  border-radius: 10px;
   background: #fbfcff;
   color: #7785a0;
 }
@@ -25253,14 +25359,14 @@ button.hero-button {
 .enrollment-admin-search input,
 .enrollment-admin-filter select { min-width: 0; border: 0; outline: 0; background: transparent; color: #223250; font: inherit; }
 .enrollment-admin-search input { width: 100%; }
-.enrollment-admin-filter select { cursor: pointer; }
-.enrollment-admin-list { display: grid; gap: 14px; }
+.enrollment-admin-filter select { max-width: 180px; cursor: pointer; font-size: 13px; }
+.enrollment-admin-list { display: grid; gap: 8px; }
 .enrollment-admin-card {
   display: grid;
-  gap: 19px;
-  padding: 20px;
+  gap: 12px;
+  padding: 14px;
   border: 1px solid #e0e7f1;
-  border-radius: 19px;
+  border-radius: 14px;
   background: linear-gradient(145deg, #fff 0%, #fbfcff 100%);
   box-shadow: 0 8px 22px rgba(39, 54, 99, .04);
 }
@@ -25268,20 +25374,20 @@ button.hero-button {
   display: grid;
   grid-template-columns: minmax(205px, 1.2fr) minmax(220px, 1fr) auto;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
 }
 .enrollment-admin-card__student,
-.enrollment-admin-card__heading { display: flex; align-items: center; min-width: 0; gap: 11px; }
+.enrollment-admin-card__heading { display: flex; align-items: center; min-width: 0; gap: 8px; }
 .enrollment-admin-card__student > div,
 .enrollment-admin-card__heading { flex-direction: column; align-items: flex-start; gap: 2px; }
-.enrollment-admin-card__student strong { overflow: hidden; max-width: 100%; color: #182947; font-size: 16px; text-overflow: ellipsis; white-space: nowrap; }
+.enrollment-admin-card__student strong { overflow: hidden; max-width: 100%; color: #182947; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
 .enrollment-admin-card__student span:not(.enrollment-admin-avatar),
 .enrollment-admin-card__student small,
-.enrollment-admin-card__heading > span:last-child { color: #8190a8; font-size: 12px; }
-.enrollment-admin-avatar { display: grid; flex: 0 0 45px; place-items: center; width: 45px; height: 45px; border-radius: 14px; background: linear-gradient(140deg, #e0f6f1, #e8e8ff); color: #4e4aa8; font-size: 15px; font-weight: 900; }
-.enrollment-admin-card__heading > strong { color: #203454; font-size: 15px; }
+.enrollment-admin-card__heading > span:last-child { color: #8190a8; font-size: 11px; }
+.enrollment-admin-avatar { display: grid; flex: 0 0 36px; place-items: center; width: 36px; height: 36px; border-radius: 11px; background: linear-gradient(140deg, #e0f6f1, #e8e8ff); color: #4e4aa8; font-size: 13px; font-weight: 900; }
+.enrollment-admin-card__heading > strong { color: #203454; font-size: 14px; }
 .enrollment-admin-status,
-.enrollment-admin-payment-status { display: inline-flex; align-items: center; width: fit-content; padding: 5px 9px; border-radius: 999px; font-size: 11px; font-weight: 800; }
+.enrollment-admin-payment-status { display: inline-flex; align-items: center; width: fit-content; padding: 4px 8px; border-radius: 999px; font-size: 10px; font-weight: 800; }
 .enrollment-admin-status::before,
 .enrollment-admin-payment-status::before { content: ""; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: currentColor; }
 .enrollment-admin-status.is-active,
@@ -25292,29 +25398,29 @@ button.hero-button {
 .enrollment-admin-status.is-cancelled,
 .enrollment-admin-payment-status.is-failed { background: #fff0f1; color: #c95862; }
 .enrollment-admin-card__actions { display: flex; justify-content: flex-end; gap: 8px; }
-.enrollment-admin-button { min-height: 34px; padding: 0 12px; border: 1px solid #d9e1ec; border-radius: 9px; background: #fff; color: #66758f; cursor: pointer; font: inherit; font-size: 12px; font-weight: 800; }
+.enrollment-admin-button { min-height: 30px; padding: 0 10px; border: 1px solid #d9e1ec; border-radius: 8px; background: #fff; color: #66758f; cursor: pointer; font: inherit; font-size: 11px; font-weight: 800; }
 .enrollment-admin-button:hover { border-color: #8a83d4; color: #4e48a4; }
 .enrollment-admin-button--primary { border-color: #6258b8; background: #6258b8; color: #fff; }
 .enrollment-admin-button--primary:hover { background: #51489f; color: #fff; }
 .enrollment-admin-card__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid #edf0f5; border-bottom: 1px solid #edf0f5; }
-.enrollment-admin-detail { display: grid; gap: 5px; padding: 14px 15px; border-right: 1px solid #edf0f5; }
+.enrollment-admin-detail { display: grid; gap: 4px; padding: 10px 12px; border-right: 1px solid #edf0f5; }
 .enrollment-admin-detail:last-child { border-right: 0; }
-.enrollment-admin-detail span { color: #8a96aa; font-size: 11px; font-weight: 700; }
-.enrollment-admin-detail strong { color: #213452; font-size: 16px; }
-.enrollment-admin-detail small { color: #a0aabd; font-size: 11px; }
+.enrollment-admin-detail span { color: #8a96aa; font-size: 10px; font-weight: 700; }
+.enrollment-admin-detail strong { color: #213452; font-size: 14px; }
+.enrollment-admin-detail small { color: #a0aabd; font-size: 10px; }
 .enrollment-admin-detail.is-warning strong { color: #bf7b1d; }
 .enrollment-admin-detail.is-success strong { color: #188c72; }
-.enrollment-admin-card__footer { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(230px, .8fr); align-items: center; gap: 24px; }
-.enrollment-admin-progress__label { display: flex; justify-content: space-between; margin-bottom: 8px; color: #6e7b94; font-size: 11px; font-weight: 800; }
+.enrollment-admin-card__footer { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(230px, .8fr); align-items: center; gap: 16px; }
+.enrollment-admin-progress__label { display: flex; justify-content: space-between; margin-bottom: 6px; color: #6e7b94; font-size: 10px; font-weight: 800; }
 .enrollment-admin-progress__label strong { color: #4f49a7; }
-.enrollment-admin-progress__track { height: 8px; overflow: hidden; border-radius: 999px; background: #edf0f7; }
+.enrollment-admin-progress__track { height: 6px; overflow: hidden; border-radius: 999px; background: #edf0f7; }
 .enrollment-admin-progress__track span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #22aa91, #6258b8); }
 .enrollment-admin-access { display: grid; gap: 4px; justify-items: end; color: #198a72; text-align: right; }
-.enrollment-admin-access span { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; }
-.enrollment-admin-access small { color: #8d99ac; font-size: 11px; }
+.enrollment-admin-access span { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; }
+.enrollment-admin-access small { color: #8d99ac; font-size: 10px; }
 .enrollment-admin-access.is-expired { color: #c75e67; }
-.enrollment-admin-payments { border-top: 1px solid #edf0f5; padding-top: 12px; }
-.enrollment-admin-payments summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #4c589f; cursor: pointer; font-size: 12px; font-weight: 800; list-style: none; }
+.enrollment-admin-payments { border-top: 1px solid #edf0f5; padding-top: 9px; }
+.enrollment-admin-payments summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #4c589f; cursor: pointer; font-size: 11px; font-weight: 800; list-style: none; }
 .enrollment-admin-payments summary::-webkit-details-marker { display: none; }
 .enrollment-admin-payments summary span { display: inline-flex; align-items: center; gap: 7px; }
 .enrollment-admin-payments summary strong { color: #9aa5b8; font-size: 11px; }

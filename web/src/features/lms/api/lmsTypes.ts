@@ -160,6 +160,22 @@ export type PaymentTransactionResponse = {
   verifiedAt?: string;
   invoiceNumber?: string;
   failureReason?: string;
+  originalAmount: number;
+  discountAmount: number;
+  couponCode?: string;
+  studentId: string;
+  studentName?: string;
+  studentEmail?: string;
+  programTitle?: string;
+  programPlanName?: string;
+};
+
+export type CouponValidationResponse = {
+  code: string;
+  description: string;
+  originalAmount: number;
+  discountAmount: number;
+  payableAmount: number;
 };
 
 export type PaymentCheckoutResponse = {
@@ -182,6 +198,9 @@ export type PaymentReceiptResponse = {
   planName: string;
   paymentMode: string;
   amount: number;
+  originalAmount: number;
+  discountAmount: number;
+  couponCode?: string;
   currency: string;
   gateway: string;
   gatewayOrderId: string;
@@ -296,6 +315,15 @@ export type CouponResponse = {
   isActive: boolean;
   startsAt?: string;
   expiresAt?: string;
+  audienceType: 1 | 2 | 3 | 4;
+  minimumOrderAmount?: number;
+  maximumDiscountAmount?: number;
+  maxRedemptions?: number;
+  maxRedemptionsPerStudent: number;
+  targetStudentIds: string[];
+  targetStudentEmails: string[];
+  targetProgramIds: string[];
+  targetCategoryIds: string[];
 };
 
 export type AdminNotificationResponse = {
@@ -344,6 +372,15 @@ export type CreatePaymentCheckoutRequest = {
   programPlanId?: string;
   enrollmentId?: string;
   mode: 1 | 2 | 3;
+  couponCode?: string;
+};
+
+export type ValidateCouponRequest = {
+  programId: string;
+  programPlanId?: string;
+  enrollmentId?: string;
+  mode: 3;
+  couponCode: string;
 };
 
 export type VerifyPaymentRequest = {
@@ -465,6 +502,15 @@ export type CreateCouponRequest = {
   isActive?: boolean;
   startsAt?: string;
   expiresAt?: string;
+  audienceType?: 1 | 2 | 3 | 4;
+  minimumOrderAmount?: number;
+  maximumDiscountAmount?: number;
+  maxRedemptions?: number;
+  maxRedemptionsPerStudent?: number;
+  targetStudentIds?: string[];
+  targetStudentEmails?: string[];
+  targetProgramIds?: string[];
+  targetCategoryIds?: string[];
 };
 
 export type IssueCertificateRequest = {

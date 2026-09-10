@@ -28,11 +28,15 @@ public interface ILmsPortalService
 
     Task<PaymentCheckoutResponse> CreatePaymentCheckoutAsync(Guid studentId, CreatePaymentCheckoutRequest request, CancellationToken cancellationToken);
 
+    Task<CouponValidationResponse> ValidateCouponAsync(Guid studentId, ValidateCouponRequest request, CancellationToken cancellationToken);
+
     Task<PaymentTransactionResponse> VerifyPaymentAsync(Guid studentId, VerifyPaymentRequest request, CancellationToken cancellationToken);
 
     Task<PaymentTransactionResponse> MarkPaymentFailedAsync(Guid studentId, Guid paymentId, string? failureReason, CancellationToken cancellationToken);
 
     Task<PaymentReceiptResponse> GetPaymentReceiptAsync(Guid studentId, Guid paymentId, CancellationToken cancellationToken);
+
+    Task<PaymentReceiptResponse> GetAdminPaymentReceiptAsync(Guid paymentId, CancellationToken cancellationToken);
 
     Task ProcessPaymentWebhookAsync(string payload, string signature, CancellationToken cancellationToken);
 

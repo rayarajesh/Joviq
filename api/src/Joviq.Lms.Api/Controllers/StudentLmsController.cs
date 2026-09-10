@@ -61,6 +61,15 @@ public sealed class StudentLmsController(
         return Ok(ApiResponse<PaymentCheckoutResponse>.Ok(result, "Payment checkout created.", CorrelationId));
     }
 
+    [HttpPost("payments/coupon/validate")]
+    public async Task<ActionResult<ApiResponse<CouponValidationResponse>>> ValidateCoupon(
+        ValidateCouponRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.ValidateCouponAsync(RequiredUserId, request, cancellationToken);
+        return Ok(ApiResponse<CouponValidationResponse>.Ok(result, "Coupon validated.", CorrelationId));
+    }
+
     [HttpPost("payments/verify")]
     public async Task<ActionResult<ApiResponse<PaymentTransactionResponse>>> VerifyPayment(
         VerifyPaymentRequest request,

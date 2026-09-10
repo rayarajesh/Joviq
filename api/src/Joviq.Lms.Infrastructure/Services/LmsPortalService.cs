@@ -459,17 +459,7 @@ public sealed class LmsPortalService(
         CreatePaymentCheckoutRequest request,
         CancellationToken cancellationToken)
     {
-        var enrollment = request.EnrollmentId.HasValue
-            ? await dbContext.Enrollments
-                .Include(x => x.Program)
-                .Include(x => x.ProgramPlan)
-                .FirstOrDefaultAsync(x => x.Id == request.EnrollmentId && x.StudentId == studentId, cancellationToken)
-            : await dbContext.Enrollments
-                .Include(x => x.Program)
-                .Include(x => x.ProgramPlan)
-                .Where(x => x.StudentId == studentId && x.ProgramId == request.ProgramId && x.Status != EnrollmentStatus.Cancelled)
-                .OrderByDescending(x => x.CreatedAt)
-                .FirstOrDefaultAsync(cancellationToken);
+        var enrollment = await FindPaymentEnrollmentAsync(studentId, request.EnrollmentId, request.ProgramId, cancellationToken);
 
         if (enrollment is null)
         {
@@ -493,7 +483,25 @@ public sealed class LmsPortalService(
         enrollment.TotalAmount = pricing.TotalAmount;
         enrollment.ProgramPlanId = plan.Id;
         enrollment.ProgramPlan = plan;
-        var amount = CalculatePaymentAmount(enrollment, plan, request.Mode, clock.UtcNow);
+        var originalAmount = CalculatePaymentAmount(enrollment, plan, request.Mode, clock.UtcNow);
+        CouponEvaluation? couponEvaluation = null;
+        Coupon? coupon = null;
+        if (!string.IsNullOrWhiteSpace(request.CouponCode))
+        {
+            coupon = await FindCouponAsync(request.CouponCode, cancellationToken);
+            var studentEmail = await GetStudentEmailAsync(studentId, cancellationToken);
+            couponEvaluation = await EvaluateCouponAsync(
+                coupon,
+                studentId,
+                studentEmail,
+                enrollment,
+                originalAmount,
+                request.Mode,
+                clock.UtcNow,
+                cancellationToken);
+        }
+
+        var amount = couponEvaluation?.PayableAmount ?? originalAmount;
         var checkoutExpiresAt = clock.UtcNow.AddMinutes(Math.Clamp(Payments.CheckoutExpiryMinutes, 5, 30));
         var transaction = new PaymentTransaction
         {
@@ -507,13 +515,50 @@ public sealed class LmsPortalService(
             Mode = request.Mode,
             Status = PaymentStatus.Pending,
             Amount = amount,
+            OriginalAmount = originalAmount,
+            DiscountAmount = couponEvaluation?.DiscountAmount ?? 0,
+            CouponId = coupon?.Id,
+            CouponCode = coupon?.Code,
             Currency = Payments.Currency,
             CheckoutExpiresAt = checkoutExpiresAt
         };
 
         dbContext.PaymentTransactions.Add(transaction);
+        CouponRedemption? redemption = null;
+        if (coupon is not null && couponEvaluation is not null)
+        {
+            redemption = new CouponRedemption
+            {
+                Id = Guid.NewGuid(),
+                CouponId = coupon.Id,
+                StudentId = studentId,
+                EnrollmentId = enrollment.Id,
+                PaymentTransactionId = transaction.Id,
+                Status = CouponRedemptionStatus.Reserved,
+                OriginalAmount = originalAmount,
+                DiscountAmount = couponEvaluation.DiscountAmount,
+                FinalAmount = amount,
+                ExpiresAt = checkoutExpiresAt
+            };
+            dbContext.CouponRedemptions.Add(redemption);
+        }
         Audit("Student.PaymentCheckoutCreated", new { studentId, transaction.Id, transaction.EnrollmentId, transaction.ProgramId, transaction.Mode, transaction.Amount });
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        if (amount == 0)
+        {
+            transaction.Gateway = "Free";
+            transaction.GatewayOrderId = $"free_{transaction.Id:N}";
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return new PaymentCheckoutResponse(
+                MapPayment(transaction),
+                "Free",
+                string.Empty,
+                transaction.GatewayOrderId,
+                0,
+                transaction.Currency,
+                checkoutExpiresAt);
+        }
 
         try
         {
@@ -541,6 +586,10 @@ public sealed class LmsPortalService(
         {
             transaction.Status = PaymentStatus.Failed;
             transaction.FailureReason = OptionalText(exception.Message, 500);
+            if (redemption is not null)
+            {
+                redemption.Status = CouponRedemptionStatus.Released;
+            }
             await dbContext.SaveChangesAsync(cancellationToken);
             throw;
         }
@@ -548,9 +597,58 @@ public sealed class LmsPortalService(
         {
             transaction.Status = PaymentStatus.Failed;
             transaction.FailureReason = "Payment gateway request failed.";
+            if (redemption is not null)
+            {
+                redemption.Status = CouponRedemptionStatus.Released;
+            }
             await dbContext.SaveChangesAsync(cancellationToken);
             throw new AppException("The payment gateway is temporarily unavailable. Please try again.", 503, "payment_gateway_unavailable");
         }
+    }
+
+    public async Task<CouponValidationResponse> ValidateCouponAsync(
+        Guid studentId,
+        ValidateCouponRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request.Mode != PaymentMode.RemainingBalance)
+        {
+            throw new AppException("Coupons can only be used on the remaining balance. The initial reserve payment is never discounted.", 400, "coupon_remaining_only");
+        }
+
+        var enrollment = await FindPaymentEnrollmentAsync(studentId, request.EnrollmentId, request.ProgramId, cancellationToken)
+            ?? throw new AppException("Complete the initial payment before applying a coupon to the remaining balance.", 400, "initial_payment_required");
+        var plan = enrollment.ProgramPlan;
+        if (plan is null && request.ProgramPlanId.HasValue)
+        {
+            plan = await dbContext.ProgramPlans.FirstOrDefaultAsync(
+                x => x.Id == request.ProgramPlanId && x.ProgramId == enrollment.ProgramId && x.IsActive,
+                cancellationToken);
+        }
+
+        if (plan is null)
+        {
+            throw new AppException("A valid plan is required before applying a coupon.", 400, "program_plan_required");
+        }
+
+        var originalAmount = CalculatePaymentAmount(enrollment, plan, request.Mode, clock.UtcNow);
+        var coupon = await FindCouponAsync(request.CouponCode, cancellationToken);
+        var studentEmail = await GetStudentEmailAsync(studentId, cancellationToken);
+        var evaluation = await EvaluateCouponAsync(
+            coupon,
+            studentId,
+            studentEmail,
+            enrollment,
+            originalAmount,
+            request.Mode,
+            clock.UtcNow,
+            cancellationToken);
+        return new CouponValidationResponse(
+            evaluation.Code,
+            evaluation.Description,
+            evaluation.OriginalAmount,
+            evaluation.DiscountAmount,
+            evaluation.PayableAmount);
     }
 
     public async Task<PaymentTransactionResponse> VerifyPaymentAsync(
@@ -576,8 +674,8 @@ public sealed class LmsPortalService(
         }
 
         var orderId = RequiredText(request.GatewayOrderId ?? string.Empty, nameof(request.GatewayOrderId), 3, 160);
-        var paymentId = RequiredText(request.GatewayPaymentId ?? string.Empty, nameof(request.GatewayPaymentId), 3, 160);
-        var signature = RequiredText(request.GatewaySignature ?? string.Empty, nameof(request.GatewaySignature), 16, 256);
+        var isFreePayment = string.Equals(transaction.Gateway, "Free", StringComparison.OrdinalIgnoreCase);
+        var paymentId = RequiredText(request.GatewayPaymentId ?? (isFreePayment ? $"free_{transaction.Id:N}" : string.Empty), nameof(request.GatewayPaymentId), 3, 160);
         if (!string.Equals(transaction.GatewayOrderId, orderId, StringComparison.Ordinal))
         {
             throw new AppException("The payment order does not match this checkout.", 400, "payment_order_mismatch");
@@ -587,11 +685,20 @@ public sealed class LmsPortalService(
         {
             transaction.Status = PaymentStatus.Failed;
             transaction.FailureReason = "Checkout expired.";
+            var expiredRedemption = await dbContext.CouponRedemptions
+                .FirstOrDefaultAsync(x => x.PaymentTransactionId == transaction.Id && x.Status == CouponRedemptionStatus.Reserved, cancellationToken);
+            if (expiredRedemption is not null)
+            {
+                expiredRedemption.Status = CouponRedemptionStatus.Released;
+            }
             await dbContext.SaveChangesAsync(cancellationToken);
             throw new AppException("This payment session expired. Start a new payment attempt.", 400, "payment_expired");
         }
 
-        if (!paymentGateway.VerifyPaymentSignature(orderId, paymentId, signature))
+        if (!isFreePayment && !paymentGateway.VerifyPaymentSignature(
+                orderId,
+                paymentId,
+                RequiredText(request.GatewaySignature ?? string.Empty, nameof(request.GatewaySignature), 16, 256)))
         {
             throw new AppException("Payment verification failed. No access was granted.", 400, "payment_signature_invalid");
         }
@@ -606,6 +713,17 @@ public sealed class LmsPortalService(
         transaction.Status = PaymentStatus.Verified;
         transaction.GatewayPaymentId = paymentId;
         transaction.VerifiedAt = clock.UtcNow;
+        var redemption = await dbContext.CouponRedemptions
+            .FirstOrDefaultAsync(x => x.PaymentTransactionId == transaction.Id, cancellationToken);
+        if (redemption is not null)
+        {
+            if (redemption.Status == CouponRedemptionStatus.Released || redemption.ExpiresAt <= clock.UtcNow)
+            {
+                throw new AppException("This coupon reservation expired. Start a new payment attempt.", 400, "coupon_reservation_expired");
+            }
+
+            redemption.Status = CouponRedemptionStatus.Redeemed;
+        }
         ApplyVerifiedPayment(transaction, clock.UtcNow);
         if (transaction.Enrollment is not null)
         {
@@ -638,15 +756,32 @@ public sealed class LmsPortalService(
         {
             payment.Status = PaymentStatus.Failed;
             payment.FailureReason = OptionalText(failureReason, 500) ?? "Payment was cancelled or declined.";
+            var redemption = await dbContext.CouponRedemptions
+                .FirstOrDefaultAsync(x => x.PaymentTransactionId == payment.Id, cancellationToken);
+            if (redemption is not null && redemption.Status == CouponRedemptionStatus.Reserved)
+            {
+                redemption.Status = CouponRedemptionStatus.Released;
+            }
             await dbContext.SaveChangesAsync(cancellationToken);
         }
 
         return MapPayment(payment);
     }
 
-    public async Task<PaymentReceiptResponse> GetPaymentReceiptAsync(
+    public Task<PaymentReceiptResponse> GetPaymentReceiptAsync(
         Guid studentId,
         Guid paymentId,
+        CancellationToken cancellationToken)
+        => BuildPaymentReceiptAsync(paymentId, studentId, cancellationToken);
+
+    public Task<PaymentReceiptResponse> GetAdminPaymentReceiptAsync(
+        Guid paymentId,
+        CancellationToken cancellationToken)
+        => BuildPaymentReceiptAsync(paymentId, null, cancellationToken);
+
+    private async Task<PaymentReceiptResponse> BuildPaymentReceiptAsync(
+        Guid paymentId,
+        Guid? studentId,
         CancellationToken cancellationToken)
     {
         var payment = await dbContext.PaymentTransactions
@@ -655,7 +790,7 @@ public sealed class LmsPortalService(
                 .ThenInclude(x => x!.Program)
             .Include(x => x.Enrollment)
                 .ThenInclude(x => x!.ProgramPlan)
-            .FirstOrDefaultAsync(x => x.Id == paymentId && x.StudentId == studentId, cancellationToken)
+            .FirstOrDefaultAsync(x => x.Id == paymentId && (!studentId.HasValue || x.StudentId == studentId.Value), cancellationToken)
             ?? throw new AppException("Payment transaction was not found.", 404, "payment_not_found");
 
         if (payment.Status != PaymentStatus.Verified)
@@ -679,6 +814,9 @@ public sealed class LmsPortalService(
             payment.Enrollment?.ProgramPlan?.Name ?? "Program plan",
             payment.Mode.ToString(),
             payment.Amount,
+            payment.OriginalAmount,
+            payment.DiscountAmount,
+            payment.CouponCode,
             payment.Currency,
             payment.Gateway,
             payment.GatewayOrderId,
@@ -742,6 +880,12 @@ public sealed class LmsPortalService(
         transaction.Status = PaymentStatus.Verified;
         transaction.GatewayPaymentId = paymentId;
         transaction.VerifiedAt = clock.UtcNow;
+        var redemption = await dbContext.CouponRedemptions
+            .FirstOrDefaultAsync(x => x.PaymentTransactionId == transaction.Id, cancellationToken);
+        if (redemption is not null)
+        {
+            redemption.Status = CouponRedemptionStatus.Redeemed;
+        }
         ApplyVerifiedPayment(transaction, clock.UtcNow);
         dbContext.Notifications.Add(new Notification
         {
@@ -844,7 +988,7 @@ public sealed class LmsPortalService(
             .OrderByDescending(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        return payments.Select(MapPayment).ToList();
+        return payments.Select(payment => MapPayment(payment)).ToList();
     }
 
     public async Task<IReadOnlyList<CertificateResponse>> GetStudentCertificatesAsync(
@@ -1647,11 +1791,25 @@ public sealed class LmsPortalService(
     {
         var payments = await dbContext.PaymentTransactions
             .AsNoTracking()
+            .Include(x => x.Enrollment)
+                .ThenInclude(x => x!.Program)
+            .Include(x => x.Enrollment)
+                .ThenInclude(x => x!.ProgramPlan)
             .OrderByDescending(x => x.CreatedAt)
             .Take(200)
             .ToListAsync(cancellationToken);
 
-        return payments.Select(MapPayment).ToList();
+        var studentIds = payments.Select(x => x.StudentId).Distinct().ToList();
+        var students = await dbContext.Users
+            .AsNoTracking()
+            .Where(x => studentIds.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id, cancellationToken);
+
+        return payments
+            .Select(payment => students.TryGetValue(payment.StudentId, out var student)
+                ? MapPayment(payment, student.FullName, student.Email)
+                : MapPayment(payment))
+            .ToList();
     }
 
     public async Task<PaymentTransactionResponse> UpdatePaymentStatusAsync(
@@ -1661,18 +1819,50 @@ public sealed class LmsPortalService(
     {
         var payment = await dbContext.PaymentTransactions
             .Include(x => x.Enrollment)
+                .ThenInclude(x => x!.Program)
+            .Include(x => x.Enrollment)
+                .ThenInclude(x => x!.ProgramPlan)
             .FirstOrDefaultAsync(x => x.Id == paymentId, cancellationToken)
             ?? throw new AppException("Payment was not found.", 404, "payment_not_found");
 
+        var wasVerified = payment.Status == PaymentStatus.Verified;
+        if (wasVerified && request.Status != PaymentStatus.Verified)
+        {
+            throw new AppException("A verified payment cannot be moved back to pending or failed.", 409, "payment_already_verified");
+        }
+
         payment.Status = request.Status;
         payment.GatewayPaymentId = OptionalText(request.GatewayPaymentId, 160);
-        payment.FailureReason = OptionalText(request.FailureReason, 500);
+        payment.FailureReason = request.Status == PaymentStatus.Failed
+            ? OptionalText(request.FailureReason, 500)
+            : null;
         payment.VerifiedAt = request.Status == PaymentStatus.Verified ? clock.UtcNow : payment.VerifiedAt;
 
-        var wasVerified = payment.Status == PaymentStatus.Verified;
         if (request.Status == PaymentStatus.Verified && !wasVerified && payment.Enrollment is not null)
         {
+            var redemption = await dbContext.CouponRedemptions
+                .FirstOrDefaultAsync(x => x.PaymentTransactionId == payment.Id, cancellationToken);
+            if (redemption is not null)
+            {
+                if (redemption.Status == CouponRedemptionStatus.Released || redemption.ExpiresAt <= clock.UtcNow)
+                {
+                    throw new AppException("This coupon reservation expired. The student must start a new payment attempt.", 400, "coupon_reservation_expired");
+                }
+
+                redemption.Status = CouponRedemptionStatus.Redeemed;
+            }
+
             ApplyVerifiedPayment(payment, clock.UtcNow);
+        }
+
+        if (request.Status == PaymentStatus.Failed)
+        {
+            var redemption = await dbContext.CouponRedemptions
+                .FirstOrDefaultAsync(x => x.PaymentTransactionId == payment.Id && x.Status == CouponRedemptionStatus.Reserved, cancellationToken);
+            if (redemption is not null)
+            {
+                redemption.Status = CouponRedemptionStatus.Released;
+            }
         }
 
         Audit("Admin.PaymentStatusUpdated", new { payment.Id, payment.StudentId, payment.EnrollmentId, payment.Status, payment.Amount });
@@ -1694,6 +1884,8 @@ public sealed class LmsPortalService(
         CreateCouponRequest request,
         CancellationToken cancellationToken)
     {
+        ValidateCouponRequest(request);
+        await EnsureCouponTargetsExistAsync(request, cancellationToken);
         var code = RequiredText(request.Code, nameof(request.Code), 2, 80).ToUpperInvariant();
         if (await dbContext.Coupons.AnyAsync(x => x.Code == code, cancellationToken))
         {
@@ -1709,7 +1901,16 @@ public sealed class LmsPortalService(
             IsPercentage = request.IsPercentage,
             IsActive = request.IsActive,
             StartsAt = request.StartsAt,
-            ExpiresAt = request.ExpiresAt
+            ExpiresAt = request.ExpiresAt,
+            AudienceType = request.AudienceType,
+            MinimumOrderAmount = request.MinimumOrderAmount,
+            MaximumDiscountAmount = request.MaximumDiscountAmount,
+            MaxRedemptions = request.MaxRedemptions,
+            MaxRedemptionsPerStudent = request.MaxRedemptionsPerStudent,
+            TargetStudentIdsJson = SerializeGuidList(request.TargetStudentIds),
+            TargetStudentEmailsJson = SerializeList(NormalizeCouponEmails(request.TargetStudentEmails)),
+            TargetProgramIdsJson = SerializeGuidList(request.TargetProgramIds),
+            TargetCategoryIdsJson = SerializeGuidList(request.TargetCategoryIds)
         };
 
         dbContext.Coupons.Add(coupon);
@@ -1723,6 +1924,8 @@ public sealed class LmsPortalService(
         CreateCouponRequest request,
         CancellationToken cancellationToken)
     {
+        ValidateCouponRequest(request);
+        await EnsureCouponTargetsExistAsync(request, cancellationToken);
         var coupon = await dbContext.Coupons.FirstOrDefaultAsync(x => x.Id == couponId, cancellationToken)
             ?? throw new AppException("Coupon was not found.", 404, "coupon_not_found");
         var code = RequiredText(request.Code, nameof(request.Code), 2, 80).ToUpperInvariant();
@@ -1739,6 +1942,15 @@ public sealed class LmsPortalService(
         coupon.IsActive = request.IsActive;
         coupon.StartsAt = request.StartsAt;
         coupon.ExpiresAt = request.ExpiresAt;
+        coupon.AudienceType = request.AudienceType;
+        coupon.MinimumOrderAmount = request.MinimumOrderAmount;
+        coupon.MaximumDiscountAmount = request.MaximumDiscountAmount;
+        coupon.MaxRedemptions = request.MaxRedemptions;
+        coupon.MaxRedemptionsPerStudent = request.MaxRedemptionsPerStudent;
+        coupon.TargetStudentIdsJson = SerializeGuidList(request.TargetStudentIds);
+        coupon.TargetStudentEmailsJson = SerializeList(NormalizeCouponEmails(request.TargetStudentEmails));
+        coupon.TargetProgramIdsJson = SerializeGuidList(request.TargetProgramIds);
+        coupon.TargetCategoryIdsJson = SerializeGuidList(request.TargetCategoryIds);
 
         Audit("Admin.CouponUpdated", new { coupon.Id, coupon.Code, coupon.DiscountValue, coupon.IsPercentage, coupon.IsActive });
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -2023,8 +2235,8 @@ public sealed class LmsPortalService(
         var amount = mode switch
         {
             PaymentMode.ReserveSeat => pricing.ReserveAmount,
-            PaymentMode.PayInFull => Math.Max(total - enrollment.PaidAmount, 0),
-            PaymentMode.RemainingBalance => Math.Max(total - enrollment.PaidAmount, 0),
+            PaymentMode.PayInFull => Math.Max(total - enrollment.PaidAmount - enrollment.DiscountAmount, 0),
+            PaymentMode.RemainingBalance => Math.Max(total - enrollment.PaidAmount - enrollment.DiscountAmount, 0),
             _ => throw new AppException("Invalid payment mode.", 400, "invalid_payment_mode")
         };
 
@@ -2049,8 +2261,148 @@ public sealed class LmsPortalService(
     private static bool IsAccessExpired(Enrollment enrollment, DateTimeOffset now)
         => enrollment.AccessExpiresAt.HasValue && enrollment.AccessExpiresAt <= now;
 
+    private async Task<Enrollment?> FindPaymentEnrollmentAsync(
+        Guid studentId,
+        Guid? enrollmentId,
+        Guid programId,
+        CancellationToken cancellationToken)
+    {
+        var query = dbContext.Enrollments
+            .Include(x => x.Program)
+                .ThenInclude(x => x!.Category)
+            .Include(x => x.ProgramPlan)
+            .Where(x => x.StudentId == studentId && x.Status != EnrollmentStatus.Cancelled);
+
+        return enrollmentId.HasValue
+            ? await query.FirstOrDefaultAsync(x => x.Id == enrollmentId.Value, cancellationToken)
+            : await query
+                .Where(x => x.ProgramId == programId)
+                .OrderByDescending(x => x.CreatedAt)
+                .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private async Task<Coupon> FindCouponAsync(string code, CancellationToken cancellationToken)
+    {
+        var normalizedCode = RequiredText(code, nameof(code), 2, 80).ToUpperInvariant();
+        return await dbContext.Coupons
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Code == normalizedCode, cancellationToken)
+            ?? throw new AppException("That coupon code was not found.", 404, "coupon_not_found");
+    }
+
+    private Task<string?> GetStudentEmailAsync(Guid studentId, CancellationToken cancellationToken)
+    {
+        return dbContext.Users
+            .AsNoTracking()
+            .Where(x => x.Id == studentId)
+            .Select(x => x.Email)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private async Task<CouponEvaluation> EvaluateCouponAsync(
+        Coupon coupon,
+        Guid studentId,
+        string? studentEmail,
+        Enrollment enrollment,
+        decimal originalAmount,
+        PaymentMode mode,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        if (mode != PaymentMode.RemainingBalance)
+        {
+            throw new AppException("Coupons can only be used on the remaining balance. The initial reserve payment is never discounted.", 400, "coupon_remaining_only");
+        }
+
+        if (!coupon.IsActive || (coupon.StartsAt.HasValue && coupon.StartsAt.Value > now) || (coupon.ExpiresAt.HasValue && coupon.ExpiresAt.Value < now))
+        {
+            throw new AppException("This coupon is not active or is outside its valid dates.", 400, "coupon_not_active");
+        }
+
+        if (coupon.MinimumOrderAmount.HasValue && originalAmount < coupon.MinimumOrderAmount.Value)
+        {
+            throw new AppException($"This coupon requires a remaining balance of at least INR {coupon.MinimumOrderAmount.Value:n0}.", 400, "coupon_minimum_not_met");
+        }
+
+        var targetStudentIds = DeserializeGuidList(coupon.TargetStudentIdsJson);
+        var targetStudentEmails = DeserializeStringList(coupon.TargetStudentEmailsJson);
+        var targetProgramIds = DeserializeGuidList(coupon.TargetProgramIdsJson);
+        var targetCategoryIds = DeserializeGuidList(coupon.TargetCategoryIdsJson);
+        var normalizedStudentEmail = studentEmail?.Trim().ToLowerInvariant();
+        var isSelectedStudent = targetStudentIds.Contains(studentId) ||
+            (!string.IsNullOrWhiteSpace(normalizedStudentEmail) && targetStudentEmails.Contains(normalizedStudentEmail, StringComparer.OrdinalIgnoreCase));
+
+        if (coupon.AudienceType == CouponAudienceType.SelectedStudents && !isSelectedStudent)
+        {
+            throw new AppException("This coupon is not assigned to your student account.", 403, "coupon_student_not_eligible");
+        }
+
+        var hasPreviousEnrollment = await dbContext.Enrollments
+            .AsNoTracking()
+            .AnyAsync(x => x.StudentId == studentId && x.Id != enrollment.Id && x.Status != EnrollmentStatus.Cancelled, cancellationToken)
+            || await dbContext.PaymentTransactions
+                .AsNoTracking()
+                .AnyAsync(x => x.StudentId == studentId && x.Status == PaymentStatus.Verified && x.Mode != PaymentMode.ReserveSeat, cancellationToken);
+        if (coupon.AudienceType == CouponAudienceType.NewStudents && hasPreviousEnrollment)
+        {
+            throw new AppException("This coupon is only available to new students.", 403, "coupon_student_not_eligible");
+        }
+
+        if (coupon.AudienceType == CouponAudienceType.ExistingStudents && !hasPreviousEnrollment)
+        {
+            throw new AppException("This coupon is only available to existing students.", 403, "coupon_student_not_eligible");
+        }
+
+        if (targetProgramIds.Count > 0 && !targetProgramIds.Contains(enrollment.ProgramId))
+        {
+            throw new AppException("This coupon is not valid for the selected program.", 403, "coupon_program_not_eligible");
+        }
+
+        if (targetCategoryIds.Count > 0 && (enrollment.Program is null || !targetCategoryIds.Contains(enrollment.Program.CategoryId)))
+        {
+            throw new AppException("This coupon is not valid for the selected category.", 403, "coupon_category_not_eligible");
+        }
+
+        var activeRedemptions = dbContext.CouponRedemptions
+            .AsNoTracking()
+            .Where(x => x.CouponId == coupon.Id &&
+                (x.Status == CouponRedemptionStatus.Redeemed ||
+                 (x.Status == CouponRedemptionStatus.Reserved && x.ExpiresAt > now)));
+
+        if (coupon.MaxRedemptions.HasValue && await activeRedemptions.CountAsync(cancellationToken) >= coupon.MaxRedemptions.Value)
+        {
+            throw new AppException("This coupon has reached its redemption limit.", 409, "coupon_limit_reached");
+        }
+
+        if (await activeRedemptions.CountAsync(x => x.StudentId == studentId, cancellationToken) >= coupon.MaxRedemptionsPerStudent)
+        {
+            throw new AppException("You have already used this coupon the maximum allowed number of times.", 409, "coupon_student_limit_reached");
+        }
+
+        if (await activeRedemptions.AnyAsync(x => x.EnrollmentId == enrollment.Id, cancellationToken))
+        {
+            throw new AppException("This coupon is already applied to this enrollment.", 409, "coupon_already_applied");
+        }
+
+        var discountAmount = coupon.IsPercentage
+            ? Math.Round(originalAmount * coupon.DiscountValue / 100m, 2, MidpointRounding.AwayFromZero)
+            : coupon.DiscountValue;
+        if (coupon.MaximumDiscountAmount.HasValue)
+        {
+            discountAmount = Math.Min(discountAmount, coupon.MaximumDiscountAmount.Value);
+        }
+
+        discountAmount = Math.Min(Math.Max(discountAmount, 0), originalAmount);
+        return new CouponEvaluation(
+            coupon.Code,
+            coupon.Description,
+            originalAmount,
+            discountAmount,
+            Math.Max(originalAmount - discountAmount, 0));
+    }
+
     private static bool HasFullAccess(Enrollment enrollment, DateTimeOffset now)
-        => !IsAccessExpired(enrollment, now) && enrollment.PaidAmount >= enrollment.TotalAmount && enrollment.TotalAmount > 0;
+        => !IsAccessExpired(enrollment, now) && enrollment.PaidAmount + enrollment.DiscountAmount >= enrollment.TotalAmount && enrollment.TotalAmount > 0;
 
     private static void EnsureFullAccess(Enrollment enrollment, DateTimeOffset now)
     {
@@ -2077,6 +2429,7 @@ public sealed class LmsPortalService(
         if (isRenewal && payment.Mode == PaymentMode.ReserveSeat)
         {
             enrollment.PaidAmount = 0;
+            enrollment.DiscountAmount = 0;
             enrollment.AccessCycle = Math.Max(enrollment.AccessCycle + 1, 2);
             enrollment.FullAccessUnlockedAt = null;
         }
@@ -2084,12 +2437,15 @@ public sealed class LmsPortalService(
         enrollment.TotalAmount = enrollment.ProgramPlan is null
             ? enrollment.TotalAmount
             : GetFixedPricing(enrollment.ProgramPlan).TotalAmount;
+        enrollment.DiscountAmount = Math.Min(
+            enrollment.DiscountAmount + payment.DiscountAmount,
+            Math.Max(enrollment.TotalAmount - enrollment.PaidAmount, 0));
         enrollment.PaidAmount = Math.Min(enrollment.PaidAmount + payment.Amount, enrollment.TotalAmount);
         enrollment.AccessExpiresAt = isRenewal || payment.Mode == PaymentMode.ReserveSeat
             ? now.AddMonths(Math.Clamp(Payments.AccessDurationMonths, 1, 24))
             : enrollment.AccessExpiresAt;
 
-        if (enrollment.PaidAmount >= enrollment.TotalAmount)
+        if (enrollment.PaidAmount + enrollment.DiscountAmount >= enrollment.TotalAmount)
         {
             enrollment.Status = EnrollmentStatus.Active;
             enrollment.FullAccessUnlockedAt ??= now;
@@ -2278,7 +2634,7 @@ public sealed class LmsPortalService(
             enrollment.Status.ToString(),
             enrollment.TotalAmount,
             enrollment.PaidAmount,
-            Math.Max(enrollment.TotalAmount - enrollment.PaidAmount, 0),
+            Math.Max(enrollment.TotalAmount - enrollment.PaidAmount - enrollment.DiscountAmount, 0),
             enrollment.EnrolledAt,
             enrollment.FullAccessUnlockedAt,
             enrollment.LockedReason,
@@ -2291,7 +2647,10 @@ public sealed class LmsPortalService(
             studentPhone);
     }
 
-    private static PaymentTransactionResponse MapPayment(PaymentTransaction payment)
+    private static PaymentTransactionResponse MapPayment(
+        PaymentTransaction payment,
+        string? studentName = null,
+        string? studentEmail = null)
     {
         return new PaymentTransactionResponse(
             payment.Id,
@@ -2308,7 +2667,15 @@ public sealed class LmsPortalService(
             payment.CreatedAt,
             payment.VerifiedAt,
             payment.InvoiceNumber,
-            payment.FailureReason);
+            payment.FailureReason,
+            payment.OriginalAmount > 0 ? payment.OriginalAmount : payment.Amount,
+            payment.DiscountAmount,
+            payment.CouponCode,
+            payment.StudentId,
+            studentName,
+            studentEmail,
+            payment.Enrollment?.Program?.Title,
+            payment.Enrollment?.ProgramPlan?.Name);
     }
 
     private static ProjectResponse MapProject(Project project, ProjectSubmission? submission, int? assignedStudentCount = null)
@@ -2388,7 +2755,16 @@ public sealed class LmsPortalService(
             coupon.IsPercentage,
             coupon.IsActive,
             coupon.StartsAt,
-            coupon.ExpiresAt);
+            coupon.ExpiresAt,
+            coupon.AudienceType,
+            coupon.MinimumOrderAmount,
+            coupon.MaximumDiscountAmount,
+            coupon.MaxRedemptions,
+            coupon.MaxRedemptionsPerStudent,
+            DeserializeGuidList(coupon.TargetStudentIdsJson),
+            DeserializeStringList(coupon.TargetStudentEmailsJson),
+            DeserializeGuidList(coupon.TargetProgramIdsJson),
+            DeserializeGuidList(coupon.TargetCategoryIdsJson));
     }
 
     private async Task<IReadOnlyList<AdminNotificationResponse>> MapAdminNotificationsAsync(
@@ -2539,6 +2915,82 @@ public sealed class LmsPortalService(
             Faqs = request.Faqs,
             Status = request.Status
         });
+    }
+
+    private static void ValidateCouponRequest(CreateCouponRequest request)
+    {
+        if (!Enum.IsDefined(request.AudienceType))
+        {
+            throw Validation(nameof(request.AudienceType), "Choose a valid coupon audience.");
+        }
+
+        if (request.DiscountValue <= 0 || (request.IsPercentage && request.DiscountValue > 100))
+        {
+            throw Validation(nameof(request.DiscountValue), request.IsPercentage
+                ? "Percentage discount must be greater than 0 and no more than 100."
+                : "Fixed discount must be greater than 0.");
+        }
+
+        EnsureMoney(request.MinimumOrderAmount.GetValueOrDefault(), nameof(request.MinimumOrderAmount));
+        EnsureMoney(request.MaximumDiscountAmount.GetValueOrDefault(), nameof(request.MaximumDiscountAmount));
+        if (request.MaxRedemptions is <= 0)
+        {
+            throw Validation(nameof(request.MaxRedemptions), "Maximum redemptions must be greater than 0 when provided.");
+        }
+
+        if (request.MaxRedemptionsPerStudent <= 0)
+        {
+            throw Validation(nameof(request.MaxRedemptionsPerStudent), "Per-student redemptions must be greater than 0.");
+        }
+
+        if (request.StartsAt.HasValue && request.ExpiresAt.HasValue && request.StartsAt > request.ExpiresAt)
+        {
+            throw Validation(nameof(request.ExpiresAt), "Expiry must be after the start date.");
+        }
+
+        var targetStudentIds = request.TargetStudentIds.Distinct().ToList();
+        var targetStudentEmails = NormalizeCouponEmails(request.TargetStudentEmails);
+        if (request.AudienceType == CouponAudienceType.SelectedStudents && targetStudentIds.Count == 0 && targetStudentEmails.Count == 0)
+        {
+            throw Validation(nameof(request.TargetStudentIds), "Select at least one student or enter at least one student email.");
+        }
+    }
+
+    private async Task EnsureCouponTargetsExistAsync(CreateCouponRequest request, CancellationToken cancellationToken)
+    {
+        var programIds = request.TargetProgramIds.Distinct().ToList();
+        if (programIds.Count > 0 && await dbContext.LearningPrograms.CountAsync(x => programIds.Contains(x.Id), cancellationToken) != programIds.Count)
+        {
+            throw new AppException("One or more targeted programs were not found.", 400, "coupon_program_target_invalid");
+        }
+
+        var categoryIds = request.TargetCategoryIds.Distinct().ToList();
+        if (categoryIds.Count > 0 && await dbContext.LearningProgramCategories.CountAsync(x => categoryIds.Contains(x.Id), cancellationToken) != categoryIds.Count)
+        {
+            throw new AppException("One or more targeted categories were not found.", 400, "coupon_category_target_invalid");
+        }
+
+        var studentIds = request.TargetStudentIds.Distinct().ToList();
+        if (studentIds.Count > 0 && await dbContext.Users.CountAsync(x => studentIds.Contains(x.Id), cancellationToken) != studentIds.Count)
+        {
+            throw new AppException("One or more targeted students were not found.", 400, "coupon_student_target_invalid");
+        }
+    }
+
+    private static IReadOnlyList<string> NormalizeCouponEmails(IEnumerable<string> values)
+    {
+        var normalized = new List<string>();
+        foreach (var value in values)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                continue;
+            }
+
+            normalized.Add(ValidateEmail(value, nameof(CreateCouponRequest.TargetStudentEmails)));
+        }
+
+        return normalized.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
     }
 
     private async Task EnsureCategoryExistsAsync(Guid categoryId, CancellationToken cancellationToken)
@@ -2785,6 +3237,11 @@ public sealed class LmsPortalService(
         return JsonSerializer.Serialize(normalized, JsonOptions);
     }
 
+    private static string SerializeGuidList(IEnumerable<Guid> values)
+    {
+        return JsonSerializer.Serialize(values.Distinct().ToList(), JsonOptions);
+    }
+
     private static string SerializeProjectLinks(IEnumerable<ProjectLinkRequest> values)
     {
         var normalized = new List<ProjectLinkResponse>();
@@ -2821,6 +3278,32 @@ public sealed class LmsPortalService(
         }
     }
 
+    private static IReadOnlyList<Guid> DeserializeGuidList(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return [];
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<IReadOnlyList<Guid>>(json, JsonOptions) ?? [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
+    private static IReadOnlyList<string> DeserializeStringList(string? json)
+    {
+        return DeserializeList(json)
+            .Select(value => value.Trim().ToLowerInvariant())
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
     private static IReadOnlyList<ProjectLinkResponse> DeserializeProjectLinks(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
@@ -2854,6 +3337,13 @@ public sealed class LmsPortalService(
             return [];
         }
     }
+
+    private sealed record CouponEvaluation(
+        string Code,
+        string Description,
+        decimal OriginalAmount,
+        decimal DiscountAmount,
+        decimal PayableAmount);
 
     private sealed record LearningProgress(int Completed, int Total, int Percentage);
 }

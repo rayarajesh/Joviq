@@ -36,6 +36,21 @@ public enum PaymentStatus
     Failed = 3
 }
 
+public enum CouponAudienceType
+{
+    Everyone = 1,
+    NewStudents = 2,
+    ExistingStudents = 3,
+    SelectedStudents = 4
+}
+
+public enum CouponRedemptionStatus
+{
+    Reserved = 1,
+    Redeemed = 2,
+    Released = 3
+}
+
 public enum SubmissionStatus
 {
     Draft = 1,

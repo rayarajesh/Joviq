@@ -142,6 +142,7 @@ public sealed class EnrollmentConfiguration : IEntityTypeConfiguration<Enrollmen
         builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(64);
         builder.Property(x => x.TotalAmount).HasPrecision(12, 2);
         builder.Property(x => x.PaidAmount).HasPrecision(12, 2);
+        builder.Property(x => x.DiscountAmount).HasPrecision(12, 2);
         builder.Property(x => x.LockedReason).HasMaxLength(500);
         builder.HasOne(x => x.Program)
             .WithMany()
@@ -168,6 +169,9 @@ public sealed class PaymentTransactionConfiguration : IEntityTypeConfiguration<P
         builder.Property(x => x.Mode).HasConversion<string>().HasMaxLength(64);
         builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(64);
         builder.Property(x => x.Amount).HasPrecision(12, 2);
+        builder.Property(x => x.OriginalAmount).HasPrecision(12, 2);
+        builder.Property(x => x.DiscountAmount).HasPrecision(12, 2);
+        builder.Property(x => x.CouponCode).HasMaxLength(80);
         builder.Property(x => x.Currency).HasMaxLength(12).IsRequired();
         builder.Property(x => x.FailureReason).HasMaxLength(500);
         builder.Property(x => x.InvoiceNumber).HasMaxLength(80);
@@ -177,6 +181,10 @@ public sealed class PaymentTransactionConfiguration : IEntityTypeConfiguration<P
         builder.HasOne(x => x.Enrollment)
             .WithMany()
             .HasForeignKey(x => x.EnrollmentId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasOne(x => x.Coupon)
+            .WithMany()
+            .HasForeignKey(x => x.CouponId)
             .OnDelete(DeleteBehavior.SetNull);
     }
 }
@@ -191,6 +199,33 @@ public sealed class CouponConfiguration : IEntityTypeConfiguration<Coupon>
         builder.Property(x => x.Code).HasMaxLength(80).IsRequired();
         builder.Property(x => x.Description).HasMaxLength(500).IsRequired();
         builder.Property(x => x.DiscountValue).HasPrecision(12, 2);
+        builder.Property(x => x.AudienceType).HasConversion<string>().HasMaxLength(64);
+        builder.Property(x => x.MinimumOrderAmount).HasPrecision(12, 2);
+        builder.Property(x => x.MaximumDiscountAmount).HasPrecision(12, 2);
+        builder.Property(x => x.TargetStudentIdsJson).HasColumnType("jsonb");
+        builder.Property(x => x.TargetStudentEmailsJson).HasColumnType("jsonb");
+        builder.Property(x => x.TargetProgramIdsJson).HasColumnType("jsonb");
+        builder.Property(x => x.TargetCategoryIdsJson).HasColumnType("jsonb");
+    }
+}
+
+public sealed class CouponRedemptionConfiguration : IEntityTypeConfiguration<CouponRedemption>
+{
+    public void Configure(EntityTypeBuilder<CouponRedemption> builder)
+    {
+        builder.ToTable("coupon_redemptions");
+        builder.HasKey(x => x.Id);
+        builder.HasIndex(x => x.PaymentTransactionId).IsUnique();
+        builder.HasIndex(x => new { x.CouponId, x.StudentId, x.Status });
+        builder.HasIndex(x => new { x.CouponId, x.Status });
+        builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(64);
+        builder.Property(x => x.OriginalAmount).HasPrecision(12, 2);
+        builder.Property(x => x.DiscountAmount).HasPrecision(12, 2);
+        builder.Property(x => x.FinalAmount).HasPrecision(12, 2);
+        builder.HasOne(x => x.Coupon)
+            .WithMany()
+            .HasForeignKey(x => x.CouponId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
 

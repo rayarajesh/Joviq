@@ -40,6 +40,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
     public DbSet<Coupon> Coupons => Set<Coupon>();
 
+    public DbSet<CouponRedemption> CouponRedemptions => Set<CouponRedemption>();
+
     public DbSet<Project> Projects => Set<Project>();
 
     public DbSet<ProjectAssignment> ProjectAssignments => Set<ProjectAssignment>();

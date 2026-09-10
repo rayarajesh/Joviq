@@ -154,7 +154,22 @@ public sealed record PaymentTransactionResponse(
     DateTimeOffset CreatedAt,
     DateTimeOffset? VerifiedAt,
     string? InvoiceNumber,
-    string? FailureReason);
+    string? FailureReason,
+    decimal OriginalAmount,
+    decimal DiscountAmount,
+    string? CouponCode,
+    Guid StudentId,
+    string? StudentName,
+    string? StudentEmail,
+    string? ProgramTitle,
+    string? ProgramPlanName);
+
+public sealed record CouponValidationResponse(
+    string Code,
+    string Description,
+    decimal OriginalAmount,
+    decimal DiscountAmount,
+    decimal PayableAmount);
 
 public sealed record PaymentCheckoutResponse(
     PaymentTransactionResponse Transaction,
@@ -175,6 +190,9 @@ public sealed record PaymentReceiptResponse(
     string PlanName,
     string PaymentMode,
     decimal Amount,
+    decimal OriginalAmount,
+    decimal DiscountAmount,
+    string? CouponCode,
     string Currency,
     string Gateway,
     string GatewayOrderId,
@@ -288,7 +306,16 @@ public sealed record CouponResponse(
     bool IsPercentage,
     bool IsActive,
     DateTimeOffset? StartsAt,
-    DateTimeOffset? ExpiresAt);
+    DateTimeOffset? ExpiresAt,
+    CouponAudienceType AudienceType,
+    decimal? MinimumOrderAmount,
+    decimal? MaximumDiscountAmount,
+    int? MaxRedemptions,
+    int MaxRedemptionsPerStudent,
+    IReadOnlyList<Guid> TargetStudentIds,
+    IReadOnlyList<string> TargetStudentEmails,
+    IReadOnlyList<Guid> TargetProgramIds,
+    IReadOnlyList<Guid> TargetCategoryIds);
 
 public sealed record AdminNotificationResponse(
     Guid Id,
@@ -529,6 +556,21 @@ public sealed class CreatePaymentCheckoutRequest
     public Guid? EnrollmentId { get; init; }
 
     public PaymentMode Mode { get; init; } = PaymentMode.ReserveSeat;
+
+    public string? CouponCode { get; init; }
+}
+
+public sealed class ValidateCouponRequest
+{
+    public Guid ProgramId { get; init; }
+
+    public Guid? ProgramPlanId { get; init; }
+
+    public Guid? EnrollmentId { get; init; }
+
+    public PaymentMode Mode { get; init; } = PaymentMode.RemainingBalance;
+
+    public string CouponCode { get; init; } = string.Empty;
 }
 
 public sealed class UpdatePaymentStatusRequest
@@ -606,6 +648,24 @@ public sealed class CreateCouponRequest
     public DateTimeOffset? StartsAt { get; init; }
 
     public DateTimeOffset? ExpiresAt { get; init; }
+
+    public CouponAudienceType AudienceType { get; init; } = CouponAudienceType.Everyone;
+
+    public decimal? MinimumOrderAmount { get; init; }
+
+    public decimal? MaximumDiscountAmount { get; init; }
+
+    public int? MaxRedemptions { get; init; }
+
+    public int MaxRedemptionsPerStudent { get; init; } = 1;
+
+    public IReadOnlyList<Guid> TargetStudentIds { get; init; } = [];
+
+    public IReadOnlyList<string> TargetStudentEmails { get; init; } = [];
+
+    public IReadOnlyList<Guid> TargetProgramIds { get; init; } = [];
+
+    public IReadOnlyList<Guid> TargetCategoryIds { get; init; } = [];
 }
 
 public sealed class IssueCertificateRequest

@@ -23,6 +23,8 @@ public sealed class Enrollment : AuditableEntity
 
     public decimal PaidAmount { get; set; }
 
+    public decimal DiscountAmount { get; set; }
+
     public DateTimeOffset EnrolledAt { get; set; }
 
     public DateTimeOffset? FullAccessUnlockedAt { get; set; }
@@ -60,6 +62,16 @@ public sealed class PaymentTransaction : AuditableEntity
 
     public decimal Amount { get; set; }
 
+    public decimal OriginalAmount { get; set; }
+
+    public decimal DiscountAmount { get; set; }
+
+    public Guid? CouponId { get; set; }
+
+    public Coupon? Coupon { get; set; }
+
+    public string? CouponCode { get; set; }
+
     public string Currency { get; set; } = "INR";
 
     public string? FailureReason { get; set; }
@@ -88,6 +100,49 @@ public sealed class Coupon : AuditableEntity
     public DateTimeOffset? StartsAt { get; set; }
 
     public DateTimeOffset? ExpiresAt { get; set; }
+
+    public CouponAudienceType AudienceType { get; set; } = CouponAudienceType.Everyone;
+
+    public decimal? MinimumOrderAmount { get; set; }
+
+    public decimal? MaximumDiscountAmount { get; set; }
+
+    public int? MaxRedemptions { get; set; }
+
+    public int MaxRedemptionsPerStudent { get; set; } = 1;
+
+    public string TargetStudentIdsJson { get; set; } = "[]";
+
+    public string TargetStudentEmailsJson { get; set; } = "[]";
+
+    public string TargetProgramIdsJson { get; set; } = "[]";
+
+    public string TargetCategoryIdsJson { get; set; } = "[]";
+}
+
+public sealed class CouponRedemption : AuditableEntity
+{
+    public Guid Id { get; set; }
+
+    public Guid CouponId { get; set; }
+
+    public Coupon? Coupon { get; set; }
+
+    public Guid StudentId { get; set; }
+
+    public Guid EnrollmentId { get; set; }
+
+    public Guid PaymentTransactionId { get; set; }
+
+    public CouponRedemptionStatus Status { get; set; } = CouponRedemptionStatus.Reserved;
+
+    public decimal OriginalAmount { get; set; }
+
+    public decimal DiscountAmount { get; set; }
+
+    public decimal FinalAmount { get; set; }
+
+    public DateTimeOffset ExpiresAt { get; set; }
 }
 
 public sealed class Project : AuditableEntity

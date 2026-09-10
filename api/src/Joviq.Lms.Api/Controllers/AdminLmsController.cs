@@ -310,6 +310,15 @@ public sealed class AdminLmsController(
         return Ok(ApiResponse<PaymentTransactionResponse>.Ok(result, "Payment updated.", CorrelationId));
     }
 
+    [HttpGet("payments/{paymentId:guid}/receipt")]
+    public async Task<ActionResult<ApiResponse<PaymentReceiptResponse>>> GetPaymentReceipt(
+        Guid paymentId,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.GetAdminPaymentReceiptAsync(paymentId, cancellationToken);
+        return Ok(ApiResponse<PaymentReceiptResponse>.Ok(result, "Payment receipt loaded.", CorrelationId));
+    }
+
     [HttpGet("coupons")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<CouponResponse>>>> GetCoupons(
         CancellationToken cancellationToken)
