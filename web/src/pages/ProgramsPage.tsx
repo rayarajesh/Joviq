@@ -1,6 +1,6 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowDownLeft, ArrowRight, BarChart3, BriefcaseBusiness, ChevronDown, Clock3, FolderKanban, GraduationCap, Heart, RefreshCw, Rocket, Search, ShieldCheck, Star, UsersRound } from "lucide-react";
+import { ArrowDownLeft, ArrowRight, BarChart3, BriefcaseBusiness, Clock3, FolderKanban, GraduationCap, Heart, RefreshCw, Rocket, Search, ShieldCheck, Star, UsersRound } from "lucide-react";
 import { PublicNavbar } from "../components/PublicNavbar";
 import { allPrograms, programCategories, type Program } from "../data/siteContent";
 import { getProgramImage } from "../data/programVisuals";
@@ -48,7 +48,7 @@ export function ProgramsPage() {
   const [filters, setFilters] = useState<Record<string, string[]>>({});
   const [sort, setSort] = useState("popular");
   const [limit, setLimit] = useState(6);
-  const [moreOpen, setMoreOpen] = useState(false);
+
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const [saved, setSaved] = useState<string[]>(() => {
     try { const value: unknown = JSON.parse(localStorage.getItem("joviq-saved-programs") ?? "[]"); return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []; } catch { return []; }
@@ -70,7 +70,7 @@ export function ProgramsPage() {
   function selectCategory(category: string) {
     const next = new URLSearchParams(params);
     if (category === "All") next.delete("category"); else next.set("category", slugify(category));
-    setParams(next, { replace: true }); setMoreOpen(false);
+    setParams(next, { replace: true });
   }
   function toggleFilter(group: string, value: string) {
     setFilters(current => ({ ...current, [group]: (current[group] ?? []).includes(value) ? current[group].filter(item => item !== value) : [...(current[group] ?? []), value] }));
@@ -105,9 +105,6 @@ export function ProgramsPage() {
             <i className="pc-rays pc-rays-left" /><i className="pc-rays pc-rays-right" />
           </div>
         </section>
-        <section className="pc-stats" aria-label="Program highlights">
-          {[{ icon: GraduationCap, value: `${allPrograms.length}+`, label: "Career Programs", color: "purple" }, { icon: UsersRound, value: "5K+", label: "Active Learners", color: "blue" }, { icon: Star, value: "4.8/5", label: "Learner Rating", color: "gold" }, { icon: BriefcaseBusiness, value: "85%", label: "Learners Get Hired", color: "mint" }].map(({ icon: Icon, value, label, color }) => <div key={label}><span className={`pc-icon ${color}`}><Icon /></span><p><strong>{value}</strong><span>{label}</span></p></div>)}
-        </section>
         <section className="pc-discovery" aria-label="Find a program">
           <form className="pc-search" onSubmit={event => { event.preventDefault(); document.getElementById("pc-results")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>
             <label><Search size={25} /><input aria-label="Search programs" placeholder="Search programs (e.g. AI, Full Stack, Data Science...)" value={query} onChange={event => setQuery(event.target.value)} /></label>
@@ -115,7 +112,6 @@ export function ProgramsPage() {
           </form>
           <div className="pc-tabs" aria-label="Program categories">
             {categories.slice(0, 8).map(category => <button key={category} type="button" className={active === category ? "is-active" : ""} aria-pressed={active === category} onClick={() => selectCategory(category)}>{category}</button>)}
-            <div className="pc-more-wrap"><button type="button" aria-expanded={moreOpen} onClick={() => setMoreOpen(!moreOpen)}>More <ChevronDown size={14} /></button>{moreOpen && <div className="pc-more-menu">{programCategories.map(category => <button key={category.domain} type="button" onClick={() => selectCategory(category.domain)}>{category.domain}</button>)}</div>}</div>
           </div>
         </section>
         <div className="pc-catalog" id="pc-results">

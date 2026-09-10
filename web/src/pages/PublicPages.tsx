@@ -1,4 +1,4 @@
-﻿import { FormEvent, lazy, Suspense, useEffect, useState } from "react";
+import { FormEvent, lazy, Suspense, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   GraduationCap,
   KeyRound,
-  Layers3,
   MailCheck,
   PhoneCall,
   RefreshCw,
@@ -63,109 +62,10 @@ const RouteScene3D = lazy(async () => {
   return { default: routeScene.RouteScene3D };
 });
 
-const featureGroups = [
-  {
-    icon: <Sparkles size={24} />,
-    title: "AI learning support",
-    text: "Interview practice, improvement suggestions, and role-based checkpoints.",
-    signals: ["Adaptive checkpoints", "Interview practice", "Actionable feedback"]
-  },
-  {
-    icon: <UsersRound size={24} />,
-    title: "Expert-led delivery",
-    text: "Expert-led sessions, project reviews, mock interviews, and career guidance.",
-    signals: ["Guided cohorts", "Weekly reviews", "Career guidance"]
-  },
-  {
-    icon: <Layers3 size={24} />,
-    title: "Project-first LMS",
-    text: "Lesson replays, projects, progress tracking, reviews, and certification.",
-    signals: ["Real projects", "Clear rubrics", "Progress tracking"]
-  },
-  {
-    icon: <ShieldCheck size={24} />,
-    title: "Verified outcomes",
-    text: "Certificates, QR verification, portfolio proof, resume support, and interview readiness.",
-    signals: ["Verified records", "Portfolio proof", "Shareable outcomes"]
-  }
-];
-
 const aboutValues = ["Industry-focused education", "Project-first learning", "Expert-reviewed outcomes", "Career preparation"];
 export { ProgramsPage } from "./ProgramsPage";
 
-export function FeaturesPage() {
-  return (
-    <PublicPageShell>
-      <ImmersiveRouteHero
-        accent="prove your skill."
-        eyebrow="The Joviq learning system"
-        metrics={[
-          { value: "One", label: "Connected workspace" },
-          { value: "AI", label: "Practice checkpoints" },
-          { value: "Weekly", label: "Expert reviews" },
-          { value: "Verified", label: "Career proof" }
-        ]}
-        text="Live learning, practical projects, expert review, AI practice, and verified outcomes working together in one focused experience."
-        title="One workspace to learn, build, and"
-        variant="features"
-        actions={
-          <>
-            <Link className="site-button site-button--primary" to="/programs">
-              Explore programs <ArrowRight size={18} />
-            </Link>
-            <Link className="site-button immersive-route-hero__secondary" to="/request-callback">
-              Talk to an advisor <PhoneCall size={18} />
-            </Link>
-          </>
-        }
-      />
-
-      <section className="route-experience-section route-feature-showcase">
-        <div className="route-section-lead">
-          <span>Connected learning experience</span>
-          <h2>Every feature moves the learner toward demonstrable work.</h2>
-          <p>Nothing sits in isolation. Classes lead to practice, practice becomes projects, and projects become career proof.</p>
-        </div>
-        <div className="route-feature-showcase__grid">
-          {featureGroups.map((feature, index) => (
-            <article key={feature.title}>
-              <header>
-                <span>{feature.icon}</span>
-                <small>0{index + 1}</small>
-              </header>
-              <h3>{feature.title}</h3>
-              <p>{feature.text}</p>
-              <ul>
-                {feature.signals.map((signal) => (
-                  <li key={signal}><CheckCircle2 size={15} /> {signal}</li>
-                ))}
-              </ul>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="route-learning-flow">
-        <div className="route-learning-flow__intro">
-          <span className="apt-pill apt-pill--dark"><Layers3 size={15} /> One connected flow</span>
-          <h2>From the first lesson to proof you can share.</h2>
-          <p>One visible progression keeps classes, practice, projects, feedback, and certification aligned.</p>
-          <Link className="site-button site-button--primary" to="/programs">
-            Find your program <ArrowRight size={18} />
-          </Link>
-        </div>
-        <ol className="route-learning-flow__steps">
-          {["Learn", "Practice", "Build", "Review", "Prove"].map((step, index) => (
-            <li key={step}>
-              <span>{String(index + 1).padStart(2, "0")}</span>
-              <strong>{step}</strong>
-            </li>
-          ))}
-        </ol>
-      </section>
-    </PublicPageShell>
-  );
-}
+export { FeaturesPage } from "./FeaturesPage";
 
 export function AboutPage() {
   return (

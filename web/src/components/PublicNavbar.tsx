@@ -1,29 +1,24 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, ExternalLink, Menu, X } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { ExternalLink, Menu, X } from "lucide-react";
 import { BrandLogo } from "./BrandLogo";
-import { ProgramsMegaMenu } from "./ProgramsMegaMenu";
 
 const publicNavItems = [
-  { label: "Programs", to: "/programs", hasMegaMenu: true },
+  { label: "Programs", to: "/programs" },
   { label: "Features", to: "/features" },
   { label: "About Us", to: "/about" }
 ];
 
 export function PublicNavbar() {
   const location = useLocation();
-  const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isProgramsMegaOpen, setIsProgramsMegaOpen] = useState(location.hash === "#programs-menu");
 
   useEffect(() => {
     setIsMenuOpen(false);
-    setIsProgramsMegaOpen(location.hash === "#programs-menu");
   }, [location.pathname, location.hash]);
 
   function closeMenus() {
     setIsMenuOpen(false);
-    setIsProgramsMegaOpen(false);
   }
 
   function isActivePath(path: string) {
@@ -35,44 +30,24 @@ export function PublicNavbar() {
   }
 
   return (
-    <header
-      className={`site-header ${isMenuOpen ? "is-open" : ""} ${isProgramsMegaOpen ? "has-mega-open" : ""}`}
-      onMouseLeave={() => setIsProgramsMegaOpen(false)}
-    >
+    <header className={`site-header ${isMenuOpen ? "is-open" : ""}`}>
       <Link className="site-header__brand" to="/" onClick={closeMenus} aria-label="Joviq Technologies home">
         <BrandLogo />
       </Link>
 
       <div className="site-nav">
         <nav className="site-nav__links" aria-label="Main menu">
-          {publicNavItems.map((item) =>
-            item.hasMegaMenu ? (
-              <Link
-                key={item.to}
-                className={`site-nav__mega-trigger ${isProgramsMegaOpen ? "is-active" : ""} ${isActivePath(item.to) ? "is-route-active" : ""}`}
-                to={item.to}
-                aria-expanded={isProgramsMegaOpen}
-                aria-current={isActivePath(item.to) ? "page" : undefined}
-                onFocus={() => setIsProgramsMegaOpen(true)}
-                onMouseEnter={() => setIsProgramsMegaOpen(true)}
-                onClick={() => setIsProgramsMegaOpen(false)}
-              >
-                {item.label}
-                <ChevronDown size={16} />
-              </Link>
-            ) : (
-              <Link
-                key={item.to}
-                className={isActivePath(item.to) ? "is-active" : undefined}
-                to={item.to}
-                aria-current={isActivePath(item.to) ? "page" : undefined}
-                onClick={closeMenus}
-                onMouseEnter={() => setIsProgramsMegaOpen(false)}
-              >
-                {item.label}
-              </Link>
-            )
-          )}
+          {publicNavItems.map((item) => (
+            <Link
+              key={item.to}
+              className={isActivePath(item.to) ? "is-active" : undefined}
+              to={item.to}
+              aria-current={isActivePath(item.to) ? "page" : undefined}
+              onClick={closeMenus}
+            >
+              {item.label}
+            </Link>
+          ))}
         </nav>
 
         <div className="site-nav__actions">
@@ -115,15 +90,6 @@ export function PublicNavbar() {
             </Link>
           </div>
         </div>
-
-        <ProgramsMegaMenu
-          isOpen={isProgramsMegaOpen}
-          onClose={() => setIsProgramsMegaOpen(false)}
-          onTalkToExpert={() => {
-            closeMenus();
-            navigate("/request-callback");
-          }}
-        />
       </div>
     </header>
   );
