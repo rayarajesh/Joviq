@@ -18,7 +18,7 @@
 .pc-icon svg{width:29px;height:29px;stroke-width:2.2}
 .pc-icon.mint{color:#00a879;background:#dbf8ed}.pc-icon.purple{color:#6839ff;background:#eee9ff}.pc-icon.gold{color:#ffb600;background:#fff6de}.pc-icon.blue{color:#144bff;background:#e6efff}
 .pc-hero-art{position:relative;min-width:0;align-self:stretch}
-.pc-student{position:absolute;height:355px;width:300px;object-fit:cover;object-position:center 25%;left:54px;bottom:0;mix-blend-mode:multiply;border-radius:70px 70px 20px 20px}
+.pc-student{position:absolute;height:355px;width:300px;object-fit:cover;object-position:center center;left:54px;bottom:0;mix-blend-mode:multiply;border-radius:70px 70px 20px 20px}
 .pc-art-blob{position:absolute;left:50px;bottom:20px;width:290px;height:290px;background:linear-gradient(135deg,#dfebff,#93b4ff);border-radius:26% 50% 30% 40%;transform:rotate(-8deg);z-index:-1}
 .pc-hero-art:after{content:'';position:absolute;inset:205px 2px 48px 0;background:radial-gradient(circle,#b8aaff 1.8px,transparent 2.2px) 0 0/15px 15px;z-index:-2}
 .pc-float{position:absolute;display:flex;align-items:center;gap:13px;padding:17px 18px;border:1px solid #edeaff;background:#ffffffed;border-radius:16px;box-shadow:0 10px 24px #6450c51a;font-size:11px;line-height:1.45;color:#100d48;z-index:3}

@@ -86,6 +86,7 @@ export function SiteFooter() {
               </span>
             </p>
           </div>
+
         </section>
       </div>
     </footer>

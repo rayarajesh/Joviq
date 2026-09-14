@@ -3,18 +3,28 @@ import type { ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowRight,
+  BarChart3,
+  BookOpen,
   BadgeCheck,
+  Building2,
   CheckCircle2,
+  Clock3,
   GraduationCap,
+  Eye,
+  EyeOff,
   KeyRound,
+  LockKeyhole,
+  Mail,
   MailCheck,
+  MessageCircle,
   PhoneCall,
   RefreshCw,
   Send,
   ShieldCheck,
   Sparkles,
+  Star,
   UserPlus,
-  UsersRound,
+  UserRound,
   X
 } from "lucide-react";
 import { IndiaMobileInput } from "../components/IndiaMobileInput";
@@ -22,6 +32,7 @@ import { PublicNavbar } from "../components/PublicNavbar";
 import { ToastMessage } from "../components/ToastMessage";
 import type { RouteSceneVariant } from "../components/RouteScene3D";
 import { SiteFooter } from "../components/SiteFooter";
+import "../styles/contact-page.css";
 import {
   allPrograms,
   expertGuides,
@@ -34,13 +45,6 @@ import { useAuth } from "../features/auth/context/useAuth";
 import { normalizeOAuthReturnUrl } from "../features/auth/oauthPopup";
 import { formatApiError } from "../lib/api/httpClient";
 import { toIndiaMobileNumber } from "../lib/validation/indiaMobile";
-
-type PageHeroProps = {
-  eyebrow: string;
-  title: string;
-  text: string;
-  actions?: ReactNode;
-};
 
 type ImmersiveRouteHeroProps = {
   accent: string;
@@ -67,103 +71,57 @@ export { ProgramsPage } from "./ProgramsPage";
 
 export { FeaturesPage } from "./FeaturesPage";
 
-export function AboutPage() {
-  return (
-    <PublicPageShell>
-      <ImmersiveRouteHero
-        accent="proof."
-        eyebrow="About Joviq Technologies"
-        metrics={keyStatistics}
-        text="Joviq connects training, practical projects, expert review, AI-supported practice, certification, and career preparation into one focused learning ecosystem."
-        title="Learning becomes valuable when it produces"
-        variant="about"
-        actions={
-          <Link className="site-button site-button--primary" to="/programs">
-            View programs <ArrowRight size={18} />
-          </Link>
-        }
-      />
-
-      <section className="route-experience-section about-story">
-        <div className="about-story__statement">
-          <span>Why Joviq exists</span>
-          <h2>To close the gap between finishing a course and being able to show real capability.</h2>
-        </div>
-        <div className="about-story__copy">
-          <p>Our model focuses on practical projects, structured review, LMS-driven progress, and clear career preparation rather than passive course watching.</p>
-          <p>Every part of the experience is designed to help learners understand what they built, improve it with feedback, and communicate that work with confidence.</p>
-          <div>
-            {aboutValues.map((value) => <span key={value}><CheckCircle2 size={15} /> {value}</span>)}
-          </div>
-        </div>
-      </section>
-
-      <section className="about-metrics">
-        {keyStatistics.map((stat) => (
-          <article key={stat.label}>
-            <strong>{stat.value}</strong>
-            <span>{stat.label}</span>
-          </article>
-        ))}
-      </section>
-
-      <section className="route-experience-section about-experts">
-        <div className="route-section-lead">
-          <span>Expert context</span>
-          <h2>Different disciplines, one review standard.</h2>
-          <p>Learners get guidance from people who understand the technical work and the career conversation around it.</p>
-        </div>
-        <div className="about-experts__grid">
-          {expertGuides.map((expert, index) => (
-            <article key={expert.name}>
-              <header><GraduationCap size={23} /><span>0{index + 1}</span></header>
-              <h3>{expert.name}</h3>
-              <p>{expert.role}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="about-principles">
-        <div><span className="apt-pill apt-pill--dark"><ShieldCheck size={15} /> How we operate</span><h2>Practical by design.</h2></div>
-        <div className="about-principles__list">
-          {recognitions.map((item, index) => (
-            <span key={item}><small>0{index + 1}</small>{item}</span>
-          ))}
-        </div>
-      </section>
-    </PublicPageShell>
-  );
-}
+export { AboutPage } from "./AboutPage";
 
 export function RequestCallbackPage() {
   return (
     <PublicPageShell>
-      <PageHero
-        eyebrow="Request Callback"
-        title="Get your best-fit program roadmap."
-        text="Share a few details and the Joviq team can suggest the right program, plan, batch, and LMS access path."
-      />
+      <main className="contact-page">
+        <section className="contact-hero" aria-labelledby="contact-title">
+          <div className="contact-hero__copy">
+            <span className="contact-pill"><PhoneCall size={14} /> REQUEST CALLBACK</span>
+            <h1 id="contact-title">Let&apos;s Find the<br />Right Program<br /><span>for You</span></h1>
+            <p>Share a few details and our team will guide you with the best program, plan, batch, and LMS access path - completely free.</p>
+            <div className="contact-hero__benefits">
+              <span><UserRound size={19} /><small>Personalized<br />Guidance</small></span>
+              <span><ShieldCheck size={19} /><small>No Spam<br />Promise</small></span>
+              <span><Send size={19} /><small>Quick<br />Response</small></span>
+            </div>
+          </div>
+          <div className="contact-hero__visual">
+            <span className="contact-hero__scribble">Career Your Journey<br />Starts Here</span>
+            <img src="/assets/about/hero.png" alt="Learner planning her next career step with a laptop" />
+            <span className="contact-hero__badge"><GraduationCap size={19} /><b>Learn<br />Build<br />Grow</b></span>
+          </div>
+        </section>
 
-      <section className="route-section route-form-shell">
-        <div>
-          <span className="apt-pill">
-            <PhoneCall size={15} />
-            Program guidance
-          </span>
-          <h2>Talk to a career expert.</h2>
-          <p>No spam. Just a focused callback for program selection, pricing, payment, and onboarding next steps.</p>
-          <ul>
-            {pricingPlans.map((plan) => (
-              <li key={plan.name}>
-                <CheckCircle2 size={17} />
-                {plan.name}: {plan.price}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <CallbackRequestForm />
-      </section>
+        <section className="contact-form-panel" aria-labelledby="contact-form-title">
+          <div className="contact-form-panel__copy">
+            <span className="contact-pill"><MessageCircle size={14} /> TALK TO AN EXPERT</span>
+            <h2 id="contact-form-title">Get Expert Guidance</h2>
+            <p>Our team will help you with program selection, pricing, payment options, and onboarding.</p>
+            <ul>
+              {pricingPlans.map((plan, index) => (
+                <li key={plan.name}><span>{index === 0 ? <Send size={17} /> : index === 1 ? <GraduationCap size={17} /> : <ShieldCheck size={17} />}</span><b>{plan.name}: {plan.price}</b></li>
+              ))}
+            </ul>
+            <div className="contact-trust"><span className="contact-trust__avatars"><span /> <span /> <span /> <b>+</b></span><p>Trusted by <strong>50K+ learners</strong><br />to make the right career move.</p></div>
+          </div>
+          <CallbackRequestForm />
+        </section>
+
+        <section className="contact-support-strip" aria-label="Callback support benefits">
+          <span><MessageCircle size={21} /><b>Free Consultation</b><small>Get answers to all<br />your questions</small></span>
+          <span><Clock3 size={21} /><b>Quick Response</b><small>We usually respond<br />within 24 hours</small></span>
+          <span><UserRound size={21} /><b>Personalized Support</b><small>Guidance from<br />experts</small></span>
+          <span><LockKeyhole size={21} /><b>Your Information is Safe</b><small>We value your privacy</small></span>
+        </section>
+
+        <section className="contact-details" aria-label="Contact details">
+          <article><span className="contact-details__icon"><PhoneCall size={22} /></span><div><h3>Prefer to Contact Us Directly?</h3><p>You can also reach us through email or phone.</p><div className="contact-details__links"><a href="tel:+916360584578"><PhoneCall size={14} /> +91 63605 84578</a><a href="mailto:info@joviq.com"><Mail size={14} /> info@joviq.com</a></div></div></article>
+          <article><span className="contact-details__icon"><Building2 size={22} /></span><div><h3>Visit Our Office</h3><p>Let&apos;s discuss your goals in person.</p><small>HBR Premiku Workspace - No.12,<br />AKR Tech Park, A &amp; B Block, 7th Mile</small></div><iframe className="contact-map" title="Joviq office location" src="https://www.google.com/maps?q=HBR+Premiku+Workspace+AKR+Tech+Park+Bengaluru&output=embed" loading="lazy" referrerPolicy="no-referrer-when-downgrade" /></article>
+        </section>
+      </main>
     </PublicPageShell>
   );
 }
@@ -174,11 +132,13 @@ export function LoginPage() {
   const [loginSearchParams] = useSearchParams();
   const returnUrl = normalizeOAuthReturnUrl(loginSearchParams.get("returnUrl"));
   const [mode, setMode] = useState<AuthPageMode>("login");
+  const [loginRole, setLoginRole] = useState<"student" | "admin">("student");
   const [message, setMessage] = useState<PageMessage>(null);
   const [pendingEmail, setPendingEmail] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [acceptedOAuthTerms, setAcceptedOAuthTerms] = useState(false);
   const [oauthPhoneNumber, setOauthPhoneNumber] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
@@ -294,26 +254,30 @@ export function LoginPage() {
   }
 
   return (
-    <PublicPageShell>
-      <section className="route-auth-page">
-        <div>
-          <span className="apt-pill">
-            <KeyRound size={15} />
-            LMS access
-          </span>
-          <h1>{mode === "register" || mode === "verify-email" ? "Create your learning account." : "Login to your LMS dashboard."}</h1>
-          <p>Secure access for students and admins with project-driven learning workflows.</p>
+    <main className="site-page login-page-shell">
+      <PublicNavbar />
+      <section className="login-page">
+        <div className="login-page__intro">
+          <span className="login-page__eyebrow"><KeyRound size={15} /> LMS ACCESS</span>
+          <h1>{mode === "register" || mode === "verify-email" ? <>Create your<br /><span>learning account.</span></> : <>Login to your<br /><span>LMS Dashboard</span></>}</h1>
+          <p>Secure access for students and admins with<br className="login-page__desktop-break" /> project-driven learning workflows.</p>
+          <div className="login-page__benefits">
+            <div><span><BookOpen size={27} /></span><strong>Learn</strong><small>Access your<br />courses anytime</small></div>
+            <div><span><BarChart3 size={25} /></span><strong>Track</strong><small>Monitor your<br />progress</small></div>
+            <div><span><Star size={27} /></span><strong>Achieve</strong><small>Build a brighter<br />tomorrow</small></div>
+          </div>
+          <div className="login-page__quote"><b>&ldquo;</b><p>&ldquo;Same learning platform.<br /><strong>A brighter you.</strong>&rdquo;</p></div>
         </div>
 
         <div className="route-auth-card">
           <div className="auth-card__tabs">
-            <button className={mode === "login" ? "is-active" : undefined} type="button" onClick={() => setMode("login")}>
-              <KeyRound size={17} />
-              Login
+            <button className={mode === "login" && loginRole === "student" ? "is-active" : undefined} type="button" onClick={() => { setLoginRole("student"); setMode("login"); }}>
+              <UserRound size={17} />
+              {mode === "login" ? "Student Login" : "Login"}
             </button>
-            <button className={mode !== "login" ? "is-active" : undefined} type="button" onClick={() => setMode("register")}>
+            <button className={mode === "login" && loginRole === "admin" ? "is-active" : mode !== "login" ? "is-active" : undefined} type="button" onClick={() => { setLoginRole("admin"); setMode("login"); }}>
               <UserPlus size={17} />
-              Register
+              {mode === "login" ? "Admin Login" : "Register"}
             </button>
           </div>
 
@@ -331,22 +295,20 @@ export function LoginPage() {
               <div className="auth-divider">
                 <span>or</span>
               </div>
-              <label>
+              <label className="login-page__field">
                 Email
-                <input name="email" type="email" autoComplete="email" maxLength={256} pattern={emailPattern} required />
+                <span className="login-page__input-wrap"><Mail size={19} /><input name="email" type="email" autoComplete="email" placeholder="you@example.com" maxLength={256} pattern={emailPattern} required /></span>
               </label>
-              <label>
+              <label className="login-page__field">
                 Password
-                <input name="password" type="password" autoComplete="current-password" minLength={8} required />
+                <span className="login-page__input-wrap"><LockKeyhole size={19} /><input name="password" type={showPassword ? "text" : "password"} autoComplete="current-password" placeholder="Enter your password" minLength={8} required /><button className="login-page__password-toggle" type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword(value => !value)}>{showPassword ? <EyeOff size={19} /> : <Eye size={19} />}</button></span>
               </label>
-              <label className="checkbox-row">
-                <input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.currentTarget.checked)} />
-                <span>Keep me signed in on this device.</span>
-              </label>
+              <div className="login-page__form-options"><label className="checkbox-row"><input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.currentTarget.checked)} /><span>Keep me signed in on this device</span></label><button className="auth-link-button login-page__forgot" type="button">Forgot password?</button></div>
               <button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? "Signing in" : "Login to dashboard"}
                 <ArrowRight size={18} />
               </button>
+              <p className="login-page__register-prompt">Don&apos;t have an account? <button type="button" onClick={() => setMode("register")}>Register now</button></p>
             </form>
           ) : mode === "register" ? (
             <form className="auth-form" onSubmit={handleRegister}>
@@ -426,7 +388,8 @@ export function LoginPage() {
           <ToastMessage message={message} onDismiss={() => setMessage(null)} />
         </div>
       </section>
-    </PublicPageShell>
+      <SiteFooter />
+    </main>
   );
 }
 
@@ -473,22 +436,6 @@ function ImmersiveRouteHero({ accent, actions, eyebrow, metrics, text, title, va
   );
 }
 
-function PageHero({ eyebrow, title, text, actions }: PageHeroProps) {
-  return (
-    <section className="route-hero">
-      <div>
-        <span className="apt-pill">
-          <Sparkles size={15} />
-          {eyebrow}
-        </span>
-        <h1>{title}</h1>
-        <p>{text}</p>
-        {actions ? <div className="route-hero__actions">{actions}</div> : null}
-      </div>
-    </section>
-  );
-}
-
 function CallbackRequestForm() {
   const [message, setMessage] = useState<PageMessage>(null);
 
@@ -507,7 +454,7 @@ function CallbackRequestForm() {
   }
 
   return (
-    <form className="callback-card route-callback-card" onSubmit={handleSubmit}>
+    <form className="callback-card route-callback-card contact-form" onSubmit={handleSubmit}>
       <label>
         Full name
         <input name="fullName" placeholder="Your name" required />

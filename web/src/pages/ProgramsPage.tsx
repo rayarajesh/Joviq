@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowDownLeft, ArrowRight, BarChart3, BriefcaseBusiness, Clock3, FolderKanban, GraduationCap, Heart, RefreshCw, Rocket, Search, ShieldCheck, Star, UsersRound } from "lucide-react";
 import { PublicNavbar } from "../components/PublicNavbar";
+import { SiteFooter } from "../components/SiteFooter";
 import { allPrograms, programCategories, type Program } from "../data/siteContent";
 import { getProgramImage } from "../data/programVisuals";
 
@@ -96,13 +97,7 @@ export function ProgramsPage() {
             </div>
           </div>
           <div className="pc-hero-art">
-            <div className="pc-art-blob" />
-            <img className="pc-student" src="/assets/programs/programs-student.png" alt="Student holding a laptop and looking forward to her next chapter" />
-            <div className="pc-hero-note">Your<br />Next Chapter<br />Starts Here<span><ArrowDownLeft /></span></div>
-            <Star className="pc-doodle-star" size={30} />
-            <div className="pc-float pc-float-skills"><BarChart3 /><b>Learn<br />In-Demand Skills</b></div>
-            <div className="pc-float pc-float-portfolio"><BriefcaseBusiness /><b>Build<br />a Strong Portfolio</b></div>
-            <i className="pc-rays pc-rays-left" /><i className="pc-rays pc-rays-right" />
+            <img className="pc-student" src="/assets/hero-student-panels.png" alt="Student holding notebooks and looking forward to his next chapter" />
           </div>
         </section>
         <section className="pc-discovery" aria-label="Find a program">
@@ -137,6 +132,7 @@ export function ProgramsPage() {
           </section>
         </div>
       </main>
+      <SiteFooter />
     </div>
   );
 }

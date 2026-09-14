@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720" role="img" aria-labelledby="title desc">
+  <title id="title">Joviq</title>
+  <desc id="desc">Joviq violet monogram.</desc>
+  <defs>
+    <linearGradient id="mark" x1="165" y1="92" x2="570" y2="620" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#201b59"/>
+      <stop offset="0.56" stop-color="#504b91"/>
+      <stop offset="1" stop-color="#6c67ae"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#mark)" d="M274 98h91c126 0 229 101 229 226 0 67-29 129-78 172l-53-59c32-29 50-70 50-113 0-81-66-147-148-147h-19v160c0 110-86 199-196 199-84 0-157-52-184-126l82-4c21 31 59 51 102 51 68 0 124-54 124-120V98Z"/>
+  <path fill="url(#mark)" d="M454 456l55-52 128 140-55 52-128-140Z"/>
+</svg>

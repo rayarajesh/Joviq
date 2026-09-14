@@ -1,3 +1,7 @@
+import { ProgramDirectory } from "../components/ProgramDirectory";
+import { StudentSuccessSection } from "../components/StudentSuccessSection";
+import { AlumniSection } from "../components/AlumniSection";
+import { KeyStatisticsSection, ProgramCategoriesSection, RecognitionsSection, HiringPartnersSection, TechnologySection } from "../components/HomeSections";
 import { JourneySection } from "../components/JourneySection";
 import { CertificateSection } from "../components/CertificateSection";
 import { ExpertsSection } from "../components/ExpertsSection";
@@ -160,12 +164,6 @@ const outcomeStories = [
 
 const pricingLabels = ["Basic", "Standard", "Pro"];
 const pricingArtLabels = ["play", "expert", "target"];
-const pricingBenefits = [
-  { title: "Expert Experts", text: "Learn from industry professionals.", icon: ShieldCheck },
-  { title: "Project-Based Learning", text: "Build real-world projects and portfolios.", icon: Award },
-  { title: "Placement Support", text: "Resume, mock interviews & job assistance.", icon: BarChart3 },
-  { title: "Lifetime Access", text: "Access recordings & resources whenever you need.", icon: PhoneCall }
-];
 
 function authModeFromHash(hash: string): AuthMode | null {
   if (hash === "#auth-register" || hash === "#register") {
@@ -193,6 +191,16 @@ export function LandingPage() {
   const [oauthPhoneNumber, setOauthPhoneNumber] = useState("");
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(authModeFromHash(location.hash) !== null);
   const [isCallbackDialogOpen, setIsCallbackDialogOpen] = useState(false);
+  const reviewsRef = useRef<HTMLDivElement>(null);
+  function scrollReviews(direction: number) {
+    const el = reviewsRef.current;
+    if (!el) return;
+    const step = (el.firstElementChild as HTMLElement)?.offsetWidth ?? el.clientWidth;
+    const gap = parseFloat(getComputedStyle(el).columnGap) || 24;
+    const end = el.scrollWidth - el.clientWidth;
+    const left = direction > 0 && el.scrollLeft >= end - 2 ? 0 : direction < 0 && el.scrollLeft <= 2 ? end : el.scrollLeft + direction * (step + gap);
+    el.scrollTo({ left, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+  }
   const programCarouselRef = useRef<HTMLDivElement>(null);
   const programTabsRef = useRef<HTMLDivElement>(null);
   const [programSearchQuery, setProgramSearchQuery] = useState("");
@@ -622,164 +630,17 @@ export function LandingPage() {
 
       <HomeHero />
 
+      <ProgramDirectory />
+
+      <KeyStatisticsSection />
+      <ProgramCategoriesSection />
       <ExpertsSection />
-
-      <section id="program-search" className="site-section program-search-section">
-        <div className="program-search">
-          <header className="program-search__header">
-            <span className="apt-pill">
-              <Search size={15} />
-              Program directory
-            </span>
-            <h2>
-              Find the Program
-              <br />
-              That <span>Moves You Forward</span>
-            </h2>
-            <p>Explore career-focused tracks designed with real projects, expert review, and industry-ready skills.</p>
-          </header>
-          <aside className="program-search__stats" aria-label="Joviq program highlights">
-            <div>
-              <span className="program-search__stat-icon"><Rocket size={20} /></span>
-              <strong>20+</strong>
-              <small>Career Programs</small>
-            </div>
-            <div>
-              <span className="program-search__stat-icon"><UsersRound size={20} /></span>
-              <strong>5K+</strong>
-              <small>Active Learners</small>
-            </div>
-            <div>
-              <span className="program-search__stat-icon"><Star size={20} /></span>
-              <strong>4.8/5</strong>
-              <small>Learner Rating</small>
-            </div>
-          </aside>
-          <label className="program-search__field">
-            <Search size={20} />
-            <input
-              value={programSearchQuery}
-              aria-label="Search Joviq programs"
-              onChange={(event) => {
-                setProgramSearchQuery(event.target.value);
-                programCarouselRef.current?.scrollTo({ left: 0, behavior: "smooth" });
-              }}
-              placeholder="Search any Joviq program (AI, Full Stack, DevOps, Finance...)"
-            />
-          </label>
-
-          <div className="program-search__tabs-shell">
-            <button
-              aria-label="Scroll program categories left"
-              className="program-search__tabs-arrow"
-              onClick={() => scrollProgramTabs(-1)}
-              type="button"
-            >
-              <ArrowLeft size={17} />
-            </button>
-            <div className="program-search__tabs" ref={programTabsRef} role="tablist" aria-label="Filter programs by category">
-              {programDomains.map((domain) => (
-                <button
-                  aria-controls="program-search-results"
-                  aria-selected={activeProgramDomain === domain}
-                  className={activeProgramDomain === domain ? "is-active" : undefined}
-                  key={domain}
-                  onClick={() => {
-                    setActiveProgramDomain(domain);
-                    programCarouselRef.current?.scrollTo({ left: 0, behavior: "smooth" });
-                  }}
-                  role="tab"
-                  type="button"
-                >
-                  {domain !== "All" ? <DomainIcon domain={domain} /> : null}
-                  {domain}
-                </button>
-              ))}
-            </div>
-            <button
-              aria-label="Scroll program categories right"
-              className="program-search__tabs-arrow"
-              onClick={() => scrollProgramTabs(1)}
-              type="button"
-            >
-              <ArrowRight size={17} />
-            </button>
-          </div>
-
-          <div className="program-directory__cta"><Link to="/programs">View All Programs <ArrowRight size={19} /></Link><span aria-hidden="true">Your Next<br />Opportunity Starts Here</span></div>
-          <div className="program-search__carousel-shell">
-            <span className="program-directory__note" aria-hidden="true">Real Skills<br />Real Opportunities</span>
-            {searchResults.length > 0 && (
-              <button
-                aria-label="View previous programs"
-                className="program-search__arrow program-search__arrow--previous"
-                onClick={() => scrollProgramCarousel(-1)}
-                type="button"
-              >
-                <ArrowLeft size={25} />
-              </button>
-            )}
-
-            <div
-              aria-live="polite"
-              className="program-search__viewport"
-              id="program-search-results"
-              ref={programCarouselRef}
-              role="tabpanel"
-            >
-              <div className="program-search__results">
-                {searchResults.length ? (
-                  searchResults.map((program, index) => (
-                    <Link className="program-showcase-card" key={program.slug} to={`/programs/${program.slug}`}>
-                      <span className="program-showcase-card__media">
-                        <img
-                          alt={`${program.title} program`}
-                          decoding="async"
-                          loading={index < 4 ? "eager" : "lazy"}
-                          src={getProgramImage(program.slug, program.domain)}
-                        />
-                      </span>
-                      <span className="program-showcase-card__body">
-                        <small>{program.domain}</small>
-                        <strong>{program.title}</strong>
-                        <span>{program.shortDescription}</span>
-                        <span className="program-directory__metadata"><span><BookOpenCheck size={12} />{program.projects.length} Projects</span><span><CalendarClock size={12} />{program.duration}</span><span><BarChart3 size={12} />{program.level}</span></span>
-                        <span className="program-showcase-card__action">Explore program <ArrowRight size={18} /></span>
-                      </span>
-                    </Link>
-                  ))
-                ) : (
-                  <p className="program-search__empty">No matching programs found. Try another skill or domain.</p>
-                )}
-              </div>
-            </div>
-
-            {searchResults.length > 0 && (
-              <button
-                aria-label="View more programs"
-                className="program-search__arrow program-search__arrow--next"
-                onClick={() => scrollProgramCarousel(1)}
-                type="button"
-              >
-                <ArrowRight size={25} />
-              </button>
-            )}
-          </div>
-        </div>
-      </section>
-
+      <RecognitionsSection />
+      <HiringPartnersSection />
+      <TechnologySection />
       <JourneySection />
-
-      <section id="outcomes" className="learner-testimonials" aria-labelledby="testimonials-title">
-        <h2 id="testimonials-title">Trusted by Modern <span>Educators and Learners</span></h2>
-        <div className="learner-testimonials__grid">
-          {outcomeStories.map((story, index) => <article key={story.name}>
-            <div className="learner-testimonials__stars" aria-hidden="true">{[0,1,2,3,4].map(star => <Star key={star} size={16} fill="currentColor" />)}</div>
-            <blockquote>{story.quote}</blockquote>
-            <footer><span className={"learner-testimonials__avatar learner-testimonials__avatar--" + index % 3}>{story.name.split(" ").map(part => part[0]).slice(0,2).join("")}</span><div><strong>{story.name}</strong><small>{story.program}</small></div></footer>
-          </article>)}
-        </div>
-      </section>
+      <AlumniSection companies={alumniWall} />
+      <StudentSuccessSection />
 
       <CertificateSection />
 
@@ -835,29 +696,20 @@ export function LandingPage() {
             </article>
           ))}
         </div>
-        <div className="pricing-benefits" aria-label="Pricing benefits">
-          {pricingBenefits.map((benefit) => {
-            const Icon = benefit.icon;
-            return (
-              <article key={benefit.title}>
-                <span><Icon size={27} /></span>
-                <div>
-                  <strong>{benefit.title}</strong>
-                  <p>{benefit.text}</p>
-                </div>
-              </article>
-            );
-          })}
-        </div>
       </section>
 
-      <section className="joviq-start" aria-labelledby="joviq-start-title">
-        <span className="joviq-start__pill"><Sparkles size={13} />LEARN. BUILD. GROW WITH JOVIQ.</span>
-        <h2 id="joviq-start-title">Ready to Build Your<br />Next Career Chapter?</h2>
-        <p>Turn learning into real skills with Joviq's guided projects, expert feedback, and career-focused programs.</p>
-        <div className="joviq-start__actions">
-          <Link to="/programs">Explore Programs <ArrowRight size={16} /></Link>
-          <Link to="/request-callback">Talk to an Advisor</Link>
+      <section id="reviews" className="learner-testimonials" aria-labelledby="testimonials-title">
+        <h2 id="testimonials-title">Reviews from <span>Our Learners</span></h2>
+        <div className="reviews-carousel">
+        <button className="reviews-carousel__arrow" aria-label="Previous reviews" onClick={() => scrollReviews(-1)}><ArrowLeft size={22} /></button>
+        <div className="learner-testimonials__grid" ref={reviewsRef} tabIndex={0} aria-label="Learner reviews" onKeyDown={event => { if (event.key === "ArrowLeft" || event.key === "ArrowRight") { event.preventDefault(); scrollReviews(event.key === "ArrowRight" ? 1 : -1); } }}>
+          {outcomeStories.map((story, index) => <article key={story.name}>
+            <div className="learner-testimonials__stars" aria-hidden="true">{[0,1,2,3,4].map(star => <Star key={star} size={16} fill="currentColor" />)}</div>
+            <blockquote>{story.quote}</blockquote>
+            <footer><span className={"learner-testimonials__avatar learner-testimonials__avatar--" + index % 3}>{story.name.split(" ").map(part => part[0]).slice(0,2).join("")}</span><div><strong>{story.name}</strong><small>{story.program}</small></div></footer>
+          </article>)}
+        </div>
+        <button className="reviews-carousel__arrow" aria-label="Next reviews" onClick={() => scrollReviews(1)}><ArrowRight size={22} /></button>
         </div>
       </section>
 
@@ -879,6 +731,16 @@ export function LandingPage() {
               <p>{faq.answer}</p>
             </details>
           ))}
+        </div>
+      </section>
+
+      <section id="final-cta" className="joviq-start" aria-labelledby="joviq-start-title">
+        <span className="joviq-start__pill"><Sparkles size={13} />LEARN. BUILD. GROW WITH JOVIQ.</span>
+        <h2 id="joviq-start-title">Ready to Build Your<br />Next Career Chapter?</h2>
+        <p>Turn learning into real skills with Joviq's guided projects, expert feedback, and career-focused programs.</p>
+        <div className="joviq-start__actions">
+          <Link to="/programs">Explore Programs <ArrowRight size={16} /></Link>
+          <Link to="/request-callback">Talk to an Advisor</Link>
         </div>
       </section>
 

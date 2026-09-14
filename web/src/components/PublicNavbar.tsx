@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ExternalLink, Menu, X } from "lucide-react";
+import { ExternalLink, Menu, Search, X } from "lucide-react";
 import { BrandLogo } from "./BrandLogo";
 
 const publicNavItems = [
   { label: "Programs", to: "/programs" },
   { label: "Features", to: "/features" },
-  { label: "About Us", to: "/about" }
+  { label: "About Us", to: "/about" },
+  { label: "Contact", to: "/request-callback" }
 ];
 
 export function PublicNavbar() {
@@ -51,6 +52,9 @@ export function PublicNavbar() {
         </nav>
 
         <div className="site-nav__actions">
+          <Link className="site-nav__search" to="/programs" onClick={closeMenus} aria-label="Search programs" title="Search programs">
+            <Search size={19} />
+          </Link>
           <Link to="/login" onClick={closeMenus}>
             Login <ExternalLink size={15} />
           </Link>
