@@ -13,9 +13,8 @@ function categoryOf(program: Program) {
   if (["data-science", "data-analytics"].includes(program.slug)) return "Data Science";
   if (["generative-ai", "machine-learning"].includes(program.slug)) return "AI & ML";
   if (program.slug.includes("cyber-security")) return "Cyber Security";
-  if (program.domain === "UI/UX Design") return "Design";
-  if (program.domain === "Management") return "Business";
   if (program.domain === "Computer Science & IT") return "Computer Science";
+  if (program.domain === "Management") return "Business";
   return "Engineering";
 }
 const filterGroups = [

@@ -6,6 +6,10 @@ import { BrandLogo } from "./BrandLogo";
 const publicNavItems = [
   { label: "Programs", to: "/programs" },
   { label: "Features", to: "/features" },
+  { label: "Campus Delegate", to: "/campus-delegate" },
+  { label: "Campus Partners", to: "/campus-partners" },
+  { label: "Careers", to: "/careers" },
+  { label: "Reviews", to: "/reviews" },
   { label: "About Us", to: "/about" },
   { label: "Contact", to: "/request-callback" }
 ];
@@ -23,11 +27,13 @@ export function PublicNavbar() {
   }
 
   function isActivePath(path: string) {
+    const targetPath = path.split("#")[0];
+
     if (path === "/programs") {
       return location.pathname === "/programs" || location.pathname.startsWith("/programs/");
     }
 
-    return location.pathname === path;
+    return location.pathname === targetPath;
   }
 
   return (

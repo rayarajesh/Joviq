@@ -585,7 +585,7 @@ const uiUxPrograms = [
   createProgram({
     slug: "ui-ux-design",
     title: "UI/UX Design",
-    domain: "UI/UX Design",
+    domain: "Computer Science & IT",
     shortDescription: "User research, wireframes, visual design, prototypes, testing, and portfolio case studies.",
     overview: "A practical UI/UX program for learners who want to design clean digital products, understand users, build interactive prototypes, and present job-ready case studies.",
     audience: ["Design beginners", "Frontend learners moving into product design", "Students building a UX portfolio", "Career switchers targeting UI/UX roles"],

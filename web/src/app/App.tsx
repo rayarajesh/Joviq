@@ -20,6 +20,13 @@ import {
 import { StudentOnboardingPage } from "../pages/StudentOnboardingPage";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { StudentPreviewPage } from "../pages/StudentPreviewPage";
+import { PrivacyPolicyPage } from "../pages/PrivacyPolicyPage";
+import { TermsPage } from "../pages/TermsPage";
+import { RefundPolicyPage } from "../pages/RefundPolicyPage";
+import { CampusDelegatePage } from "../pages/CampusDelegatePage";
+import { CampusPartnersPage } from "../pages/CampusPartnersPage";
+import { CareersPage } from "../pages/CareersPage";
+import { ReviewsPage } from "../pages/ReviewsPage";
 
 export function App() {
   return (
@@ -33,6 +40,13 @@ export function App() {
           <Route path="/programs" element={<ProgramsPage />} />
           <Route path="/features" element={<FeaturesPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/campus-delegate" element={<CampusDelegatePage />} />
+          <Route path="/campus-partners" element={<CampusPartnersPage />} />
+          <Route path="/careers" element={<CareersPage />} />
+          <Route path="/reviews" element={<ReviewsPage />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/return-policy" element={<RefundPolicyPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/request-callback" element={<RequestCallbackPage />} />
           <Route path="/auth/google/callback" element={<OAuthCallbackPage />} />

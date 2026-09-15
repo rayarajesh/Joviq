@@ -14,8 +14,14 @@ export function ProgramDirectory() {
   const [pages, setPages] = useState(1);
   const viewport = useRef<HTMLDivElement>(null);
   const section = useRef<HTMLElement>(null);
+  const directoryCategories = [
+    { domain: "All", label: "All Programs", icon: Grid2X2 },
+    { domain: "Computer Science & IT", label: "CSE/IT", icon: Laptop },
+    { domain: "Electrical & Electronics", label: "ECE/EEE", icon: Cpu },
+    { domain: "Mechanical & Civil", label: "Mechanical/Civil", icon: Settings },
+    { domain: "Management", label: "Management/Commerce", icon: BarChart3 }
+  ];
   const programs = useMemo(() => allPrograms.filter(program => (domain === "All" || program.domain === domain) && [program.title, program.domain, program.shortDescription, ...program.skills, ...program.tags].join(" ").toLowerCase().includes(query.trim().toLowerCase())), [domain, query]);
-  const icons = [Laptop, Cpu, Settings, PenTool, Box, BarChart3];
 
   function move(target: number, smooth = true) {
     const el = viewport.current;
@@ -55,12 +61,12 @@ export function ProgramDirectory() {
         <div className="directory-refresh__category-row">
           <button className="directory-refresh__category-arrow" aria-label="Previous categories" disabled={categoryStart === 0} onClick={() => setCategoryStart(value => Math.max(0, value - 1))}><ArrowLeft size={17} /></button>
           <div className="directory-refresh__filters" aria-label="Filter programs by category">
-            {[{ domain: "All", label: "All Programs", icon: Grid2X2 }, ...programCategories.map((category, index) => ({ domain: category.domain, label: category.domain === "Electrical & Electronics" ? "Electronics" : category.domain, icon: icons[index] }))].slice(categoryStart, categoryStart + 3).map(category => {
+            {directoryCategories.slice(categoryStart, categoryStart + 4).map(category => {
               const Icon = category.icon;
               return <button key={category.domain} title={category.label} aria-pressed={domain === category.domain} onClick={() => setDomain(category.domain)}><Icon size={17} /><span>{category.label}</span></button>;
             })}
           </div>
-          <button className="directory-refresh__category-arrow" aria-label="Next categories" disabled={categoryStart >= programCategories.length - 2} onClick={() => setCategoryStart(value => Math.min(programCategories.length - 2, value + 1))}><ArrowRight size={17} /></button>
+          <button className="directory-refresh__category-arrow" aria-label="Next categories" disabled={categoryStart >= directoryCategories.length - 4} onClick={() => setCategoryStart(value => Math.min(directoryCategories.length - 4, value + 1))}><ArrowRight size={17} /></button>
         </div>
       </div>
       <div className="directory-refresh__carousel" aria-label="Programs carousel" aria-roledescription="carousel">

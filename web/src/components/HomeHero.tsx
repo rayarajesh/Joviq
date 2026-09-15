@@ -2,7 +2,7 @@ import { ArrowRight, BarChart3, CalendarDays, Check, GraduationCap, Rocket, Star
 import { Link } from "react-router-dom";
 const highlights = [
  { icon: GraduationCap, title: "Admissions Open", detail: "For Next Cohort", tone: "green" },
- { icon: CalendarDays, title: "10 Sept 2025", detail: "Next Live Cohort", tone: "purple" },
+ { icon: CalendarDays, title: "10 Oct 2026", detail: "Next Live Class", tone: "purple" },
  { icon: UsersRound, title: "2,500+", detail: "Learners & Growing", tone: "purple" },
  { icon: Star, title: "4.9/5", detail: "Learner Satisfaction", tone: "yellow" }
 ];
@@ -16,7 +16,7 @@ export function HomeHero() {
      <svg className="learn-hero__underline" viewBox="0 0 240 16" aria-hidden="true"><path d="M4 11 Q110 1 218 7 M227 8 L236 8"/></svg>
      <p className="learn-hero__intro">Real projects, expert review, and practical guidance<br className="learn-hero__desktop-break"/> to go from learner to leader.</p>
      <ul className="learn-hero__benefits">{["AI-Powered Learning","Skill-Based Training","Future-Ready Career Guidance"].map(text=><li key={text}><Check size={17}/>{text}</li>)}</ul>
-     <div className="learn-hero__actions"><Link className="learn-hero__join" to="/#register">Join for Free <ArrowRight size={22}/></Link><Link className="learn-hero__browse" to="/programs">Browse Our Courses</Link></div>
+     <div className="learn-hero__actions"><Link className="learn-hero__browse" to="/programs">Browse Our Courses</Link></div>
     </div>
     <div className="learn-hero__visual">
      <div className="learn-hero__dots" aria-hidden="true"/>
