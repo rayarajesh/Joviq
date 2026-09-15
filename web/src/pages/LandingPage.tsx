@@ -162,7 +162,7 @@ const outcomeStories = [
   }
 ];
 
-const pricingLabels = ["Basic", "Standard", "Pro"];
+const pricingLabels = ["LAUNCH", "ELEVATE", "MASTERY"];
 const pricingArtLabels = ["play", "expert", "target"];
 
 function authModeFromHash(hash: string): AuthMode | null {

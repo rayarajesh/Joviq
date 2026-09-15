@@ -72,19 +72,17 @@ export function SiteFooter() {
             <h3>Contact Info</h3>
             <p>
               <PhoneCall size={17} />
-              <span><strong>Phone:</strong> +91 63605 84578</span>
+              <span><strong>Phone:</strong> +91 93980 62923</span>
             </p>
             <p>
               <Mail size={17} />
-              <span><strong>Email:</strong> info@joviq.com</span>
+              <span><strong>Email:</strong> joviqtechnologies@gmail.com</span>
             </p>
             <p>
               <MapPin size={17} />
               <span>
                 <strong>Address:</strong>
-                BHIVE Premium Workspace - No.J12, AKR Tech Park, A & B Block, 7th Mile Hosur Rd,
-                Krishna Reddy Industrial Area, Bengaluru, Karnataka 560068
-              </span>
+                CS COWORKING SPACE,6TH FLOOR,MELKIORS PRIDE,HITEX ROAD,VINAYAKA NAGAR,IZZATHNAGAR,HITECH CITY,KHANAMMET,HYDERABAD,TELANGANA 500084.              </span>
             </p>
           </div>
 
