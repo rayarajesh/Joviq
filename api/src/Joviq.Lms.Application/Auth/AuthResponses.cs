@@ -4,7 +4,8 @@ namespace Joviq.Lms.Application.Auth;
 
 public sealed record RegisterResponse(
     Guid UserId,
-    bool EmailVerificationRequired);
+    bool EmailVerificationRequired,
+    bool VerificationEmailSent = true);
 
 public sealed record UserSummaryResponse(
     Guid Id,

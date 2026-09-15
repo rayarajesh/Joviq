@@ -19,7 +19,7 @@ export function ProtectedRoute({ children, allowIncompleteProfile = false }: Pro
   }
 
   if (!user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={`/login?returnUrl=${encodeURIComponent(location.pathname + location.search)}`} replace />;
   }
 
   const needsStudentOnboarding =

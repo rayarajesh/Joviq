@@ -96,8 +96,8 @@ export function ProgramsPage() {
               <div><span className="pc-icon gold"><ShieldCheck /></span><p><b>Certificates</b><br />that matter</p></div>
             </div>
           </div>
-          <div className="pc-hero-art">
-            <img className="pc-student" src="/assets/hero-student-panels.png" alt="Student holding notebooks and looking forward to his next chapter" />
+          <div className="pc-hero-art pc-journey-art">
+            <img className="pc-journey-image" src="/assets/programs/career-journey.png" alt="Your career journey starts here: learn skills, work on projects, get expert feedback, and build a portfolio" width="1586" height="992" />
           </div>
         </section>
         <section className="pc-discovery" aria-label="Find a program">

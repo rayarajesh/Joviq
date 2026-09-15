@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState, type DragEvent, type FormEvent, type ReactNode } from "react";
 import {
   ArrowDown,
@@ -78,6 +79,9 @@ export function CurriculumAdminPanel({
   onMessage,
   onRefresh
 }: CurriculumAdminPanelProps) {
+  const [programSearch, setProgramSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [programSort, setProgramSort] = useState("default");
   const [programFilter, setProgramFilter] = useState(initialProgramId ?? "");
   const [moduleDialog, setModuleDialog] = useState<ModuleDialogState | null>(null);
   const [lessonDialog, setLessonDialog] = useState<LessonDialogState | null>(null);
@@ -372,11 +376,11 @@ export function CurriculumAdminPanel({
     <section className="curriculum-workspace">
       <div className="curriculum-workspace__hero">
         <div>
-          <span className="eyebrow">Learning structure</span>
+          <span className="eyebrow"><Link to="/dashboard">Dashboard</Link> / Curriculum</span>
           <h2>Curriculum</h2>
-          <p>Build each program as an ordered set of active modules and lessons. Inactive content stays here for editing but is hidden from the website.</p>
+          <p>Organize your programs with modules and lessons.</p>
         </div>
-        <div className="curriculum-workspace__stats" aria-label="Curriculum summary">
+        <Link className="primary-action admin-curriculum-add" to="/dashboard?section=Programs"><Plus size={17}/>Add Program</Link><div className="curriculum-workspace__stats" aria-label="Curriculum summary">
           <span><strong>{visibleModules.length}</strong><small>Modules</small></span>
           <span><strong>{visibleLessons}</strong><small>Lessons</small></span>
           <span><strong>{activeModules + activeLessons}</strong><small>Published items</small></span>
@@ -384,6 +388,7 @@ export function CurriculumAdminPanel({
       </div>
 
       <div className="curriculum-workspace__toolbar">
+        {!programFilter && <><input aria-label="Search curriculum programs" placeholder="Search programs..." value={programSearch} onChange={event => setProgramSearch(event.target.value)}/><select aria-label="Curriculum category" value={categoryFilter} onChange={event => setCategoryFilter(event.target.value)}><option value="">All categories</option>{[...new Set(programs.map(p=>p.categoryName).filter(Boolean))].map(name=><option key={name} value={name}>{name}</option>)}</select><select aria-label="Sort curriculum" value={programSort} onChange={event=>setProgramSort(event.target.value)}><option value="default">Sort by</option><option value="az">Name A-Z</option><option value="modules">Most modules</option></select></>}
         <label>
           <span>Program</span>
           <select value={programFilter} onChange={(event) => setProgramFilter(event.target.value)}>
@@ -406,9 +411,10 @@ export function CurriculumAdminPanel({
             <strong>{programs.length} programs</strong>
           </div>
           <div className="curriculum-program-picker__list">
-            {programSummaries.map(({ program, moduleCount, lessonCount, activeCount }) => (
+            {programSearch && !programSummaries.some(({program})=>program.title.toLowerCase().includes(programSearch.toLowerCase()) && (!categoryFilter || program.categoryName===categoryFilter)) && <div className="admin-reference-empty"><h3>No matching programs</h3><p>Try another search or category.</p><button className="secondary-action" onClick={()=>{setProgramSearch("");setCategoryFilter("");}}>Reset filters</button></div>}
+            {programSummaries.filter(({program}) => (!categoryFilter || program.categoryName === categoryFilter) && program.title.toLowerCase().includes(programSearch.toLowerCase())).sort((a,b) => programSort === "az" ? a.program.title.localeCompare(b.program.title) : programSort === "modules" ? b.moduleCount-a.moduleCount : 0).map(({ program, moduleCount, lessonCount, activeCount }) => (
               <button type="button" className="curriculum-program-choice" key={program.id} onClick={() => setProgramFilter(program.id)}>
-                <span className="curriculum-program-choice__main">
+                <span className="admin-curriculum-icon"><FileText size={27}/></span><span className="curriculum-program-choice__main">
                   <span className="curriculum-program-choice__category">{program.categoryName || "Program"}</span>
                   <strong>{program.title}</strong>
                 </span>

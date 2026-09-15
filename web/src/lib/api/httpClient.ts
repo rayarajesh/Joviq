@@ -64,7 +64,8 @@ async function send<T>(path: string, options: RequestOptions, hasRetried: boolea
   });
 
   const contentType = response.headers.get("content-type") ?? "";
-  const payload = contentType.includes("application/json") ? await response.json() : null;
+  const payload = contentType.includes("application/json") || contentType.includes("application/problem+json")
+    ? await response.json() : null;
 
   if (!response.ok) {
     if (

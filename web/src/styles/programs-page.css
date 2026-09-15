@@ -103,3 +103,10 @@
 @media(min-width:1400px){.pc-hero{min-height:494px}.pc-student{height:439px;width:365px}}
 @media(min-width:601px) and (max-width:850px){.pc-hero{min-height:429px}.pc-student{height:379px;width:283px}.pc-art-blob{height:290px;width:265px}}
 @media(min-width:851px) and (max-width:1100px){.pc-hero{min-height:363px}.pc-student{height:319px;width:275px}.pc-art-blob{height:250px;width:245px}}
+/* Complete career illustration, with motion that respects accessibility settings. */
+.programs-page .pc-hero-art.pc-journey-art{display:flex;align-items:center;justify-content:center;min-width:0;height:auto;margin:0;padding:12px 0 28px}
+.programs-page .pc-journey-art:after{display:none}
+.programs-page .pc-journey-image{display:block;width:100%;height:auto;object-fit:contain;border-radius:24px;animation:pc-journey-float 6s ease-in-out infinite}
+@keyframes pc-journey-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+@media(max-width:600px){.programs-page .pc-hero-art.pc-journey-art{padding:24px 0 18px;width:100%}}
+@media(prefers-reduced-motion:reduce){.programs-page .pc-journey-image{animation:none}}

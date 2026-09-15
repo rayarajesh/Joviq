@@ -52,6 +52,9 @@ export function ProfilePage() {
   const [sessions, setSessions] = useState<SessionResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshingSessions, setIsRefreshingSessions] = useState(false);
+  const [editingDetails, setEditingDetails] = useState(false);
+  const [profileTab, setProfileTab] = useState("personal");
+  const [compactSessions, setCompactSessions] = useState(() => { try { return localStorage.getItem("joviq-compact-sessions") === "true"; } catch { return false; } });
   const [isSaving, setIsSaving] = useState(false);
   const [actionSessionId, setActionSessionId] = useState<string | null>(null);
   const [message, setMessage] = useState<MessageState>(null);
@@ -116,6 +119,7 @@ export function ProfilePage() {
         state: optionalText(form.state)
       });
       hydrateProfile(response.data);
+      setEditingDetails(false);
       await auth.loadMe();
       setMessage({ tone: "success", text: "Your profile details were saved." });
     } catch (error) {
@@ -210,12 +214,12 @@ export function ProfilePage() {
 
   return (
     <ProfileWorkspace role={primaryRole} onModuleChange={openDashboardModule}>
-      <main className="profile-page">
+      <main className={`profile-page ${primaryRole === "Admin" ? "admin-profile-reference" : ""} ${compactSessions ? "profile-compact-sessions" : ""}`}>
       <section className="profile-page__hero">
         <div>
-          <span className="eyebrow">Account center</span>
+          <span className="eyebrow"><Link to="/dashboard">Dashboard</Link> / Profile</span>
           <h1>Your profile</h1>
-          <p>Keep your contact details current and control where your Joviq account is signed in.</p>
+          <p>Manage your personal details and account settings.</p>
         </div>
         <div className="profile-page__hero-badge">
           <ShieldCheck size={19} />
@@ -250,17 +254,19 @@ export function ProfilePage() {
         </aside>
 
         <div className="profile-page__content">
-          <section className="profile-panel">
+          <section className="profile-panel profile-personal">
+            {primaryRole === "Admin" && <nav className="admin-profile-tabs" aria-label="Profile sections"><button type="button" aria-pressed={profileTab === "personal"} onClick={() => setProfileTab("personal")}><UserRound size={16}/>Personal Details</button><button type="button" aria-pressed={profileTab === "security"} onClick={() => { setProfileTab("security"); document.querySelector(".profile-sessions")?.scrollIntoView({behavior:"smooth",block:"center"}); }}><ShieldCheck size={16}/>Security</button><button type="button" aria-pressed={profileTab === "preferences"} onClick={() => setProfileTab("preferences")}>Preferences</button></nav>}
+            {profileTab === "preferences" && primaryRole === "Admin" ? <div className="admin-profile-preferences"><h2>Display preferences</h2><label><input type="checkbox" checked={compactSessions} onChange={event=>{setCompactSessions(event.target.checked);try { localStorage.setItem("joviq-compact-sessions",String(event.target.checked)); } catch { /* Preference still applies for this session. */ }}}/> Compact device session list</label><p>Saved for this browser.</p></div> : <>
             <header className="profile-panel__header">
               <div>
                 <span className="eyebrow">Personal details</span>
-                <h2>Basic information</h2>
+                <h2>Personal Information</h2>
                 <p>These details are used across your account and learning workspace.</p>
               </div>
-              <UserRound size={22} />
+              {primaryRole === "Admin" ? <button type="button" className="secondary-action" onClick={()=>{if(editingDetails)hydrateProfile(profile);setEditingDetails(value=>!value);}}>{editingDetails ? "Cancel editing" : "Edit Details"}</button> : <UserRound size={22} />}
             </header>
 
-            <form className="profile-form" onSubmit={saveProfile}>
+            <form className="profile-form" onSubmit={saveProfile}><fieldset disabled={primaryRole === "Admin" && !editingDetails}>
               <label>
                 Full name
                 <input
@@ -333,7 +339,7 @@ export function ProfilePage() {
                   {isSaving ? "Saving..." : "Save details"}
                 </button>
               </div>
-            </form>
+            </fieldset></form></>}
           </section>
 
           <section className="profile-panel profile-sessions">

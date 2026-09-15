@@ -1,0 +1,5 @@
+.login-page-shell .auth-card__tabs button{background:#f3f1ff!important;color:#554c96!important;border:1px solid #dfd9f5!important}
+.login-page-shell .auth-card__tabs button.is-active{background:#554c96!important;color:#fff!important;border-color:#554c96!important}
+.login-page-shell .auth-form .auth-link-button,.login-page-shell .login-page__register-prompt button{background:transparent!important;color:#554c96!important;border:0!important;min-height:auto;padding:5px!important;width:auto;text-decoration:underline}
+.login-page-shell .auth-form small{color:#697697;font-size:12px;line-height:1.5}
+.login-page-shell .auth-form [role=status]{white-space:pre-line;font-size:14px}

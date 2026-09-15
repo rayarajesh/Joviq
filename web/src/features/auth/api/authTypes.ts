@@ -15,6 +15,7 @@ export type RegisterRequest = {
 export type RegisterResponse = {
   userId: string;
   emailVerificationRequired: boolean;
+  verificationEmailSent?: boolean;
 };
 
 export type LoginRequest = {

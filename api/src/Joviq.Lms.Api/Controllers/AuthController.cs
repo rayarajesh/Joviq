@@ -28,13 +28,22 @@ public sealed class AuthController(
     private readonly ExternalAuthOptions _externalAuthOptions = externalAuthOptions.Value;
     private readonly bool _isDevelopment = hostEnvironment.IsDevelopment();
 
+    [HttpGet("providers")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Providers()
+    {
+        return Ok(ApiResponse<object>.Ok(new { google = await authenticationSchemeProvider.GetSchemeAsync("Google") is not null }, "Sign-in providers loaded.", CorrelationId));
+    }
+
     [HttpPost("register")]
     [AllowAnonymous]
     [EnableRateLimiting("AuthRegister")]
     public async Task<ActionResult<ApiResponse<RegisterResponse>>> Register(RegisterRequest request, CancellationToken cancellationToken)
     {
         var result = await authService.RegisterAsync(request, RequestMetadata(), cancellationToken);
-        return Ok(ApiResponse<RegisterResponse>.Ok(result, "Registration successful. Please verify your email.", CorrelationId));
+        return Ok(ApiResponse<RegisterResponse>.Ok(result, result.VerificationEmailSent
+            ? "Registration successful. Please verify your email."
+            : "Account created, but the verification email could not be delivered. Please retry sending the OTP.", CorrelationId));
     }
 
     [HttpPost("login")]

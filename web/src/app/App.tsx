@@ -19,6 +19,7 @@ import {
 } from "../pages/PublicPages";
 import { StudentOnboardingPage } from "../pages/StudentOnboardingPage";
 import { ProtectedRoute } from "./ProtectedRoute";
+import { StudentPreviewPage } from "../pages/StudentPreviewPage";
 
 export function App() {
   return (
@@ -27,6 +28,7 @@ export function App() {
         <HashScroll />
         <ScrollToTopButton />
         <Routes>
+          {import.meta.env.DEV && <Route path="/dev/student-dashboard" element={<StudentPreviewPage />} />}
           <Route path="/" element={<LandingPage />} />
           <Route path="/programs" element={<ProgramsPage />} />
           <Route path="/features" element={<FeaturesPage />} />

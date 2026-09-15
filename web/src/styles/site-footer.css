@@ -1,0 +1,16 @@
+.public-footer.public-footer--restored{background:radial-gradient(ellipse at 15% 10%,#242f6655,transparent 40%),linear-gradient(180deg,#0c254d,#07132f);color:#adb9d4;margin-top:0;border:0}
+.public-footer--restored .public-footer__inner{width:min(1720px,calc(100% - 80px));margin:auto;padding:58px 0 64px}
+.public-footer--restored .public-footer__grid{display:grid;grid-template-columns:.9fr 1fr 1.2fr 1.1fr 1fr 1.65fr;gap:clamp(20px,3vw,64px);align-items:start}
+.public-footer--restored .public-footer__grid>*{min-width:0;grid-column:auto;padding:0;border:0;background:transparent;box-shadow:none}
+.public-footer--restored .public-footer__brand{justify-items:center}
+.public-footer--restored .public-footer__logo .brand-logo{width:110px;height:auto;filter:none}
+.public-footer--restored h3{color:#fff;font-size:17px;line-height:1.5;margin:0 0 12px;font-weight:700}
+.public-footer--restored .public-footer__column,.public-footer--restored .public-footer__contact{gap:18px}
+.public-footer--restored .public-footer__column a,.public-footer--restored .public-footer__social a,.public-footer--restored .public-footer__contact p{color:#adb9d4;font-size:14px;font-weight:600;line-height:1.65}
+.public-footer--restored .public-footer__contact strong{color:#fff}
+.public-footer--restored .public-footer__contact svg{color:#9286e4}
+.public-footer--restored .public-footer__social>div{gap:16px}
+@media(max-width:1100px){.public-footer--restored .public-footer__grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:32px}.public-footer--restored .public-footer__brand{justify-items:start}}
+@media(max-width:600px){.public-footer--restored .public-footer__inner{width:calc(100% - 40px);padding:36px 0}.public-footer--restored .public-footer__grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 20px}.public-footer--restored .public-footer__contact{grid-column:1/-1}.public-footer--restored h3{font-size:15px}.public-footer--restored .public-footer__column a{font-size:13px}}
+.public-footer.public-footer--restored::before,.public-footer.public-footer--restored::after{display:none!important;content:none!important}
+.public-footer.public-footer--restored{position:relative;z-index:2;isolation:isolate}

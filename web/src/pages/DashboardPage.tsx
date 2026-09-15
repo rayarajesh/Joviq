@@ -1,8 +1,12 @@
+import "../styles/admin-modules.css";
 import { AcademyOverview } from "../components/AcademyOverview";
+import { StudentOverview } from "../components/StudentOverview";
+import { StudentModuleHeader, StudentModuleEmpty, StudentCertificates, StudentPayments } from "../components/StudentModules";
+import { studentPreviewDashboard, studentPreviewWorkspace } from "../data/studentPreview";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import type { ComponentType } from "react";
 import { createPortal } from "react-dom";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Award,
   BadgePercent,
@@ -166,6 +170,7 @@ const dashboardNavItems: Record<PrimaryRole, string[]> = {
   ],
   Student: [
     "Overview",
+    "Notifications",
     "My Program",
     "Projects",
     "Payments",
@@ -207,11 +212,12 @@ function getModuleDisplayName(module: string) {
   return module === "Overview" ? "Dashboard" : module;
 }
 
-export function DashboardPage() {
+export function DashboardPage({ studentPreview = false }: { studentPreview?: boolean } = {}) {
+  const isPreview = import.meta.env.DEV && studentPreview;
   const auth = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const roles = auth.user?.roles ?? [];
-  const primaryRole: PrimaryRole = roles.includes("Admin") ? "Admin" : "Student";
+  const primaryRole: PrimaryRole = !isPreview && roles.includes("Admin") ? "Admin" : "Student";
   const requestedModule = searchParams.get("section");
   const normalizedRequestedModule = requestedModule === "Dashboard" ? "Overview" : requestedModule;
   const canOpenRequestedModule = normalizedRequestedModule
@@ -239,8 +245,8 @@ export function DashboardPage() {
   const usesAdminModuleHero = primaryRole === "Admin"
     && (activeModule === "Students" || activeModule === "Categories" || activeModule === "Programs" || activeModule === "Curriculum");
   const hideDashboardHeader = usesAdminModuleHero
-    || (primaryRole === "Admin" && activeModule === "Overview")
-    || (primaryRole === "Student" && activeModule === "My Program");
+    || (primaryRole === "Admin" && ["Overview", "Enrollments", "Payments"].includes(activeModule))
+    || (primaryRole === "Student" && ["My Program", "Overview", "Projects", "Certificates", "Payments"].includes(activeModule));
 
   return (
     <main className={`dashboard-shell dashboard-shell--${primaryRole.toLowerCase()}`}>
@@ -251,13 +257,13 @@ export function DashboardPage() {
             <div>
               <span className="eyebrow">Joviq LMS</span>
               <h1>{getModuleDisplayName(activeModule)}</h1>
-              {auth.user?.fullName ? <p>{auth.user.fullName}</p> : null}
+              {isPreview ? <p>Student Preview</p> : auth.user?.fullName ? <p>{auth.user.fullName}</p> : null}
             </div>
           </header>
         ) : null}
 
         {primaryRole === "Admin" ? <AdminDashboard activeModule={activeModule} currentUserId={auth.user?.id} /> : null}
-        {primaryRole === "Student" ? <StudentDashboard activeModule={activeModule} /> : null}
+        {primaryRole === "Student" ? <StudentDashboard activeModule={activeModule} preview={isPreview} openModule={selectModule} /> : null}
       </section>
     </main>
   );
@@ -302,6 +308,7 @@ export function DashboardSidebar({
           </div>
         ))}
       </nav>
+      {role === "Student" && <><Link className="student-sidebar-support" to="/request-callback"><UserRoundCheck size={17} />Help &amp; Support</Link><div className="student-sidebar-promo"><GraduationCap size={46} /><strong>Keep<br />Learning<br />Keep Growing</strong><span /><p>“Small progress<br />every day leads to<br />big results.”</p></div></>}
     </aside>
   );
 }
@@ -345,7 +352,7 @@ function AdminDashboard({ activeModule, currentUserId }: { activeModule: string;
         certificatesResponse,
         notificationsResponse,
         auditLogsResponse
-      ] = await Promise.all([
+      ] = await Promise.allSettled([
         adminUsersApi.getSummary(),
         adminUsersApi.getUsers(toPeopleListParams("Student", studentQuery)),
         adminLmsApi.getSummary(),
@@ -361,19 +368,22 @@ function AdminDashboard({ activeModule, currentUserId }: { activeModule: string;
         adminLmsApi.getAuditLogs(1, 20)
       ]);
 
-      setSummary(summaryResponse.data);
-      setStudentsPage(studentsResponse.data);
-      setLmsSummary(lmsSummaryResponse.data);
-      setLmsPrograms(lmsProgramsResponse.data);
-      setProgramCategories(categoriesResponse.data);
-      setAdminCurriculum(curriculumResponse.data);
-      setAdminProjects(projectsResponse.data);
-      setAdminEnrollments(enrollmentsResponse.data);
-      setAdminPayments(paymentsResponse.data);
-      setAdminCoupons(couponsResponse.data);
-      setAdminCertificates(certificatesResponse.data);
-      setAdminNotifications(notificationsResponse.data);
-      setAuditLogs(auditLogsResponse.data.items);
+      if (summaryResponse.status === "fulfilled") setSummary(summaryResponse.value.data);
+      if (studentsResponse.status === "fulfilled") setStudentsPage(studentsResponse.value.data);
+      if (lmsSummaryResponse.status === "fulfilled") setLmsSummary(lmsSummaryResponse.value.data);
+      if (lmsProgramsResponse.status === "fulfilled") setLmsPrograms(lmsProgramsResponse.value.data);
+      if (categoriesResponse.status === "fulfilled") setProgramCategories(categoriesResponse.value.data);
+      if (curriculumResponse.status === "fulfilled") setAdminCurriculum(curriculumResponse.value.data);
+      if (projectsResponse.status === "fulfilled") setAdminProjects(projectsResponse.value.data);
+      if (enrollmentsResponse.status === "fulfilled") setAdminEnrollments(enrollmentsResponse.value.data);
+      if (paymentsResponse.status === "fulfilled") setAdminPayments(paymentsResponse.value.data);
+      if (couponsResponse.status === "fulfilled") setAdminCoupons(couponsResponse.value.data);
+      if (certificatesResponse.status === "fulfilled") setAdminCertificates(certificatesResponse.value.data);
+      if (notificationsResponse.status === "fulfilled") setAdminNotifications(notificationsResponse.value.data);
+      if (auditLogsResponse.status === "fulfilled") setAuditLogs(auditLogsResponse.value.data.items);
+      const results = [{ name: "Summary", result: summaryResponse },{ name: "Students Page", result: studentsResponse },{ name: "Lms Summary", result: lmsSummaryResponse },{ name: "Lms Programs", result: lmsProgramsResponse },{ name: "Program Categories", result: categoriesResponse },{ name: "Admin Curriculum", result: curriculumResponse },{ name: "Admin Projects", result: projectsResponse },{ name: "Admin Enrollments", result: enrollmentsResponse },{ name: "Admin Payments", result: paymentsResponse },{ name: "Admin Coupons", result: couponsResponse },{ name: "Admin Certificates", result: certificatesResponse },{ name: "Admin Notifications", result: notificationsResponse }];
+      const failed = results.filter(item => item.result.status === "rejected");
+      if (failed.length) setMessage({ tone: "error", text: `Some data is unavailable: ${failed.map(item=>item.name).join(", ")}. The server could not load these records.` });
     } catch (error) {
       setMessage({ tone: "error", text: formatApiError(error) });
     } finally {
@@ -611,7 +621,7 @@ function AdminOverview({
     navigate(`/dashboard?section=${encodeURIComponent(module)}`);
   }
 
-  return <AcademyOverview kpis={kpis} priorities={priorities} logs={auditLogs} loading={isLoading} openModule={openModule} enrollmentDates={enrollments.map(item => item.enrolledAt)} paymentDates={payments.filter(item => item.status === "Verified").map(item => item.verifiedAt ?? item.createdAt)} />;
+  return <AcademyOverview revenue={lmsSummary?.verifiedRevenue ?? payments.filter(item=>item.status === "Verified").reduce((sum,item)=>sum+item.amount,0)} revenueRecords={payments.filter(item=>item.status === "Verified").map(item=>({date:item.verifiedAt ?? item.createdAt,amount:item.amount}))} kpis={kpis} priorities={priorities} logs={auditLogs} loading={isLoading} openModule={openModule} enrollmentDates={enrollments.map(item => item.enrolledAt)} paymentDates={payments.filter(item => item.status === "Verified").map(item => item.verifiedAt ?? item.createdAt)} />;
 }
 
 function AdminLmsPanel({
@@ -677,6 +687,8 @@ function AdminLmsPanel({
   const [isProjectReviewsLoading, setIsProjectReviewsLoading] = useState(false);
   const [projectReviewDrafts, setProjectReviewDrafts] = useState<Record<string, { status: "NeedsRevision" | "Approved"; score: string; feedback: string }>>({});
   const [isReviewingProject, setIsReviewingProject] = useState<string | null>(null);
+  const [workflowInfo, setWorkflowInfo] = useState<"enrollment" | "payment" | null>(null);
+  const [paymentPeriod, setPaymentPeriod] = useState("all");
   const [enrollmentSearch, setEnrollmentSearch] = useState("");
   const [enrollmentCategoryFilter, setEnrollmentCategoryFilter] = useState("All");
   const [enrollmentProgramFilter, setEnrollmentProgramFilter] = useState("All");
@@ -745,6 +757,7 @@ function AdminLmsPanel({
   const visiblePayments = useMemo(() => {
     const query = paymentSearch.trim().toLowerCase();
     return adminPayments.filter((payment) => {
+      if (paymentPeriod === "month" && new Date(payment.createdAt) < new Date(new Date().getFullYear(), new Date().getMonth(), 1)) return false;
       if (paymentStatusFilter !== "All" && payment.status !== paymentStatusFilter) {
         return false;
       }
@@ -765,7 +778,7 @@ function AdminLmsPanel({
         payment.studentId
       ].some((value) => value?.toLowerCase().includes(query));
     });
-  }, [adminPayments, paymentSearch, paymentStatusFilter]);
+  }, [adminPayments, paymentSearch, paymentStatusFilter, paymentPeriod]);
 
   useEffect(() => {
     if (!hasOpenAdminDialog) {
@@ -1524,7 +1537,7 @@ function AdminLmsPanel({
   const isProgramsModule = activeModule === "Programs";
   const isCurriculumModule = activeModule === "Curriculum";
   const usesCatalogModuleHero = isCategoriesModule || isProgramsModule;
-  const showGenericLmsHero = !isCurriculumModule;
+  const showGenericLmsHero = !isCurriculumModule && !["Enrollments", "Payments"].includes(activeModule);
   const selectedCategorySlug = searchParams.get("category");
   const selectedProgramCategory = selectedCategorySlug
     ? categories.find((category) => category.slug.toLowerCase() === selectedCategorySlug.toLowerCase())
@@ -1554,14 +1567,14 @@ function AdminLmsPanel({
       {usesCatalogModuleHero ? (
         <div className="category-page-header">
           <div>
-            <span className="eyebrow">LMS engine</span>
+            <span className="eyebrow"><Link to="/dashboard">Dashboard</Link> / {isProgramsModule ? "Programs" : "Categories"}</span>
             <h2>{isProgramsModule ? "Programs" : "Categories"}</h2>
             <p>
               {isProgramsModule
                 ? selectedProgramCategory
                   ? `${selectedProgramCategory.name} programs ready to edit, plan, and organize.`
                   : `${programs.length} programs ready to edit, plan, and organize.`
-                : `${categories.length} domains and ${categoryProgramCount} programs organized for the website.`}
+                : `Organize your programs into categories for a better learning experience. ${categoryProgramCount} programs.`}
             </p>
           </div>
           <button
@@ -1569,7 +1582,7 @@ function AdminLmsPanel({
             type="button"
             onClick={() => isProgramsModule ? void openProgramDialog() : openCategoryDialog()}
           >
-            {isProgramsModule ? <BookOpen size={18} /> : <Layers3 size={18} />}
+            <Plus size={18} />
             {isProgramsModule ? "Create program" : "Create category"}
           </button>
         </div>
@@ -1586,6 +1599,7 @@ function AdminLmsPanel({
         </div>
       ) : null}
 
+      {workflowInfo && <div className="admin-workflow-backdrop"><dialog className="admin-workflow-dialog" ref={node=>{if(node&&!node.open)node.showModal();}} onCancel={()=>setWorkflowInfo(null)} aria-labelledby="workflow-title"><button className="admin-dialog-close" aria-label="Close workflow" onClick={() => setWorkflowInfo(null)}><X size={20}/></button><h2 id="workflow-title">{workflowInfo === "enrollment" ? "Add an enrollment" : "Payment settings"}</h2><p>{workflowInfo === "enrollment" ? "Students enroll by choosing a program and completing checkout from their student account. Admins can review and manage the enrollment here afterward. Direct admin enrollment creation is not available in the current backend." : "Payments are configured on the server. This workspace supports reviewing transactions, verifying pending payments, marking failed payments, and viewing receipts. Payment gateway settings are not editable from this account."}</p><button className="primary-action" onClick={() => setWorkflowInfo(null)}>Got it</button></dialog></div>}
       <div className={usesCatalogModuleHero ? "category-admin-layout" : isCurriculumModule ? "lms-admin-curriculum-layout" : "lms-admin-grid"}>
         {showModule("Categories") ? (
           <section className="category-admin-panel">
@@ -1617,7 +1631,7 @@ function AdminLmsPanel({
                       </span>
                       <div>
                         <strong>{category.name}</strong>
-                        <small>{category.isPublished === false ? "Hidden from website" : "Visible on website"}</small>
+                        <small>{category.programs.length} programs{category.isPublished === false ? " � Inactive" : ""}</small>
                       </div>
                     </div>
                     <p>{category.description || "No description added yet."}</p>
@@ -1629,12 +1643,13 @@ function AdminLmsPanel({
                       type="button"
                       onClick={() => navigate(`/dashboard?section=Programs&category=${encodeURIComponent(category.slug)}`)}
                     >
-                      Explore programs
+                      <span className="sr-only">Explore {category.name} programs</span>
                       <ChevronRight size={16} />
                     </button>
                   </div>
                 </article>
               ))}
+              <button className="admin-category-add" onClick={() => openCategoryDialog()}><span><Plus size={30}/></span><strong>Create a new category</strong><small>Add a category to organize<br/>more programs.</small></button>
             </div>
           </section>
         ) : null}
@@ -2436,11 +2451,11 @@ function AdminLmsPanel({
           <section className="enrollment-admin-page">
             <section className="enrollment-admin-hero">
               <div className="enrollment-admin-hero__copy">
-                <span className="enrollment-admin-eyebrow"><Layers3 size={16} /> Enrollment command center</span>
-                <h2>Understand every learner journey at a glance.</h2>
-                <p>Track who joined, what they paid, how much is due, and whether their learning access is healthy.</p>
+                <span className="enrollment-admin-eyebrow"><Link to="/dashboard">Dashboard</Link> / Enrollments</span>
+                <h2>Enrollments</h2>
+                <p>Track learner enrollments across all programs and keep learning journeys on track.</p>
               </div>
-              <div className="enrollment-admin-hero__badge">
+              <button className="primary-action" onClick={() => setWorkflowInfo("enrollment")}><Plus size={18}/>Add Enrollment</button><div className="enrollment-admin-hero__badge">
                 <ShieldCheck size={22} />
                 <strong>{enrollmentStats.active} active</strong>
                 <span>currently learning</span>
@@ -2450,8 +2465,8 @@ function AdminLmsPanel({
             <section className="enrollment-admin-kpis" aria-label="Enrollment summary">
               <article className="enrollment-admin-kpi enrollment-admin-kpi--purple"><span><UsersRound size={18} /> Total enrollments</span><strong>{enrollmentStats.total}</strong><small>All learner records</small></article>
               <article className="enrollment-admin-kpi enrollment-admin-kpi--green"><span><CheckCircle2 size={18} /> Active access</span><strong>{enrollmentStats.active}</strong><small>Access is available</small></article>
-              <article className="enrollment-admin-kpi enrollment-admin-kpi--gold"><span><WalletCards size={18} /> Collected</span><strong>{formatCurrency(enrollmentStats.collected)}</strong><small>Verified and recorded</small></article>
-              <article className="enrollment-admin-kpi enrollment-admin-kpi--rose"><span><CalendarDays size={18} /> Expiring soon</span><strong>{enrollmentStats.expiringSoon}</strong><small>Within the next 30 days</small></article>
+              <article className="enrollment-admin-kpi enrollment-admin-kpi--gold"><span><WalletCards size={18} /> Pending Enrollments</span><strong>{adminEnrollments.filter(item => item.status === "Reserved").length}</strong><small>Awaiting activation</small></article>
+              <article className="enrollment-admin-kpi enrollment-admin-kpi--rose"><span><CheckCircle2 size={18} /> Completed Enrollments</span><strong>{adminEnrollments.filter(item => item.status === "Completed").length}</strong><small>Learning completed</small></article>
             </section>
 
             <section className="enrollment-admin-workspace">
@@ -2461,7 +2476,7 @@ function AdminLmsPanel({
                   <h3>All enrollments</h3>
                   <p>{visibleEnrollments.length} of {adminEnrollments.length} enrollment{adminEnrollments.length === 1 ? "" : "s"} shown</p>
                 </div>
-                <div className="enrollment-admin-toolbar__controls">
+                <div className="enrollment-admin-toolbar__controls"><button className="secondary-action admin-enrollment-reset" onClick={()=>{setEnrollmentSearch("");setEnrollmentCategoryFilter("All");setEnrollmentProgramFilter("All");setEnrollmentStatusFilter("All");}}><RotateCcw size={16}/>Reset</button>
                   <label className="enrollment-admin-search"><Search size={17} /><span className="sr-only">Search enrollments</span><input value={enrollmentSearch} onChange={(event) => setEnrollmentSearch(event.target.value)} placeholder="Search student or program" /></label>
                   <label className="enrollment-admin-filter"><Layers3 size={16} /><span className="sr-only">Filter by category</span><select value={enrollmentCategoryFilter} onChange={(event) => { setEnrollmentCategoryFilter(event.target.value); setEnrollmentProgramFilter("All"); }}><option value="All">All categories</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
                   <label className="enrollment-admin-filter"><BookOpen size={16} /><span className="sr-only">Filter by program</span><select value={enrollmentProgramFilter} onChange={(event) => setEnrollmentProgramFilter(event.target.value)}><option value="All">All programs</option>{enrollmentProgramOptions.map((program) => <option key={program.id} value={program.id}>{program.title}</option>)}</select></label>
@@ -2471,7 +2486,7 @@ function AdminLmsPanel({
 
               <div className="enrollment-admin-list">
                 {visibleEnrollments.length === 0 ? (
-                  <div className="enrollment-admin-empty"><Search size={24} /><strong>{adminEnrollments.length === 0 ? "No enrollments yet" : "No enrollments match your filters"}</strong><span>Try a different student, program, or status.</span></div>
+                  <div className="enrollment-admin-empty admin-reference-empty"><span className="admin-empty-art"><ClipboardList size={60}/></span><h3>{adminEnrollments.length === 0 ? "No enrollments to display" : "No enrollments match your filters"}</h3><p>Enroll students into programs to track their learning journey and progress here.</p><button className="primary-action" onClick={() => setWorkflowInfo("enrollment")}><Plus size={18}/>Add Enrollment</button></div>
                 ) : null}
                 {visibleEnrollments.map((enrollment) => {
                   const relatedPayments = adminPayments.filter((payment) => payment.enrollmentId === enrollment.id);
@@ -2533,11 +2548,11 @@ function AdminLmsPanel({
           <section className="lms-list-panel lms-list-panel--wide payments-admin-panel">
             <div className="payments-admin-heading">
               <div>
-                <span className="enrollment-admin-eyebrow">Payment ledger</span>
+                <span className="enrollment-admin-eyebrow"><Link to="/dashboard">Dashboard</Link> / Payments</span>
                 <h3>Payments</h3>
-                <p>{visiblePayments.length} of {adminPayments.length} payment{adminPayments.length === 1 ? "" : "s"} shown. Review how each student paid, confirm pending payments, and open receipts.</p>
+                <p>Track and manage all payments in one place.</p>
               </div>
-              <div className="payments-admin-controls">
+              <div className="payments-admin-controls"><label className="payments-admin-filter"><CalendarDays size={16}/><select aria-label="Payment period" value={paymentPeriod} onChange={event => setPaymentPeriod(event.target.value)}><option value="all">All time</option><option value="month">This month</option></select></label><button className="secondary-action" onClick={() => {setPaymentSearch("");setPaymentStatusFilter("All");setPaymentPeriod("all");}}><RotateCcw size={16}/>Reset</button>
                 <label className="payments-admin-search"><Search size={16} /><span className="sr-only">Search payments</span><input value={paymentSearch} onChange={(event) => setPaymentSearch(event.target.value)} placeholder="Search student, program, invoice..." /></label>
                 <label className="payments-admin-filter"><SlidersHorizontal size={16} /><span className="sr-only">Filter payments by status</span><select value={paymentStatusFilter} onChange={(event) => setPaymentStatusFilter(event.target.value)}><option value="All">All statuses</option><option value="Pending">Pending review</option><option value="Verified">Verified</option><option value="Failed">Failed</option></select></label>
               </div>
@@ -2551,7 +2566,7 @@ function AdminLmsPanel({
             </div>
 
             <div className="payments-admin-list">
-              {visiblePayments.length === 0 ? <div className="table-state">{adminPayments.length === 0 ? "No payments yet." : "No payments match your filters."}</div> : null}
+              {visiblePayments.length === 0 ? <div className="admin-reference-empty"><span className="admin-empty-art"><FileText size={62}/></span><h3>{adminPayments.length === 0 ? "No payments to display" : "No payments match your filters"}</h3><p>Once you start receiving payments, they will appear here.</p><button className="primary-action" onClick={() => setWorkflowInfo("payment")}><CreditCard size={17}/>View Payment Settings</button></div> : null}
               {visiblePayments.map((payment) => {
                 const studentName = payment.studentName || `Student ${payment.studentId.slice(0, 8)}`;
                 const isPending = payment.status === "Pending";
@@ -2833,8 +2848,7 @@ function AdminPeoplePanel({
           </div>
           <div>
             <div className="admin-people-hero__kicker">
-              <span>Joviq LMS</span>
-              <span>People workspace</span>
+              <Link to="/dashboard">Dashboard</Link><span>/</span><span>Students</span>
             </div>
             <h2>{title}</h2>
             <p>Add learners, review onboarding, and keep account access under control.</p>
@@ -2926,7 +2940,7 @@ function AdminPeoplePanel({
           <input
             value={searchDraft}
             onChange={(event) => setSearchDraft(event.target.value)}
-            placeholder={`Search ${roleLabel}s`}
+            placeholder={`Search ${roleLabel}s by name or email...`}
           />
           <button className="secondary-action" type="submit">Search</button>
         </form>
@@ -2948,11 +2962,11 @@ function AdminPeoplePanel({
             ))}
           </select>
         </label>
+        <button className="admin-students-reset secondary-action" onClick={() => { setSearchDraft(""); onQueryChange({ ...initialPeopleQuery }); }}>Reset filters</button>
       </div>
-
       <div className="admin-people-list">
         {isLoading ? <div className="table-state">Loading {roleLabel}s...</div> : null}
-        {!isLoading && users.length === 0 ? <div className="table-state">{emptyText}</div> : null}
+        {!isLoading && users.length === 0 ? <div className="admin-reference-empty"><span className="admin-empty-art"><GraduationCap size={68}/></span><h3>{query.search || query.status !== initialPeopleQuery.status ? "No students match your filters" : "No students yet"}</h3><p>{query.search ? emptyText : "Start by adding your first student and give them access to learn, practice and grow."}</p><button className="primary-action" onClick={() => setIsAdding(true)}><Plus size={18}/>Add Student</button></div> : null}
         {!isLoading
           ? users.map((user) => {
               const phone = formatPhoneForDisplay(user.phoneNumber);
@@ -3123,8 +3137,9 @@ function AdminPeoplePanel({
   );
 }
 
-function StudentDashboard({ activeModule }: { activeModule: string }) {
+function StudentDashboard({ activeModule, preview = false, openModule }: { activeModule: string; preview?: boolean; openModule: (module: string) => void }) {
   const navigate = useNavigate();
+  const auth = useAuth();
   const [dashboard, setDashboard] = useState<StudentLmsDashboardResponse | null>(null);
   const [workspace, setWorkspace] = useState<StudentProgramWorkspaceResponse | null>(null);
   const [myPrograms, setMyPrograms] = useState<StudentMyProgramsResponse | null>(null);
@@ -3135,8 +3150,17 @@ function StudentDashboard({ activeModule }: { activeModule: string }) {
   const [projectDrafts, setProjectDrafts] = useState<Record<string, string>>({});
   const [projectSubmissionNotes, setProjectSubmissionNotes] = useState<Record<string, string>>({});
   const [projectSubmissionFiles, setProjectSubmissionFiles] = useState<Record<string, File | null>>({});
+  const [projectFilter, setProjectFilter] = useState("All Projects");
 
   const loadStudentDashboard = useCallback(async () => {
+    if (preview) {
+      setDashboard(studentPreviewDashboard);
+      setWorkspace(studentPreviewWorkspace);
+      setPrograms([]);
+      setMyPrograms({ programs: [] });
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
       const [dashboardResponse, workspaceResponse, programsResponse, myProgramsResponse] = await Promise.all([
@@ -3155,9 +3179,16 @@ function StudentDashboard({ activeModule }: { activeModule: string }) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [preview]);
+
+  function previewAction() {
+    if (!preview) return false;
+    setMessage({ tone: "success", text: "Design preview: this action is available after signing in to a student account." });
+    return true;
+  }
 
   async function enroll(program: ProgramSummaryResponse, mode: 1 | 2) {
+    if (previewAction()) return;
     setActionId(`${program.id}-${mode}`);
     setMessage(null);
 
@@ -3185,6 +3216,7 @@ function StudentDashboard({ activeModule }: { activeModule: string }) {
   }
 
   async function payBalance(mode: 1 | 2 | 3, targetEnrollment?: EnrollmentResponse) {
+    if (previewAction()) return;
     const enrollment = targetEnrollment ?? workspace?.enrollment ?? dashboard?.enrollment;
     if (!enrollment) {
       return;
@@ -3212,6 +3244,7 @@ function StudentDashboard({ activeModule }: { activeModule: string }) {
   }
 
   async function viewReceipt(paymentId: string) {
+    if (previewAction()) return;
     setActionId(`receipt-${paymentId}`);
     setMessage(null);
     try {
@@ -3224,6 +3257,7 @@ function StudentDashboard({ activeModule }: { activeModule: string }) {
   }
 
   async function submitProject(projectId: string) {
+    if (previewAction()) return;
     const value = projectDrafts[projectId]?.trim();
     const notes = projectSubmissionNotes[projectId]?.trim();
     const file = projectSubmissionFiles[projectId] ?? null;
@@ -3266,6 +3300,7 @@ function StudentDashboard({ activeModule }: { activeModule: string }) {
   }
 
   async function openStudentSubmissionFile(fileAssetId: string) {
+    if (previewAction()) return;
     try {
       const response = await assetsApi.getAccessUrl(fileAssetId);
       window.open(response.data.url, "_blank", "noopener,noreferrer");
@@ -3275,6 +3310,7 @@ function StudentDashboard({ activeModule }: { activeModule: string }) {
   }
 
   async function markNotificationRead(notificationId: string) {
+    if (previewAction()) return;
     setActionId(`notification-${notificationId}`);
     setMessage(null);
 
@@ -3301,8 +3337,15 @@ function StudentDashboard({ activeModule }: { activeModule: string }) {
   const showOverview = activeModule === "Overview";
   const showStudentModule = (...modules: string[]) => activeModule === "Overview" || modules.includes(activeModule);
 
+  if (showOverview) return <><ToastMessage message={message} onDismiss={() => setMessage(null)} /><StudentOverview name={preview ? "Student" : auth.user?.fullName?.split(" ")[0] ?? "Student"} dashboard={dashboard} workspace={workspace} loading={isLoading} openModule={openModule} continueLearning={programId => { if (!previewAction()) navigate(`/learning/${programId}`); }} /></>;
+
+  if (activeModule === "Certificates" || activeModule === "Payments") return <section className="student-module-page"><StudentModuleHeader module={activeModule} onDashboard={() => openModule("Overview")} /><ToastMessage message={message} onDismiss={() => setMessage(null)} />{isLoading ? <div className="student-module-surface" role="status">Loading your {activeModule.toLowerCase()}...</div> : activeModule === "Certificates" ? <StudentCertificates certificates={certificates} onProgram={() => openModule("My Program")} /> : <StudentPayments enrollment={enrollment} payments={payments} onReceipt={id => void viewReceipt(id)} onPay={() => void payBalance(enrollment?.isAccessExpired || !enrollment?.paidAmount ? 1 : 3)} actionId={actionId} />}</section>;
+
+  const filteredProjects = projects.filter(project => projectFilter === "All Projects" || (projectFilter === "In Progress" ? !project.latestSubmission || ["Draft", "NeedsRevision"].includes(project.latestSubmission.status) : projectFilter === "Submitted" ? project.latestSubmission?.status === "Submitted" : ["Approved", "Rejected", "NeedsRevision"].includes(project.latestSubmission?.status ?? "")));
+
   return (
-    <section className="dashboard-stack">
+    <section className={`dashboard-stack ${activeModule === "Projects" ? "student-module-page student-projects-page" : ""}`}>
+      {activeModule === "Projects" && <><StudentModuleHeader module="Projects" onDashboard={() => openModule("Overview")} /><div className="student-project-tabs" aria-label="Filter projects">{["All Projects", "In Progress", "Submitted", "Reviewed"].map(filter => <button key={filter} aria-pressed={projectFilter === filter} onClick={() => setProjectFilter(filter)}>{filter}</button>)}</div>{!isLoading && projects.length === 0 && <StudentModuleEmpty kind="Projects" onProgram={() => openModule("My Program")} />}</>}
       {showOverview ? (
         <section className="metric-grid">
           <DashboardMetric icon={BookOpen} label="Program status" value={dashboard?.programStatus ?? "-"} />
@@ -3329,7 +3372,7 @@ function StudentDashboard({ activeModule }: { activeModule: string }) {
         </section>
       ) : null}
 
-      {!isLoading && !enrollment && activeModule !== "Profile" && activeModule !== "My Program" ? (
+      {!isLoading && !enrollment && activeModule !== "Profile" && activeModule !== "My Program" && activeModule !== "Projects" ? (
         <section className="dashboard-card student-marketplace">
           <div className="card-title-row">
             <div>
@@ -3442,7 +3485,7 @@ function StudentDashboard({ activeModule }: { activeModule: string }) {
           </section>
           ) : null}
 
-          {showStudentModule("Projects") ? (
+          {showStudentModule("Projects") && projects.length > 0 ? (
           <section className="dashboard-card work-submit-card">
             <div className="card-title-row">
               <div>
@@ -3460,7 +3503,8 @@ function StudentDashboard({ activeModule }: { activeModule: string }) {
                 </div>
               ) : null}
               {enrollment.hasFullAccess && projects.length === 0 ? <div className="project-empty-state"><FolderKanban size={24} /><strong>No projects assigned yet.</strong><p>Your assigned project work will appear here when the admin publishes it to you.</p></div> : null}
-              {projects.map((project) => {
+              {filteredProjects.length === 0 && <div className="student-module-empty"><h2>No projects in this view.</h2><p>Choose another filter to see your assigned work.</p></div>}
+              {filteredProjects.map((project) => {
                 const submission = project.latestSubmission;
                 const selectedFile = projectSubmissionFiles[project.id];
                 return (

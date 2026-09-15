@@ -43,7 +43,9 @@ import {
 import { authApi } from "../features/auth/api/authApi";
 import { useAuth } from "../features/auth/context/useAuth";
 import { normalizeOAuthReturnUrl } from "../features/auth/oauthPopup";
-import { formatApiError } from "../lib/api/httpClient";
+import { ApiError, formatApiError } from "../lib/api/httpClient";
+import { PasswordRecovery } from "../components/PasswordRecovery";
+import "../styles/login-flow.css";
 import { toIndiaMobileNumber } from "../lib/validation/indiaMobile";
 
 type ImmersiveRouteHeroProps = {
@@ -57,7 +59,7 @@ type ImmersiveRouteHeroProps = {
 };
 
 type PageMessage = { tone: "success" | "error"; text: string } | null;
-type AuthPageMode = "login" | "register" | "verify-email";
+type AuthPageMode = "login" | "register" | "verify-email" | "forgot-password";
 
 const policyVersion = "2026-08-20";
 const emailPattern = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$";
@@ -132,7 +134,7 @@ export function LoginPage() {
   const [loginSearchParams] = useSearchParams();
   const returnUrl = normalizeOAuthReturnUrl(loginSearchParams.get("returnUrl"));
   const [mode, setMode] = useState<AuthPageMode>("login");
-  const [loginRole, setLoginRole] = useState<"student" | "admin">("student");
+  const [loginRole, setLoginRole] = useState<"student" | "admin">(loginSearchParams.get("role") === "admin" ? "admin" : "student");
   const [message, setMessage] = useState<PageMessage>(null);
   const [pendingEmail, setPendingEmail] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -158,6 +160,10 @@ export function LoginPage() {
       auth.applyAuthResponse(response.data);
       navigate(returnUrl);
     } catch (error) {
+      if (error instanceof ApiError && error.problem?.errorCode === "email_not_verified") {
+        setPendingEmail(String(form.get("email") ?? "").trim().toLowerCase());
+        setMode("verify-email");
+      }
       setMessage({ tone: "error", text: formatApiError(error) });
     } finally {
       setIsSubmitting(false);
@@ -188,7 +194,7 @@ export function LoginPage() {
     }
 
     try {
-      await authApi.register({
+      const response = await authApi.register({
         fullName: String(form.get("fullName") ?? ""),
         email,
         phoneNumber,
@@ -201,7 +207,9 @@ export function LoginPage() {
 
       setPendingEmail(email);
       setMode("verify-email");
-      setMessage({ tone: "success", text: `OTP sent to ${email}. Verify it to activate your account.` });
+      setMessage(response.data.verificationEmailSent === false
+        ? { tone: "error", text: "Your account was created, but the OTP email could not be delivered. Use Send / resend OTP to retry. Email delivery must be configured on the server." }
+        : { tone: "success", text: `OTP sent to ${email}. Verify it to activate your account.` });
     } catch (error) {
       setMessage({ tone: "error", text: formatApiError(error) });
     } finally {
@@ -225,7 +233,17 @@ export function LoginPage() {
     }
   }
 
-  function beginGoogleOAuth(allowSignUp: boolean) {
+  async function resendVerification() {
+    if (!pendingEmail.trim()) { setMessage({ tone: "error", text: "Enter your registered email address first." }); return; }
+    setIsSubmitting(true);
+    try {
+      await authApi.sendEmailVerification(pendingEmail.trim().toLowerCase());
+      setMessage({ tone: "success", text: "If this email has an unverified account, a new OTP has been sent. Check your inbox and spam folder." });
+    } catch (error) { setMessage({ tone: "error", text: formatApiError(error) }); }
+    finally { setIsSubmitting(false); }
+  }
+
+  async function beginGoogleOAuth(allowSignUp: boolean) {
     const phoneNumber = toIndiaMobileNumber(oauthPhoneNumber);
 
     if (allowSignUp && !phoneNumber) {
@@ -239,6 +257,14 @@ export function LoginPage() {
     }
 
     setIsSubmitting(true);
+    try {
+      const providers = await authApi.providers();
+      if (!providers.data.google) {
+        setMessage({ tone: "error", text: "Google sign-in is not configured yet. Please use email and password. The administrator must configure Google OAuth before this option can work." });
+        setIsSubmitting(false);
+        return;
+      }
+    } catch (error) { setMessage({ tone: "error", text: formatApiError(error) }); setIsSubmitting(false); return; }
     setMessage({ tone: "success", text: "Redirecting to Google..." });
     window.location.assign(
       authApi.oauthStartUrl("google", {
@@ -275,13 +301,13 @@ export function LoginPage() {
               <UserRound size={17} />
               {mode === "login" ? "Student Login" : "Login"}
             </button>
-            <button className={mode === "login" && loginRole === "admin" ? "is-active" : mode !== "login" ? "is-active" : undefined} type="button" onClick={() => { setLoginRole("admin"); setMode("login"); }}>
+            <button className={mode === "login" && loginRole === "admin" ? "is-active" : mode !== "login" ? "is-active" : undefined} type="button" onClick={() => { if (mode === "login") { setLoginRole("admin"); } else { setMode("register"); } }}>
               <UserPlus size={17} />
               {mode === "login" ? "Admin Login" : "Register"}
             </button>
           </div>
 
-          {mode === "login" ? (
+          {mode === "forgot-password" ? <PasswordRecovery onBack={() => setMode("login")} /> : mode === "login" ? (
             <form className="auth-form" onSubmit={handleLogin}>
               <button
                 className="auth-secondary-button auth-oauth-button"
@@ -303,12 +329,13 @@ export function LoginPage() {
                 Password
                 <span className="login-page__input-wrap"><LockKeyhole size={19} /><input name="password" type={showPassword ? "text" : "password"} autoComplete="current-password" placeholder="Enter your password" minLength={8} required /><button className="login-page__password-toggle" type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword(value => !value)}>{showPassword ? <EyeOff size={19} /> : <Eye size={19} />}</button></span>
               </label>
-              <div className="login-page__form-options"><label className="checkbox-row"><input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.currentTarget.checked)} /><span>Keep me signed in on this device</span></label><button className="auth-link-button login-page__forgot" type="button">Forgot password?</button></div>
+              <div className="login-page__form-options"><label className="checkbox-row"><input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.currentTarget.checked)} /><span>Keep me signed in on this device</span></label><button className="auth-link-button login-page__forgot" type="button" onClick={() => { setMode("forgot-password"); setMessage(null); }}>Forgot password?</button></div>
               <button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? "Signing in" : "Login to dashboard"}
                 <ArrowRight size={18} />
               </button>
               <p className="login-page__register-prompt">Don&apos;t have an account? <button type="button" onClick={() => setMode("register")}>Register now</button></p>
+              <button className="auth-link-button" type="button" onClick={() => { setMode("verify-email"); setMessage(null); }}>Verify email / enter OTP</button>
             </form>
           ) : mode === "register" ? (
             <form className="auth-form" onSubmit={handleRegister}>
@@ -352,6 +379,7 @@ export function LoginPage() {
               <label>
                 Password
                 <input name="password" type="password" autoComplete="new-password" minLength={8} required />
+                <small>Use at least 8 characters, including uppercase, lowercase, a number, and a symbol.</small>
               </label>
               <label>
                 Confirm password
@@ -369,15 +397,17 @@ export function LoginPage() {
           ) : (
             <form className="auth-form" onSubmit={handleVerifyEmail}>
               <h2>Verify email OTP</h2>
-              <p>Enter the OTP sent to {pendingEmail || "your email"}.</p>
+              <p>Enter your registered email and the verification code from your inbox.</p>
+              <label>Email<input name="email" type="email" autoComplete="email" required value={pendingEmail} onChange={event => setPendingEmail(event.currentTarget.value)} /></label>
               <label>
                 OTP
-                <input name="otp" inputMode="numeric" maxLength={8} required />
+                <input name="otp" inputMode="numeric" autoComplete="one-time-code" maxLength={8} pattern="[0-9]{4,8}" required />
               </label>
               <button type="submit" disabled={isSubmitting || !pendingEmail}>
                 {isSubmitting ? "Verifying" : "Verify and activate"}
                 <MailCheck size={18} />
               </button>
+              <button className="auth-secondary-button" type="button" disabled={isSubmitting} onClick={resendVerification}>Send / resend OTP</button>
               <button className="auth-secondary-button" type="button" onClick={() => setMode("register")}>
                 <RefreshCw size={17} />
                 Back to registration

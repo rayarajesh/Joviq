@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Mail, MapPin, PhoneCall } from "lucide-react";
 import { Link } from "react-router-dom";
 import { BrandLogo } from "./BrandLogo";
+import "../styles/site-footer.css";
 
 const platformLinks = [
   { label: "Home", href: "/" },
@@ -29,7 +30,7 @@ const socialLinks = [
 
 export function SiteFooter() {
   return (
-    <footer className="public-footer">
+    <footer className="public-footer public-footer--restored">
       <div className="public-footer__inner">
         <section className="public-footer__grid" aria-label="Footer navigation">
           <div className="public-footer__brand">

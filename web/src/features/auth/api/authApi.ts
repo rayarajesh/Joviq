@@ -19,6 +19,9 @@ import type {
 } from "./authTypes";
 
 export const authApi = {
+  providers() {
+    return request<{ google: boolean }>("/api/v1/auth/providers", { accessToken: null, skipAuthRetry: true });
+  },
   oauthStartUrl(
     provider: "google",
     options: {

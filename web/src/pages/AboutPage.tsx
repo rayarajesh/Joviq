@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Award, BarChart3, BookOpen, BriefcaseBusiness, Code2, Eye, GraduationCap, Heart, Lightbulb, Play, ShieldCheck, Star, Target, UsersRound, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Award, BarChart3, BookOpen, BriefcaseBusiness, Code2, Eye, Heart, Lightbulb, Play, ShieldCheck, Star, Target, UsersRound, X } from "lucide-react";
 import { PublicNavbar } from "../components/PublicNavbar";
 import { SiteFooter } from "../components/SiteFooter";
 import { keyStatistics } from "../data/siteContent";
@@ -51,7 +51,7 @@ export function AboutPage() {
     <main>
       <section className="about-hero">
         <div className="about-hero__copy"><span className="about-eyebrow">ABOUT US</span><h1>Learning<br />Without Limits<br /><span>for a Brighter Tomorrow</span></h1><p>At Joviq, we're on a mission to make high-quality, industry-relevant education accessible to everyone. We empower learners with real-world skills, practical projects, and expert guidance to help them grow, succeed, and create a brighter future.</p><div className="about-hero__actions"><a className="about-button" href="#our-story">Our Story <ArrowRight size={18} /></a><button className="about-watch" onClick={() => { setSlide(0); setStoryOpen(true); }}><span><Play size={19} fill="currentColor" /></span><strong>Watch Our Story<small>(1 min)</small></strong></button></div></div>
-        <div className="about-hero__visual"><img src="/assets/about/hero.png" alt="Learner in a lavender sweater studying with her laptop" /><div className="about-image-badge"><span><GraduationCap size={32} /></span><strong>Real Skills<br />Real Careers</strong></div></div>
+        <div className="about-hero__visual"><img src="/assets/about/learner-hero.png" alt="Learner in a blue sweater studying at her laptop. Real Skills, Real Careers." width="1536" height="1024" /></div>
       </section>
       <div className="about-content">
         <section className="about-stats" aria-label="Joviq learning at a glance">{keyStatistics.map((stat, index) => { const Icon = metricsIcons[index]; return <div key={stat.label}><span><Icon size={29} /></span><p><strong>{stat.value}</strong><small>{stat.label}</small></p></div>; })}</section>

@@ -91,6 +91,7 @@ public sealed class AuthService(
         await dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
+        var verificationEmailSent = false;
         try
         {
             await emailSender.SendAsync(
@@ -98,13 +99,14 @@ public sealed class AuthService(
                 "Verify your Joviq LMS account",
                 $"Your Joviq Technologies verification OTP is <strong>{code}</strong>. It expires soon.",
                 cancellationToken);
+            verificationEmailSent = true;
         }
         catch (Exception exception)
         {
             logger.LogError(exception, "Failed to send registration verification email for user {UserId}.", user.Id);
         }
 
-        return new RegisterResponse(user.Id, EmailVerificationRequired: true);
+        return new RegisterResponse(user.Id, EmailVerificationRequired: true, VerificationEmailSent: verificationEmailSent);
     }
 
     public async Task<AuthTokenResponse> LoginAsync(LoginRequest request, RequestMetadata metadata, CancellationToken cancellationToken)
