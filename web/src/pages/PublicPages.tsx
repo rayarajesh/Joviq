@@ -120,8 +120,8 @@ export function RequestCallbackPage() {
         </section>
 
         <section className="contact-details" aria-label="Contact details">
-          <article><span className="contact-details__icon"><PhoneCall size={22} /></span><div><h3>Prefer to Contact Us Directly?</h3><p>You can also reach us through email or phone.</p><div className="contact-details__links"><a href="tel:+916360584578"><PhoneCall size={14} /> +91 63605 84578</a><a href="mailto:info@joviq.com"><Mail size={14} /> info@joviq.com</a></div></div></article>
-          <article><span className="contact-details__icon"><Building2 size={22} /></span><div><h3>Visit Our Office</h3><p>Let&apos;s discuss your goals in person.</p><small>HBR Premiku Workspace - No.12,<br />AKR Tech Park, A &amp; B Block, 7th Mile</small></div><iframe className="contact-map" title="Joviq office location" src="https://www.google.com/maps?q=HBR+Premiku+Workspace+AKR+Tech+Park+Bengaluru&output=embed" loading="lazy" referrerPolicy="no-referrer-when-downgrade" /></article>
+          <article><span className="contact-details__icon"><PhoneCall size={22} /></span><div><h3>Prefer to Contact Us Directly?</h3><p>You can also reach us through email or phone.</p><div className="contact-details__links"><a href="tel:+919281977188"><PhoneCall size={20} /> +91 92819 77188</a><a href="mailto:info@joviqtechnologies.com"><Mail size={20} /> info@joviqtechnologies.com</a></div></div></article>
+          <article><span className="contact-details__icon"><Building2 size={22} /></span><div><h3>Visit Our Office</h3><p>Let&apos;s discuss your goals in person.</p><small>CS COWORKING SPACE, 6TH FLOOR,<br />MELKIORS PRIDE, HITEX ROAD,<br />VINAYAKA NAGAR, IZZATHNAGAR,<br />HITECH CITY, KHANAMMET,<br />HYDERABAD, TELANGANA 500084</small></div><iframe className="contact-map" title="Joviq office location" src="https://www.google.com/maps?q=CS+COWORKING+SPACE%2C+6TH+FLOOR%2C+MELKIORS+PRIDE%2C+HITEX+ROAD%2C+VINAYAKA+NAGAR%2C+IZZATHNAGAR%2C+HITECH+CITY%2C+KHANAMMET%2C+HYDERABAD%2C+TELANGANA+500084&output=embed" loading="lazy" referrerPolicy="no-referrer-when-downgrade" /></article>
         </section>
       </main>
     </PublicPageShell>

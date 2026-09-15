@@ -107,11 +107,11 @@ export function SiteFooter() {
             <h3>Contact Info</h3>
             <p>
               <PhoneCall size={17} />
-              <span><strong>Phone:</strong> +91 93980 62923</span>
+              <span><strong>Phone:</strong> +91 9281977188</span>
             </p>
             <p>
               <Mail size={17} />
-              <span><strong>Email:</strong> joviqtechnologies@gmail.com</span>
+              <span><strong>Email:</strong> info@joviqtechnologies.com</span>
             </p>
             <p>
               <MapPin size={17} />
