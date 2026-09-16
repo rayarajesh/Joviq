@@ -68,7 +68,7 @@ export const defaultProgramPlans: ProgramPlan[] = [
       "Doubt-Solving Support",
       "Basic Expert Support",
       "Interview Assistance",
-      "2 Months LMS Access",
+      "6 Months LMS Access",
       "QR-Verified Certification"
     ],
     isActive: true
@@ -89,7 +89,7 @@ export const defaultProgramPlans: ProgramPlan[] = [
       "Expert Guidance & Review",
       "Interview Preparation & Assistance",
       "Placement Support",
-      "2 Months LMS Access",
+      "6 Months LMS Access",
       "QR-Verified Certification"
     ],
     isActive: true
@@ -111,7 +111,7 @@ export const defaultProgramPlans: ProgramPlan[] = [
       "Advanced Interview Preparation",
       "Placement Assistance & Support",
       "Career Guidance",
-      "2 Months LMS Access",
+      "6 Months LMS Access",
       "QR-Verified Certification"
     ],
     isActive: true
@@ -368,44 +368,23 @@ const electricalPrograms = [
 const mechanicalPrograms = [
   createProgram({
     slug: "solidworks",
-    title: "SolidWorks",
+    title: "SolidWorks / Creo",
     domain: "Mechanical & Civil",
-    shortDescription: "3D modeling, assemblies, drawings, design validation, and portfolio work.",
-    overview: "A CAD program focused on building accurate parts, assemblies, drawings, and design-ready mechanical portfolios using SolidWorks workflows.",
+    shortDescription: "3D modeling, assemblies, drawings, design validation, and portfolio work across SolidWorks and Creo.",
+    overview: "A combined CAD program focused on building accurate parts, assemblies, drawings, and design-ready mechanical portfolios using SolidWorks and Creo workflows.",
     audience: ["Mechanical students", "Design interns", "Diploma learners", "Product design beginners"],
-    skills: ["Part modeling", "Assemblies", "2D drawings", "Sheet metal basics", "Design intent", "Rendering"],
-    curriculum: ["Sketching", "Part features", "Assemblies", "Drawings", "Sheet metal", "Design project"],
+    skills: ["Part modeling", "Assemblies", "2D drawings", "Sheet metal basics", "Design intent", "Rendering", "Parametric modeling"],
+    curriculum: ["Sketching", "Part features", "Assemblies", "Drawings", "Sheet metal", "Parametric modeling", "Design project"],
     duration: "8 weeks",
     mode: "Software lab sessions with expert review",
     expert: "Mechanical design expert with CAD portfolio experience",
     projects: ["Gearbox assembly", "Sheet metal enclosure", "Bottle jack model", "Conveyor roller assembly", "Bracket design", "Product casing render"],
-    certification: "SolidWorks Design Certification",
+    certification: "SolidWorks / Creo Design Certification",
     outcomes: ["CAD designer trainee", "Mechanical design intern", "Product design assistant", "Drafting associate"],
     interviewPrep: ["CAD command practice", "Drawing interpretation", "Portfolio explanation", "Design intent questions"],
     pricing: "Career track from INR 12,999",
     faqs: [],
-    tags: ["CAD", "Mechanical", "Design", "3D"],
-    level: "Beginner"
-  }),
-  createProgram({
-    slug: "creo",
-    title: "Creo",
-    domain: "Mechanical & Civil",
-    shortDescription: "Parametric modeling, assemblies, drawings, and manufacturing-ready design.",
-    overview: "A Creo program covering parametric design, robust modeling, mechanical assemblies, drawing standards, and manufacturable design practice.",
-    audience: ["Mechanical engineering students", "CAD learners", "Design fresher candidates", "Manufacturing trainees"],
-    skills: ["Parametric modeling", "Assembly constraints", "Drawing creation", "Surface basics", "Design changes", "Manufacturing awareness"],
-    curriculum: ["Sketch tools", "Solid features", "Assemblies", "Drawings", "Surface intro", "Design project"],
-    duration: "8 weeks",
-    mode: "CAD lab training with guided practice",
-    expert: "Creo expert with mechanical design experience",
-    projects: ["Pump casing model", "Piston assembly", "Fixture design", "Consumer product housing", "Gear train assembly", "Manufacturing drawing set"],
-    certification: "Creo Parametric Certification",
-    outcomes: ["CAD trainee", "Design engineer intern", "Drafting associate", "Product modeling assistant"],
-    interviewPrep: ["Creo tools Q&A", "Drawing standards", "Portfolio review", "Mechanical design basics"],
-    pricing: "Career track from INR 12,999",
-    faqs: [],
-    tags: ["Creo", "CAD", "Parametric", "Design"],
+    tags: ["SolidWorks", "Creo", "CAD", "Mechanical", "3D"],
     level: "Beginner"
   }),
   createProgram({
@@ -754,19 +733,19 @@ export const pricingPlans = [
     name: "Launch",
     price: "INR 8,000",
     description: "For learners who want a strong, structured start with guided learning and essential support.",
-    features: ["16 live sessions", "Real-time project", "Interview assistance", "2 months LMS access"]
+    features: ["16 live sessions", "Real-time project", "Interview assistance", "6 months LMS access"]
   },
   {
     name: "Elevate",
     price: "INR 10,000",
     description: "For learners who want personal expert support, deeper project review, and placement readiness.",
-    features: ["22 live sessions", "Personal expert support", "Expert guidance & review", "Placement support"]
+    features: ["22 live sessions", "Personal expert support", "Expert guidance & review", "Placement support", "6 months LMS access"]
   },
   {
     name: "Mastery",
     price: "INR 15,000",
     description: "For learners who want advanced hands-on projects, detailed expert review, and full career guidance.",
-    features: ["28 live sessions", "Multiple real-time projects", "Advanced interview prep", "Career guidance"]
+    features: ["28 live sessions", "Multiple real-time projects", "Advanced interview prep", "Career guidance", "6 months LMS access"]
   }
 ];
 
@@ -786,5 +765,34 @@ export const homeFaqs = [
   {
     question: "Can I request a callback before enrolling?",
     answer: "Yes. Use the request callback form and the team can guide you to the right program."
-  }
+  },
+  {
+  question: "What is the duration of each program?",
+  answer: "Program duration varies by track and learning goals. Each program includes a structured schedule, hands-on projects, and guided learning."
+},
+{
+  question: "Will I get hands-on project experience?",
+  answer: "Yes. Programs include practical project labs that help learners apply concepts and build portfolio-ready projects."
+},
+{
+  question: "Will I receive a certificate after completing the program?",
+  answer: "Yes. Learners who successfully complete the required program activities and assessments receive a completion certificate."
+},
+{
+  question: "Are live sessions recorded?",
+  answer: "Yes. Recorded sessions can be made available to learners so they can revisit important concepts and catch up when needed."
+},
+{
+  question: "How will I interact with instructors?",
+  answer: "Learners can interact with instructors through live sessions, discussions, Q&A, and guided project support."
+},
+{
+  question: "Do I need any prior technical experience?",
+  answer: "Prerequisites depend on the program. Beginner-friendly tracks start with fundamentals, while advanced programs may require prior knowledge."
+},
+{
+  question: "How do I enroll in a program?",
+  answer: "Choose the program that matches your goals, submit your enrollment details, and the team will guide you through the next steps."
+}
+  
 ];
