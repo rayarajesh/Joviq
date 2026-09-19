@@ -624,6 +624,12 @@ function AdminOverview({
   return <AcademyOverview revenue={lmsSummary?.verifiedRevenue ?? payments.filter(item=>item.status === "Verified").reduce((sum,item)=>sum+item.amount,0)} revenueRecords={payments.filter(item=>item.status === "Verified").map(item=>({date:item.verifiedAt ?? item.createdAt,amount:item.amount}))} kpis={kpis} priorities={priorities} logs={auditLogs} loading={isLoading} openModule={openModule} enrollmentDates={enrollments.map(item => item.enrolledAt)} paymentDates={payments.filter(item => item.status === "Verified").map(item => item.verifiedAt ?? item.createdAt)} />;
 }
 
+type ProgramProjectDraft = {
+  id?: string;
+  title: string;
+  description: string;
+};
+
 function AdminLmsPanel({
   activeModule,
   adminCertificates,
@@ -666,6 +672,8 @@ function AdminLmsPanel({
   const [programEditor, setProgramEditor] = useState<ProgramDetailsResponse | null>(null);
   const [programEditorLoadingId, setProgramEditorLoadingId] = useState<string | null>(null);
   const [isSavingProgram, setIsSavingProgram] = useState(false);
+  const [programDialogStep, setProgramDialogStep] = useState<1 | 2>(1);
+  const [programProjects, setProgramProjects] = useState<ProgramProjectDraft[]>([]);
   const [programThumbnailUrl, setProgramThumbnailUrl] = useState("");
   const [programThumbnailFile, setProgramThumbnailFile] = useState<File | null>(null);
   const [programThumbnailPreviewUrl, setProgramThumbnailPreviewUrl] = useState("");
@@ -865,9 +873,11 @@ function AdminLmsPanel({
   async function openProgramDialog(program?: ProgramSummaryResponse) {
     setProgramThumbnailFile(null);
     setProgramThumbnailPreviewUrl("");
+    setProgramDialogStep(1);
 
     if (!program) {
       setProgramEditor(null);
+      setProgramProjects([{ title: "", description: "" }]);
       setProgramThumbnailUrl(selectedProgramCategory ? getProgramImage("", selectedProgramCategory.name) : "");
       setProgramDialogMode("create");
       return;
@@ -879,6 +889,11 @@ function AdminLmsPanel({
     try {
       const response = await adminLmsApi.getProgram(program.id);
       setProgramEditor(response.data);
+      setProgramProjects(response.data.projects.map((project) => ({
+        id: project.id,
+        title: project.title,
+        description: project.description
+      })));
       setProgramThumbnailUrl(toApiAcceptableThumbnailUrl(response.data.thumbnailUrl) || getProgramImage(response.data.slug, response.data.categoryName));
       setProgramDialogMode("edit");
     } catch (error) {
@@ -891,6 +906,8 @@ function AdminLmsPanel({
   function closeProgramDialog() {
     setProgramDialogMode(null);
     setProgramEditor(null);
+    setProgramDialogStep(1);
+    setProgramProjects([]);
     setProgramThumbnailUrl("");
     setProgramThumbnailFile(null);
     if (programThumbnailPreviewUrl.startsWith("blob:")) {
@@ -1003,10 +1020,21 @@ function AdminLmsPanel({
       status: Number(form.get("status") ?? 2)
     };
 
+    const projectPayloads = programProjects
+      .map((project) => ({ ...project, title: project.title.trim(), description: project.description.trim() }))
+      .filter((project) => project.title || project.description);
+
+    if (projectPayloads.some((project) => !project.title || !project.description)) {
+      onMessage({ tone: "error", text: "Complete or remove every project before saving the program." });
+      setProgramDialogStep(2);
+      return;
+    }
+
     setIsSavingProgram(true);
     onMessage(null);
 
     try {
+      let savedProgramId = programEditor?.id;
       if (programEditor) {
         const uploadedThumbnailUrl = programThumbnailFile
           ? await uploadProgramThumbnail(programEditor.id, programThumbnailFile)
@@ -1017,6 +1045,7 @@ function AdminLmsPanel({
         });
       } else {
         const response = await adminLmsApi.createProgram(payload);
+        savedProgramId = response.data.id;
         if (programThumbnailFile) {
           const uploadedThumbnailUrl = await uploadProgramThumbnail(response.data.id, programThumbnailFile);
           await adminLmsApi.updateProgram(response.data.id, {
@@ -1024,6 +1053,28 @@ function AdminLmsPanel({
             thumbnailUrl: uploadedThumbnailUrl
           });
         }
+      }
+
+      if (savedProgramId) {
+        const existingProjects = programEditor?.projects ?? [];
+        const retainedProjectIds = new Set(projectPayloads.flatMap((project) => project.id ? [project.id] : []));
+        await Promise.all(existingProjects
+          .filter((project) => !retainedProjectIds.has(project.id) && !projectPayloads.some((item) => item.id === project.id))
+          .map((project) => adminLmsApi.deleteProject(project.id)));
+        await Promise.all(projectPayloads.map((project) => {
+          const request = {
+            programId: savedProgramId,
+            title: project.title,
+            description: project.description,
+            requiredArtifacts: [],
+            usefulLinks: [],
+            maxScore: 100,
+            isPublished: payload.status === 2
+          };
+          return project.id
+            ? adminLmsApi.updateProject(project.id, request)
+            : adminLmsApi.createProject(request);
+        }));
       }
 
       formElement.reset();
@@ -1843,6 +1894,11 @@ function AdminLmsPanel({
                 key={programEditor?.id ?? selectedProgramCategory?.id ?? "create-program"}
                 onSubmit={saveProgram}
               >
+                <div className="program-dialog__steps" aria-label="Program setup steps">
+                  <span className={programDialogStep === 1 ? "is-active" : ""}>1. Program details</span>
+                  <span className={programDialogStep === 2 ? "is-active" : ""}>2. Projects</span>
+                </div>
+                <div className={`program-dialog__step-one${programDialogStep === 1 ? "" : " is-hidden"}`}>
                 <div className="program-thumbnail-field">
                   <div className="program-thumbnail-field__preview">
                     <img
@@ -1974,14 +2030,83 @@ function AdminLmsPanel({
                     placeholder={"Portfolio-ready projects\nReviewed project work\nInterview preparation support"}
                   />
                 </label>
+                </div>
+                <div className={`program-dialog__step-two${programDialogStep === 2 ? "" : " is-hidden"}`}>
+                  <div className="program-project-step">
+                    <div className="program-project-step__heading">
+                      <div>
+                        <span className="eyebrow">Step 2</span>
+                        <strong>Real-world hands-on projects</strong>
+                        <p>Add the project cards students should see for this program.</p>
+                      </div>
+                      <button
+                        className="secondary-action"
+                        type="button"
+                        onClick={() => setProgramProjects((current) => [...current, { title: "", description: "" }])}
+                      >
+                        <Plus size={16} /> Add project
+                      </button>
+                    </div>
+                    <div className="program-project-list">
+                      {programProjects.map((project, index) => (
+                        <div className="program-project-row" key={project.id ?? `new-${index}`}>
+                          <span className="program-project-row__number">{index + 1}</span>
+                          <label>
+                            <span>Project title</span>
+                            <input
+                              value={project.title}
+                              placeholder="Example: AI interview question generator"
+                              onChange={(event) => setProgramProjects((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, title: event.target.value } : item))}
+                            />
+                          </label>
+                          <label>
+                            <span>Description</span>
+                            <textarea
+                              value={project.description}
+                              placeholder="Describe the portfolio outcome and review expectations."
+                              onChange={(event) => setProgramProjects((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, description: event.target.value } : item))}
+                            />
+                          </label>
+                          <button
+                            className="icon-button is-danger"
+                            type="button"
+                            aria-label={`Remove project ${index + 1}`}
+                            onClick={() => setProgramProjects((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      ))}
+                      {programProjects.length === 0 ? <p className="table-state">No projects added yet. Use Add project to create the first card.</p> : null}
+                    </div>
+                  </div>
+                </div>
                 <div className="category-dialog__actions">
                   <button className="secondary-action" type="button" onClick={closeProgramDialog}>
                     Cancel
                   </button>
-                  <button className="primary-action" type="submit" disabled={isSavingProgram || categories.length === 0}>
-                    <Save size={18} />
-                    {isSavingProgram ? "Saving" : "Save program"}
-                  </button>
+                  {programDialogStep === 1 ? (
+                    <button
+                      className="primary-action"
+                      type="button"
+                      onClick={(event) => {
+                        if (event.currentTarget.form?.reportValidity()) setProgramDialogStep(2);
+                      }}
+                      disabled={isSavingProgram || categories.length === 0}
+                    >
+                      Next: projects <ChevronRight size={18} />
+                    </button>
+                  ) : (
+                    <>
+                      <button className="secondary-action" type="button" onClick={() => setProgramDialogStep(1)}>
+                        Back
+                      </button>
+                      <button className="primary-action" type="submit" disabled={isSavingProgram || categories.length === 0}>
+                        <Save size={18} />
+                        {isSavingProgram ? "Saving" : "Save program"}
+                      </button>
+                    </>
+                  )}
                 </div>
               </form>
             </section>
@@ -3498,7 +3623,7 @@ function StudentDashboard({ activeModule, preview = false, openModule }: { activ
               {!enrollment.hasFullAccess ? (
                 <div className="access-locked-notice">
                   <Lock size={18} />
-                  <div><strong>Projects are locked</strong><span>{enrollment.isAccessExpired ? "Renew your two-month access first." : "Pay the remaining balance to submit projects and unlock your certificate."}</span></div>
+                  <div><strong>Projects are locked</strong><span>{enrollment.isAccessExpired ? "Renew your six-month access first." : "Pay the remaining balance to submit projects and unlock your certificate."}</span></div>
                   <button className="secondary-action" type="button" onClick={() => void payBalance(enrollment.isAccessExpired || enrollment.paidAmount <= 0 ? 1 : 3)}>Open payment</button>
                 </div>
               ) : null}

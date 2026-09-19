@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { ReactNode } from "react";
+import type { FormEvent, ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -7,6 +7,7 @@ import {
   Award,
   BadgeCheck,
   BookOpenCheck,
+  CalendarDays,
   CalendarClock,
   CheckCircle2,
   Code2,
@@ -25,18 +26,24 @@ import {
 } from "lucide-react";
 import { PublicNavbar } from "../components/PublicNavbar";
 import { SiteFooter } from "../components/SiteFooter";
+import { IndiaMobileInput } from "../components/IndiaMobileInput";
 import { allPrograms, defaultProgramPlans, findProgramBySlug } from "../data/siteContent";
 import type { Program, ProgramPlan } from "../data/siteContent";
 import { getProgramImage } from "../data/programVisuals";
+import { authApi } from "../features/auth/api/authApi";
 import { useAuth } from "../features/auth/context/useAuth";
 import { publicLmsApi } from "../features/lms/api/lmsApi";
 import { savePendingEnrollment } from "../features/lms/checkout";
+import type { EnrollmentApplicant } from "../features/lms/checkout";
 import type { ProgramDetailsResponse } from "../features/lms/api/lmsTypes";
+import { formatApiError } from "../lib/api/httpClient";
 
 type DetailItem = { title: string; text: string };
 type CurriculumItem = DetailItem & { lessons: string[] };
 type ProjectItem = DetailItem & { artifacts: string[] };
 type DomainFeatureItem = { icon: ReactNode; title: string; text: string; bullets: string[] };
+type RegistrationSubmission = { applicant: EnrollmentApplicant; paymentChoice: "token" | "full"; startDate?: string; acceptedTerms: boolean };
+const checkoutPolicyVersion = "2026-08-20";
 
 type ProgramViewModel = {
   slug: string;
@@ -68,7 +75,7 @@ const domainFeatures: DomainFeatureItem[] = [
   },
   {
     icon: <CalendarClock size={28} />,
-    title: "2 Months LMS Access",
+    title: "6 Months LMS Access",
     text: "Access videos, files, quizzes & resources anytime",
     bullets: ["Complete materials", "Self-paced learning", "Extra downloadable files"]
   },
@@ -106,6 +113,21 @@ export function ProgramDetailsPage() {
   const [remoteProgram, setRemoteProgram] = useState<ProgramDetailsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(!localProgram);
   const [selectedPlanCode, setSelectedPlanCode] = useState("INTERMEDIATE");
+  const [registrationPlan, setRegistrationPlan] = useState<ProgramPlan | null>(null);
+
+  useEffect(() => {
+    if (!registrationPlan) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setRegistrationPlan(null);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [registrationPlan]);
 
   useEffect(() => {
     if (!slug) {
@@ -157,19 +179,60 @@ export function ProgramDetailsPage() {
   const heroImage = getProgramImage(currentProgram.slug, currentProgram.domain);
 
   function choosePlan(planCode: string) {
+    const plan = currentProgram.plans.find((item) => item.code === planCode);
+    if (!plan) return;
     setSelectedPlanCode(planCode);
-    document.getElementById("enroll")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setRegistrationPlan(plan);
   }
 
   function beginCheckout(plan: ProgramPlan) {
+    setSelectedPlanCode(plan.code);
+    setRegistrationPlan(plan);
+  }
+
+  async function continueToCheckout(submission: RegistrationSubmission) {
+    if (!registrationPlan) return;
+
+    const email = submission.applicant.email.trim().toLowerCase();
+    const enteredPhone = submission.applicant.phoneNumber.replace(/\D/g, "").slice(-10);
+    const signedInPhone = auth.user?.phoneNumber?.replace(/\D/g, "").slice(-10);
+    const isCurrentAccount = Boolean(
+      auth.user &&
+      auth.user.email.trim().toLowerCase() === email &&
+      (!signedInPhone || signedInPhone === enteredPhone)
+    );
+
+    if (!isCurrentAccount) {
+      if (auth.user) {
+        await auth.logout();
+      }
+
+      const response = await authApi.createCheckoutAccount({
+        fullName: submission.applicant.fullName,
+        email,
+        phoneNumber: submission.applicant.phoneNumber,
+        collegeName: submission.applicant.collegeName,
+        acceptedTerms: submission.acceptedTerms,
+        termsVersion: checkoutPolicyVersion,
+        privacyPolicyVersion: checkoutPolicyVersion
+      });
+      auth.applyAuthResponse(response.data);
+    }
+
     savePendingEnrollment({
       slug: currentProgram.slug,
       programId: remoteProgram?.id,
-      planId: plan.id,
-      planCode: plan.code,
-      programTitle: currentProgram.title
+      planId: registrationPlan.id,
+      planCode: registrationPlan.code,
+      programTitle: currentProgram.title,
+      paymentMode: submission.paymentChoice === "token" ? 1 : 2,
+      amount: submission.paymentChoice === "token" ? registrationPlan.reserveAmount : registrationPlan.offerPrice,
+      applicant: submission.applicant,
+      startDate: submission.paymentChoice === "token" ? submission.startDate : undefined
     });
-    navigate(auth.user ? "/checkout" : "/login?returnUrl=%2Fcheckout");
+    setRegistrationPlan(null);
+    const checkoutPath = "/checkout?autostart=1";
+    navigate(checkoutPath);
   }
 
   return (
@@ -349,12 +412,22 @@ export function ProgramDetailsPage() {
       <section className="pd-enroll" id="enroll">
         <div className="pd-enroll__copy">
           <span className="pd-kicker"><Send size={15} /> Enroll now</span><h2>Start your {program.title} journey.</h2>
-          <p>Choose your plan, create your student account, and pay the compulsory initial amount securely. Full access starts after payment verification.</p>
+          <p>Choose your level, share your details, and reserve your place or pay in full securely. Full access lasts six months after verification.</p>
           <div><CheckCircle2 size={18} /> No hidden plan features</div><div><CheckCircle2 size={18} /> Guided onboarding</div>
           <div><CheckCircle2 size={18} /> Secure LMS access</div>
         </div>
         <EnrollForm onCheckout={beginCheckout} onPlanChange={setSelectedPlanCode} plans={program.plans} programTitle={program.title} selectedPlanCode={selectedPlanCode} />
       </section>
+
+      {registrationPlan ? (
+        <RegistrationDialog
+          key={registrationPlan.code}
+          onClose={() => setRegistrationPlan(null)}
+          onSubmit={continueToCheckout}
+          plan={registrationPlan}
+          programTitle={currentProgram.title}
+        />
+      ) : null}
 
       <SiteFooter />
     </main>
@@ -383,7 +456,7 @@ function PlanCard({ onChoose, plan }: { onChoose: () => void; plan: ProgramPlan 
       </div>
       {includedPlan ? <p className="pd-plan-includes">{includedPlan}</p> : null}
       <ul>{plan.features.map((feature) => <li key={feature}><CheckCircle2 size={16} /> {feature}</li>)}</ul>
-      <small className="pd-plan-deposit">Pay {formatInr(plan.reserveAmount)} initially · access starts after verification</small>
+      <small className="pd-plan-deposit">Reserve with {formatInr(plan.reserveAmount)} · choose your start date</small>
       <button onClick={onChoose} type="button">Choose {plan.name}<ArrowRight size={17} /></button>
     </article>
   );
@@ -407,9 +480,126 @@ function EnrollForm({ onCheckout, onPlanChange, plans, programTitle, selectedPla
           {plans.map((plan) => <option key={plan.code} value={plan.code}>{plan.name} - {formatInr(plan.offerPrice)}</option>)}
         </select>
       </label>
-      <div className="pd-enroll-form__payment-note"><ShieldCheck size={17} /><span>Create or sign in to your student account, verify your email, then pay {selectedPlan ? formatInr(selectedPlan.reserveAmount) : "the initial amount"} securely. Your dashboard stays locked until payment is confirmed.</span></div>
-      <button type="button" disabled={!selectedPlan} onClick={() => selectedPlan && onCheckout(selectedPlan)}><Send size={18} /> Create account &amp; pay initial amount</button>
+      <div className="pd-enroll-form__payment-note"><ShieldCheck size={17} /><span>Register with your name, phone, email, and college. Then choose a seat token or pay the full plan amount securely.</span></div>
+      <button type="button" disabled={!selectedPlan} onClick={() => selectedPlan && onCheckout(selectedPlan)}><UserPlus size={18} /> Continue to registration</button>
       <small className="pd-enroll-form__program-label">{programTitle} · UPI, UPI QR, cards, and net banking supported by the payment gateway.</small>
+    </div>
+  );
+}
+
+function RegistrationDialog({ onClose, onSubmit, plan, programTitle }: {
+  onClose: () => void;
+  onSubmit: (submission: RegistrationSubmission) => Promise<void>;
+  plan: ProgramPlan;
+  programTitle: string;
+}) {
+  const [fullName, setFullName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [email, setEmail] = useState("");
+  const [collegeName, setCollegeName] = useState("");
+  const [paymentChoice, setPaymentChoice] = useState<"token" | "full">("token");
+  const [startDate, setStartDate] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const minimumStartDate = getLocalDateInputValue();
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSubmitting(true);
+    setErrorMessage("");
+
+    try {
+      await onSubmit({
+        applicant: { fullName: fullName.trim(), phoneNumber, email: email.trim(), collegeName: collegeName.trim() },
+        paymentChoice,
+        startDate: paymentChoice === "token" ? startDate : undefined,
+        acceptedTerms
+      });
+    } catch (error) {
+      setErrorMessage(formatApiError(error));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <div
+      aria-label="Registration and payment options"
+      className="enrollment-dialog-backdrop"
+      onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}
+      role="presentation"
+    >
+      <section aria-labelledby="enrollment-dialog-title" aria-modal="true" className="enrollment-dialog" role="dialog">
+        <header className="enrollment-dialog__header">
+          <div className="enrollment-dialog__title-icon"><UserPlus size={23} /></div>
+          <div className="enrollment-dialog__header-copy">
+            <span className="enrollment-dialog__eyebrow">Registration before payment</span>
+            <h2 id="enrollment-dialog-title">Secure your place in {programTitle}</h2>
+            <p>Share these details once, then choose how you want to start your learning journey.</p>
+          </div>
+          <div className="enrollment-dialog__plan-summary">
+            <div><WalletCards size={20} /><span><small>Selected level</small><strong>{plan.name}</strong></span></div>
+            <div><BadgeCheck size={20} /><span><small>Full plan value</small><strong>{formatInr(plan.offerPrice)}</strong></span></div>
+            <div><CalendarClock size={20} /><span><small>Access period</small><strong>6 months</strong></span></div>
+          </div>
+          <button aria-label="Close registration dialog" className="enrollment-dialog__close" onClick={onClose} type="button">×</button>
+        </header>
+
+        <form className="enrollment-dialog__form" onSubmit={handleSubmit}>
+          <fieldset>
+            <legend><span>01</span><strong>Your details</strong><small>We use these details for your enrollment and payment receipt.</small></legend>
+            <div className="enrollment-dialog__fields">
+              <label>
+                <span className="enrollment-dialog__label-text">Name <b>*</b></span>
+                <input autoComplete="name" onChange={(event) => setFullName(event.target.value)} placeholder="Enter your full name" required value={fullName} />
+              </label>
+              <IndiaMobileInput label="Phone number *" name="phoneNumber" onChange={(event) => setPhoneNumber(event.target.value)} required value={phoneNumber} />
+              <label>
+                <span className="enrollment-dialog__label-text">Email ID <b>*</b></span>
+                <input autoComplete="email" onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" required type="email" value={email} />
+              </label>
+              <label>
+                <span className="enrollment-dialog__label-text">College name <b>*</b></span>
+                <input autoComplete="organization" onChange={(event) => setCollegeName(event.target.value)} placeholder="Your college or organization" required value={collegeName} />
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend><span>02</span><strong>Choose your payment option</strong><small>Your account and course access are updated only after payment verification.</small></legend>
+            <div className="enrollment-dialog__payment-options">
+              <label className={`enrollment-dialog__payment-option${paymentChoice === "token" ? " is-selected" : ""}`}>
+                <input checked={paymentChoice === "token"} name="paymentChoice" onChange={() => setPaymentChoice("token")} type="radio" value="token" />
+                <span className="enrollment-dialog__payment-icon"><WalletCards size={20} /></span>
+                <span><strong>Reserve my seat</strong><small>Pay {formatInr(plan.reserveAmount)} token now. Full access unlocks after the balance is paid.</small></span>
+                <b>Token</b>
+              </label>
+              <label className={`enrollment-dialog__payment-option${paymentChoice === "full" ? " is-selected" : ""}`}>
+                <input checked={paymentChoice === "full"} name="paymentChoice" onChange={() => setPaymentChoice("full")} type="radio" value="full" />
+                <span className="enrollment-dialog__payment-icon"><BadgeCheck size={20} /></span>
+                <span><strong>Pay in full</strong><small>Pay {formatInr(plan.offerPrice)} now and unlock the complete program for six months.</small></span>
+                <b>Full access</b>
+              </label>
+            </div>
+            {paymentChoice === "token" ? (
+              <label className="enrollment-dialog__start-date">
+                <span><CalendarDays size={17} /> Preferred start date <b>*</b></span>
+                <input min={minimumStartDate} onChange={(event) => setStartDate(event.target.value)} required type="date" value={startDate} />
+                <small>Choose the date from which your reserved seat and six-month access period should begin.</small>
+              </label>
+            ) : null}
+          </fieldset>
+
+          <label className="enrollment-dialog__terms">
+            <input checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.currentTarget.checked)} required type="checkbox" />
+            <span>I agree to the Joviq terms and privacy policy.</span>
+          </label>
+          {errorMessage ? <p className="enrollment-dialog__error" role="alert">{errorMessage}</p> : null}
+          <div className="enrollment-dialog__secure-note"><ShieldCheck size={18} /><span>Your details are saved securely. After you continue, you’ll be signed in to this new account and Cashfree checkout will open.</span></div>
+          <button className="enrollment-dialog__submit" disabled={isSubmitting} type="submit"><ArrowRight size={18} /> {isSubmitting ? "Preparing your account…" : `Continue with ${paymentChoice === "token" ? `token · ${formatInr(plan.reserveAmount)}` : `full payment · ${formatInr(plan.offerPrice)}`}`}</button>
+        </form>
+      </section>
     </div>
   );
 }
@@ -575,4 +765,10 @@ function createFallbackFaqs(title: string) {
 
 function formatInr(amount: number) {
   return `INR ${new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(amount)}`;
+}
+
+function getLocalDateInputValue() {
+  const today = new Date();
+  const localDate = new Date(today.getTime() - today.getTimezoneOffset() * 60_000);
+  return localDate.toISOString().slice(0, 10);
 }

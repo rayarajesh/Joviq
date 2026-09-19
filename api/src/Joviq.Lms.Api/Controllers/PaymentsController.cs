@@ -27,4 +27,21 @@ public sealed class PaymentsController(
         await lmsPortalService.ProcessPaymentWebhookAsync(payload, signature, cancellationToken);
         return Ok(new { success = true, message = "Payment webhook received." });
     }
+
+    [HttpPost("webhooks/cashfree")]
+    public async Task<IActionResult> CashfreeWebhook(CancellationToken cancellationToken)
+    {
+        using var reader = new StreamReader(Request.Body);
+        var payload = await reader.ReadToEndAsync(cancellationToken);
+        var signature = Request.Headers["x-webhook-signature"].ToString();
+        var timestamp = Request.Headers["x-webhook-timestamp"].ToString();
+
+        if (!paymentGateway.VerifyWebhookSignature(payload, signature, timestamp))
+        {
+            return Unauthorized(new { success = false, message = "Invalid payment webhook signature.", errorCode = "payment_webhook_invalid" });
+        }
+
+        await lmsPortalService.ProcessCashfreePaymentWebhookAsync(payload, cancellationToken);
+        return Ok(new { success = true, message = "Cashfree payment webhook received." });
+    }
 }

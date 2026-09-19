@@ -7,11 +7,19 @@ public interface IPaymentGateway
         decimal amount,
         string currency,
         DateTimeOffset expiresAt,
+        string? customerName,
+        string? customerEmail,
+        string? customerPhone,
+        string? customerCollege,
         CancellationToken cancellationToken);
 
-    bool VerifyPaymentSignature(string orderId, string paymentId, string signature);
+    Task<PaymentGatewayVerification> VerifyPaymentAsync(
+        string orderId,
+        string? paymentId,
+        string? signature,
+        CancellationToken cancellationToken);
 
-    bool VerifyWebhookSignature(string payload, string signature);
+    bool VerifyWebhookSignature(string payload, string signature, string? timestamp = null);
 }
 
 public sealed record PaymentGatewayOrder(
@@ -20,4 +28,8 @@ public sealed record PaymentGatewayOrder(
     string OrderId,
     long AmountInMinorUnits,
     string Currency,
-    DateTimeOffset ExpiresAt);
+    DateTimeOffset ExpiresAt,
+    string? PaymentSessionId = null,
+    string? Environment = null);
+
+public sealed record PaymentGatewayVerification(bool IsValid, string? PaymentId = null);

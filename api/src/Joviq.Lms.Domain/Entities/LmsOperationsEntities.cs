@@ -27,6 +27,8 @@ public sealed class Enrollment : AuditableEntity
 
     public DateTimeOffset EnrolledAt { get; set; }
 
+    public DateOnly? StartDate { get; set; }
+
     public DateTimeOffset? FullAccessUnlockedAt { get; set; }
 
     public DateTimeOffset? AccessExpiresAt { get; set; }

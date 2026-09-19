@@ -143,6 +143,7 @@ public sealed class EnrollmentConfiguration : IEntityTypeConfiguration<Enrollmen
         builder.Property(x => x.TotalAmount).HasPrecision(12, 2);
         builder.Property(x => x.PaidAmount).HasPrecision(12, 2);
         builder.Property(x => x.DiscountAmount).HasPrecision(12, 2);
+        builder.Property(x => x.StartDate).HasColumnType("date");
         builder.Property(x => x.LockedReason).HasMaxLength(500);
         builder.HasOne(x => x.Program)
             .WithMany()

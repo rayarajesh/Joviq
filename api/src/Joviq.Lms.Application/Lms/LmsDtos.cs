@@ -101,6 +101,7 @@ public sealed record EnrollmentResponse(
     decimal PaidAmount,
     decimal BalanceAmount,
     DateTimeOffset EnrolledAt,
+    DateOnly? StartDate,
     DateTimeOffset? FullAccessUnlockedAt,
     string? LockedReason,
     DateTimeOffset? AccessExpiresAt,
@@ -178,7 +179,9 @@ public sealed record PaymentCheckoutResponse(
     string GatewayOrderId,
     long AmountInMinorUnits,
     string Currency,
-    DateTimeOffset ExpiresAt);
+    DateTimeOffset ExpiresAt,
+    string? PaymentSessionId = null,
+    string? PaymentEnvironment = null);
 
 public sealed record PaymentReceiptResponse(
     Guid PaymentId,
@@ -538,6 +541,8 @@ public sealed class CreateEnrollmentRequest
     public Guid ProgramId { get; init; }
 
     public Guid? ProgramPlanId { get; init; }
+
+    public DateOnly? StartDate { get; init; }
 }
 
 public sealed class UpdateEnrollmentStatusRequest
@@ -558,6 +563,14 @@ public sealed class CreatePaymentCheckoutRequest
     public PaymentMode Mode { get; init; } = PaymentMode.ReserveSeat;
 
     public string? CouponCode { get; init; }
+
+    public string? CustomerName { get; init; }
+
+    public string? CustomerEmail { get; init; }
+
+    public string? CustomerPhone { get; init; }
+
+    public string? CustomerCollege { get; init; }
 }
 
 public sealed class ValidateCouponRequest

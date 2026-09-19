@@ -188,11 +188,27 @@ public static class DependencyInjection
         services.AddScoped<IAssetService, AssetService>();
         services.AddScoped<IAdminUserService, AdminUserService>();
         services.AddScoped<ILmsPortalService, LmsPortalService>();
-        services.AddHttpClient<IPaymentGateway, RazorpayPaymentGateway>(client =>
+        var paymentProvider = configuration.GetValue<string>($"{PaymentOptions.SectionName}:Provider");
+        if (string.Equals(paymentProvider, "Cashfree", StringComparison.OrdinalIgnoreCase))
         {
-            client.BaseAddress = new Uri("https://api.razorpay.com/v1/");
-            client.Timeout = TimeSpan.FromSeconds(20);
-        });
+            var cashfreeEnvironment = configuration.GetValue<string>($"{PaymentOptions.SectionName}:CashfreeEnvironment");
+            var cashfreeBaseUrl = string.Equals(cashfreeEnvironment, "Production", StringComparison.OrdinalIgnoreCase)
+                ? "https://api.cashfree.com/pg/"
+                : "https://sandbox.cashfree.com/pg/";
+            services.AddHttpClient<IPaymentGateway, CashfreePaymentGateway>(client =>
+            {
+                client.BaseAddress = new Uri(cashfreeBaseUrl);
+                client.Timeout = TimeSpan.FromSeconds(20);
+            });
+        }
+        else
+        {
+            services.AddHttpClient<IPaymentGateway, RazorpayPaymentGateway>(client =>
+            {
+                client.BaseAddress = new Uri("https://api.razorpay.com/v1/");
+                client.Timeout = TimeSpan.FromSeconds(20);
+            });
+        }
         services.AddScoped<IStudentOnboardingService, StudentOnboardingService>();
         services.AddScoped<IAuditLogService, AuditLogService>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();

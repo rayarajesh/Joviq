@@ -400,6 +400,7 @@ public sealed class LmsPortalService(
         CreateEnrollmentRequest request,
         CancellationToken cancellationToken)
     {
+        var requestedStartDate = NormalizeStartDate(request.StartDate);
         var program = await dbContext.LearningPrograms
             .Include(x => x.Plans)
             .FirstOrDefaultAsync(x => x.Id == request.ProgramId, cancellationToken)
@@ -419,6 +420,11 @@ public sealed class LmsPortalService(
 
         if (existing is not null)
         {
+            if (requestedStartDate.HasValue && existing.PaidAmount <= 0 && existing.StartDate != requestedStartDate)
+            {
+                existing.StartDate = requestedStartDate;
+                await dbContext.SaveChangesAsync(cancellationToken);
+            }
             return MapEnrollment(existing);
         }
 
@@ -434,6 +440,7 @@ public sealed class LmsPortalService(
             TotalAmount = GetFixedPricing(plan).TotalAmount,
             PaidAmount = 0,
             EnrolledAt = clock.UtcNow,
+            StartDate = requestedStartDate,
             LockedReason = "Reserve payment gives preview access. Pay the remaining balance to unlock the full LMS."
         };
 
@@ -567,6 +574,10 @@ public sealed class LmsPortalService(
                 transaction.Amount,
                 transaction.Currency,
                 checkoutExpiresAt,
+                request.CustomerName,
+                request.CustomerEmail,
+                request.CustomerPhone,
+                request.CustomerCollege,
                 cancellationToken);
             transaction.Gateway = gatewayOrder.Provider;
             transaction.GatewayOrderId = gatewayOrder.OrderId;
@@ -580,7 +591,9 @@ public sealed class LmsPortalService(
                 gatewayOrder.OrderId,
                 gatewayOrder.AmountInMinorUnits,
                 gatewayOrder.Currency,
-                gatewayOrder.ExpiresAt);
+                gatewayOrder.ExpiresAt,
+                gatewayOrder.PaymentSessionId,
+                gatewayOrder.Environment);
         }
         catch (AppException exception)
         {
@@ -675,7 +688,6 @@ public sealed class LmsPortalService(
 
         var orderId = RequiredText(request.GatewayOrderId ?? string.Empty, nameof(request.GatewayOrderId), 3, 160);
         var isFreePayment = string.Equals(transaction.Gateway, "Free", StringComparison.OrdinalIgnoreCase);
-        var paymentId = RequiredText(request.GatewayPaymentId ?? (isFreePayment ? $"free_{transaction.Id:N}" : string.Empty), nameof(request.GatewayPaymentId), 3, 160);
         if (!string.Equals(transaction.GatewayOrderId, orderId, StringComparison.Ordinal))
         {
             throw new AppException("The payment order does not match this checkout.", 400, "payment_order_mismatch");
@@ -695,13 +707,23 @@ public sealed class LmsPortalService(
             throw new AppException("This payment session expired. Start a new payment attempt.", 400, "payment_expired");
         }
 
-        if (!isFreePayment && !paymentGateway.VerifyPaymentSignature(
+        var paymentVerification = isFreePayment
+            ? new PaymentGatewayVerification(true, $"free_{transaction.Id:N}")
+            : await paymentGateway.VerifyPaymentAsync(
                 orderId,
-                paymentId,
-                RequiredText(request.GatewaySignature ?? string.Empty, nameof(request.GatewaySignature), 16, 256)))
+                request.GatewayPaymentId,
+                request.GatewaySignature,
+                cancellationToken);
+        if (!paymentVerification.IsValid)
         {
             throw new AppException("Payment verification failed. No access was granted.", 400, "payment_signature_invalid");
         }
+
+        var paymentId = RequiredText(
+            paymentVerification.PaymentId ?? request.GatewayPaymentId ?? string.Empty,
+            nameof(request.GatewayPaymentId),
+            3,
+            160);
 
         if (await dbContext.PaymentTransactions.AnyAsync(
                 x => x.GatewayPaymentId == paymentId && x.Id != transaction.Id,
@@ -725,6 +747,7 @@ public sealed class LmsPortalService(
             redemption.Status = CouponRedemptionStatus.Redeemed;
         }
         ApplyVerifiedPayment(transaction, clock.UtcNow);
+        await ActivateCheckoutAccountAsync(studentId, cancellationToken);
         if (transaction.Enrollment is not null)
         {
             dbContext.Notifications.Add(new Notification
@@ -887,6 +910,7 @@ public sealed class LmsPortalService(
             redemption.Status = CouponRedemptionStatus.Redeemed;
         }
         ApplyVerifiedPayment(transaction, clock.UtcNow);
+        await ActivateCheckoutAccountAsync(transaction.StudentId, cancellationToken);
         dbContext.Notifications.Add(new Notification
         {
             Id = Guid.NewGuid(),
@@ -896,6 +920,64 @@ public sealed class LmsPortalService(
             ActionUrl = "/dashboard"
         });
         Audit("Student.PaymentVerifiedByWebhook", new { transaction.Id, transaction.StudentId, transaction.EnrollmentId, transaction.GatewayPaymentId });
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task ProcessCashfreePaymentWebhookAsync(string payload, CancellationToken cancellationToken)
+    {
+        using var document = JsonDocument.Parse(payload);
+        var root = document.RootElement;
+        if (!root.TryGetProperty("type", out var typeElement) ||
+            !string.Equals(typeElement.GetString(), "PAYMENT_SUCCESS_WEBHOOK", StringComparison.OrdinalIgnoreCase) ||
+            !root.TryGetProperty("data", out var data) ||
+            !data.TryGetProperty("order", out var order) ||
+            !data.TryGetProperty("payment", out var paymentData))
+        {
+            return;
+        }
+
+        var orderId = order.TryGetProperty("order_id", out var orderIdElement) ? orderIdElement.GetString() : null;
+        var paymentId = paymentData.TryGetProperty("cf_payment_id", out var paymentIdElement) ? paymentIdElement.GetString() : null;
+        var paymentStatus = paymentData.TryGetProperty("payment_status", out var paymentStatusElement) ? paymentStatusElement.GetString() : null;
+        if (string.IsNullOrWhiteSpace(orderId) || string.IsNullOrWhiteSpace(paymentId) ||
+            !string.Equals(paymentStatus, "SUCCESS", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var transaction = await dbContext.PaymentTransactions
+            .Include(x => x.Enrollment)
+                .ThenInclude(x => x!.Program)
+            .Include(x => x.Enrollment)
+                .ThenInclude(x => x!.ProgramPlan)
+            .FirstOrDefaultAsync(x => x.GatewayOrderId == orderId, cancellationToken);
+
+        if (transaction is null || transaction.Status == PaymentStatus.Verified ||
+            await dbContext.PaymentTransactions.AnyAsync(x => x.GatewayPaymentId == paymentId && x.Id != transaction.Id, cancellationToken))
+        {
+            return;
+        }
+
+        transaction.Status = PaymentStatus.Verified;
+        transaction.GatewayPaymentId = paymentId;
+        transaction.VerifiedAt = clock.UtcNow;
+        var redemption = await dbContext.CouponRedemptions
+            .FirstOrDefaultAsync(x => x.PaymentTransactionId == transaction.Id, cancellationToken);
+        if (redemption is not null)
+        {
+            redemption.Status = CouponRedemptionStatus.Redeemed;
+        }
+        ApplyVerifiedPayment(transaction, clock.UtcNow);
+        await ActivateCheckoutAccountAsync(transaction.StudentId, cancellationToken);
+        dbContext.Notifications.Add(new Notification
+        {
+            Id = Guid.NewGuid(),
+            UserId = transaction.StudentId,
+            Title = "Payment verified",
+            Body = $"INR {transaction.Amount:n0} payment for {transaction.Enrollment?.Program?.Title ?? "your program"} is verified.",
+            ActionUrl = "/dashboard"
+        });
+        Audit("Student.PaymentVerifiedByCashfreeWebhook", new { transaction.Id, transaction.StudentId, transaction.EnrollmentId, transaction.GatewayPaymentId });
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
@@ -2227,7 +2309,7 @@ public sealed class LmsPortalService(
             throw new AppException("The initial payment has already been completed for this access period.", 400, "initial_payment_already_paid");
         }
 
-        if (mode != PaymentMode.ReserveSeat && (enrollment.PaidAmount <= 0 || isExpired))
+        if (mode == PaymentMode.RemainingBalance && (enrollment.PaidAmount <= 0 || isExpired))
         {
             throw new AppException("Complete the compulsory initial payment before paying the remaining balance.", 400, "initial_payment_required");
         }
@@ -2257,6 +2339,38 @@ public sealed class LmsPortalService(
 
     private static decimal GetPlanTotal(ProgramPlan plan)
         => GetFixedPricing(plan).TotalAmount;
+
+    private DateOnly? NormalizeStartDate(DateOnly? startDate)
+    {
+        if (!startDate.HasValue)
+        {
+            return null;
+        }
+
+        var today = DateOnly.FromDateTime(clock.UtcNow.UtcDateTime);
+        if (startDate.Value < today)
+        {
+            throw new AppException("The preferred start date cannot be in the past.", 400, "invalid_start_date");
+        }
+
+        return startDate;
+    }
+
+    private static bool IsAccessNotStarted(Enrollment enrollment, DateTimeOffset now)
+        => enrollment.StartDate.HasValue && ResolveAccessStart(enrollment, now) > now;
+
+    private static DateTimeOffset ResolveAccessStart(Enrollment enrollment, DateTimeOffset now)
+    {
+        if (!enrollment.StartDate.HasValue)
+        {
+            return now;
+        }
+
+        var requestedStart = new DateTimeOffset(
+            enrollment.StartDate.Value.ToDateTime(TimeOnly.MinValue),
+            TimeSpan.Zero);
+        return requestedStart > now ? requestedStart : now;
+    }
 
     private static bool IsAccessExpired(Enrollment enrollment, DateTimeOffset now)
         => enrollment.AccessExpiresAt.HasValue && enrollment.AccessExpiresAt <= now;
@@ -2402,19 +2516,40 @@ public sealed class LmsPortalService(
     }
 
     private static bool HasFullAccess(Enrollment enrollment, DateTimeOffset now)
-        => !IsAccessExpired(enrollment, now) && enrollment.PaidAmount + enrollment.DiscountAmount >= enrollment.TotalAmount && enrollment.TotalAmount > 0;
+        => !IsAccessNotStarted(enrollment, now) && !IsAccessExpired(enrollment, now) && enrollment.PaidAmount + enrollment.DiscountAmount >= enrollment.TotalAmount && enrollment.TotalAmount > 0;
 
     private static void EnsureFullAccess(Enrollment enrollment, DateTimeOffset now)
     {
         if (!HasFullAccess(enrollment, now))
         {
+            var isNotStarted = IsAccessNotStarted(enrollment, now);
+            var isExpired = IsAccessExpired(enrollment, now);
             throw new AppException(
-                IsAccessExpired(enrollment, now)
-                    ? "Your two-month access period has ended. Renew access to continue."
+                isNotStarted
+                    ? $"Your access starts on {enrollment.StartDate!.Value:dd MMM yyyy}."
+                    : isExpired
+                    ? "Your six-month access period has ended. Renew access to continue."
                     : "Complete the remaining payment to unlock projects and full course access.",
                 403,
-                IsAccessExpired(enrollment, now) ? "access_expired" : "full_payment_required");
+                isNotStarted ? "access_not_started" : isExpired ? "access_expired" : "full_payment_required");
         }
+    }
+
+    private async Task ActivateCheckoutAccountAsync(Guid studentId, CancellationToken cancellationToken)
+    {
+        var user = await dbContext.Users.FirstOrDefaultAsync(x => x.Id == studentId, cancellationToken);
+        if (user is null || (user.EmailConfirmed && user.AccountStatus == AccountStatus.Active))
+        {
+            return;
+        }
+
+        user.EmailConfirmed = true;
+        if (user.AccountStatus == AccountStatus.PendingEmailVerification)
+        {
+            user.AccountStatus = AccountStatus.Active;
+        }
+
+        Audit("Student.AccountActivatedAfterPayment", new { studentId });
     }
 
     private void ApplyVerifiedPayment(PaymentTransaction payment, DateTimeOffset now)
@@ -2441,9 +2576,12 @@ public sealed class LmsPortalService(
             enrollment.DiscountAmount + payment.DiscountAmount,
             Math.Max(enrollment.TotalAmount - enrollment.PaidAmount, 0));
         enrollment.PaidAmount = Math.Min(enrollment.PaidAmount + payment.Amount, enrollment.TotalAmount);
-        enrollment.AccessExpiresAt = isRenewal || payment.Mode == PaymentMode.ReserveSeat
-            ? now.AddMonths(Math.Clamp(Payments.AccessDurationMonths, 1, 24))
-            : enrollment.AccessExpiresAt;
+        if (isRenewal || payment.Mode == PaymentMode.ReserveSeat ||
+            (payment.Mode == PaymentMode.PayInFull && !enrollment.AccessExpiresAt.HasValue))
+        {
+            enrollment.AccessExpiresAt = ResolveAccessStart(enrollment, now)
+                .AddMonths(Math.Clamp(Payments.AccessDurationMonths, 1, 24));
+        }
 
         if (enrollment.PaidAmount + enrollment.DiscountAmount >= enrollment.TotalAmount)
         {
@@ -2636,6 +2774,7 @@ public sealed class LmsPortalService(
             enrollment.PaidAmount,
             Math.Max(enrollment.TotalAmount - enrollment.PaidAmount - enrollment.DiscountAmount, 0),
             enrollment.EnrolledAt,
+            enrollment.StartDate,
             enrollment.FullAccessUnlockedAt,
             enrollment.LockedReason,
             enrollment.AccessExpiresAt,

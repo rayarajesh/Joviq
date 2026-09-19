@@ -109,6 +109,70 @@ public sealed class AuthService(
         return new RegisterResponse(user.Id, EmailVerificationRequired: true, VerificationEmailSent: verificationEmailSent);
     }
 
+    public async Task<AuthTokenResponse> CreateCheckoutAccountAsync(
+        CheckoutAccountRequest request,
+        RequestMetadata metadata,
+        CancellationToken cancellationToken)
+    {
+        if (!request.AcceptedTerms)
+        {
+            throw new AppException("Terms and policies must be accepted.", 400, "terms_required");
+        }
+
+        var email = NormalizeEmail(request.Email);
+        var phone = NormalizeIndianPhone(request.PhoneNumber);
+
+        if (await userManager.FindByEmailAsync(email) is not null)
+        {
+            throw new AppException("This email already has an account. Sign out and use a new email for this enrollment.", 409, "email_exists");
+        }
+
+        if (await dbContext.Users.AnyAsync(x => x.PhoneNumber == phone, cancellationToken))
+        {
+            throw new AppException("This phone number already has an account. Use the same account for this enrollment.", 409, "phone_exists");
+        }
+
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+        var user = new ApplicationUser
+        {
+            Id = Guid.NewGuid(),
+            FullName = request.FullName.Trim(),
+            UserName = email,
+            Email = email,
+            PhoneNumber = phone,
+            EmailConfirmed = false,
+            AccountStatus = AccountStatus.PendingEmailVerification,
+            OnboardingStatus = OnboardingStatus.NotStarted
+        };
+
+        // The checkout account is authenticated with the short-lived checkout session.
+        // The user can set a password later through the normal forgot-password flow.
+        EnsureIdentitySucceeded(await userManager.CreateAsync(user));
+        EnsureIdentitySucceeded(await userManager.AddToRoleAsync(user, RoleNames.Student));
+
+        dbContext.UserConsents.Add(new UserConsent
+        {
+            UserId = user.Id,
+            TermsVersion = request.TermsVersion,
+            PrivacyPolicyVersion = request.PrivacyPolicyVersion,
+            AcceptedAt = clock.UtcNow,
+            IpAddress = metadata.IpAddress,
+            UserAgent = metadata.UserAgent
+        });
+
+        dbContext.StudentProfiles.Add(new StudentProfile
+        {
+            UserId = user.Id,
+            College = request.CollegeName.Trim()
+        });
+        AddAudit(user.Id, "CheckoutAccountCreated", user.Email, user.PhoneNumber, metadata);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
+        return await IssueTokenPairAsync(user, rememberMe: true, metadata, cancellationToken);
+    }
+
     public async Task<AuthTokenResponse> LoginAsync(LoginRequest request, RequestMetadata metadata, CancellationToken cancellationToken)
     {
         var email = NormalizeEmail(request.Email);

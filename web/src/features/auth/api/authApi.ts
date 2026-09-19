@@ -5,6 +5,7 @@ import type {
   AdminUserSummaryResponse,
   AccountProfile,
   AuthTokenResponse,
+  CheckoutAccountRequest,
   CreateAdminUserRequest,
   PagedResult,
   PasswordResetVerificationResponse,
@@ -62,6 +63,15 @@ export const authApi = {
 
   register(body: RegisterRequest) {
     return request<RegisterResponse>("/api/v1/auth/register", {
+      method: "POST",
+      body,
+      accessToken: null,
+      skipAuthRetry: true
+    });
+  },
+
+  createCheckoutAccount(body: CheckoutAccountRequest) {
+    return request<AuthTokenResponse>("/api/v1/auth/checkout-account", {
       method: "POST",
       body,
       accessToken: null,

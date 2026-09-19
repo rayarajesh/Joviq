@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { ArrowLeft, BadgePercent, CheckCircle2, Clock3, CreditCard, LockKeyhole, ShieldCheck } from "lucide-react";
 import { ToastMessage } from "../components/ToastMessage";
 import { useAuth } from "../features/auth/context/useAuth";
@@ -25,7 +26,7 @@ type RazorpayOptions = {
   name: string;
   description: string;
   order_id: string;
-  prefill?: { name?: string; email?: string };
+  prefill?: { name?: string; email?: string; contact?: string };
   notes?: Record<string, string>;
   theme?: { color: string };
   handler: (response: RazorpaySuccess) => void;
@@ -37,9 +38,16 @@ type RazorpayInstance = {
   on: (event: "payment.failed", handler: (response: RazorpayFailure) => void) => void;
 };
 
+type CashfreeCheckout = {
+  checkout: (options: { paymentSessionId: string; redirectTarget?: "_modal" | "_self" | "_blank" }) => Promise<unknown>;
+};
+
+type CashfreeFactory = (options: { mode: "sandbox" | "production" }) => CashfreeCheckout;
+
 declare global {
   interface Window {
     Razorpay?: new (options: RazorpayOptions) => RazorpayInstance;
+    Cashfree?: CashfreeFactory;
   }
 }
 
@@ -63,9 +71,32 @@ function loadRazorpayScript() {
   });
 }
 
+function loadCashfreeScript() {
+  if (window.Cashfree) return Promise.resolve();
+
+  return new Promise<void>((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>('script[src="https://sdk.cashfree.com/js/v3/cashfree.js"]');
+    if (existing) {
+      existing.addEventListener("load", () => resolve(), { once: true });
+      existing.addEventListener("error", () => reject(new Error("Cashfree checkout could not load.")), { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Cashfree checkout could not load."));
+    document.body.appendChild(script);
+  });
+}
+
 export function EnrollmentCheckoutPage() {
   const auth = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const autoStartRequested = searchParams.get("autostart") === "1";
+  const autoStartRef = useRef(false);
   const [pending] = useState(readPendingEnrollment);
   const [program, setProgram] = useState<ProgramDetailsResponse | null>(null);
   const [enrollment, setEnrollment] = useState<EnrollmentResponse | null>(null);
@@ -114,8 +145,12 @@ export function EnrollmentCheckoutPage() {
     [pending?.planCode, program]
   );
   const paymentMode = pending?.paymentMode ?? 1;
-  const paymentPurpose = paymentMode === 1 ? "initial access payment" : "remaining balance payment";
-  const expectedAmount = paymentMode === 1 ? selectedPlan?.reserveAmount : couponValidation?.payableAmount ?? pending?.amount;
+  const paymentPurpose = paymentMode === 1 ? "seat reservation" : paymentMode === 2 ? "full program payment" : "remaining balance payment";
+  const expectedAmount = paymentMode === 1
+    ? selectedPlan?.reserveAmount
+    : paymentMode === 2
+      ? selectedPlan?.offerPrice
+      : couponValidation?.payableAmount ?? pending?.amount;
 
   async function applyCoupon() {
     if (!pending || !program || !selectedPlan || paymentMode !== 3 || !couponCode.trim()) return;
@@ -154,7 +189,8 @@ export function EnrollmentCheckoutPage() {
     try {
       const currentEnrollment = enrollment ?? (await studentLmsApi.createEnrollment({
         programId: program.id,
-        programPlanId: selectedPlan.id
+        programPlanId: selectedPlan.id,
+        startDate: pending.startDate
       })).data;
       setEnrollment(currentEnrollment);
       const response = await studentLmsApi.createPaymentCheckout({
@@ -162,7 +198,11 @@ export function EnrollmentCheckoutPage() {
         programPlanId: selectedPlan.id,
         enrollmentId: currentEnrollment.id,
         mode: paymentMode,
-        couponCode: paymentMode === 3 ? couponCode.trim() || undefined : undefined
+        couponCode: paymentMode === 3 ? couponCode.trim() || undefined : undefined,
+        customerName: pending.applicant?.fullName,
+        customerEmail: pending.applicant?.email,
+        customerPhone: pending.applicant?.phoneNumber,
+        customerCollege: pending.applicant?.collegeName
       });
       setCheckout(response.data);
 
@@ -190,6 +230,11 @@ export function EnrollmentCheckoutPage() {
         return;
       }
 
+      if (response.data.provider === "Cashfree") {
+        await openCashfreeCheckout(response.data);
+        return;
+      }
+
       await loadRazorpayScript();
 
       if (!window.Razorpay) {
@@ -204,8 +249,9 @@ export function EnrollmentCheckoutPage() {
         description: `${program.title} · ${selectedPlan.name} ${paymentPurpose}`,
         order_id: response.data.gatewayOrderId,
         prefill: {
-          name: auth.user?.fullName,
-          email: auth.user?.email
+          name: auth.user?.fullName ?? pending.applicant?.fullName,
+          email: auth.user?.email ?? pending.applicant?.email,
+          contact: pending.applicant?.phoneNumber
         },
         notes: {
           program: program.title,
@@ -236,6 +282,34 @@ export function EnrollmentCheckoutPage() {
     }
   }
 
+  useEffect(() => {
+    if (!autoStartRequested || paymentMode === 3 || autoStartRef.current || isLoading || !program || !selectedPlan) return;
+    autoStartRef.current = true;
+    void startPayment();
+  }, [autoStartRequested, isLoading, paymentMode, program, selectedPlan]);
+
+  async function openCashfreeCheckout(currentCheckout: PaymentCheckoutResponse) {
+    if (!currentCheckout.paymentSessionId) {
+      throw new Error("Cashfree payment session is missing. Please start checkout again.");
+    }
+
+    await loadCashfreeScript();
+    if (!window.Cashfree) {
+      throw new Error("Cashfree checkout is unavailable. Please try again.");
+    }
+
+    const cashfree = window.Cashfree({
+      mode: currentCheckout.paymentEnvironment?.toLowerCase() === "production" ? "production" : "sandbox"
+    });
+    const result = await cashfree.checkout({ paymentSessionId: currentCheckout.paymentSessionId, redirectTarget: "_modal" });
+    if (result && typeof result === "object" && "error" in result) {
+      const error = (result as { error?: { message?: string } }).error;
+      if (error) throw new Error(error.message ?? "Cashfree payment was not completed.");
+    }
+
+    await confirmCashfreePayment(currentCheckout);
+  }
+
   async function confirmPayment(currentCheckout: PaymentCheckoutResponse, gatewayResponse: RazorpaySuccess) {
     setIsPaying(true);
     setMessage(null);
@@ -246,6 +320,25 @@ export function EnrollmentCheckoutPage() {
         gatewayPaymentId: gatewayResponse.razorpay_payment_id,
         gatewaySignature: gatewayResponse.razorpay_signature
       });
+      await auth.loadMe();
+      clearPendingEnrollment();
+      navigate("/dashboard?payment=success", { replace: true });
+    } catch (error) {
+      setMessage({ tone: "error", text: formatApiError(error) });
+    } finally {
+      setIsPaying(false);
+    }
+  }
+
+  async function confirmCashfreePayment(currentCheckout: PaymentCheckoutResponse) {
+    setIsPaying(true);
+    setMessage(null);
+    try {
+      await studentLmsApi.verifyPayment({
+        paymentTransactionId: currentCheckout.transaction.id,
+        gatewayOrderId: currentCheckout.gatewayOrderId
+      });
+      await auth.loadMe();
       clearPendingEnrollment();
       navigate("/dashboard?payment=success", { replace: true });
     } catch (error) {
@@ -266,6 +359,53 @@ export function EnrollmentCheckoutPage() {
     );
   }
 
+  if (autoStartRequested && paymentMode !== 3) {
+    const launcherTitle = isLoading
+      ? "Preparing your secure checkout"
+      : isPaying
+        ? "Opening Cashfree checkout"
+        : checkout?.provider === "Development"
+          ? "Test checkout is ready"
+          : message?.tone === "error"
+            ? "We could not open checkout"
+            : "Preparing your secure checkout";
+    const launcherMessage = message?.text
+      ?? (checkout?.provider === "Development"
+        ? "Local test mode is active. Complete the test payment to continue."
+        : "Your payment dialog will open here. Please keep this window open.");
+
+    return (
+      <section className="checkout-launcher" aria-live="polite">
+        <div className="checkout-launcher__card">
+          <div className="checkout-launcher__icon"><LockKeyhole size={25} /></div>
+          <span className="checkout-launcher__eyebrow">Secure enrollment</span>
+          <h1>{launcherTitle}</h1>
+          <p>{launcherMessage}</p>
+          {checkout?.provider === "Development" ? (
+            <button
+              className="primary-action checkout-pay-button"
+              type="button"
+              disabled={isPaying}
+              onClick={() => void confirmPayment(checkout, {
+                razorpay_order_id: checkout.gatewayOrderId,
+                razorpay_payment_id: `test_payment_${checkout.transaction.id}`,
+                razorpay_signature: "development-test-signature"
+              })}
+            >
+              <CreditCard size={18} /> Complete test payment
+            </button>
+          ) : null}
+          {message?.tone === "error" ? (
+            <button className="secondary-action checkout-launcher__retry" type="button" disabled={isPaying} onClick={() => void startPayment()}>
+              Try again
+            </button>
+          ) : null}
+          <Link className="checkout-launcher__back" to={`/programs/${pending.slug}`}><ArrowLeft size={17} /> Return to program</Link>
+        </div>
+      </section>
+    );
+  }
+
   const isExpired = secondsLeft !== null && secondsLeft <= 0;
 
   return (
@@ -282,17 +422,18 @@ export function EnrollmentCheckoutPage() {
                 <div className="checkout-program-icon"><CreditCard size={22} /></div>
                 <div><strong>{program.title}</strong><span>{selectedPlan.name} plan</span></div>
               </div>
-              <div className="checkout-price-row"><span>{paymentMode === 1 ? "Initial payment today" : "Balance payment today"}</span><strong>{expectedAmount ? formatCurrency(expectedAmount) : "Calculated securely"}</strong></div>
+              <div className="checkout-price-row"><span>{paymentMode === 1 ? "Seat token today" : paymentMode === 2 ? "Full payment today" : "Balance payment today"}</span><strong>{expectedAmount ? formatCurrency(expectedAmount) : "Calculated securely"}</strong></div>
               {paymentMode === 3 && couponValidation ? <>
                 <div className="checkout-price-row checkout-price-row--muted"><span>Balance before coupon</span><span>{formatCurrency(couponValidation.originalAmount)}</span></div>
                 <div className="checkout-price-row checkout-price-row--discount"><span>Coupon {couponValidation.code}</span><strong>-{formatCurrency(couponValidation.discountAmount)}</strong></div>
               </> : null}
               <div className="checkout-price-row checkout-price-row--muted"><span>Full plan value</span><span>{formatCurrency(selectedPlan.offerPrice)}</span></div>
+              {pending.startDate ? <div className="checkout-price-row checkout-price-row--muted"><span>Requested start date</span><span>{formatDisplayDate(pending.startDate)}</span></div> : null}
               <div className="checkout-rule" />
               <ul className="checkout-benefits">
                 <li><CheckCircle2 size={16} /> Account activation after payment verification</li>
-                {paymentMode === 1 ? <li><CheckCircle2 size={16} /> First module preview for two months</li> : <li><CheckCircle2 size={16} /> Full course access unlocks after the balance is verified</li>}
-                <li><CheckCircle2 size={16} /> {paymentMode === 1 ? "Pay the remaining balance to unlock projects, all modules, and certificate" : "Projects, all modules, and certificate access are protected until verification"}</li>
+                {paymentMode === 1 ? <li><CheckCircle2 size={16} /> Seat reserved with limited preview access until full payment</li> : <li><CheckCircle2 size={16} /> Full course access unlocks after this payment is verified</li>}
+                <li><CheckCircle2 size={16} /> {paymentMode === 1 ? "Pay the remaining balance to unlock projects, all modules, and certificate" : "Projects, all modules, and certificate access are included for six months"}</li>
                 {paymentMode === 1 ? <li><CheckCircle2 size={16} /> Coupons apply only to the remaining balance, never to the initial reserve payment.</li> : null}
               </ul>
             </>
@@ -300,8 +441,8 @@ export function EnrollmentCheckoutPage() {
         </section>
 
         <section className="checkout-card checkout-payment-card">
-          <div className="checkout-security-heading"><LockKeyhole size={20} /><div><strong>{checkout?.provider === "Development" ? "Development test payment" : "Protected payment"}</strong><span>{checkout?.provider === "Development" ? "Local-only test mode · no money charged" : "Processed by Razorpay Secure Checkout"}</span></div></div>
-          <h2>{paymentMode === 1 ? "Pay the initial amount" : "Pay the remaining balance"}</h2>
+          <div className="checkout-security-heading"><LockKeyhole size={20} /><div><strong>{checkout?.provider === "Development" ? "Development test payment" : "Protected payment"}</strong><span>{checkout?.provider === "Development" ? "Local-only test mode · no money charged" : checkout?.provider === "Cashfree" ? "Processed by Cashfree Secure Checkout" : "Processed by Razorpay Secure Checkout"}</span></div></div>
+          <h2>{paymentMode === 1 ? "Reserve your seat" : paymentMode === 2 ? "Pay in full" : "Pay the remaining balance"}</h2>
           <p className="checkout-payment-copy">{checkout?.provider === "Development" ? "This local test payment completes the same server-side verification and access flow without charging money." : "UPI, UPI QR, cards, and net banking are shown by the gateway according to the methods enabled on your merchant account."}</p>
           {paymentMode === 3 ? (
             <div className="checkout-coupon-box">
@@ -349,4 +490,8 @@ function formatCountdown(seconds: number) {
   const minutes = Math.floor(seconds / 60).toString().padStart(2, "0");
   const remainder = (seconds % 60).toString().padStart(2, "0");
   return `${minutes}:${remainder}`;
+}
+
+function formatDisplayDate(value: string) {
+  return new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(new Date(`${value}T00:00:00`));
 }

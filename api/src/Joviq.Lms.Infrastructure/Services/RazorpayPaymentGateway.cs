@@ -28,6 +28,10 @@ public sealed class RazorpayPaymentGateway(
         decimal amount,
         string currency,
         DateTimeOffset expiresAt,
+        string? customerName,
+        string? customerEmail,
+        string? customerPhone,
+        string? customerCollege,
         CancellationToken cancellationToken)
     {
         if (IsDevelopmentTestMode)
@@ -83,7 +87,16 @@ public sealed class RazorpayPaymentGateway(
             expiresAt);
     }
 
-    public bool VerifyPaymentSignature(string orderId, string paymentId, string signature)
+    public Task<PaymentGatewayVerification> VerifyPaymentAsync(
+        string orderId,
+        string? paymentId,
+        string? signature,
+        CancellationToken cancellationToken)
+        => Task.FromResult(new PaymentGatewayVerification(
+            VerifyPaymentSignature(orderId, paymentId ?? string.Empty, signature ?? string.Empty),
+            paymentId));
+
+    private bool VerifyPaymentSignature(string orderId, string paymentId, string signature)
     {
         if (IsDevelopmentTestMode)
         {
@@ -112,7 +125,7 @@ public sealed class RazorpayPaymentGateway(
             provided);
     }
 
-    public bool VerifyWebhookSignature(string payload, string signature)
+    public bool VerifyWebhookSignature(string payload, string signature, string? timestamp = null)
     {
         if (IsDevelopmentTestMode)
         {

@@ -6,6 +6,8 @@ public interface IAuthService
 {
     Task<RegisterResponse> RegisterAsync(RegisterRequest request, RequestMetadata metadata, CancellationToken cancellationToken);
 
+    Task<AuthTokenResponse> CreateCheckoutAccountAsync(CheckoutAccountRequest request, RequestMetadata metadata, CancellationToken cancellationToken);
+
     Task<AuthTokenResponse> LoginAsync(LoginRequest request, RequestMetadata metadata, CancellationToken cancellationToken);
 
     Task<AuthTokenResponse> ExternalLoginAsync(ExternalLoginRequest request, RequestMetadata metadata, CancellationToken cancellationToken);

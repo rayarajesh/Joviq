@@ -46,6 +46,16 @@ public sealed class AuthController(
             : "Account created, but the verification email could not be delivered. Please retry sending the OTP.", CorrelationId));
     }
 
+    [HttpPost("checkout-account")]
+    [AllowAnonymous]
+    [EnableRateLimiting("AuthRegister")]
+    public async Task<ActionResult<ApiResponse<AuthTokenResponse>>> CreateCheckoutAccount(CheckoutAccountRequest request, CancellationToken cancellationToken)
+    {
+        var result = await authService.CreateCheckoutAccountAsync(request, RequestMetadata(), cancellationToken);
+        SetRefreshTokenCookieIfPresent(result);
+        return Ok(ApiResponse<AuthTokenResponse>.Ok(result, "Checkout account created and signed in.", CorrelationId));
+    }
+
     [HttpPost("login")]
     [AllowAnonymous]
     [EnableRateLimiting("AuthLogin")]

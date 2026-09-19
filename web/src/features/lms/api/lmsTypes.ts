@@ -101,6 +101,7 @@ export type EnrollmentResponse = {
   paidAmount: number;
   balanceAmount: number;
   enrolledAt: string;
+  startDate?: string;
   fullAccessUnlockedAt?: string;
   lockedReason?: string;
   accessExpiresAt?: string;
@@ -186,6 +187,8 @@ export type PaymentCheckoutResponse = {
   amountInMinorUnits: number;
   currency: string;
   expiresAt: string;
+  paymentSessionId?: string;
+  paymentEnvironment?: string;
 };
 
 export type PaymentReceiptResponse = {
@@ -365,6 +368,7 @@ export type ProgramListParams = {
 export type CreateEnrollmentRequest = {
   programId: string;
   programPlanId?: string;
+  startDate?: string;
 };
 
 export type CreatePaymentCheckoutRequest = {
@@ -373,6 +377,10 @@ export type CreatePaymentCheckoutRequest = {
   enrollmentId?: string;
   mode: 1 | 2 | 3;
   couponCode?: string;
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  customerCollege?: string;
 };
 
 export type ValidateCouponRequest = {

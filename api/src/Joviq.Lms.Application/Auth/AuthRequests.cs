@@ -29,6 +29,29 @@ public sealed record RegisterRequest
     public string PrivacyPolicyVersion { get; init; } = string.Empty;
 }
 
+public sealed record CheckoutAccountRequest
+{
+    [Required, MinLength(2), MaxLength(160)]
+    public string FullName { get; init; } = string.Empty;
+
+    [Required, EmailAddress, MaxLength(256)]
+    public string Email { get; init; } = string.Empty;
+
+    [Required, IndianMobileNumber, MaxLength(16)]
+    public string PhoneNumber { get; init; } = string.Empty;
+
+    [Required, MinLength(2), MaxLength(200)]
+    public string CollegeName { get; init; } = string.Empty;
+
+    public bool AcceptedTerms { get; init; }
+
+    [Required]
+    public string TermsVersion { get; init; } = string.Empty;
+
+    [Required]
+    public string PrivacyPolicyVersion { get; init; } = string.Empty;
+}
+
 public sealed record LoginRequest
 {
     [Required, EmailAddress]

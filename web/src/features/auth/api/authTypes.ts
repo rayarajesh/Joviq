@@ -18,6 +18,16 @@ export type RegisterResponse = {
   verificationEmailSent?: boolean;
 };
 
+export type CheckoutAccountRequest = {
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  collegeName: string;
+  acceptedTerms: boolean;
+  termsVersion: string;
+  privacyPolicyVersion: string;
+};
+
 export type LoginRequest = {
   email: string;
   password: string;

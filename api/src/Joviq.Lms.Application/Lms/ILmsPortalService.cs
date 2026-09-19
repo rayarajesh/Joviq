@@ -40,6 +40,8 @@ public interface ILmsPortalService
 
     Task ProcessPaymentWebhookAsync(string payload, string signature, CancellationToken cancellationToken);
 
+    Task ProcessCashfreePaymentWebhookAsync(string payload, CancellationToken cancellationToken);
+
     Task<IReadOnlyList<ProjectResponse>> GetStudentProjectsAsync(Guid studentId, CancellationToken cancellationToken);
 
     Task<SubmissionResponse> SubmitProjectAsync(Guid studentId, Guid projectId, SubmitProjectRequest request, CancellationToken cancellationToken);
