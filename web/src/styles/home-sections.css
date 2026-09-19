@@ -286,8 +286,10 @@
 .directory-course__link i{width:33px;height:33px}
 .directory-refresh__dots{margin-top:17px}
 .directory-refresh__category-row{display:flex;align-items:center;gap:7px;min-width:0}
-.directory-refresh__category-arrow{display:grid;place-items:center;flex-shrink:0;width:29px;height:34px;background:white;border:1px solid #e4e0fa;border-radius:20px;color:#6a42ff;cursor:pointer}
-.directory-refresh__category-arrow:disabled{opacity:.35;cursor:default}
+.directory-refresh__category-arrow{display:grid;place-items:center;flex-shrink:0;width:34px;height:40px;background:#4d3fc9;border:1px solid #4d3fc9;border-radius:20px;color:#fff;cursor:pointer;box-shadow:0 10px 22px rgba(77,63,201,.22);transition:background-color .2s ease,color .2s ease,border-color .2s ease,box-shadow .2s ease,transform .2s ease}
+.directory-refresh__category-arrow:hover:not(:disabled){background:#392c9d;border-color:#392c9d;color:#fff;box-shadow:0 12px 26px rgba(57,44,157,.3);transform:translateY(-1px)}
+.directory-refresh__category-arrow:focus-visible{outline:3px solid #8f7cff;outline-offset:2px}
+.directory-refresh__category-arrow:disabled{opacity:.35;cursor:default;box-shadow:none}
 .directory-refresh__filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;flex:1;min-width:0}
 .directory-refresh__filters button{justify-content:center;gap:5px;padding:9px 7px;min-height:47px;min-width:0;font-size:10px;line-height:1.35;box-shadow:none}
 .directory-refresh__filters button span{min-width:0;overflow-wrap:anywhere}
@@ -352,8 +354,11 @@ button,input[type=submit],input[type=button],a[role=button],.site-button,.primar
 button:hover:not(:disabled),input[type=submit]:hover,a[role=button]:hover,.site-button:hover,.primary-action:hover,.pc-button:hover,.ft-button:hover,.learn-hero__actions a:hover,.site-nav__actions a:hover,.hiring-card__copy a:hover,.success-flip__back a:hover,.student-success__cta a:hover,.path-actions a:hover,.pricing-actions a:hover,.joviq-start__actions a:hover{background:var(--button-brand-hover)!important;border-color:var(--button-brand-hover)!important}
 button svg,.site-button svg,.primary-action svg,.pc-button svg,.ft-button svg,.learn-hero__actions a svg,.hiring-card__copy a svg,.success-flip__back a svg,.path-actions a svg,.pricing-actions a svg{color:inherit!important}
 /* Outline and navigation controls retain their visual hierarchy. */
-.directory-refresh__filters button:not([aria-pressed=true]),.directory-refresh__category-arrow,.directory-refresh__controls button,.reviews-carousel__arrow,.alumni-orbit__pause,.learn-hero__browse,.secondary-action,.auth-secondary-button,.auth-link-button,.pc-outline,.ft-outline{background:#fff!important;color:var(--button-brand)!important;border-color:var(--button-brand-border)!important}
-.directory-refresh__filters button:not([aria-pressed=true]):hover,.directory-refresh__category-arrow:hover,.directory-refresh__controls button:hover,.reviews-carousel__arrow:hover,.alumni-orbit__pause:hover,.learn-hero__browse:hover,.secondary-action:hover{background:var(--button-brand-soft)!important;color:var(--button-brand-hover)!important}
+.directory-refresh__filters button:not([aria-pressed=true]),.directory-refresh__category-arrow,.directory-refresh__controls button,.reviews-carousel__arrow,.alumni-orbit__pause,.secondary-action,.auth-secondary-button,.auth-link-button,.pc-outline,.ft-outline{background:#fff!important;color:var(--button-brand)!important;border-color:var(--button-brand-border)!important}
+.directory-refresh__filters button:not([aria-pressed=true]):hover,.directory-refresh__category-arrow:hover,.directory-refresh__controls button:hover,.reviews-carousel__arrow:hover,.alumni-orbit__pause:hover,.secondary-action:hover{background:var(--button-brand-soft)!important;color:var(--button-brand-hover)!important}
+.learn-hero__browse{display:inline-flex;align-items:center;justify-content:center;min-width:235px;padding:17px 22px;border:1.5px solid #766bff;border-radius:15px;background:#fff;color:#1d1f59;box-shadow:0 14px 28px rgba(86,70,200,.12);font-weight:700;transition:background-color .2s ease,color .2s ease,transform .2s ease,box-shadow .2s ease}
+.learn-hero__browse:hover{background:#5146c8;color:#fff;border-color:#5146c8;box-shadow:0 16px 32px rgba(81,70,200,.22);transform:translateY(-1px)}
+.learn-hero__browse:focus-visible{outline:3px solid #8f7cff;outline-offset:3px}
 .directory-refresh__dots button:not([aria-current]){background:var(--button-brand-border)!important}
 .category-tile__all,.home-section-link,.directory-course__link,.program-showcase-card__action{color:var(--button-brand)!important}
 .category-tile__all,.directory-course__link i,.technology-card__arrow,.recognition-tile__arrow,.success-flip__arrow{background:var(--button-brand-soft)!important;color:var(--button-brand)!important}

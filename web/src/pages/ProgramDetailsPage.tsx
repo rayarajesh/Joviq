@@ -40,7 +40,7 @@ import { formatApiError } from "../lib/api/httpClient";
 
 type DetailItem = { title: string; text: string };
 type CurriculumItem = DetailItem & { lessons: string[] };
-type ProjectItem = DetailItem & { artifacts: string[] };
+type ProjectItem = DetailItem & { artifacts: string[]; technologies?: string[] };
 type DomainFeatureItem = { icon: ReactNode; title: string; text: string; bullets: string[] };
 type RegistrationSubmission = { applicant: EnrollmentApplicant; paymentChoice: "token" | "full"; startDate?: string; acceptedTerms: boolean };
 const checkoutPolicyVersion = "2026-08-20";
@@ -319,15 +319,17 @@ export function ProgramDetailsPage() {
       <section className="pd-section pd-curriculum" id="curriculum">
         <div className="pd-section-heading pd-section-heading--split">
           <div><span>Curriculum</span><h2>A clear path from foundations to career proof.</h2></div>
-          <p>{program.curriculum.length} structured modules with lessons, practice checkpoints, and reviewed outputs.</p>
+          <p>Explore each module to see what you’ll learn.</p>
         </div>
         <div className="pd-curriculum__list">
-          {program.curriculum.map((module, index) => (
-            <article key={module.title}>
-              <span>{String(index + 1).padStart(2, "0")}</span>
-              <div><h3>{module.title}</h3><p>{module.text}</p></div>
-              <ul>{module.lessons.map((lesson) => <li key={lesson}><BookOpenCheck size={15} /> {lesson}</li>)}</ul>
-            </article>
+          {program.curriculum.map((module) => (
+            <details className="pd-module" key={`${program.slug}-${module.title}`} name="program-curriculum">
+              <summary>
+                <div><h3>{module.title}</h3><p>{module.text}</p></div>
+                <span className="pd-module__plus" aria-hidden="true">+</span>
+              </summary>
+              <ul>{module.lessons.map((lesson) => <li key={lesson}>{lesson}</li>)}</ul>
+            </details>
           ))}
         </div>
       </section>
@@ -348,9 +350,9 @@ export function ProgramDetailsPage() {
                 <summary>View Details</summary>
                 <div>
                   <strong>Key Features</strong>
-                  <ul>{project.artifacts.slice(0, 4).map((artifact) => <li key={artifact}>{artifact}</li>)}</ul>
+                  <ul>{(project.technologies ? project.artifacts : project.artifacts.slice(0, 4)).map((artifact) => <li key={artifact}>{artifact}</li>)}</ul>
                   <strong>Technologies</strong>
-                  <ul>{program.skills.slice(0, 4).map((skill) => <li key={skill}>{skill}</li>)}</ul>
+                  <ul>{(project.technologies ?? program.skills.slice(0, 4)).map((skill) => <li key={skill}>{skill}</li>)}</ul>
                 </div>
               </details>
             </article>
@@ -364,12 +366,9 @@ export function ProgramDetailsPage() {
           <h2>Review from someone who understands the work.</h2><p>{program.guidance}</p>
           <div><Headphones size={20} /><span>Live guidance, project reviews, doubt support, and interview feedback.</span></div>
         </div>
-        <div className="pd-credential__certificate">
-          <header><Award size={30} /><span>Verified achievement</span></header><small>Joviq Technologies</small>
-          <h3>{program.certification}</h3>
-          <p>Issued after the required project work is successfully completed.</p>
-          <footer><ShieldCheck size={20} /><strong>Project-backed credential</strong></footer>
-        </div>
+        <a className="pd-credential__sample" href="/assets/training-certificate.png" target="_blank" rel="noopener noreferrer" aria-label={`View sample training certificate for ${program.title} in full size`}>
+          <img src="/assets/training-certificate.png" alt={`Joviq Technologies sample training certificate for ${program.title}`} width="1600" height="1131" loading="lazy" />
+        </a>
       </section>
 
       <section className="pd-section pd-career">
@@ -658,7 +657,7 @@ function buildProgramViewModel(local: Program | undefined, remote: ProgramDetail
     isActive: plan.isActive
   })) ?? [];
 
-  return {
+  const view: ProgramViewModel = {
     slug: remote?.slug ?? local?.slug ?? "program",
     title,
     domain: remote?.categoryName ?? local?.domain ?? "Career Program",
@@ -666,7 +665,7 @@ function buildProgramViewModel(local: Program | undefined, remote: ProgramDetail
     overview: remote?.overview ?? local?.overview ?? "Build practical capability through guided learning, projects, and review.",
     audience: local?.audience ?? ["Students building career skills", "Fresh graduates preparing for roles", "Working professionals changing domains"],
     skills: remote?.skills.length ? remote.skills : local?.skills.length ? local.skills : ["Core foundations", "Industry tools", "Applied problem solving", "Project delivery", "Quality review", "Interview communication"],
-    curriculum,
+    curriculum: local?.curriculumDetails ?? curriculum,
     duration: remote?.duration ?? local?.duration ?? "8 to 16 weeks",
     mode: remote?.learningMode ?? local?.mode ?? "Live and recorded online learning",
     guidance: local?.expert ?? "Experienced domain experts provide project and interview review support.",
@@ -678,6 +677,14 @@ function buildProgramViewModel(local: Program | undefined, remote: ProgramDetail
     faqs: remote?.faqs.length ? remote.faqs : local?.faqs.length ? local.faqs : createFallbackFaqs(title),
     level: remote?.level ?? local?.level ?? "Beginner to job-ready"
   };
+  // The PDF catalog owns these editorial fields; live enrollment plans still come from the API.
+  if (local?.content) {
+    const content = local.content;
+    return { ...view, title: content.title, shortDescription: content.shortDescription,
+      overview: content.overview, skills: content.skills, curriculum: local.curriculumDetails ?? content.curriculum,
+      projects: content.projects, faqs: local.faqs };
+  }
+  return view;
 }
 
 function completeProjectExamples(projects: ProjectItem[], title: string) {

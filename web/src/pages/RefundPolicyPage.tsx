@@ -73,7 +73,7 @@ export function RefundPolicyPage() {
             <p className="privacy-policy__eyebrow">LEGAL</p>
             <h1 id="refund-policy-title">Refund Policy</h1>
             <p className="privacy-policy__company">Joviq Technologies Private Limited</p>
-            <p className="privacy-policy__effective">Effective Date: [Effective Date]</p>
+            
           </header>
 
           <div className="privacy-policy__content">

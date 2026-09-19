@@ -1,0 +1,53 @@
+.campus-delegate-page { background: #fff; color: #152840; }
+.delegate-main { width: min(1160px, calc(100% - 48px)); margin: 0 auto; }
+.delegate-main * { box-sizing: border-box; }
+.delegate-hero { display: grid; grid-template-columns: 1.15fr 1fr; align-items: center; gap: 72px; padding: 80px 0; }
+.delegate-eyebrow { display: flex; align-items: center; gap: 8px; color: #504b91; font-size: 12px; font-weight: 750; letter-spacing: .12em; }
+.delegate-hero h1 { margin: 24px 0; font-size: clamp(40px, 4.7vw, 64px); line-height: 1.08; letter-spacing: -.045em; font-weight: 750; }
+.delegate-hero h1 em { color: #504b91; font-style: normal; }
+.delegate-main p { color: #5c6a7d; font-size: 15px; line-height: 1.8; }
+.delegate-hero > div > p { max-width: 510px; font-size: 17px; }
+.delegate-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 24px; margin: 30px 0 22px; }
+.delegate-button { display: inline-flex; justify-content: center; align-items: center; gap: 12px; border-radius: 9px; padding: 15px 21px; background: #504b91; color: #fff; text-decoration: none; font-size: 14px; font-weight: 700; }
+.delegate-button:hover { background: #413b7a; }
+.delegate-text-link { display: inline-flex; align-items: center; gap: 8px; color: #152840; font-size: 14px; font-weight: 650; text-decoration: none; }
+.delegate-text-link:hover { text-decoration: underline; }
+.delegate-main a:focus-visible, .delegate-main summary:focus-visible { outline: 3px solid #504b91; outline-offset: 5px; }
+.delegate-hero-note { display: block; color: #6a7888; font-size: 12px; line-height: 1.7; }
+.delegate-role-card { padding: 32px; background: #f2f8f6; border: 1px solid #dcebe5; border-radius: 20px; }
+.delegate-role-card h2 { margin: 26px 0 14px; font-size: 28px; letter-spacing: -.025em; line-height: 1.3; }
+.delegate-role-card ul { display: grid; gap: 20px; margin: 26px 0; padding: 0; list-style: none; }
+.delegate-role-card li { display: flex; gap: 12px; color: #5c6a7d; font-size: 13px; line-height: 1.7; }
+.delegate-role-card li svg { flex-shrink: 0; margin-top: 3px; color: #504b91; }
+.delegate-role-card strong { display: block; color: #152840; font-size: 14px; }
+.delegate-card-bottom { padding-top: 20px; border-top: 1px solid #d5e6df; color: #504b91; font-size: 12px; }
+.delegate-section { padding: 64px 0; border-top: 1px solid #e4e9ee; }
+.delegate-heading h2, .delegate-fit h2 { margin: 14px 0 20px; font-size: clamp(27px, 3vw, 36px); line-height: 1.25; letter-spacing: -.03em; }
+.delegate-benefits { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 32px; }
+.delegate-benefits > article { min-width: 0; padding: 26px; border: 1px solid #dce5e9; border-radius: 16px; background: #fff; box-shadow: 0 4px 16px rgba(21, 40, 64, .035); }
+.delegate-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: #f0f5fa; color: #504b91; }
+.delegate-main h3 { margin: 18px 0 8px; font-size: 19px; line-height: 1.4; }
+.delegate-benefits p { margin: 0; }
+.delegate-role-section { display: grid; grid-template-columns: 1fr 1.2fr; gap: 64px; padding: 48px; margin: 16px 0 64px; border-radius: 18px; background: #f7f9fc; scroll-margin-top: 100px; }
+.delegate-responsibilities { display: grid; gap: 14px; }
+.delegate-responsibilities article { display: flex; align-items: flex-start; gap: 16px; padding: 20px; border: 1px solid #dce5e9; border-radius: 14px; background: #fff; }
+.delegate-responsibilities svg { flex-shrink: 0; color: #504b91; margin-top: 4px; }
+.delegate-responsibilities h3 { margin: 0 0 6px; font-size: 17px; }
+.delegate-responsibilities p { margin: 0; font-size: 14px; }
+.delegate-start { display: grid; grid-template-columns: 1.15fr 1fr; gap: 80px; }
+.delegate-fit ul { display: grid; gap: 14px; margin: 24px 0 0; padding: 0; list-style: none; }
+.delegate-fit li { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; color: #46576a; line-height: 1.6; }
+.delegate-fit li svg { flex-shrink: 0; color: #504b91; margin-top: 3px; }
+.delegate-apply { padding: 30px; border: 1px solid #dde5ec; border-radius: 16px; align-self: start; }
+.delegate-apply h3 { font-size: 24px; }
+.delegate-apply .delegate-button { margin-top: 12px; }
+.delegate-faq { display: grid; grid-template-columns: 1fr 1.3fr; gap: 64px; padding-bottom: 88px; }
+.delegate-faq details { margin-bottom: 12px; padding: 0 20px; border: 1px solid #dfe5eb; border-radius: 12px; background: #fff; }
+.delegate-faq details[open] { border-color: rgba(80, 75, 145, 0.35); background: #f7f5ff; }
+.delegate-faq summary { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 21px 0; font-size: 15px; font-weight: 650; cursor: pointer; list-style: none; }
+.delegate-faq summary::-webkit-details-marker { display: none; }
+.delegate-faq summary span { color: #504b91; font-size: 24px; font-weight: 400; }
+.delegate-faq details[open] summary span { transform: rotate(45deg); }
+.delegate-faq details p { margin: 0; padding-bottom: 22px; font-size: 14px; }
+@media (max-width: 900px) { .delegate-hero { gap: 32px; padding: 48px 0; } .delegate-role-card { padding: 24px; } .delegate-role-section { padding: 30px; gap: 32px; } .delegate-start, .delegate-faq { gap: 32px; } }
+@media (max-width: 680px) { .delegate-main { width: calc(100% - 36px); } .delegate-hero, .delegate-benefits, .delegate-role-section, .delegate-start, .delegate-faq { grid-template-columns: 1fr; } .delegate-hero { padding: 40px 0; } .delegate-hero h1 { font-size: 44px; } .delegate-section { padding: 40px 0; } .delegate-benefits { gap: 28px; } .delegate-role-section { padding: 24px; margin-bottom: 40px; } .delegate-role-card h2 { font-size: 26px; } .delegate-apply { padding: 24px; } .delegate-faq { padding-bottom: 56px; gap: 8px; } }

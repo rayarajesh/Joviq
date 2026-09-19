@@ -1,0 +1,58 @@
+.reviews-page { background: #fff; color: #172942; }
+.reviews-main { width: min(1160px, calc(100% - 48px)); margin: auto; }
+.reviews-main * { box-sizing: border-box; }
+.reviews-kicker { display: inline-flex; align-items: center; gap: 8px; color: #595292; font-size: 11px; font-weight: 750; letter-spacing: .12em; line-height: 1.7; }
+.reviews-main p { color: #626d83; font-size: 15px; line-height: 1.8; }
+.reviews-hero { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; padding: 76px 0 64px; }
+.reviews-intro h1 { margin: 22px 0; font-size: clamp(40px, 4.7vw, 62px); line-height: 1.12; letter-spacing: -.045em; }
+.reviews-intro h1 em { color: #595292; font-style: normal; }
+.reviews-intro > p { max-width: 480px; font-size: 17px; }
+.reviews-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 22px; margin-top: 30px; }
+.reviews-button { display: inline-flex; justify-content: center; align-items: center; gap: 10px; padding: 15px 21px; border-radius: 9px; background: #0c254d; color: #fff; font-size: 14px; font-weight: 700; text-decoration: none; }
+.reviews-button:hover { background: #07132f; }
+.reviews-link { display: inline-flex; align-items: center; gap: 9px; color: #595292; font-size: 14px; font-weight: 650; text-decoration: none; }
+.reviews-link:hover { text-decoration: underline; }
+.reviews-main a:focus-visible, .reviews-main button:focus-visible { outline: 3px solid #9286e4; outline-offset: 5px; }
+.reviews-spotlight { padding: 34px; border-radius: 22px; background: linear-gradient(145deg, #172f59, #101c3d); color: #fff; box-shadow: 0 16px 40px rgba(12, 37, 77, .12); }
+.reviews-spotlight-top { display: flex; justify-content: space-between; align-items: center; gap: 20px; color: #c1b8f3; font-size: 10px; letter-spacing: .12em; font-weight: 700; }
+.reviews-featured-content { min-height: 295px; }
+.reviews-spotlight blockquote { margin: 30px 0; font-size: clamp(21px, 2.2vw, 27px); line-height: 1.55; letter-spacing: -.015em; }
+.reviews-author { display: flex; align-items: center; gap: 12px; }
+.reviews-avatar { display: grid; place-items: center; flex: 0 0 44px; height: 44px; border-radius: 50%; background: #efedf8; color: #595292; font-size: 13px; font-weight: 750; }
+.reviews-author > div { display: grid; gap: 4px; }
+.reviews-author strong, .reviews-author h3 { margin: 0; font-size: 14px; font-weight: 700; }
+.reviews-author > div > span { font-size: 12px; color: #738096; }
+.reviews-spotlight .reviews-author > div > span { color: #b6c3db; }
+.reviews-spotlight .reviews-featured-result { color: #d5cff5; font-size: 12px; margin: 18px 0 24px; }
+.reviews-carousel-controls { display: flex; align-items: center; justify-content: space-between; padding-top: 20px; border-top: 1px solid #ffffff26; }
+.reviews-carousel-controls > span { font-size: 12px; color: #b6c3db; }
+.reviews-carousel-controls > div { display: flex; gap: 10px; }
+.reviews-carousel-controls button { display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid #ffffff45; border-radius: 50%; background: transparent; color: #fff; cursor: pointer; }
+.reviews-carousel-controls button:hover { background: #ffffff15; }
+.reviews-themes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid #e0e3ee; border-radius: 15px; background: #fafaff; }
+.reviews-themes > div { display: flex; align-items: flex-start; gap: 14px; padding: 26px; }
+.reviews-themes > div + div { border-left: 1px solid #e0e3ee; }
+.reviews-themes > div > span { color: #595292; padding-top: 3px; }
+.reviews-themes h2 { font-size: 15px; line-height: 1.5; margin: 0 0 4px; }
+.reviews-themes p { font-size: 12px; margin: 0; }
+.reviews-stories { padding: 64px 0; scroll-margin-top: 100px; }
+.reviews-heading { display: flex; align-items: end; justify-content: space-between; gap: 40px; }
+.reviews-heading h2, .reviews-next h2 { margin: 14px 0 20px; font-size: clamp(28px, 3vw, 36px); line-height: 1.25; letter-spacing: -.03em; }
+.reviews-heading > p { max-width: 300px; }
+.reviews-filters { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.reviews-filters button { padding: 10px 17px; border: 1px solid #dcdfea; border-radius: 24px; background: #fff; color: #595477; font: inherit; font-size: 13px; cursor: pointer; }
+.reviews-filters button[aria-pressed="true"] { background: #595292; border-color: #595292; color: #fff; }
+.reviews-filters button:hover { border-color: #9286e4; }
+.reviews-main .reviews-count { font-size: 12px; margin: 18px 0; }
+.reviews-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.reviews-story { display: flex; flex-direction: column; padding: 26px; border: 1px solid #e0e3ee; border-radius: 16px; background: #fff; box-shadow: 0 4px 18px rgba(12, 37, 77, .035); }
+.reviews-story-top { display: flex; justify-content: space-between; align-items: center; color: #aaa1d1; }
+.reviews-story-top > span { padding: 5px 10px; border-radius: 6px; background: #f2f0fa; color: #595292; font-size: 11px; font-weight: 650; }
+.reviews-story blockquote { margin: 24px 0 28px; font-size: 16px; line-height: 1.8; color: #34445e; }
+.reviews-story .reviews-author { margin-top: auto; }
+.reviews-story .reviews-result { padding-top: 18px; margin: 20px 0 0; border-top: 1px solid #eaebf2; font-size: 12px; color: #595292; }
+.reviews-next { display: flex; justify-content: space-between; align-items: center; gap: 44px; padding: 40px; margin-bottom: 72px; border: 1px solid #dfdced; border-radius: 18px; background: #f5f4fb; }
+.reviews-next p { max-width: 570px; margin: 0; }
+.reviews-next-actions { display: grid; justify-items: center; flex-shrink: 0; gap: 20px; }
+@media (max-width: 900px) { .reviews-hero { gap: 30px; padding: 48px 0; } .reviews-spotlight { padding: 26px; } .reviews-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .reviews-themes > div { padding: 20px; gap: 10px; } .reviews-next { padding: 30px; } }
+@media (max-width: 680px) { .reviews-main { width: calc(100% - 36px); } .reviews-hero, .reviews-themes, .reviews-grid { grid-template-columns: 1fr; } .reviews-hero { padding: 40px 0; } .reviews-intro h1 { font-size: 44px; } .reviews-themes > div + div { border-left: 0; border-top: 1px solid #e0e3ee; } .reviews-heading, .reviews-next { flex-direction: column; align-items: flex-start; gap: 12px; } .reviews-heading > p { margin-top: 0; } .reviews-stories { padding: 40px 0; } .reviews-next { padding: 26px; gap: 26px; margin-bottom: 44px; } .reviews-featured-content { min-height: 0; } }

@@ -1,4 +1,18 @@
+import businessProgramContent from "./businessProgramContent.json";
+import programCurriculum from "./programCurriculum.json";
+
+export type ProgramContent = {
+  title: string;
+  shortDescription: string;
+  overview: string;
+  skills: string[];
+  curriculum: { title: string; text: string; lessons: string[] }[];
+  projects: { title: string; text: string; artifacts: string[]; technologies: string[] }[];
+};
+
 export type Program = {
+  curriculumDetails?: ProgramContent["curriculum"];
+  content?: ProgramContent;
   slug: string;
   title: string;
   domain: string;
@@ -141,11 +155,23 @@ function ensureTenModuleCurriculum(title: string, curriculum: string[]) {
 }
 
 function createProgram(program: ProgramSeed): Program {
+  const content = (businessProgramContent as Record<string, ProgramContent>)[program.slug];
+  const curriculumDetails = (programCurriculum as Record<string, ProgramContent["curriculum"]>)[program.slug];
   return {
     ...program,
-    curriculum: ensureTenModuleCurriculum(program.title, program.curriculum),
+    ...(content ? {
+      content,
+      title: content.title,
+      shortDescription: content.shortDescription,
+      overview: content.overview,
+      skills: content.skills,
+      projects: content.projects.map(project => project.title),
+      tags: content.skills
+    } : {}),
+    curriculumDetails,
+    curriculum: curriculumDetails ? curriculumDetails.map(module => module.title) : content ? content.curriculum.map(module => module.title) : ensureTenModuleCurriculum(program.title, program.curriculum),
     plans: (program.plans ?? defaultProgramPlans).map((plan) => ({ ...plan, features: [...plan.features] })),
-    faqs: program.faqs.length ? program.faqs : commonFaqs
+    faqs: content ? commonFaqs.map(faq => faq.question === "Are projects included?" ? { ...faq, answer: "Yes. This program includes eight real-world projects with domain-specific features and tools." } : faq) : program.faqs.length ? program.faqs : commonFaqs
   };
 }
 

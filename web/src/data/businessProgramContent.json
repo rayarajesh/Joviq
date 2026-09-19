@@ -1,0 +1,1594 @@
+{
+  "digital-marketing": {
+    "title": "Digital Marketing",
+    "shortDescription": "SEO, content, social media, paid campaigns, CRM, and marketing analytics.",
+    "overview": "SEO, content, social media, paid campaigns, CRM, and marketing analytics. Progress through eight learning modules, from fundamentals to advanced application, and apply your skills in eight real-world projects.",
+    "skills": [
+      "Google Analytics 4",
+      "Google Ads",
+      "Looker Studio",
+      "Excel",
+      "Google Search Console",
+      "Semrush",
+      "Meta Business Suite",
+      "Instagram Insights",
+      "Python",
+      "Power BI",
+      "HubSpot",
+      "SQL",
+      "Meta Ads Manager",
+      "Pandas"
+    ],
+    "curriculum": [
+      {
+        "title": "Digital Marketing Fundamentals",
+        "text": "",
+        "lessons": [
+          "Digital Marketing Ecosystem",
+          "Marketing Funnel",
+          "Customer Journey",
+          "Buyer Persona",
+          "Marketing Objectives",
+          "Digital Channels"
+        ]
+      },
+      {
+        "title": "Search Engine Optimization",
+        "text": "",
+        "lessons": [
+          "Keyword Research",
+          "Search Intent",
+          "On-Page SEO",
+          "Technical SEO",
+          "Off-Page SEO",
+          "Local SEO"
+        ]
+      },
+      {
+        "title": "Content Marketing",
+        "text": "",
+        "lessons": [
+          "Content Strategy",
+          "Content Planning",
+          "Copywriting",
+          "Blog Strategy",
+          "Storytelling",
+          "Content Distribution"
+        ]
+      },
+      {
+        "title": "Social Media Marketing",
+        "text": "",
+        "lessons": [
+          "Social Media Strategy",
+          "Instagram Marketing",
+          "LinkedIn Marketing",
+          "Community Building",
+          "Engagement Strategy",
+          "Social Analytics"
+        ]
+      },
+      {
+        "title": "Paid Advertising",
+        "text": "",
+        "lessons": [
+          "Google Ads",
+          "Search Campaigns",
+          "Display Ads",
+          "Meta Ads",
+          "Audience Targeting",
+          "Campaign Optimization"
+        ]
+      },
+      {
+        "title": "Email & CRM Marketing",
+        "text": "",
+        "lessons": [
+          "Email Campaigns",
+          "Lead Nurturing",
+          "Customer Segmentation",
+          "Marketing Automation",
+          "Personalization",
+          "Email Analytics"
+        ]
+      },
+      {
+        "title": "Marketing Analytics",
+        "text": "",
+        "lessons": [
+          "Marketing KPIs",
+          "Conversion Tracking",
+          "Traffic Analysis",
+          "Customer Acquisition Cost",
+          "Conversion Rate",
+          "ROI Analysis"
+        ]
+      },
+      {
+        "title": "Advanced Digital Marketing Strategy",
+        "text": "",
+        "lessons": [
+          "Integrated Campaign Planning",
+          "Competitor Analysis",
+          "Budget Planning",
+          "Funnel Optimization",
+          "Growth Strategy",
+          "Performance Reporting"
+        ]
+      }
+    ],
+    "projects": [
+      {
+        "title": "Real-Time Marketing Performance Dashboard",
+        "text": "Build a practical marketing intelligence dashboard that combines campaign, conversion and ROI data for fast performance decisions.",
+        "artifacts": [
+          "Campaign Tracking",
+          "Conversion Monitoring",
+          "Audience Analysis",
+          "Budget Tracking",
+          "ROI Analysis",
+          "Performance Alerts"
+        ],
+        "technologies": [
+          "Google Analytics 4",
+          "Google Ads",
+          "Looker Studio",
+          "Excel"
+        ]
+      },
+      {
+        "title": "SEO Performance & Ranking Intelligence",
+        "text": "Monitor search visibility, website health and competitors to identify actionable SEO opportunities.",
+        "artifacts": [
+          "Keyword Tracking",
+          "Ranking Analysis",
+          "Competitor Monitoring",
+          "SEO Health Score",
+          "Traffic Analysis",
+          "Optimization Recommendations"
+        ],
+        "technologies": [
+          "Google Search Console",
+          "Google Analytics 4",
+          "Semrush",
+          "Looker Studio"
+        ]
+      },
+      {
+        "title": "Social Media Engagement Optimization",
+        "text": "Analyze social content and audience engagement to identify high-performing formats and improve content planning.",
+        "artifacts": [
+          "Engagement Tracking",
+          "Content Performance",
+          "Audience Analysis",
+          "Best-Post Detection",
+          "Growth Monitoring",
+          "Content Recommendations"
+        ],
+        "technologies": [
+          "Meta Business Suite",
+          "Instagram Insights",
+          "Python",
+          "Power BI"
+        ]
+      },
+      {
+        "title": "Automated Lead Generation & Qualification",
+        "text": "Create a lead-management workflow that captures, scores and prioritizes prospects for effective sales follow-up.",
+        "artifacts": [
+          "Lead Collection",
+          "Lead Scoring",
+          "Customer Segmentation",
+          "Lead Prioritization",
+          "Conversion Tracking",
+          "Follow-Up Management"
+        ],
+        "technologies": [
+          "HubSpot",
+          "Python",
+          "SQL",
+          "Power BI"
+        ]
+      },
+      {
+        "title": "Advertising Budget Optimization",
+        "text": "Compare campaign spending, conversions and returns to recommend efficient budget allocation across paid channels.",
+        "artifacts": [
+          "Campaign Comparison",
+          "Cost-per-Lead Analysis",
+          "Budget Allocation",
+          "Conversion Tracking",
+          "ROI Monitoring",
+          "Optimization Suggestions"
+        ],
+        "technologies": [
+          "Google Ads",
+          "Meta Ads Manager",
+          "Excel",
+          "Power BI"
+        ]
+      },
+      {
+        "title": "Customer Journey & Conversion Analytics",
+        "text": "Map the customer funnel and identify journey drop-offs that prevent visitors and leads from converting.",
+        "artifacts": [
+          "Funnel Tracking",
+          "Drop-Off Identification",
+          "Customer Behaviour Analysis",
+          "Conversion Analysis",
+          "Journey Visualization",
+          "Segment Comparison"
+        ],
+        "technologies": [
+          "Google Analytics 4",
+          "SQL",
+          "Power BI",
+          "Looker Studio"
+        ]
+      },
+      {
+        "title": "Marketing Content Intelligence",
+        "text": "Evaluate content topics, reach and engagement to guide evidence-based content planning and publishing decisions.",
+        "artifacts": [
+          "Content Performance Tracking",
+          "Engagement Analysis",
+          "Topic Identification",
+          "Content Recommendations",
+          "Performance Comparison",
+          "Publishing Insights"
+        ],
+        "technologies": [
+          "Python",
+          "Pandas",
+          "Google Analytics 4",
+          "Power BI"
+        ]
+      },
+      {
+        "title": "End-to-End Digital Growth Intelligence",
+        "text": "Develop an executive marketing view combining acquisition, channels, funnel performance and ROI into one growth dashboard.",
+        "artifacts": [
+          "Multi-Channel Analytics",
+          "Customer Acquisition Analysis",
+          "Campaign ROI",
+          "Funnel Optimization",
+          "Growth KPIs",
+          "Executive Dashboard"
+        ],
+        "technologies": [
+          "Python",
+          "SQL",
+          "Power BI",
+          "Google Analytics 4"
+        ]
+      }
+    ]
+  },
+  "finance": {
+    "title": "Finance",
+    "shortDescription": "Financial statements, modelling, valuation, investment analysis, and financial strategy.",
+    "overview": "Financial statements, modelling, valuation, investment analysis, and financial strategy. Progress through eight learning modules, from fundamentals to advanced application, and apply your skills in eight real-world projects.",
+    "skills": [
+      "Excel",
+      "Power BI",
+      "SQL",
+      "Python",
+      "Pandas",
+      "NumPy"
+    ],
+    "curriculum": [
+      {
+        "title": "Financial Fundamentals",
+        "text": "",
+        "lessons": [
+          "Financial Terminology",
+          "Time Value of Money",
+          "Revenue",
+          "Costs",
+          "Profitability",
+          "Financial Decision Making"
+        ]
+      },
+      {
+        "title": "Financial Accounting",
+        "text": "",
+        "lessons": [
+          "Accounting Principles",
+          "Journal Entries",
+          "Ledger",
+          "Trial Balance",
+          "Accruals",
+          "Financial Records"
+        ]
+      },
+      {
+        "title": "Financial Statements",
+        "text": "",
+        "lessons": [
+          "Income Statement",
+          "Balance Sheet",
+          "Cash Flow Statement",
+          "Ratio Analysis",
+          "Financial Health",
+          "Trend Analysis"
+        ]
+      },
+      {
+        "title": "Corporate Finance",
+        "text": "",
+        "lessons": [
+          "Capital Structure",
+          "Cost of Capital",
+          "Working Capital",
+          "Capital Budgeting",
+          "Dividend Decisions",
+          "Financing Decisions"
+        ]
+      },
+      {
+        "title": "Financial Modelling",
+        "text": "",
+        "lessons": [
+          "Excel for Finance",
+          "Revenue Forecasting",
+          "Expense Forecasting",
+          "Cash Flow Modelling",
+          "Scenario Analysis",
+          "Sensitivity Analysis"
+        ]
+      },
+      {
+        "title": "Company Valuation",
+        "text": "",
+        "lessons": [
+          "Valuation Concepts",
+          "DCF",
+          "Comparable Companies",
+          "Enterprise Value",
+          "Equity Value",
+          "Valuation Interpretation"
+        ]
+      },
+      {
+        "title": "Investment Analysis",
+        "text": "",
+        "lessons": [
+          "Risk & Return",
+          "Asset Classes",
+          "Investment Evaluation",
+          "Portfolio Concepts",
+          "Asset Allocation",
+          "Performance Measurement"
+        ]
+      },
+      {
+        "title": "Advanced Financial Strategy",
+        "text": "",
+        "lessons": [
+          "Financial Planning",
+          "Business Performance",
+          "Risk Assessment",
+          "Strategic Finance",
+          "Financial Reporting",
+          "Decision Making"
+        ]
+      }
+    ],
+    "projects": [
+      {
+        "title": "Real-Time Financial Performance Dashboard",
+        "text": "Create a management dashboard that brings revenue, expenses, profitability and core financial indicators into one view.",
+        "artifacts": [
+          "Revenue Tracking",
+          "Expense Monitoring",
+          "Profit Analysis",
+          "KPI Alerts",
+          "Trend Detection",
+          "Automated Reporting"
+        ],
+        "technologies": [
+          "Excel",
+          "Power BI",
+          "SQL"
+        ]
+      },
+      {
+        "title": "Cash Flow Monitoring & Forecasting System",
+        "text": "Build a cash-flow planning model that tracks inflows and outflows and estimates future liquidity under scenarios.",
+        "artifacts": [
+          "Cash Inflow Tracking",
+          "Outflow Monitoring",
+          "Cash Forecasting",
+          "Liquidity Alerts",
+          "Scenario Analysis",
+          "Runway Tracking"
+        ],
+        "technologies": [
+          "Python",
+          "Excel",
+          "Power BI"
+        ]
+      },
+      {
+        "title": "Financial Risk Monitoring System",
+        "text": "Develop a risk-monitoring solution that evaluates financial indicators and highlights changes requiring management attention.",
+        "artifacts": [
+          "Risk Indicators",
+          "Ratio Monitoring",
+          "Risk Scoring",
+          "Trend Analysis",
+          "Alert Generation",
+          "Risk Reporting"
+        ],
+        "technologies": [
+          "Python",
+          "Power BI",
+          "Excel"
+        ]
+      },
+      {
+        "title": "Automated Financial Statement Analysis",
+        "text": "Automate financial ratios and comparative analysis to provide a clear view of profitability, liquidity and financial health.",
+        "artifacts": [
+          "Automated Ratio Calculation",
+          "Profitability Analysis",
+          "Year-on-Year Comparison",
+          "Anomaly Detection",
+          "Financial Health Score",
+          "Trend Review"
+        ],
+        "technologies": [
+          "Python",
+          "Pandas",
+          "Excel",
+          "Power BI"
+        ]
+      },
+      {
+        "title": "Investment Portfolio Performance System",
+        "text": "Track asset allocation, returns, diversification and risk while comparing portfolio performance with selected benchmarks.",
+        "artifacts": [
+          "Portfolio Tracking",
+          "Asset Allocation",
+          "Return Calculation",
+          "Risk Measurement",
+          "Diversification Analysis",
+          "Performance Alerts"
+        ],
+        "technologies": [
+          "Python",
+          "Pandas",
+          "NumPy",
+          "Power BI"
+        ]
+      },
+      {
+        "title": "Business Budget Planning & Optimization",
+        "text": "Create a budgeting solution that compares planned and actual spending, detects variances and supports cost planning.",
+        "artifacts": [
+          "Budget Creation",
+          "Actual-vs-Budget Analysis",
+          "Variance Detection",
+          "Cost Optimization",
+          "Forecasting",
+          "Department Comparison"
+        ],
+        "technologies": [
+          "Excel",
+          "Power BI",
+          "Python"
+        ]
+      },
+      {
+        "title": "Company Valuation Intelligence Model",
+        "text": "Build a valuation model combining DCF, scenarios and sensitivity testing to evaluate enterprise and equity value.",
+        "artifacts": [
+          "Financial Data Analysis",
+          "DCF Valuation",
+          "Scenario Analysis",
+          "Sensitivity Testing",
+          "Valuation Comparison",
+          "Assumption Tracking"
+        ],
+        "technologies": [
+          "Excel",
+          "Python",
+          "Power BI"
+        ]
+      },
+      {
+        "title": "CFO-Style Financial Decision Dashboard",
+        "text": "Design an executive finance dashboard covering cash position, profitability, forecasts and risk indicators for decision support.",
+        "artifacts": [
+          "Financial KPIs",
+          "Cash Position",
+          "Profitability",
+          "Forecasting",
+          "Risk Indicators",
+          "Management Insights"
+        ],
+        "technologies": [
+          "Power BI",
+          "SQL",
+          "Excel",
+          "Python"
+        ]
+      }
+    ]
+  },
+  "stock-market": {
+    "title": "Stock Market",
+    "shortDescription": "Market fundamentals, technical analysis, risk management, and strategy backtesting.",
+    "overview": "Market fundamentals, technical analysis, risk management, and strategy backtesting. Progress through eight learning modules, from fundamentals to advanced application, and apply your skills in eight real-world projects.",
+    "skills": [
+      "Python",
+      "Pandas",
+      "NumPy",
+      "Power BI",
+      "Market Data APIs",
+      "SQL",
+      "Matplotlib",
+      "TradingView",
+      "Jupyter Notebook",
+      "Excel",
+      "NLP",
+      "APIs"
+    ],
+    "curriculum": [
+      {
+        "title": "Financial Markets & Stock Market Fundamentals",
+        "text": "",
+        "lessons": [
+          "Indian Financial Market Structure",
+          "NSE & BSE",
+          "Equity & Securities",
+          "Market Participants",
+          "Nifty & Sensex",
+          "Demat & Trading Accounts",
+          "Order Types",
+          "Trading Sessions"
+        ]
+      },
+      {
+        "title": "Fundamental Analysis",
+        "text": "",
+        "lessons": [
+          "Business & Industry Analysis",
+          "Income Statement Analysis",
+          "Balance Sheet Analysis",
+          "Cash Flow Analysis",
+          "Financial Ratios",
+          "Earnings & Profitability",
+          "Competitive Advantage",
+          "Company Valuation"
+        ]
+      },
+      {
+        "title": "Technical Analysis",
+        "text": "",
+        "lessons": [
+          "Price Action",
+          "Dow Theory",
+          "Market Trends",
+          "Support & Resistance",
+          "Trendlines & Channels",
+          "Candlestick Patterns",
+          "Chart Patterns",
+          "Price & Volume Analysis"
+        ]
+      },
+      {
+        "title": "Technical Indicators & Market Signals",
+        "text": "",
+        "lessons": [
+          "Moving Averages",
+          "RSI",
+          "MACD",
+          "Bollinger Bands",
+          "Stochastic Oscillator",
+          "ATR",
+          "Volume Indicators",
+          "Signal Generation"
+        ]
+      },
+      {
+        "title": "Trading Strategies",
+        "text": "",
+        "lessons": [
+          "Intraday Trading",
+          "Swing Trading",
+          "Positional Trading",
+          "Trend-Following Strategies",
+          "Breakout Strategies",
+          "Reversal Strategies",
+          "Momentum Trading",
+          "Entry & Exit Planning"
+        ]
+      },
+      {
+        "title": "Risk Management & Trading Psychology",
+        "text": "",
+        "lessons": [
+          "Capital Management",
+          "Position Sizing",
+          "Stop-Loss Planning",
+          "Risk-to-Reward Ratio",
+          "Maximum Drawdown",
+          "Portfolio Risk",
+          "Trading Discipline",
+          "Trading Journal"
+        ]
+      },
+      {
+        "title": "Portfolio Management & Investment Strategies",
+        "text": "",
+        "lessons": [
+          "Portfolio Construction",
+          "Asset Allocation",
+          "Diversification",
+          "Risk Profiling",
+          "Stock Selection",
+          "Portfolio Rebalancing",
+          "Performance Evaluation",
+          "Benchmark Comparison"
+        ]
+      },
+      {
+        "title": "Quantitative & Algorithmic Trading",
+        "text": "",
+        "lessons": [
+          "Quantitative Trading Concepts",
+          "Historical Market Data",
+          "Trading Rules",
+          "Signal Generation",
+          "Strategy Automation",
+          "Backtesting",
+          "Performance Metrics",
+          "Strategy Optimization"
+        ]
+      }
+    ],
+    "projects": [
+      {
+        "title": "Real-Time Stock Market Intelligence Dashboard",
+        "text": "Build a market-monitoring dashboard that combines prices, indices, volume and technical signals for structured observation.",
+        "artifacts": [
+          "Updated Stock Prices",
+          "Nifty & Sensex Tracking",
+          "Price Movement Analysis",
+          "Volume Monitoring",
+          "Technical Indicators",
+          "Watchlist"
+        ],
+        "technologies": [
+          "Python",
+          "Pandas",
+          "NumPy",
+          "Power BI",
+          "Market Data APIs"
+        ]
+      },
+      {
+        "title": "Automated Stock Screening & Shortlisting",
+        "text": "Create a screening workflow that applies selected fundamental and technical criteria to shortlist securities for analysis.",
+        "artifacts": [
+          "Fundamental Filters",
+          "Technical Filters",
+          "Custom Stock Criteria",
+          "Stock Ranking",
+          "Automated Shortlisting",
+          "Sector-wise Filtering"
+        ],
+        "technologies": [
+          "Python",
+          "Pandas",
+          "SQL",
+          "NumPy"
+        ]
+      },
+      {
+        "title": "Technical Trading Signal Detection",
+        "text": "Develop a technical-analysis system that identifies trends, indicator signals, chart patterns and potential market setups.",
+        "artifacts": [
+          "Candlestick Analysis",
+          "Trend Detection",
+          "Support & Resistance",
+          "Moving Average Signals",
+          "RSI Analysis",
+          "MACD Signals",
+          "Breakout Detection"
+        ],
+        "technologies": [
+          "Python",
+          "Pandas",
+          "NumPy",
+          "Matplotlib",
+          "TradingView"
+        ]
+      },
+      {
+        "title": "Trading Strategy Backtesting Engine",
+        "text": "Simulate defined trading rules on historical data and measure returns, drawdown, win rate and other performance metrics.",
+        "artifacts": [
+          "Historical Data",
+          "Buy/Sell Signals",
+          "Entry & Exit Rules",
+          "Stop-Loss",
+          "Profit Target",
+          "Profit/Loss",
+          "Maximum Drawdown",
+          "Win Rate"
+        ],
+        "technologies": [
+          "Python",
+          "Pandas",
+          "NumPy",
+          "Matplotlib",
+          "Jupyter Notebook"
+        ]
+      },
+      {
+        "title": "Portfolio Risk & Performance Management",
+        "text": "Track holdings, allocation, returns, diversification and risk measures to evaluate portfolio behaviour against benchmarks.",
+        "artifacts": [
+          "Portfolio Creation",
+          "Stock Allocation",
+          "Investment Tracking",
+          "Profit/Loss Monitoring",
+          "Diversification",
+          "Risk Measurement",
+          "Drawdown Analysis"
+        ],
+        "technologies": [
+          "Python",
+          "Pandas",
+          "NumPy",
+          "Power BI"
+        ]
+      },
+      {
+        "title": "Automated Risk Management & Position Sizing",
+        "text": "Build a risk-control calculator that derives position size and stop-loss levels from capital and predefined trade risk.",
+        "artifacts": [
+          "Capital Input",
+          "Risk-per-Trade Calculation",
+          "Position Size",
+          "Stop-Loss Calculation",
+          "Risk-to-Reward",
+          "Maximum Loss",
+          "Portfolio Exposure"
+        ],
+        "technologies": [
+          "Python",
+          "NumPy",
+          "Excel",
+          "Power BI"
+        ]
+      },
+      {
+        "title": "Market Sentiment & News Intelligence",
+        "text": "Analyze financial news and sentiment to study company-specific signals and broader market events.",
+        "artifacts": [
+          "News Data Collection",
+          "Text Processing",
+          "Sentiment Classification",
+          "Sentiment Score",
+          "Company-wise Sentiment",
+          "Market Event Tracking"
+        ],
+        "technologies": [
+          "Python",
+          "NLP",
+          "Pandas",
+          "APIs",
+          "Power BI"
+        ]
+      },
+      {
+        "title": "Algorithmic Trading Strategy Simulation",
+        "text": "Create an educational strategy simulator that applies automated rules to historical data for comparison and backtesting.",
+        "artifacts": [
+          "Automated Trading Rules",
+          "Historical Data",
+          "Buy/Sell Signals",
+          "Strategy Simulation",
+          "Stop-Loss",
+          "Risk Controls",
+          "Backtesting",
+          "Strategy Comparison"
+        ],
+        "technologies": [
+          "Python",
+          "Pandas",
+          "NumPy",
+          "Matplotlib",
+          "Jupyter Notebook"
+        ]
+      }
+    ]
+  },
+  "business-analytics": {
+    "title": "Business Analytics",
+    "shortDescription": "Excel, SQL, Python, business intelligence, forecasting, and decision models.",
+    "overview": "Excel, SQL, Python, business intelligence, forecasting, and decision models. Progress through eight learning modules, from fundamentals to advanced application, and apply your skills in eight real-world projects.",
+    "skills": [
+      "SQL",
+      "Power BI",
+      "Excel",
+      "Python",
+      "Pandas",
+      "Scikit-learn",
+      "Statsmodels",
+      "Matplotlib"
+    ],
+    "curriculum": [
+      {
+        "title": "Business Analytics Fundamentals",
+        "text": "",
+        "lessons": [
+          "Analytical Thinking",
+          "Business Problems",
+          "KPIs",
+          "Data-Driven Decisions",
+          "Business Metrics",
+          "Analytics Lifecycle"
+        ]
+      },
+      {
+        "title": "Excel for Analytics",
+        "text": "",
+        "lessons": [
+          "Data Cleaning",
+          "Formulas",
+          "Lookup Functions",
+          "Pivot Tables",
+          "Charts",
+          "Advanced Excel Analysis"
+        ]
+      },
+      {
+        "title": "Statistics for Business",
+        "text": "",
+        "lessons": [
+          "Descriptive Statistics",
+          "Probability",
+          "Distribution",
+          "Correlation",
+          "Regression",
+          "Statistical Interpretation"
+        ]
+      },
+      {
+        "title": "SQL & Databases",
+        "text": "",
+        "lessons": [
+          "Database Concepts",
+          "SQL Queries",
+          "Filtering",
+          "Joins",
+          "Aggregation",
+          "Subqueries",
+          "Data Extraction"
+        ]
+      },
+      {
+        "title": "Python for Data Analysis",
+        "text": "",
+        "lessons": [
+          "Python for Analytics",
+          "NumPy",
+          "Pandas",
+          "Data Cleaning",
+          "Exploratory Analysis",
+          "Data Processing"
+        ]
+      },
+      {
+        "title": "Data Visualization",
+        "text": "",
+        "lessons": [
+          "Visualization Principles",
+          "Charts",
+          "Dashboard Design",
+          "KPI Visualization",
+          "Data Storytelling",
+          "Interactive Reports"
+        ]
+      },
+      {
+        "title": "Business Intelligence",
+        "text": "",
+        "lessons": [
+          "BI Concepts",
+          "Data Modelling",
+          "Dashboard Development",
+          "Sales Analytics",
+          "Customer Analytics",
+          "Operational Reporting"
+        ]
+      },
+      {
+        "title": "Advanced Business Analytics",
+        "text": "",
+        "lessons": [
+          "Predictive Analytics",
+          "Forecasting",
+          "Customer Segmentation",
+          "Business Optimization",
+          "Decision Models",
+          "Analytics Strategy"
+        ]
+      }
+    ],
+    "projects": [
+      {
+        "title": "Real-Time Sales Intelligence Dashboard",
+        "text": "Build a sales analytics dashboard that monitors revenue, targets, products and regions for business performance decisions.",
+        "artifacts": [
+          "Sales KPIs",
+          "Revenue Tracking",
+          "Product Analysis",
+          "Region Analysis",
+          "Target Monitoring",
+          "Alerts"
+        ],
+        "technologies": [
+          "SQL",
+          "Power BI",
+          "Excel"
+        ]
+      },
+      {
+        "title": "Customer Behaviour Intelligence",
+        "text": "Segment customers and study purchasing patterns, value and retention behaviour to identify actionable opportunities.",
+        "artifacts": [
+          "Customer Segmentation",
+          "Purchase Analysis",
+          "Customer Value",
+          "Retention Tracking",
+          "Behaviour Patterns",
+          "Cohort Views"
+        ],
+        "technologies": [
+          "Python",
+          "Pandas",
+          "SQL",
+          "Power BI"
+        ]
+      },
+      {
+        "title": "Customer Churn Prediction System",
+        "text": "Develop a predictive model that identifies customers with higher churn risk and supports retention planning.",
+        "artifacts": [
+          "Churn Detection",
+          "Customer Risk Score",
+          "Behaviour Analysis",
+          "Retention Insights",
+          "Prediction Model",
+          "Model Evaluation"
+        ],
+        "technologies": [
+          "Python",
+          "Pandas",
+          "Scikit-learn",
+          "Power BI"
+        ]
+      },
+      {
+        "title": "Inventory Optimization Dashboard",
+        "text": "Analyze stock levels and demand patterns to support replenishment, turnover improvement and exception management.",
+        "artifacts": [
+          "Stock-Level Monitoring",
+          "Demand Analysis",
+          "Low-Stock Alerts",
+          "Inventory Turnover",
+          "Reorder Insights",
+          "SKU Analysis"
+        ],
+        "technologies": [
+          "SQL",
+          "Power BI",
+          "Python"
+        ]
+      },
+      {
+        "title": "Business Demand Forecasting System",
+        "text": "Use historical patterns and seasonality to estimate future demand and support planning decisions.",
+        "artifacts": [
+          "Historical Trend Analysis",
+          "Demand Forecasting",
+          "Seasonal Patterns",
+          "Forecast Comparison",
+          "Planning Insights",
+          "Error Tracking"
+        ],
+        "technologies": [
+          "Python",
+          "Pandas",
+          "Statsmodels",
+          "Matplotlib"
+        ]
+      },
+      {
+        "title": "Marketing ROI Analytics Platform",
+        "text": "Connect campaign costs and outcomes to evaluate acquisition, conversion performance and marketing return.",
+        "artifacts": [
+          "Campaign Performance",
+          "Customer Acquisition Cost",
+          "Conversion Analysis",
+          "Channel Comparison",
+          "ROI Calculation",
+          "Trend Reporting"
+        ],
+        "technologies": [
+          "SQL",
+          "Power BI",
+          "Python",
+          "Excel"
+        ]
+      },
+      {
+        "title": "Employee Performance Analytics",
+        "text": "Create an HR analytics dashboard comparing employee KPIs, attendance, performance trends and departmental productivity.",
+        "artifacts": [
+          "KPI Tracking",
+          "Attendance Analysis",
+          "Performance Trends",
+          "Department Comparison",
+          "Productivity Insights",
+          "Team Benchmarking"
+        ],
+        "technologies": [
+          "Power BI",
+          "Excel",
+          "SQL"
+        ]
+      },
+      {
+        "title": "Executive Business Intelligence Platform",
+        "text": "Combine department-level KPIs, trends, alerts and reports into an executive analytics layer for management review.",
+        "artifacts": [
+          "Multi-Department KPIs",
+          "Automated Reporting",
+          "Trend Detection",
+          "Performance Alerts",
+          "Management Dashboard",
+          "Drill-Down Analysis"
+        ],
+        "technologies": [
+          "SQL",
+          "Power BI",
+          "Python",
+          "Excel"
+        ]
+      }
+    ]
+  },
+  "international-business-management": {
+    "title": "International Business Management (IBM)",
+    "shortDescription": "Enterprise technology, IBM Cloud, watsonx, Cognos, and business automation.",
+    "overview": "Enterprise technology, IBM Cloud, watsonx, Cognos, and business automation. Progress through eight learning modules, from fundamentals to advanced application, and apply your skills in eight real-world projects.",
+    "skills": [
+      "IBM watsonx",
+      "Python",
+      "Jupyter Notebook",
+      "IBM Cognos Analytics",
+      "SQL",
+      "Excel",
+      "IBM Cloud",
+      "IBM Cloud Object Storage",
+      "APIs",
+      "IBM Cognos",
+      "IBM automation tools",
+      "Docker",
+      "Git",
+      "Power BI"
+    ],
+    "curriculum": [
+      {
+        "title": "Digital Technology Fundamentals",
+        "text": "",
+        "lessons": [
+          "Digital Transformation",
+          "Enterprise Technology",
+          "Technology Ecosystem",
+          "IT Infrastructure",
+          "Industry Trends",
+          "Technology Strategy"
+        ]
+      },
+      {
+        "title": "Cloud Computing",
+        "text": "",
+        "lessons": [
+          "Cloud Concepts",
+          "IaaS",
+          "PaaS",
+          "SaaS",
+          "Cloud Architecture",
+          "Cloud Security Fundamentals",
+          "Resource Management"
+        ]
+      },
+      {
+        "title": "Data & Databases",
+        "text": "",
+        "lessons": [
+          "Data Fundamentals",
+          "Database Concepts",
+          "Data Storage",
+          "Data Processing",
+          "SQL",
+          "Data Management",
+          "Data Quality"
+        ]
+      },
+      {
+        "title": "Artificial Intelligence",
+        "text": "",
+        "lessons": [
+          "AI Fundamentals",
+          "Machine Learning Concepts",
+          "Generative AI",
+          "AI Applications",
+          "AI Workflows",
+          "Responsible AI"
+        ]
+      },
+      {
+        "title": "IBM Enterprise Technologies",
+        "text": "",
+        "lessons": [
+          "IBM Cloud",
+          "IBM watsonx",
+          "IBM Cognos",
+          "Enterprise AI",
+          "Data & Automation Solutions",
+          "Platform Integration"
+        ]
+      },
+      {
+        "title": "Automation & Digital Solutions",
+        "text": "",
+        "lessons": [
+          "Business Process Automation",
+          "Workflow Design",
+          "Intelligent Automation",
+          "Process Optimization",
+          "Solution Integration",
+          "Monitoring"
+        ]
+      },
+      {
+        "title": "Technology Project Management",
+        "text": "",
+        "lessons": [
+          "Requirement Analysis",
+          "Solution Planning",
+          "Agile Concepts",
+          "Implementation",
+          "Testing",
+          "Deployment",
+          "Documentation"
+        ]
+      },
+      {
+        "title": "Enterprise Solution Architecture",
+        "text": "",
+        "lessons": [
+          "Business Problem Identification",
+          "Architecture Design",
+          "Technology Selection",
+          "Solution Development",
+          "Evaluation",
+          "Business Impact",
+          "Governance"
+        ]
+      }
+    ],
+    "projects": [
+      {
+        "title": "IBM watsonx AI Business Solution",
+        "text": "Develop an enterprise AI workflow that prepares data, processes a business use case and evaluates generated outputs.",
+        "artifacts": [
+          "Business Problem Analysis",
+          "AI Workflow",
+          "Data Preparation",
+          "Output Evaluation",
+          "Business Insights",
+          "Governance Checks"
+        ],
+        "technologies": [
+          "IBM watsonx",
+          "Python",
+          "Jupyter Notebook"
+        ]
+      },
+      {
+        "title": "IBM Cognos Analytics Dashboard",
+        "text": "Transform business data into interactive KPI reports and management insights using an enterprise BI workflow.",
+        "artifacts": [
+          "Data Integration",
+          "KPI Development",
+          "Interactive Reports",
+          "Performance Monitoring",
+          "Drill-Down Analysis",
+          "Business Insights"
+        ],
+        "technologies": [
+          "IBM Cognos Analytics",
+          "SQL",
+          "Excel"
+        ]
+      },
+      {
+        "title": "Cloud-Based Enterprise Data Solution",
+        "text": "Demonstrate how data can be stored, managed, accessed and monitored using an enterprise cloud environment.",
+        "artifacts": [
+          "Cloud Storage",
+          "Data Management",
+          "Application Deployment",
+          "Access Control",
+          "Resource Monitoring",
+          "Data Lifecycle"
+        ],
+        "technologies": [
+          "IBM Cloud",
+          "IBM Cloud Object Storage",
+          "Python"
+        ]
+      },
+      {
+        "title": "AI-Powered Business Assistant",
+        "text": "Build an AI assistant that processes natural-language questions and retrieves useful business information for users.",
+        "artifacts": [
+          "User Queries",
+          "Natural Language Processing",
+          "Automated Responses",
+          "Knowledge Retrieval",
+          "Interaction Logging",
+          "Escalation"
+        ],
+        "technologies": [
+          "Python",
+          "IBM watsonx",
+          "APIs"
+        ]
+      },
+      {
+        "title": "Enterprise Data Analytics Project",
+        "text": "Integrate and transform business data before presenting KPIs and insights for structured decision support.",
+        "artifacts": [
+          "Data Integration",
+          "Data Transformation",
+          "KPI Analysis",
+          "Visualization",
+          "Decision Support",
+          "Data Quality Checks"
+        ],
+        "technologies": [
+          "IBM Cognos",
+          "SQL",
+          "Python"
+        ]
+      },
+      {
+        "title": "Business Process Automation",
+        "text": "Map repetitive business tasks and apply workflow automation, scheduling and exception handling to improve efficiency.",
+        "artifacts": [
+          "Process Mapping",
+          "Workflow Automation",
+          "Task Scheduling",
+          "Exception Handling",
+          "Performance Tracking",
+          "Audit Trail"
+        ],
+        "technologies": [
+          "IBM automation tools",
+          "Python",
+          "APIs"
+        ]
+      },
+      {
+        "title": "Cloud Application Deployment",
+        "text": "Deploy an application in an enterprise cloud environment with resource management, monitoring and baseline security controls.",
+        "artifacts": [
+          "Application Setup",
+          "Cloud Deployment",
+          "Resource Management",
+          "Monitoring",
+          "Security Configuration",
+          "Deployment Validation"
+        ],
+        "technologies": [
+          "IBM Cloud",
+          "Docker",
+          "Git",
+          "Python"
+        ]
+      },
+      {
+        "title": "Digital Transformation Case Study",
+        "text": "Design an enterprise transformation roadmap that connects business gaps, technology architecture and measurable impact.",
+        "artifacts": [
+          "Business Analysis",
+          "Technology Gap Assessment",
+          "Solution Architecture",
+          "Implementation Roadmap",
+          "Impact Analysis",
+          "KPI Definition"
+        ],
+        "technologies": [
+          "IBM Cloud",
+          "IBM watsonx",
+          "Power BI"
+        ]
+      }
+    ]
+  },
+  "hrm": {
+    "title": "Human Resource Management",
+    "shortDescription": "Recruitment, onboarding, performance, payroll operations, and workforce analytics.",
+    "overview": "Recruitment, onboarding, performance, payroll operations, and workforce analytics. Progress through eight learning modules, from fundamentals to advanced application, and apply your skills in eight real-world projects.",
+    "skills": [
+      "Google Forms",
+      "Google Sheets",
+      "Excel",
+      "Power BI",
+      "Google Workspace",
+      "Forms",
+      "Apps Script",
+      "SQL",
+      "Python",
+      "Pandas",
+      "Power Query",
+      "DAX"
+    ],
+    "curriculum": [
+      {
+        "title": "HR Fundamentals & People Management",
+        "text": "",
+        "lessons": [
+          "HR Role in Business",
+          "Employee Lifecycle",
+          "HR Policies",
+          "Organizational Structure",
+          "HR Ethics",
+          "Workplace Culture"
+        ]
+      },
+      {
+        "title": "Recruitment & Talent Acquisition",
+        "text": "",
+        "lessons": [
+          "Manpower Planning",
+          "Job Analysis",
+          "Job Descriptions",
+          "Sourcing Channels",
+          "Screening",
+          "Interview Planning",
+          "Selection Process"
+        ]
+      },
+      {
+        "title": "Onboarding & Employee Experience",
+        "text": "",
+        "lessons": [
+          "Offer Management",
+          "Pre-Joining Process",
+          "New-Hire Onboarding",
+          "Documentation",
+          "Employee Engagement",
+          "Probation Management"
+        ]
+      },
+      {
+        "title": "Performance Management",
+        "text": "",
+        "lessons": [
+          "Goal Setting",
+          "KPIs & KRAs",
+          "Performance Reviews",
+          "Feedback Methods",
+          "Performance Improvement Plans",
+          "Appraisal Cycles"
+        ]
+      },
+      {
+        "title": "Learning & Development",
+        "text": "",
+        "lessons": [
+          "Training Needs Analysis",
+          "Learning Plans",
+          "Skill Mapping",
+          "Training Delivery",
+          "Evaluation Models",
+          "Career Development"
+        ]
+      },
+      {
+        "title": "Compensation, Payroll & HR Operations",
+        "text": "",
+        "lessons": [
+          "Salary Structures",
+          "Benefits",
+          "Attendance",
+          "Leave Management",
+          "Payroll Inputs",
+          "HR Documentation",
+          "Compliance Basics"
+        ]
+      },
+      {
+        "title": "HR Analytics & Employee Relations",
+        "text": "",
+        "lessons": [
+          "HR Metrics",
+          "Attrition Analysis",
+          "Workforce Dashboards",
+          "Employee Engagement",
+          "Grievance Handling",
+          "Conflict Management"
+        ]
+      },
+      {
+        "title": "Strategic HR & Workforce Planning",
+        "text": "",
+        "lessons": [
+          "Workforce Strategy",
+          "Succession Planning",
+          "Talent Management",
+          "HR Forecasting",
+          "Culture Strategy",
+          "People Analytics",
+          "HR Decision Making"
+        ]
+      }
+    ],
+    "projects": [
+      {
+        "title": "Recruitment & Applicant Tracking System",
+        "text": "Design a practical recruitment workflow to manage job openings, candidates, screening stages and hiring progress.",
+        "artifacts": [
+          "Job Requisition Tracking",
+          "Candidate Profiles",
+          "Resume Screening",
+          "Interview Stages",
+          "Hiring Status",
+          "Recruitment Reports"
+        ],
+        "technologies": [
+          "Google Forms",
+          "Google Sheets",
+          "Excel",
+          "Power BI"
+        ]
+      },
+      {
+        "title": "Employee Onboarding Management System",
+        "text": "Create a structured onboarding workflow that tracks documents, joining tasks, orientation and completion status.",
+        "artifacts": [
+          "Onboarding Checklist",
+          "Document Tracking",
+          "Task Assignment",
+          "Orientation Schedule",
+          "Status Monitoring",
+          "Completion Reports"
+        ],
+        "technologies": [
+          "Google Workspace",
+          "Google Sheets",
+          "Forms",
+          "Apps Script"
+        ]
+      },
+      {
+        "title": "Employee Performance Dashboard",
+        "text": "Build an HR dashboard that monitors goals, KRAs, review outcomes and performance trends across teams.",
+        "artifacts": [
+          "KPI/KRA Tracking",
+          "Goal Progress",
+          "Review Status",
+          "Performance Trends",
+          "Department Comparison",
+          "Manager Insights"
+        ],
+        "technologies": [
+          "Excel",
+          "Power BI",
+          "SQL"
+        ]
+      },
+      {
+        "title": "Employee Training & Skill Development Platform",
+        "text": "Develop a training-management solution that maps employee skills, learning needs, programs and completion outcomes.",
+        "artifacts": [
+          "Skill Gap Mapping",
+          "Training Calendar",
+          "Course Enrollment",
+          "Attendance Tracking",
+          "Completion Status",
+          "Training Effectiveness"
+        ],
+        "technologies": [
+          "Excel",
+          "Google Sheets",
+          "Power BI",
+          "Forms"
+        ]
+      },
+      {
+        "title": "Employee Attrition & Retention Analytics",
+        "text": "Analyze workforce data to identify attrition patterns, risk factors and retention opportunities without exposing sensitive employee information.",
+        "artifacts": [
+          "Attrition Rate",
+          "Risk Segmentation",
+          "Tenure Analysis",
+          "Department Trends",
+          "Exit Pattern Analysis",
+          "Retention Insights"
+        ],
+        "technologies": [
+          "Python",
+          "Pandas",
+          "SQL",
+          "Power BI"
+        ]
+      },
+      {
+        "title": "Attendance, Leave & HR Operations Dashboard",
+        "text": "Create an operations dashboard for attendance, leave utilization, workforce availability and recurring HR exceptions.",
+        "artifacts": [
+          "Attendance Tracking",
+          "Leave Balance",
+          "Absence Trends",
+          "Availability Analysis",
+          "Exception Reporting",
+          "Monthly HR Summary"
+        ],
+        "technologies": [
+          "Excel",
+          "Power BI",
+          "Power Query",
+          "DAX"
+        ]
+      },
+      {
+        "title": "Employee Engagement & Grievance Management",
+        "text": "Build a structured people-operations workflow for engagement surveys, issue categorization, follow-up and resolution tracking.",
+        "artifacts": [
+          "Engagement Surveys",
+          "Issue Categorization",
+          "Grievance Tracking",
+          "Action Ownership",
+          "Resolution Status",
+          "Trend Analysis"
+        ],
+        "technologies": [
+          "Google Forms",
+          "Google Sheets",
+          "Power BI",
+          "Apps Script"
+        ]
+      },
+      {
+        "title": "Strategic Workforce Planning & HR Analytics",
+        "text": "Develop an executive HR analytics model connecting workforce demand, hiring, performance, attrition and people KPIs.",
+        "artifacts": [
+          "Workforce Forecasting",
+          "Hiring Pipeline",
+          "Headcount Planning",
+          "Attrition Metrics",
+          "Performance KPIs",
+          "HR Executive Dashboard"
+        ],
+        "technologies": [
+          "Power BI",
+          "SQL",
+          "Excel",
+          "Python"
+        ]
+      }
+    ]
+  }
+}

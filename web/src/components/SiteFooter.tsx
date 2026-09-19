@@ -123,12 +123,11 @@ export function SiteFooter() {
           <section className="public-footer__social">
             <h3><span className="public-footer__heading-icon"><Sparkles size={15} /></span>Social Media</h3>
             <div className="public-footer__social-list">
-              {socialLinks.map(({ href, label, shortLabel, Icon, tone }) => (
-                <a className="public-footer__social-link" key={label} href={href} aria-label={label} target="_blank" rel="noreferrer">
+              {socialLinks.map(({ href, label, Icon, tone }) => (
+                <a className="public-footer__social-link" key={label} href={href} aria-label={label} title={label} target="_blank" rel="noreferrer">
                   <span className={`public-footer__social-icon public-footer__social-icon--${tone}`} aria-hidden="true">
                     <Icon size={17} strokeWidth={2.1} />
                   </span>
-                  <span className="public-footer__social-label">{shortLabel}</span>
                 </a>
               ))}
             </div>

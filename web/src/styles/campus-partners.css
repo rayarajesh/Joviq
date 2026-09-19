@@ -1,0 +1,58 @@
+.campus-partners-page { background: #fff; color: #202947; }
+.partners-main { width: min(1160px, calc(100% - 48px)); margin: auto; }
+.partners-main * { box-sizing: border-box; }
+.partners-main p { color: #637087; font-size: 15px; line-height: 1.8; }
+.partners-kicker { display: inline-flex; align-items: center; gap: 9px; color: #6253a6; font-size: 11px; font-weight: 750; letter-spacing: .12em; line-height: 1.6; }
+.partners-hero { padding: 72px 48px 0; margin-top: 28px; border: 1px solid #e5e1f0; border-radius: 24px; background: linear-gradient(145deg, #f6f4fc, #fcfcff 65%); text-align: center; overflow: hidden; }
+.partners-hero h1 { max-width: 900px; margin: 22px auto; font-size: clamp(38px, 4.8vw, 62px); line-height: 1.13; letter-spacing: -.045em; }
+.partners-hero h1 em { font-style: normal; color: #6253a6; }
+.partners-hero > p { max-width: 670px; margin: 0 auto; font-size: 17px; }
+.partners-actions { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 26px; margin: 30px 0 52px; }
+.partners-button { display: inline-flex; align-items: center; justify-content: center; gap: 12px; padding: 15px 22px; border-radius: 9px; background: #51428e; color: #fff; text-decoration: none; font-size: 14px; font-weight: 700; }
+.partners-button:hover { background: #403474; }
+.partners-link { display: inline-flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 650; color: #51428e; text-decoration: none; }
+.partners-link:hover { text-decoration: underline; }
+.partners-main a:focus-visible, .partners-main summary:focus-visible { outline: 3px solid #8373bd; outline-offset: 5px; }
+.partners-audiences { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid #e5e1f0; }
+.partners-audiences > div { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 24px 12px; color: #514975; font-size: 13px; font-weight: 600; }
+.partners-audiences > div + div { border-left: 1px solid #e5e1f0; }
+.partners-audiences svg { flex-shrink: 0; }
+.partners-section { padding: 64px 0; scroll-margin-top: 100px; }
+.partners-main h2 { font-size: clamp(27px, 3vw, 36px); line-height: 1.25; letter-spacing: -.03em; margin: 14px 0 18px; }
+.partners-heading { display: flex; justify-content: space-between; align-items: end; gap: 36px; margin-bottom: 30px; }
+.partners-heading > p { max-width: 350px; }
+.partners-opportunities { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.partners-opportunities > article { display: flex; flex-direction: column; padding: 28px; border: 1px solid #e1e4ed; border-radius: 16px; box-shadow: 0 4px 18px rgba(32, 41, 71, .035); }
+.partners-icon { display: grid; place-items: center; width: 50px; height: 50px; color: #6253a6; background: #f3f0fb; border-radius: 13px; margin-bottom: 26px; }
+.partners-card-tag { color: #716789; font-size: 10px; font-weight: 750; letter-spacing: .08em; }
+.partners-main h3 { margin: 12px 0; font-size: 21px; line-height: 1.4; letter-spacing: -.02em; }
+.partners-opportunities article > p { margin: 0 0 24px; font-size: 14px; }
+.partners-opportunities ul { display: grid; gap: 12px; margin: auto 0 0; padding: 22px 0 0; border-top: 1px solid #ececf2; list-style: none; }
+.partners-opportunities li { display: flex; align-items: flex-start; gap: 9px; color: #4d5b71; font-size: 13px; line-height: 1.6; }
+.partners-opportunities li svg { flex-shrink: 0; margin-top: 3px; color: #6253a6; }
+.partners-principles { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; padding: 44px; background: #f8f9fc; border: 1px solid #e6e9f0; border-radius: 18px; }
+.partners-value-list { display: grid; gap: 24px; }
+.partners-value-list article { display: flex; gap: 16px; }
+.partners-value-list svg { flex-shrink: 0; color: #6253a6; margin-top: 5px; }
+.partners-value-list h3 { margin: 0 0 6px; font-size: 17px; }
+.partners-value-list p { margin: 0; font-size: 14px; }
+.partners-process { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; margin: 0; padding: 0; list-style: none; }
+.partners-process li { padding: 26px; border: 1px solid #e1e4ed; border-radius: 14px; }
+.partners-process li > span { color: #8578b4; font-size: 13px; font-weight: 750; }
+.partners-process h3 { font-size: 19px; }
+.partners-process p { margin: 0; font-size: 14px; }
+.partners-faq { display: grid; grid-template-columns: 1fr 1.3fr; gap: 64px; padding-top: 20px; }
+.partners-faq details { border: 1px solid #e1e4ed; border-radius: 12px; margin-bottom: 12px; padding: 0 20px; }
+.partners-faq summary { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 20px 0; cursor: pointer; list-style: none; font-size: 14px; font-weight: 650; }
+.partners-faq summary::-webkit-details-marker { display: none; }
+.partners-faq summary span { font-size: 24px; color: #6253a6; font-weight: 400; }
+.partners-faq details[open] { border-color: #b6a8db; background: #faf9fd; }
+.partners-faq details[open] summary span { transform: rotate(45deg); }
+.partners-faq details p { margin: 0; padding-bottom: 20px; font-size: 14px; }
+.partners-cta { display: flex; align-items: center; justify-content: space-between; gap: 36px; padding: 44px; margin-bottom: 72px; border-radius: 18px; background: #25233f; color: #fff; }
+.partners-cta .partners-kicker { color: #cdc1ef; }
+.partners-cta p { max-width: 540px; margin: 0; color: #d1cfdf; }
+.partners-cta .partners-button { flex-shrink: 0; background: #fff; color: #403474; }
+.partners-cta .partners-button:hover { background: #eee9fa; }
+@media (max-width: 900px) { .partners-hero { padding: 48px 24px 0; } .partners-opportunities > article { padding: 22px; } .partners-principles, .partners-faq { gap: 32px; } .partners-cta { padding: 32px; } }
+@media (max-width: 680px) { .partners-main { width: calc(100% - 36px); } .partners-hero { margin-top: 18px; padding: 36px 20px 0; border-radius: 18px; } .partners-hero h1 { font-size: 38px; } .partners-hero > p { font-size: 15px; } .partners-actions { gap: 20px; margin-bottom: 32px; } .partners-audiences, .partners-opportunities, .partners-process, .partners-principles, .partners-faq { grid-template-columns: 1fr; } .partners-audiences > div { justify-content: flex-start; padding: 16px 0; } .partners-audiences > div + div { border-left: 0; border-top: 1px solid #e5e1f0; } .partners-heading, .partners-cta { flex-direction: column; align-items: flex-start; gap: 12px; } .partners-heading > p { margin-top: 0; } .partners-section { padding: 40px 0; } .partners-principles { padding: 26px; } .partners-cta { padding: 28px; margin-bottom: 44px; gap: 26px; } .partners-faq { gap: 16px; } }
