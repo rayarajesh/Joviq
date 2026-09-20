@@ -1,0 +1,176 @@
+/* Shared corrections load after the existing page styles. Keep desktop artwork
+   and typography intact; constrain content instead of clipping the page. */
+html, body, #root { overflow-x: visible; }
+.site-page, .program-detail-page { overflow-x: visible; }
+html { scroll-padding-top: 88px; }
+:where(h1, h2, h3, p, label, li) { overflow-wrap: break-word; }
+:where(input, select, textarea, fieldset) { min-width: 0; max-width: 100%; }
+:where(video, iframe) { max-width: 100%; }
+:where(button, a, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--brand-violet, #5d58a2);
+  outline-offset: 3px;
+}
+.contact-details article:last-child { display: grid; grid-template-columns: 43px minmax(0, 1fr); }
+.contact-details article:last-child .contact-map {
+  position: static;
+  grid-column: 2;
+  width: 100%;
+  height: 180px;
+  margin: 8px 0 0;
+}
+.contact-details article > div { min-width: 0; }
+.contact-details small { overflow-wrap: anywhere; }
+.admin-profile-tabs { flex-wrap: wrap; }
+.dashboard-shell.dashboard-shell--student { overflow-x: visible; }
+.student-module-art::before { inset-inline: 0; transform: none; }
+.student-welcome-art::before { inset-inline: 0; transform: none; }
+.student-payments-layout, .student-payments-top { min-width: 0; }
+.student-payments-layout { grid-template-columns: minmax(0, 1fr); }
+.student-payments-layout > *, .student-payments-top > * { min-width: 0; }
+.student-payment-table-wrap { max-width: 100%; overflow-x: auto; }
+.student-payment-table-wrap table { min-width: 440px; }
+.student-payment-table-wrap:focus-visible { outline: 2px solid var(--brand-violet); outline-offset: 3px; }
+.student-certificate-grid strong { overflow-wrap: anywhere; }
+.certificate-verification-card { min-width: 0; }
+.certificate-verification-card dd { min-width: 0; overflow-wrap: anywhere; }
+.certificate-artwork { container-type: inline-size; }
+.certificate-artwork__student { font-size: 1.7cqw; }
+.certificate-artwork__program { left: 61.5%; max-width: 22%; font-size: 1.1cqw; white-space: normal; }
+.certificate-artwork__from-date, .certificate-artwork__to-date { font-size: 1.1cqw; }
+.certificate-artwork__from-date { left: 51.5%; }
+.certificate-artwork__to-date { left: 65%; }
+.certificate-artwork__id { font-size: 1cqw; white-space: normal; overflow-wrap: anywhere; }
+.certificate-artwork__sign { font-size: 1.1cqw; max-width: 24%; }
+.certificate-artwork__sign strong { white-space: normal; }
+.certificate-artwork.is-internship .certificate-artwork__title { font-size: 3cqw; }
+.certificate-artwork__qr span { font-size: 1cqw; text-align: center; }
+@media (min-width: 1221px) and (max-width: 1350px) {
+  .site-header .site-nav { gap: 12px; }
+  .site-header .site-nav__links { gap: 2px; }
+  .site-header .site-nav__links a { padding-inline: 6px; }
+  .site-header .site-nav__actions a { padding-inline: 10px; }
+}
+
+/* Keep forms reachable with a short landscape viewport or an on-screen keyboard. */
+.enrollment-dialog, .category-dialog, .program-dialog, .project-editor-dialog,
+.project-audience-dialog, .project-review-dialog, .curriculum-dialog,
+.ft-modal, .about-story-dialog, .auth-dialog__panel, .callback-dialog__panel {
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.enrollment-dialog__close, .curriculum-dialog__close, .ft-close,
+.about-story-dialog__close, .auth-dialog__close, .callback-dialog__close { min-width: 44px; min-height: 44px; }
+.enrollment-dialog__header-copy { padding-right: 24px; }
+.enrollment-dialog__submit { white-space: normal; }
+body:has(dialog[open]) { overflow: hidden; }
+@media (max-height: 600px), (max-width: 640px) {
+  .enrollment-dialog { display: block; }
+  .enrollment-dialog__form { overflow: visible; }
+  .enrollment-dialog__header { padding: 22px 18px; }
+}
+
+/* The complete eight-link navigation fits above 1220px. Tablets retain the
+   login and callback actions alongside the expandable navigation. */
+@media (max-width: 1220px) {
+  .site-header .site-nav { min-width: 0; padding: 0; width: auto; gap: 16px; }
+  .site-header .site-nav .site-nav__links { display: none; }
+  .site-header .site-nav .site-nav__menu-button {
+    display: inline-flex; position: static; flex: 0 0 44px;
+    width: 44px; height: 44px; min-height: 44px; margin: 0; transform: none;
+  }
+  .site-header .site-nav__mobile {
+    position: absolute; top: 100%; left: 16px; right: 16px;
+    width: auto; max-width: none; margin: 0; padding: 16px;
+    max-height: calc(100dvh - 88px); overflow-y: auto;
+    overscroll-behavior: contain; grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px 16px;
+  }
+  .site-header.is-open .site-nav__mobile { display: grid; }
+  .site-header .site-nav__mobile > a { display: flex; align-items: center; min-height: 44px; padding: 10px 12px; }
+  .site-header .site-nav__mobile-actions { grid-column: 1 / -1; flex-wrap: wrap; }
+  .site-header .site-nav__mobile-actions a { min-height: 44px; }
+}
+@media (max-width: 760px) {
+  .directory-refresh__controls button, .directory-refresh__controls button:first-child,
+  .directory-refresh__category-arrow, .success-flip__toggle,
+  .success-flip.is-flipped .success-flip__toggle,
+  .reviews-carousel-controls button { min-width: 44px; min-height: 44px; }
+  .directory-refresh__search input { font-size: 16px; }
+  .dashboard-shell--admin .curriculum-workspace__toolbar { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .dashboard-shell--admin .curriculum-workspace__toolbar > input { flex-basis: auto; min-height: 44px; }
+  .dashboard-shell--admin .curriculum-workspace__toolbar > select { max-width: 100%; font-size: 16px; }
+  .auth-form input:not([type=checkbox]), .auth-form select,
+  .profile-form input, .enrollment-dialog__form input:not([type=radio]):not([type=checkbox]),
+  .enrollment-dialog__form select, .onboarding-form input,
+  .onboarding-form select, .onboarding-form textarea,
+  .certificate-admin-fields input, .certificate-admin-fields select { font-size: 16px; }
+  .auth-form button, .auth-card__tabs button, .pd-enroll-form button,
+  .profile-form button { min-height: 44px; }
+  .course-player__lesson-viewer > header { flex-direction: column; align-items: flex-start; padding: 20px; }
+  .course-player__lesson strong { white-space: normal; }
+  .course-player__media--empty { min-height: 180px; padding: 20px; text-align: center; }
+  .course-player__lesson-details { padding-inline: 20px; }
+  .auth-nav__popover { position: fixed; top: 78px; right: 12px; max-height: calc(100dvh - 90px); overflow-y: auto; }
+  .auth-nav__profile-summary > div { min-width: 0; overflow-wrap: anywhere; }
+  .site-header .site-nav__actions { display: none; }
+  .site-header .site-nav__mobile { grid-template-columns: minmax(0, 1fr); }
+  .site-header .site-nav__mobile-actions a { flex: 1 1 auto; }
+  :where(input:not([type=checkbox]):not([type=radio]), select, textarea) { font-size: 16px; }
+  .contact-form input, .contact-form select, .contact-form button { min-height: 44px; font-size: 16px; }
+  .contact-form label { font-size: 13px; }
+  .contact-details h3 { font-size: 15px; }
+  .contact-details p, .contact-details small, .contact-details__links a { font-size: 12px; line-height: 1.6; }
+  .contact-details__links a { min-height: 44px; }
+  .contact-hero__benefits { flex-wrap: wrap; }
+  .public-footer--restored .public-footer__column a { min-height: 44px; display: flex; align-items: center; }
+  .public-footer--restored .public-footer__social .public-footer__social-link { min-width: 44px; min-height: 44px; }
+}
+@media (max-width: 600px) {
+  .certificate-verification-page { padding: 16px; }
+  .certificate-verification-card { padding: 24px; }
+  .certificate-verification-card dl div { flex-direction: column; gap: 6px; }
+  .certificate-verification-card dd { text-align: left; }
+  .certificate-verification-back, .student-certificate-actions button { min-height: 44px; align-items: center; }
+  .feature-flip { height: auto; }
+  .feature-flip__inner { display: grid; }
+  .feature-flip__face { position: relative; inset: auto; grid-area: 1 / 1; padding: 22px 22px 66px; }
+  .feature-flip p, .feature-flip__back p { font-size: 14px; }
+  .feature-flip__back a { min-height: 44px; font-size: 12px; }
+  .features-page .feature-flip__toggle { width: 44px; height: 44px; }
+  .ft-grid { grid-template-columns: minmax(0, 1fr); }
+  .ft-card { flex-direction: row; min-height: 0; padding: 20px 18px 44px; }
+  .ft-actions { flex-wrap: wrap; }
+  .ft-button { min-height: 44px; }
+  .path-milestones button { min-height: 44px; }
+  .path-milestones strong { font-size: 11px; }
+  .path-panel header p, .path-detail p, .path-progress > div:first-child { font-size: 12px; }
+  .path-panel { min-height: 0; }
+  .pc-discovery { margin-top: 24px; }
+  .pc-tabs { flex-wrap: wrap; overflow: visible; }
+  .pc-tabs button { min-height: 44px; font-size: 12px; white-space: normal; }
+  .pc-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: visible; gap: 20px 12px; }
+  .pc-filters-heading { grid-column: 1 / -1; flex-direction: row; align-items: center; }
+  .pc-filters fieldset { min-width: 0; }
+  .pc-filters fieldset:first-of-type { display: grid; grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; }
+  .pc-filters #pc-extra-categories { grid-column: 1 / -1; }
+  .pc-filters legend { font-size: 13px; }
+  .pc-filters label { min-height: 36px; font-size: 12px; margin-bottom: 4px; }
+  .pc-filters-heading button { min-height: 44px; padding: 8px; }
+  .pc-grid { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .pc-card-media { height: auto; aspect-ratio: 16 / 9; }
+  .pc-card-body { padding: 18px; }
+  .pc-card h3 { font-size: 20px; }
+  .pc-card-body > p { font-size: 14px; min-height: 0; line-height: 1.65; }
+  .pc-card-category, .pc-skills span, .pc-card-meta { font-size: 12px; }
+  .pc-skills { flex-wrap: wrap; }
+  .pc-skills span { white-space: normal; }
+  .pc-view { min-height: 44px; font-size: 14px; }
+  .pc-save { min-width: 44px; min-height: 44px; display: grid; place-items: center; }
+  .pc-save svg { width: 20px; height: 20px; }
+  .pc-search input, .pc-sort select { font-size: 16px; }
+  .pc-sort select { min-height: 44px; }
+  .pc-badge { font-size: 10px; }
+  .contact-details article:last-child .contact-map { grid-column: 1 / -1; }
+}

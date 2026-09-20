@@ -25,6 +25,7 @@ import {
   WalletCards
 } from "lucide-react";
 import { PublicNavbar } from "../components/PublicNavbar";
+import { useDialogAccessibility } from "../components/useDialogAccessibility";
 import { SiteFooter } from "../components/SiteFooter";
 import { IndiaMobileInput } from "../components/IndiaMobileInput";
 import { allPrograms, defaultProgramPlans, findProgramBySlug } from "../data/siteContent";
@@ -114,20 +115,6 @@ export function ProgramDetailsPage() {
   const [isLoading, setIsLoading] = useState(!localProgram);
   const [selectedPlanCode, setSelectedPlanCode] = useState("INTERMEDIATE");
   const [registrationPlan, setRegistrationPlan] = useState<ProgramPlan | null>(null);
-
-  useEffect(() => {
-    if (!registrationPlan) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setRegistrationPlan(null);
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [registrationPlan]);
 
   useEffect(() => {
     if (!slug) {
@@ -502,6 +489,7 @@ function RegistrationDialog({ onClose, onSubmit, plan, programTitle }: {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const minimumStartDate = getLocalDateInputValue();
+  useDialogAccessibility(true, ".enrollment-dialog", onClose);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

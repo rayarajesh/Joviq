@@ -78,7 +78,7 @@
 .pc-catalog{grid-template-columns:165px minmax(0,1fr);gap:20px}.pc-filters{padding:18px 15px 4px}.pc-filters-heading{padding-bottom:16px;margin-bottom:14px;font-size:11px}.pc-filters legend{font-size:11px;margin-bottom:10px}.pc-filters label{font-size:10px;gap:10px;margin-bottom:8px}.pc-filters input{width:13px;height:13px;border-radius:3px}.pc-filters fieldset{padding-bottom:16px;margin-bottom:14px}
 .pc-results-heading{margin:1px 0 20px}.pc-results h2{font-size:19px}.pc-results-heading p{font-size:10px}.pc-sort select{width:112px;font-size:9px;padding:8px}.pc-sort{font-size:9px}.pc-grid{gap:12px}.pc-card-media{height:132px}.pc-card-body{padding:11px 12px}.pc-card h3{font-size:14px}.pc-card-body>p{font-size:10px;min-height:45px;margin-bottom:9px}.pc-card-category{font-size:8px;margin-bottom:6px}.pc-skills{gap:5px;margin-bottom:12px}.pc-skills span{font-size:8px;padding:6px 7px}.pc-card-meta{font-size:9px;gap:12px;margin-bottom:11px}.pc-card-meta svg{width:12px;height:12px}.pc-view{font-size:10px;padding:9px 11px}.pc-badge{font-size:8px;padding:8px 10px;top:9px}.pc-load{margin-top:20px;gap:8px}.pc-load button{font-size:10px;padding:10px 34px}.pc-load small{font-size:8px}
 }
-@media(min-width:851px){.programs-page .site-header .site-nav .site-nav__menu-button{display:none}.programs-page .site-header .site-nav__links .site-nav__mega-trigger{background:transparent}}
+@media(min-width:851px){.programs-page .site-header .site-nav__links .site-nav__mega-trigger{background:transparent}}
 #pc-extra-categories{padding-top:12px}.pc-skills span[title]{cursor:help}
 
 /* Center the search and categories as a compact group. */

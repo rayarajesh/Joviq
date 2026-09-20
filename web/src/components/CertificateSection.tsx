@@ -4,20 +4,20 @@ export function CertificateSection() {
       <div className="certificate-showcase__intro">
         <span className="certificate-showcase__eyebrow">LEARN <b>•</b> BUILD <b>•</b> GROW</span>
         <h2>
-          Turn Learning
-          <span>Into Real Skills.</span>
+          Build Real Skills.
+          <span>Earn Your Certificates.</span>
         </h2>
         <p>
-          Gain hands-on training, work on real-world projects,
+          Showcase your learning with a training certificate
           <br className="certificate-showcase__desktop-break" />
-          and earn a certificate that reflects your abilities.
+          and your practical experience with an internship certificate.
         </p>
       </div>
 
       <div className="certificate-preview-stage">
         <img
-          src="/assets/training-certificate.png"
-          alt="Joviq training certificate"
+          src="/assets/both-certificates.png"
+          alt="Joviq training and internship certificates"
           className="certificate-image"
         />
       </div>

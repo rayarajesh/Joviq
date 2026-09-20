@@ -43,7 +43,7 @@ export function FeaturesPage() {
 function FeatureFlipCard({ feature, onSelect }: { feature: typeof features[number]; onSelect: (feature: typeof features[number]) => void }) {
  const [open,setOpen]=useState(false),[hover,setHover]=useState(false);const flipped=open||hover;
  return <article className={`feature-flip feature-flip--${feature.color} ${flipped?"is-flipped":""}`} onPointerEnter={e=>{if(e.pointerType==="mouse")setHover(true)}} onPointerLeave={()=>setHover(false)} onKeyDown={e=>{if(e.key==="Escape"){setOpen(false);setHover(false);e.currentTarget.querySelector<HTMLButtonElement>("button")?.focus()}}}>
- <button className="feature-flip__toggle" aria-label={`${flipped?"Show overview":"Explore"}: ${feature.title}`} aria-expanded={flipped} onClick={()=>onSelect(feature)}><ArrowRight size={17}/></button>
+ <button className="feature-flip__toggle" aria-label={`Explore: ${feature.title}`} aria-haspopup="dialog" onClick={()=>onSelect(feature)}><ArrowRight size={17}/></button>
  <div className="feature-flip__inner"><div className="feature-flip__face feature-flip__front" aria-hidden={flipped} onClick={()=>setOpen(true)}><span className={`ft-icon ${feature.color}`}><feature.icon/></span><div><small>LEARN. PRACTICE. GROW.</small><h3>{feature.title}</h3><p>Explore this learning feature</p></div></div>
  <div className="feature-flip__face feature-flip__back" aria-hidden={!flipped} inert={!flipped}><span className={`ft-icon ${feature.color}`}><feature.icon/></span><h3>{feature.title}</h3><p>{feature.text}</p><Link to="/programs" onFocus={()=>setOpen(true)}>Explore Programs <ArrowRight size={15}/></Link></div></div></article>;
 }

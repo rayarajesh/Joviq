@@ -22,3 +22,4 @@ import "./styles/home-polish.css";
 import "./styles/navbar-refresh.css";
 import "./styles/programs-page.css";
 import "./styles/home-sections.css";
+import "./styles/responsive.css";

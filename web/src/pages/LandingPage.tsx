@@ -46,6 +46,7 @@ import {
 import { BrandLogo } from "../components/BrandLogo";
 import { IndiaMobileInput } from "../components/IndiaMobileInput";
 import { PublicNavbar } from "../components/PublicNavbar";
+import { useDialogAccessibility } from "../components/useDialogAccessibility";
 import { ToastMessage } from "../components/ToastMessage";
 import { SiteFooter } from "../components/SiteFooter";
 import {
@@ -314,7 +315,7 @@ export function LandingPage() {
       selectMode(nextMode);
       setIsAuthDialogOpen(true);
     }
-  }, [location.hash]);
+  }, [location.hash, location.key]);
 
   useEffect(() => {
     if (!location.hash || authModeFromHash(location.hash)) {
@@ -400,28 +401,11 @@ export function LandingPage() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!isAuthDialogOpen && !isCallbackDialogOpen) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        closeAuthDialog();
-        setIsCallbackDialogOpen(false);
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isAuthDialogOpen, isCallbackDialogOpen]);
+  useDialogAccessibility(
+    isAuthDialogOpen || isCallbackDialogOpen,
+    isCallbackDialogOpen ? ".callback-dialog__panel" : ".auth-dialog__panel",
+    () => { closeAuthDialog(); setIsCallbackDialogOpen(false); },
+  );
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

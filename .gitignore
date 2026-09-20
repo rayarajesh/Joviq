@@ -25,3 +25,6 @@ api/src/Joviq.Lms.Api/storage/
 *.log
 logs/
 */logs/
+
+# Local development diagnostics and browser audit artifacts.
+/tmp/

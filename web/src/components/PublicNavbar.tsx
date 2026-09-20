@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ExternalLink, Menu, X } from "lucide-react";
 import { BrandLogo } from "./BrandLogo";
@@ -17,10 +17,35 @@ const publicNavItems = [
 export function PublicNavbar() {
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     setIsMenuOpen(false);
   }, [location.pathname, location.hash]);
+
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsMenuOpen(false);
+        menuButtonRef.current?.focus();
+      }
+    }
+    function onPointerDown(event: PointerEvent) {
+      if (!headerRef.current?.contains(event.target as Node)) setIsMenuOpen(false);
+    }
+    const desktop = window.matchMedia("(min-width: 1221px)");
+    const onResize = () => { if (desktop.matches) setIsMenuOpen(false); };
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    desktop.addEventListener("change", onResize);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+      desktop.removeEventListener("change", onResize);
+    };
+  }, [isMenuOpen]);
 
   function closeMenus() {
     setIsMenuOpen(false);
@@ -40,7 +65,13 @@ export function PublicNavbar() {
   }
 
   return (
-    <header className={`site-header ${isMenuOpen ? "is-open" : ""}`}>
+    <header
+      ref={headerRef}
+      className={`site-header ${isMenuOpen ? "is-open" : ""}`}
+      onBlur={(event) => {
+        if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget as Node)) closeMenus();
+      }}
+    >
       <Link
         className="site-header__brand"
         to="/"
@@ -79,6 +110,7 @@ export function PublicNavbar() {
         </div>
 
         <button
+          ref={menuButtonRef}
           className="site-nav__menu-button"
           type="button"
           aria-controls="site-mobile-menu"
@@ -94,6 +126,7 @@ export function PublicNavbar() {
         <div
           id="site-mobile-menu"
           className="site-nav__mobile"
+          inert={!isMenuOpen}
           aria-hidden={!isMenuOpen}
         >
           {publicNavItems.map((item) => (
@@ -101,6 +134,7 @@ export function PublicNavbar() {
               key={item.to}
               className={isActivePath(item.to) ? "is-active" : undefined}
               to={item.to}
+              aria-current={isActivePath(item.to) ? "page" : undefined}
               onClick={closeMenus}
             >
               {item.label}

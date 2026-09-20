@@ -1,4 +1,6 @@
 import { Link } from "react-router-dom";
+import { createPortal } from "react-dom";
+import { useDialogAccessibility } from "./useDialogAccessibility";
 import { useEffect, useMemo, useState, type DragEvent, type FormEvent, type ReactNode } from "react";
 import {
   ArrowDown,
@@ -500,6 +502,7 @@ export function CurriculumAdminPanel({
         {programs.length === 0 ? <div className="curriculum-empty-state">Create a program before adding curriculum modules.</div> : null}
       </div>
 
+      {(moduleDialog || lessonDialog || preview) ? createPortal(<div className="dashboard-shell--admin" style={{ display: "contents" }}>
       {moduleDialog ? (
         <ModuleDialog
           key={`${moduleDialog.mode}-${moduleDialog.module?.id ?? moduleDialog.programId}`}
@@ -520,6 +523,7 @@ export function CurriculumAdminPanel({
         />
       ) : null}
       {preview ? <LessonPreviewDialog preview={preview} onClose={() => setPreview(null)} /> : null}
+      </div>, document.body) : null}
     </section>
   );
 }
@@ -538,6 +542,7 @@ function ModuleDialog({
   onSave: (payload: CreateModuleRequest & { programId?: string }) => Promise<void>;
 }) {
   const module = dialog.module;
+  useDialogAccessibility(true, ".curriculum-dialog", onClose);
   const program = programs.find((item) => item.id === dialog.programId);
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -579,6 +584,7 @@ function LessonDialog({
   onSave: (payload: LessonSavePayload) => Promise<void>;
 }) {
   const lesson = dialog.lesson;
+  useDialogAccessibility(true, ".curriculum-dialog", onClose);
   const [videoFile, setVideoFile] = useState<File | undefined>();
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [documentFiles, setDocumentFiles] = useState<File[]>([]);
@@ -658,6 +664,7 @@ function MediaCurrentRow({ icon, label, url, onRemove }: { icon: ReactNode; labe
 }
 
 function LessonPreviewDialog({ preview, onClose }: { preview: { module: CurriculumModuleResponse; lesson: LessonResponse }; onClose: () => void }) {
+  useDialogAccessibility(true, ".curriculum-dialog", onClose);
   const { lesson, module } = preview;
   const imageResources = lesson.resources.filter((resource) => resource.resourceType === "Image");
   const otherResources = lesson.resources.filter((resource) => resource.resourceType !== "Image");

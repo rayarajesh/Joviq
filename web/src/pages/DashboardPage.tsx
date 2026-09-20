@@ -72,6 +72,7 @@ import { IndiaMobileInput } from "../components/IndiaMobileInput";
 import { CurriculumAdminPanel } from "../components/CurriculumAdminPanel";
 import { StudentMyProgramLibrary } from "../components/StudentMyProgramLibrary";
 import { ToastMessage } from "../components/ToastMessage";
+import { useDialogAccessibility } from "../components/useDialogAccessibility";
 import { env } from "../config/env";
 import { assetsApi } from "../features/assets/api/assetsApi";
 import {
@@ -1180,18 +1181,14 @@ function AdminLmsPanel({
     });
   }, [adminPayments, paymentSearch, paymentStatusFilter, paymentPeriod]);
 
-  useEffect(() => {
-    if (!hasOpenAdminDialog) {
-      return undefined;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [hasOpenAdminDialog]);
+  useDialogAccessibility(hasOpenAdminDialog, '.category-dialog-backdrop [role="dialog"]', () => {
+    if (categoryDialogMode) closeCategoryDialog();
+    else if (programDialogMode) closeProgramDialog();
+    else if (planEditorProgram) closePlanEditor();
+    else if (projectDialogMode) closeProjectDialog();
+    else if (projectAudience) closeProjectAudience();
+    else if (projectReviewProject) closeProjectReviews();
+  });
 
   async function createProgram(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

@@ -389,7 +389,7 @@ export function StudentPayments({
           </button>
         </header>
         {payments.length ? (
-          <div className="student-payment-table-wrap">
+          <div className="student-payment-table-wrap" role="region" aria-label="Payment history table" tabIndex={0}>
             <table>
               <thead>
                 <tr>
