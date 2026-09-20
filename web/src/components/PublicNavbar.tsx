@@ -11,7 +11,7 @@ const publicNavItems = [
   { label: "Careers", to: "/careers" },
   { label: "Reviews", to: "/reviews" },
   { label: "About Us", to: "/about" },
-  { label: "Contact", to: "/request-callback" }
+  { label: "Contact", to: "/request-callback" },
 ];
 
 export function PublicNavbar() {
@@ -30,7 +30,10 @@ export function PublicNavbar() {
     const targetPath = path.split("#")[0];
 
     if (path === "/programs") {
-      return location.pathname === "/programs" || location.pathname.startsWith("/programs/");
+      return (
+        location.pathname === "/programs" ||
+        location.pathname.startsWith("/programs/")
+      );
     }
 
     return location.pathname === targetPath;
@@ -38,7 +41,12 @@ export function PublicNavbar() {
 
   return (
     <header className={`site-header ${isMenuOpen ? "is-open" : ""}`}>
-      <Link className="site-header__brand" to="/" onClick={closeMenus} aria-label="Joviq Technologies home">
+      <Link
+        className="site-header__brand"
+        to="/"
+        onClick={closeMenus}
+        aria-label="Joviq Technologies home"
+      >
         <BrandLogo />
       </Link>
 
@@ -61,7 +69,11 @@ export function PublicNavbar() {
           <Link to="/login" onClick={closeMenus}>
             Login <ExternalLink size={15} />
           </Link>
-          <Link className="is-primary" to="/request-callback" onClick={closeMenus}>
+          <Link
+            className="is-primary"
+            to="/request-callback"
+            onClick={closeMenus}
+          >
             Request Callback
           </Link>
         </div>
@@ -71,13 +83,19 @@ export function PublicNavbar() {
           type="button"
           aria-controls="site-mobile-menu"
           aria-expanded={isMenuOpen}
-          aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-label={
+            isMenuOpen ? "Close navigation menu" : "Open navigation menu"
+          }
           onClick={() => setIsMenuOpen((value) => !value)}
         >
           {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
 
-        <div id="site-mobile-menu" className="site-nav__mobile" aria-hidden={!isMenuOpen}>
+        <div
+          id="site-mobile-menu"
+          className="site-nav__mobile"
+          aria-hidden={!isMenuOpen}
+        >
           {publicNavItems.map((item) => (
             <Link
               key={item.to}
@@ -92,7 +110,11 @@ export function PublicNavbar() {
             <Link to="/login" onClick={closeMenus}>
               Login
             </Link>
-            <Link className="is-primary" to="/request-callback" onClick={closeMenus}>
+            <Link
+              className="is-primary"
+              to="/request-callback"
+              onClick={closeMenus}
+            >
               Request Callback
             </Link>
           </div>

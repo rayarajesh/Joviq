@@ -16,7 +16,7 @@ import {
   FeaturesPage,
   LoginPage,
   VerifyCertificatePage,
-  RequestCallbackPage
+  RequestCallbackPage,
 } from "../pages/PublicPages";
 import { StudentOnboardingPage } from "../pages/StudentOnboardingPage";
 import { ProtectedRoute } from "./ProtectedRoute";
@@ -36,7 +36,12 @@ export function App() {
         <HashScroll />
         <ScrollToTopButton />
         <Routes>
-          {import.meta.env.DEV && <Route path="/dev/student-dashboard" element={<StudentPreviewPage />} />}
+          {import.meta.env.DEV && (
+            <Route
+              path="/dev/student-dashboard"
+              element={<StudentPreviewPage />}
+            />
+          )}
           <Route path="/" element={<LandingPage />} />
           <Route path="/programs" element={<ProgramsPage />} />
           <Route path="/features" element={<FeaturesPage />} />
@@ -49,7 +54,10 @@ export function App() {
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/return-policy" element={<RefundPolicyPage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/verify/:certificateId" element={<VerifyCertificatePage />} />
+          <Route
+            path="/verify/:certificateId"
+            element={<VerifyCertificatePage />}
+          />
           <Route path="/request-callback" element={<RequestCallbackPage />} />
           <Route path="/auth/google/callback" element={<OAuthCallbackPage />} />
           <Route path="/auth/callback" element={<OAuthCallbackPage />} />
@@ -111,10 +119,11 @@ function HashScroll() {
     }
 
     window.requestAnimationFrame(() => {
-      document.getElementById(location.hash.slice(1))?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document
+        .getElementById(location.hash.slice(1))
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }, [location.pathname, location.hash]);
 
   return null;
 }
-

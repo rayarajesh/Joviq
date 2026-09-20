@@ -40,10 +40,12 @@ import type {
   UpdateCertificateStatusRequest,
   UpdateEnrollmentStatusRequest,
   UpdatePaymentStatusRequest,
-  VerifyPaymentRequest
+  VerifyPaymentRequest,
 } from "./lmsTypes";
 
-function toQuery(params: Record<string, string | number | boolean | undefined>) {
+function toQuery(
+  params: Record<string, string | number | boolean | undefined>,
+) {
   const search = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== "") {
@@ -61,7 +63,9 @@ export const publicLmsApi = {
   },
 
   getPrograms(params: ProgramListParams = {}) {
-    return request<ProgramSummaryResponse[]>(`/api/v1/public/programs${toQuery(params)}`);
+    return request<ProgramSummaryResponse[]>(
+      `/api/v1/public/programs${toQuery(params)}`,
+    );
   },
 
   getProgram(slug: string) {
@@ -69,17 +73,23 @@ export const publicLmsApi = {
   },
 
   verifyCertificate(certificateId: string) {
-    return request<import("./lmsTypes").CertificateVerificationResponse>(`/api/v1/public/certificates/verify/${certificateId}`);
-  }
+    return request<import("./lmsTypes").CertificateVerificationResponse>(
+      `/api/v1/public/certificates/verify/${certificateId}`,
+    );
+  },
 };
 
 export const studentLmsApi = {
   getDashboard() {
-    return request<StudentLmsDashboardResponse>("/api/v1/student/lms/dashboard");
+    return request<StudentLmsDashboardResponse>(
+      "/api/v1/student/lms/dashboard",
+    );
   },
 
   getWorkspace() {
-    return request<StudentProgramWorkspaceResponse>("/api/v1/student/lms/workspace");
+    return request<StudentProgramWorkspaceResponse>(
+      "/api/v1/student/lms/workspace",
+    );
   },
 
   getMyProgram() {
@@ -87,31 +97,50 @@ export const studentLmsApi = {
   },
 
   getMyPrograms() {
-    return request<StudentMyProgramsResponse>("/api/v1/student/lms/my-programs");
+    return request<StudentMyProgramsResponse>(
+      "/api/v1/student/lms/my-programs",
+    );
   },
 
   createEnrollment(body: CreateEnrollmentRequest) {
-    return request<EnrollmentResponse>("/api/v1/student/lms/enrollments", { method: "POST", body });
+    return request<EnrollmentResponse>("/api/v1/student/lms/enrollments", {
+      method: "POST",
+      body,
+    });
   },
 
   createPaymentCheckout(body: CreatePaymentCheckoutRequest) {
-    return request<PaymentCheckoutResponse>("/api/v1/student/lms/payments/checkout", { method: "POST", body });
+    return request<PaymentCheckoutResponse>(
+      "/api/v1/student/lms/payments/checkout",
+      { method: "POST", body },
+    );
   },
 
   validateCoupon(body: import("./lmsTypes").ValidateCouponRequest) {
-    return request<CouponValidationResponse>("/api/v1/student/lms/payments/coupon/validate", { method: "POST", body });
+    return request<CouponValidationResponse>(
+      "/api/v1/student/lms/payments/coupon/validate",
+      { method: "POST", body },
+    );
   },
 
   verifyPayment(body: VerifyPaymentRequest) {
-    return request<PaymentTransactionResponse>("/api/v1/student/lms/payments/verify", { method: "POST", body });
+    return request<PaymentTransactionResponse>(
+      "/api/v1/student/lms/payments/verify",
+      { method: "POST", body },
+    );
   },
 
   markPaymentFailed(paymentId: string, body: { failureReason?: string } = {}) {
-    return request<PaymentTransactionResponse>(`/api/v1/student/lms/payments/${paymentId}/failed`, { method: "POST", body });
+    return request<PaymentTransactionResponse>(
+      `/api/v1/student/lms/payments/${paymentId}/failed`,
+      { method: "POST", body },
+    );
   },
 
   getPaymentReceipt(paymentId: string) {
-    return request<PaymentReceiptResponse>(`/api/v1/student/lms/payments/${paymentId}/receipt`);
+    return request<PaymentReceiptResponse>(
+      `/api/v1/student/lms/payments/${paymentId}/receipt`,
+    );
   },
 
   getProjects() {
@@ -127,17 +156,22 @@ export const studentLmsApi = {
       documentationUrl?: string;
       presentationUrl?: string;
       notes?: string;
-    }
+    },
   ) {
-    return request<SubmissionResponse>(`/api/v1/student/lms/projects/${projectId}/submit`, {
-      method: "POST",
-      body
-    });
+    return request<SubmissionResponse>(
+      `/api/v1/student/lms/projects/${projectId}/submit`,
+      {
+        method: "POST",
+        body,
+      },
+    );
   },
 
   markNotificationRead(notificationId: string) {
-    return request(`/api/v1/student/lms/notifications/${notificationId}/read`, { method: "PATCH" });
-  }
+    return request(`/api/v1/student/lms/notifications/${notificationId}/read`, {
+      method: "PATCH",
+    });
+  },
 };
 
 export const adminLmsApi = {
@@ -150,7 +184,9 @@ export const adminLmsApi = {
   },
 
   getProgram(programId: string) {
-    return request<ProgramDetailsResponse>(`/api/v1/admin/lms/programs/${programId}`);
+    return request<ProgramDetailsResponse>(
+      `/api/v1/admin/lms/programs/${programId}`,
+    );
   },
 
   getCategories() {
@@ -158,67 +194,111 @@ export const adminLmsApi = {
   },
 
   createCategory(body: CreateCategoryRequest) {
-    return request<ProgramCategoryResponse>("/api/v1/admin/lms/categories", { method: "POST", body });
+    return request<ProgramCategoryResponse>("/api/v1/admin/lms/categories", {
+      method: "POST",
+      body,
+    });
   },
 
   updateCategory(categoryId: string, body: CreateCategoryRequest) {
-    return request<ProgramCategoryResponse>(`/api/v1/admin/lms/categories/${categoryId}`, { method: "PUT", body });
+    return request<ProgramCategoryResponse>(
+      `/api/v1/admin/lms/categories/${categoryId}`,
+      { method: "PUT", body },
+    );
   },
 
   createProgram(body: CreateProgramRequest) {
-    return request<ProgramDetailsResponse>("/api/v1/admin/lms/programs", { method: "POST", body });
+    return request<ProgramDetailsResponse>("/api/v1/admin/lms/programs", {
+      method: "POST",
+      body,
+    });
   },
 
   updateProgram(programId: string, body: CreateProgramRequest) {
-    return request<ProgramDetailsResponse>(`/api/v1/admin/lms/programs/${programId}`, { method: "PUT", body });
+    return request<ProgramDetailsResponse>(
+      `/api/v1/admin/lms/programs/${programId}`,
+      { method: "PUT", body },
+    );
   },
 
   createPlan(programId: string, body: CreatePlanRequest) {
-    return request<ProgramPlanResponse>(`/api/v1/admin/lms/programs/${programId}/plans`, { method: "POST", body });
+    return request<ProgramPlanResponse>(
+      `/api/v1/admin/lms/programs/${programId}/plans`,
+      { method: "POST", body },
+    );
   },
 
   updatePlan(planId: string, body: CreatePlanRequest) {
-    return request<ProgramPlanResponse>(`/api/v1/admin/lms/plans/${planId}`, { method: "PUT", body });
+    return request<ProgramPlanResponse>(`/api/v1/admin/lms/plans/${planId}`, {
+      method: "PUT",
+      body,
+    });
   },
 
   deleteProgram(programId: string) {
-    return request(`/api/v1/admin/lms/programs/${programId}`, { method: "DELETE" });
+    return request(`/api/v1/admin/lms/programs/${programId}`, {
+      method: "DELETE",
+    });
   },
 
   getCurriculum(programId?: string) {
-    return request<CurriculumModuleResponse[]>(`/api/v1/admin/lms/curriculum${toQuery({ programId })}`);
+    return request<CurriculumModuleResponse[]>(
+      `/api/v1/admin/lms/curriculum${toQuery({ programId })}`,
+    );
   },
 
   createModule(programId: string, body: CreateModuleRequest) {
-    return request<CurriculumModuleResponse>(`/api/v1/admin/lms/programs/${programId}/modules`, { method: "POST", body });
+    return request<CurriculumModuleResponse>(
+      `/api/v1/admin/lms/programs/${programId}/modules`,
+      { method: "POST", body },
+    );
   },
 
   updateModule(moduleId: string, body: CreateModuleRequest) {
-    return request<CurriculumModuleResponse>(`/api/v1/admin/lms/modules/${moduleId}`, { method: "PUT", body });
+    return request<CurriculumModuleResponse>(
+      `/api/v1/admin/lms/modules/${moduleId}`,
+      { method: "PUT", body },
+    );
   },
 
   deleteModule(moduleId: string) {
-    return request(`/api/v1/admin/lms/modules/${moduleId}`, { method: "DELETE" });
+    return request(`/api/v1/admin/lms/modules/${moduleId}`, {
+      method: "DELETE",
+    });
   },
 
   reorderModules(programId: string, body: ReorderItemsRequest) {
-    return request<CurriculumModuleResponse[]>(`/api/v1/admin/lms/programs/${programId}/modules/order`, { method: "PUT", body });
+    return request<CurriculumModuleResponse[]>(
+      `/api/v1/admin/lms/programs/${programId}/modules/order`,
+      { method: "PUT", body },
+    );
   },
 
   createLesson(moduleId: string, body: CreateLessonRequest) {
-    return request<LessonResponse>(`/api/v1/admin/lms/modules/${moduleId}/lessons`, { method: "POST", body });
+    return request<LessonResponse>(
+      `/api/v1/admin/lms/modules/${moduleId}/lessons`,
+      { method: "POST", body },
+    );
   },
 
   updateLesson(lessonId: string, body: CreateLessonRequest) {
-    return request<LessonResponse>(`/api/v1/admin/lms/lessons/${lessonId}`, { method: "PUT", body });
+    return request<LessonResponse>(`/api/v1/admin/lms/lessons/${lessonId}`, {
+      method: "PUT",
+      body,
+    });
   },
 
   deleteLesson(lessonId: string) {
-    return request(`/api/v1/admin/lms/lessons/${lessonId}`, { method: "DELETE" });
+    return request(`/api/v1/admin/lms/lessons/${lessonId}`, {
+      method: "DELETE",
+    });
   },
 
   reorderLessons(moduleId: string, body: ReorderItemsRequest) {
-    return request<CurriculumModuleResponse[]>(`/api/v1/admin/lms/modules/${moduleId}/lessons/order`, { method: "PUT", body });
+    return request<CurriculumModuleResponse[]>(
+      `/api/v1/admin/lms/modules/${moduleId}/lessons/order`,
+      { method: "PUT", body },
+    );
   },
 
   getProjects() {
@@ -226,39 +306,70 @@ export const adminLmsApi = {
   },
 
   getProjectSubmissions(projectId?: string) {
-    return request<ProjectSubmissionReviewResponse[]>(`/api/v1/admin/lms/project-submissions${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ""}`);
+    return request<ProjectSubmissionReviewResponse[]>(
+      `/api/v1/admin/lms/project-submissions${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ""}`,
+    );
   },
 
-  reviewProjectSubmission(submissionId: string, body: { status: "NeedsRevision" | "Approved"; score?: number; feedback?: string }) {
-    return request<SubmissionResponse>(`/api/v1/admin/lms/project-submissions/${submissionId}`, { method: "PATCH", body });
+  reviewProjectSubmission(
+    submissionId: string,
+    body: {
+      status: "NeedsRevision" | "Approved";
+      score?: number;
+      feedback?: string;
+    },
+  ) {
+    return request<SubmissionResponse>(
+      `/api/v1/admin/lms/project-submissions/${submissionId}`,
+      { method: "PATCH", body },
+    );
   },
 
   createProject(body: CreateProjectRequest) {
-    return request<ProjectResponse>("/api/v1/admin/lms/projects", { method: "POST", body });
+    return request<ProjectResponse>("/api/v1/admin/lms/projects", {
+      method: "POST",
+      body,
+    });
   },
 
   updateProject(projectId: string, body: CreateProjectRequest) {
-    return request<ProjectResponse>(`/api/v1/admin/lms/projects/${projectId}`, { method: "PUT", body });
+    return request<ProjectResponse>(`/api/v1/admin/lms/projects/${projectId}`, {
+      method: "PUT",
+      body,
+    });
   },
 
   deleteProject(projectId: string) {
-    return request(`/api/v1/admin/lms/projects/${projectId}`, { method: "DELETE" });
+    return request(`/api/v1/admin/lms/projects/${projectId}`, {
+      method: "DELETE",
+    });
   },
 
   getProjectStudents(programId: string) {
-    return request<ProjectStudentResponse[]>(`/api/v1/admin/lms/programs/${programId}/active-students`);
+    return request<ProjectStudentResponse[]>(
+      `/api/v1/admin/lms/programs/${programId}/active-students`,
+    );
   },
 
   publishProject(projectId: string, body: PublishProjectRequest) {
-    return request<ProjectResponse>(`/api/v1/admin/lms/projects/${projectId}/publish`, { method: "POST", body });
+    return request<ProjectResponse>(
+      `/api/v1/admin/lms/projects/${projectId}/publish`,
+      { method: "POST", body },
+    );
   },
 
   getEnrollments() {
     return request<EnrollmentResponse[]>("/api/v1/admin/lms/enrollments");
   },
 
-  updateEnrollmentStatus(enrollmentId: string, body: UpdateEnrollmentStatusRequest) {
-    return request<EnrollmentResponse>(`/api/v1/admin/lms/enrollments/${enrollmentId}/status`, { method: "PATCH", body });
+  updateEnrollmentStatus(
+    enrollmentId: string,
+    body: UpdateEnrollmentStatusRequest,
+  ) {
+    return request<EnrollmentResponse>(
+      `/api/v1/admin/lms/enrollments/${enrollmentId}/status`,
+      { method: "PATCH", body },
+    );
   },
 
   getPayments() {
@@ -266,11 +377,16 @@ export const adminLmsApi = {
   },
 
   updatePaymentStatus(paymentId: string, body: UpdatePaymentStatusRequest) {
-    return request<PaymentTransactionResponse>(`/api/v1/admin/lms/payments/${paymentId}/verify`, { method: "PATCH", body });
+    return request<PaymentTransactionResponse>(
+      `/api/v1/admin/lms/payments/${paymentId}/verify`,
+      { method: "PATCH", body },
+    );
   },
 
   getPaymentReceipt(paymentId: string) {
-    return request<PaymentReceiptResponse>(`/api/v1/admin/lms/payments/${paymentId}/receipt`);
+    return request<PaymentReceiptResponse>(
+      `/api/v1/admin/lms/payments/${paymentId}/receipt`,
+    );
   },
 
   getCoupons() {
@@ -278,11 +394,17 @@ export const adminLmsApi = {
   },
 
   createCoupon(body: CreateCouponRequest) {
-    return request<CouponResponse>("/api/v1/admin/lms/coupons", { method: "POST", body });
+    return request<CouponResponse>("/api/v1/admin/lms/coupons", {
+      method: "POST",
+      body,
+    });
   },
 
   updateCoupon(couponId: string, body: CreateCouponRequest) {
-    return request<CouponResponse>(`/api/v1/admin/lms/coupons/${couponId}`, { method: "PUT", body });
+    return request<CouponResponse>(`/api/v1/admin/lms/coupons/${couponId}`, {
+      method: "PUT",
+      body,
+    });
   },
 
   getCertificates() {
@@ -290,22 +412,38 @@ export const adminLmsApi = {
   },
 
   issueCertificate(body: IssueCertificateRequest) {
-    return request<CertificateResponse>("/api/v1/admin/lms/certificates/issue", { method: "POST", body });
+    return request<CertificateResponse>(
+      "/api/v1/admin/lms/certificates/issue",
+      { method: "POST", body },
+    );
   },
 
-  updateCertificateStatus(certificateId: string, body: UpdateCertificateStatusRequest) {
-    return request<CertificateResponse>(`/api/v1/admin/lms/certificates/${certificateId}/status`, { method: "PATCH", body });
+  updateCertificateStatus(
+    certificateId: string,
+    body: UpdateCertificateStatusRequest,
+  ) {
+    return request<CertificateResponse>(
+      `/api/v1/admin/lms/certificates/${certificateId}/status`,
+      { method: "PATCH", body },
+    );
   },
 
   getNotifications() {
-    return request<AdminNotificationResponse[]>("/api/v1/admin/lms/notifications");
+    return request<AdminNotificationResponse[]>(
+      "/api/v1/admin/lms/notifications",
+    );
   },
 
   createNotification(body: CreateAdminNotificationRequest) {
-    return request<AdminNotificationResponse[]>("/api/v1/admin/lms/notifications", { method: "POST", body });
+    return request<AdminNotificationResponse[]>(
+      "/api/v1/admin/lms/notifications",
+      { method: "POST", body },
+    );
   },
 
   getAuditLogs(page = 1, pageSize = 20, search = "") {
-    return request<AuditLogPage>(`/api/v1/admin/audit-logs${toQuery({ page, pageSize, search })}`);
-  }
+    return request<AuditLogPage>(
+      `/api/v1/admin/audit-logs${toQuery({ page, pageSize, search })}`,
+    );
+  },
 };

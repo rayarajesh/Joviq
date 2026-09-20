@@ -1,8 +1,17 @@
-import { createContext, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import type { ReactNode } from "react";
 import { authApi } from "../api/authApi";
 import type { AuthTokenResponse, UserSummary } from "../api/authTypes";
-import { setUnauthorizedHandler, tokenStore } from "../../../lib/api/httpClient";
+import {
+  setUnauthorizedHandler,
+  tokenStore,
+} from "../../../lib/api/httpClient";
 
 let refreshInFlight: Promise<AuthTokenResponse> | null = null;
 
@@ -97,7 +106,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [clearAuth, refresh]);
 
   useEffect(() => {
-    if (window.location.pathname === "/auth/google/callback" || window.location.pathname === "/auth/callback") {
+    if (
+      window.location.pathname === "/auth/google/callback" ||
+      window.location.pathname === "/auth/callback"
+    ) {
       setIsBooting(false);
       return;
     }
@@ -138,9 +150,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
       loadMe,
       logout,
       logoutAll,
-      clearAuth
+      clearAuth,
     }),
-    [accessToken, user, isBooting, applyAuthResponse, refresh, loadMe, logout, logoutAll, clearAuth]
+    [
+      accessToken,
+      user,
+      isBooting,
+      applyAuthResponse,
+      refresh,
+      loadMe,
+      logout,
+      logoutAll,
+      clearAuth,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
