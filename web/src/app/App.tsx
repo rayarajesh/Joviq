@@ -15,6 +15,7 @@ import {
   AboutPage,
   FeaturesPage,
   LoginPage,
+  VerifyCertificatePage,
   RequestCallbackPage
 } from "../pages/PublicPages";
 import { StudentOnboardingPage } from "../pages/StudentOnboardingPage";
@@ -48,6 +49,7 @@ export function App() {
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/return-policy" element={<RefundPolicyPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/verify/:certificateId" element={<VerifyCertificatePage />} />
           <Route path="/request-callback" element={<RequestCallbackPage />} />
           <Route path="/auth/google/callback" element={<OAuthCallbackPage />} />
           <Route path="/auth/callback" element={<OAuthCallbackPage />} />

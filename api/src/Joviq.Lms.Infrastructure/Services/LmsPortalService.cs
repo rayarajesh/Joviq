@@ -11,6 +11,7 @@ using Joviq.Lms.Domain.Entities;
 using Joviq.Lms.Domain.Enums;
 using Joviq.Lms.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
 namespace Joviq.Lms.Infrastructure.Services;
@@ -21,7 +22,8 @@ public sealed class LmsPortalService(
     IAuditLogService auditLog,
     ICurrentUserService currentUser,
     IPaymentGateway paymentGateway,
-    IOptions<PaymentOptions> paymentOptions) : ILmsPortalService
+    IOptions<PaymentOptions> paymentOptions,
+    IConfiguration configuration) : ILmsPortalService
 {
     private const string DefaultThumbnailUrl = "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=82";
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
@@ -196,7 +198,12 @@ public sealed class LmsPortalService(
             certificate.Program?.Title ?? "Joviq Program",
             certificate.Type.ToString(),
             certificate.IssuedAt,
-            certificate.Status.ToString());
+            certificate.Status.ToString(),
+            certificate.FromDate,
+            certificate.ToDate,
+            certificate.AuthorizedSignatory,
+            certificate.SignatureText,
+            certificate.QrCodeUrl);
     }
 
     public async Task<StudentLmsDashboardResponse> GetStudentDashboardAsync(Guid studentId, CancellationToken cancellationToken)
@@ -2062,20 +2069,42 @@ public sealed class LmsPortalService(
         }
 
         var program = await dbContext.LearningPrograms.AsNoTracking().FirstAsync(x => x.Id == request.ProgramId, cancellationToken);
+        var enrollment = request.EnrollmentId.HasValue
+            ? await dbContext.Enrollments.AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.EnrollmentId.Value, cancellationToken)
+            : await dbContext.Enrollments.AsNoTracking().Where(x => x.StudentId == request.StudentId && x.ProgramId == request.ProgramId).OrderByDescending(x => x.CreatedAt).FirstOrDefaultAsync(cancellationToken);
+        if (enrollment is null || enrollment.StudentId != request.StudentId || enrollment.ProgramId != request.ProgramId)
+        {
+            throw new AppException("A matching student enrollment is required before issuing a certificate.", 400, "certificate_enrollment_required");
+        }
+
+        EnsureFullAccess(enrollment, clock.UtcNow);
+        var studentName = RequiredText(request.StudentName, nameof(request.StudentName), 2, 180);
+        if (request.ToDate < request.FromDate)
+        {
+            throw new AppException("The certificate ending date must be on or after the starting date.", 400, "certificate_dates_invalid");
+        }
+
         var certificateId = $"JOVIQ-{clock.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}";
+        var verificationSlug = certificateId.ToLowerInvariant();
+        var verificationUrl = CreateVerificationUrl(verificationSlug);
         var certificate = new Certificate
         {
             Id = Guid.NewGuid(),
             StudentId = request.StudentId,
             ProgramId = request.ProgramId,
-            EnrollmentId = request.EnrollmentId,
+            EnrollmentId = enrollment.Id,
             Type = request.Type,
             Status = CertificateStatus.Issued,
             CertificateId = certificateId,
             IssuedAt = clock.UtcNow,
-            VerificationSlug = certificateId.ToLowerInvariant(),
-            VerificationUrl = $"/verify/{certificateId.ToLowerInvariant()}",
-            AuthorizedSignatory = OptionalText(request.AuthorizedSignatory, 180) ?? "Joviq Technologies"
+            VerificationSlug = verificationSlug,
+            VerificationUrl = verificationUrl,
+            QrCodeUrl = CreateQrCodeUrl(verificationUrl),
+            AuthorizedSignatory = OptionalText(request.AuthorizedSignatory, 180) ?? "M VIJAYARAMARAJU",
+            StudentName = studentName,
+            FromDate = request.FromDate,
+            ToDate = request.ToDate,
+            SignatureText = OptionalText(request.SignatureText, 180) ?? "Executive Director"
         };
 
         dbContext.Certificates.Add(certificate);
@@ -2095,14 +2124,18 @@ public sealed class LmsPortalService(
             certificate.StudentId,
             certificate.ProgramId,
             program.Title,
+            certificate.StudentName,
             certificate.Type.ToString(),
             certificate.Status.ToString(),
             certificate.CertificateId,
             certificate.IssuedAt,
+            certificate.FromDate,
+            certificate.ToDate,
             certificate.VerificationSlug,
             certificate.VerificationUrl,
             certificate.QrCodeUrl,
-            certificate.AuthorizedSignatory);
+            certificate.AuthorizedSignatory,
+            certificate.SignatureText);
     }
 
     public async Task<CertificateResponse> UpdateCertificateStatusAsync(
@@ -2535,6 +2568,18 @@ public sealed class LmsPortalService(
         }
     }
 
+    private string CreateVerificationUrl(string verificationSlug)
+    {
+        var callbackUrl = configuration["ExternalAuth:FrontendCallbackUrl"];
+        var frontendBaseUrl = Uri.TryCreate(callbackUrl, UriKind.Absolute, out var parsedCallback)
+            ? parsedCallback.GetLeftPart(UriPartial.Authority)
+            : "http://localhost:5173";
+        return $"{frontendBaseUrl}/verify/{verificationSlug}";
+    }
+
+    private static string CreateQrCodeUrl(string verificationUrl)
+        => $"https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={Uri.EscapeDataString(verificationUrl)}";
+
     private async Task ActivateCheckoutAccountAsync(Guid studentId, CancellationToken cancellationToken)
     {
         var user = await dbContext.Users.FirstOrDefaultAsync(x => x.Id == studentId, cancellationToken);
@@ -2862,14 +2907,18 @@ public sealed class LmsPortalService(
             certificate.StudentId,
             certificate.ProgramId,
             certificate.Program?.Title ?? "Program",
+            certificate.StudentName,
             certificate.Type.ToString(),
             certificate.Status.ToString(),
             certificate.CertificateId,
             certificate.IssuedAt,
+            certificate.FromDate,
+            certificate.ToDate,
             certificate.VerificationSlug,
             certificate.VerificationUrl,
             certificate.QrCodeUrl,
-            certificate.AuthorizedSignatory);
+            certificate.AuthorizedSignatory,
+            certificate.SignatureText);
     }
 
     private static NotificationResponse MapNotification(Notification notification)

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ExternalLink, Menu, Search, X } from "lucide-react";
+import { ExternalLink, Menu, X } from "lucide-react";
 import { BrandLogo } from "./BrandLogo";
 
 const publicNavItems = [
@@ -58,9 +58,6 @@ export function PublicNavbar() {
         </nav>
 
         <div className="site-nav__actions">
-          <Link className="site-nav__search" to="/programs" onClick={closeMenus} aria-label="Search programs" title="Search programs">
-            <Search size={19} />
-          </Link>
           <Link to="/login" onClick={closeMenus}>
             Login <ExternalLink size={15} />
           </Link>

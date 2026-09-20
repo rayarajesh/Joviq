@@ -1,5 +1,6 @@
 import { ArrowRight, Award, BookOpen, CalendarDays, Check, ChevronRight, CreditCard, Crown, Download, FileText, FolderKanban, Headphones, Laptop, Lightbulb } from "lucide-react";
 import { Link } from "react-router-dom";
+import { CertificateArtwork } from "./CertificateArtwork";
 import type { CertificateResponse, EnrollmentResponse, PaymentTransactionResponse } from "../features/lms/api/lmsTypes";
 import "../styles/student-modules.css";
 
@@ -16,9 +17,21 @@ export function StudentModuleEmpty({ kind, onProgram }: { kind: "Projects" | "Ce
   return <section className="student-module-surface"><div className="student-module-empty"><div className={`student-empty-art ${certificate ? "is-certificate" : "is-folder"}`}><Icon />{certificate && <Award className="student-empty-seal" />}<span /></div><h2>{certificate ? "No certificates yet." : "No projects assigned yet."}</h2><p>{certificate ? <>Complete your projects and programs to earn certificates<br />that showcase your skills.</> : <>Your assigned project work will appear here when<br />the instructor or admin publishes it to you.</>}</p><button className="student-module-primary" onClick={onProgram}><BookOpen size={17} />Explore My Program</button>{certificate && <><div className="student-empty-or"><span />OR<span /></div><button className="student-module-text" onClick={onProgram}>View Learning Resources <ChevronRight size={15} /></button></>}</div>{certificate && <div className="student-certificate-tips"><strong><Lightbulb size={20} />Tips to earn certificates</strong>{["Complete all lessons", "Work on and submit projects", "Get reviewed and approved"].map((tip, index) => <span key={tip}><b>{index + 1}</b>{tip}</span>)}</div>}</section>;
 }
 
+function certificateDate(value?: string) {
+  return value ? new Date(value).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "-";
+}
+
 export function StudentCertificates({ certificates, onProgram }: { certificates: CertificateResponse[]; onProgram: () => void }) {
   if (!certificates.length) return <StudentModuleEmpty kind="Certificates" onProgram={onProgram} />;
-  return <div className="student-certificate-grid">{certificates.map(certificate => <article className="student-module-surface" key={certificate.id}><Award size={40} /><h2>{certificate.programTitle}</h2><p>{certificate.type} · {certificate.status}</p><strong>{certificate.certificateId}</strong>{certificate.issuedAt && <p>Issued {new Date(certificate.issuedAt).toLocaleDateString("en-GB")}</p>}{certificate.verificationUrl && /^https?:\/\//i.test(certificate.verificationUrl) && <a className="student-module-text" href={certificate.verificationUrl} target="_blank" rel="noreferrer">Verify certificate <ArrowRight size={16} /></a>}</article>)}</div>;
+  function printCertificate() {
+    window.print();
+  }
+
+  return <div className="student-certificate-grid">{certificates.map(certificate => <article className="student-certificate-card" key={certificate.id}>
+    <CertificateArtwork type={certificate.type} studentName={certificate.studentName} programTitle={certificate.programTitle} fromDate={certificateDate(certificate.fromDate)} toDate={certificateDate(certificate.toDate)} certificateId={certificate.certificateId} qrCodeUrl={certificate.qrCodeUrl} authorizedSignatory={certificate.authorizedSignatory} signatureText={certificate.signatureText} />
+    <div className="student-certificate-actions"><button type="button" onClick={printCertificate}><Download size={15} /> Download / Print</button></div>
+    {certificate.verificationUrl && /^https?:\/\//i.test(certificate.verificationUrl) ? <a className="student-module-text" href={certificate.verificationUrl} target="_blank" rel="noreferrer">Verify certificate <ArrowRight size={16} /></a> : null}
+  </article>)}</div>;
 }
 
 const money = (value: number) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(value);

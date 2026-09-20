@@ -16503,6 +16503,18 @@ button.hero-button {
   color: #40506f;
 }
 
+.login-page .auth-oauth-button {
+  gap: 10px;
+  font-weight: 850;
+  box-shadow: 0 5px 14px rgba(49, 65, 111, 0.05);
+}
+
+.login-page .google-mark {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 auto;
+}
+
 .login-page .auth-divider { color: #71809d; }
 .login-page .auth-divider::before,
 .login-page .auth-divider::after { background: #dce3f1; }
@@ -16548,6 +16560,16 @@ button.hero-button {
     transform: translateY(0);
   }
 }
+
+.certificate-verification-page{min-height:100dvh;display:grid;place-items:center;padding:32px;background:#f5f7ff;color:#17183f}.certificate-verification-card{width:min(620px,100%);padding:42px;border:1px solid #e2e5f2;border-radius:20px;background:#fff;box-shadow:0 24px 70px #25245f18}.certificate-verification-eyebrow{color:#5b4ee8;font-size:12px;font-weight:900;letter-spacing:.16em}.certificate-verification-card h1{margin:14px 0 10px;font-size:clamp(2rem,5vw,3.4rem);line-height:1.05}.certificate-verification-card>p{color:#737895;line-height:1.6}.certificate-verification-status{display:inline-flex;margin:8px 0 22px;padding:8px 13px;border-radius:999px;font-size:12px;font-weight:850}.certificate-verification-status.is-valid{background:#e1f7ef;color:#087b5d}.certificate-verification-status.is-invalid{background:#ffe7e7;color:#b32d3b}.certificate-verification-card dl{display:grid;gap:0;margin:0;border-top:1px solid #e7e9f4}.certificate-verification-card dl div{display:flex;justify-content:space-between;gap:24px;padding:14px 0;border-bottom:1px solid #e7e9f4}.certificate-verification-card dt{color:#7d82a0;font-size:12px}.certificate-verification-card dd{margin:0;text-align:right;color:#252653;font-size:13px;font-weight:800}.certificate-verification-back{display:inline-flex;margin-top:26px;color:#5948df;font-size:13px;font-weight:850;text-decoration:none}
+
+.certificate-admin-form>.certificate-artwork{width:100%;align-self:start}.student-certificate-card{padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important}.student-certificate-card .student-module-text{margin:10px 0 0 4px}.certificate-artwork{position:relative;width:100%;aspect-ratio:1600/1127;overflow:hidden;background:#fff;color:#303064}.certificate-artwork>img{display:block;width:100%;height:100%;object-fit:cover}.certificate-artwork__student,.certificate-artwork__program,.certificate-artwork__dates,.certificate-artwork__id,.certificate-artwork__title,.certificate-artwork__sign,.certificate-artwork__qr{position:absolute;z-index:1}.certificate-artwork__student{left:24%;right:24%;top:50.2%;font:700 clamp(9px,1.5vw,22px) Georgia,serif;text-align:center;color:#36336d}.certificate-artwork__program{left:60%;top:54%;max-width:30%;font:700 clamp(7px,1.1vw,15px) Georgia,serif;text-align:center;color:#36336d}.certificate-artwork__dates{left:51%;top:58%;font:600 clamp(6px,1vw,13px) Georgia,serif;color:#36336d;white-space:nowrap}.certificate-artwork__dates span{margin:0 8px;font-weight:400}.certificate-artwork__id{left:11%;bottom:9.1%;font:400 clamp(7px,1.05vw,15px) Georgia,serif;color:#36336d}.certificate-artwork__qr{left:34.2%;bottom:4.1%;width:9.4%;aspect-ratio:1;background:#fff;border-radius:3px;display:grid;place-items:center;overflow:hidden}.certificate-artwork__qr img{width:100%;height:100%;object-fit:contain}.certificate-artwork__qr span{font-size:7px;color:#555}.certificate-artwork__sign{right:16%;bottom:8.2%;display:flex;flex-direction:column;align-items:center;min-width:20%;font:400 clamp(7px,1.05vw,15px) Georgia,serif;color:#36336d;text-align:center}.certificate-artwork__sign:before{content:"";width:100%;border-top:1px solid #4e4b83;margin-bottom:4px}.certificate-artwork__sign strong{font-weight:400}.certificate-artwork.is-internship .certificate-artwork__title{top:25%;left:35%;right:24%;padding:0 4%;background:#fff;color:#383674;font:700 clamp(16px,3vw,45px) Georgia,serif;line-height:.98;text-align:center}
+
+.certificate-artwork__student{left:22%;right:22%;top:50.5%;font:600 clamp(7px,1.05vw,15px) Georgia,serif;line-height:1;text-align:center;color:#36336d;white-space:nowrap;transform:translateY(-50%)}.certificate-artwork__program{left:59%;top:54.8%;max-width:29%;font:600 clamp(6px,.85vw,12px) Georgia,serif;line-height:1;text-align:center;color:#36336d;white-space:nowrap;transform:translateY(-50%)}.certificate-artwork__dates{left:50%;top:58.8%;font:600 clamp(5px,.75vw,10px) Georgia,serif;line-height:1;color:#36336d;white-space:nowrap;transform:translateY(-50%)}.certificate-artwork__dates span{margin:0 7px;font-weight:400}.certificate-artwork__id{left:10%;bottom:9.1%;font:400 clamp(6px,.85vw,12px) Georgia,serif;line-height:1;color:#36336d;white-space:nowrap}.certificate-artwork__sign{right:14%;bottom:8.2%;min-width:21%;font:400 clamp(6px,.85vw,12px) Georgia,serif;line-height:1.1}.certificate-artwork__sign strong{font-weight:400;white-space:nowrap}
+
+.certificate-artwork__static-id-cover{position:absolute;z-index:2;left:7%;bottom:7%;width:27%;height:8%;background:#fff}.certificate-artwork__static-sign-cover{position:absolute;z-index:2;right:11%;bottom:6%;width:29%;height:12%;background:#fff}.certificate-artwork__id{z-index:3;left:9%;bottom:9.1%;max-width:24%;overflow:hidden;font-size:clamp(5px,.68vw,10px);white-space:nowrap}.certificate-artwork__sign{z-index:3;right:14%;bottom:8.2%;min-width:21%;font-size:clamp(6px,.85vw,12px);line-height:1.1}.certificate-artwork__student{z-index:3;font-size:clamp(7px,1.05vw,15px);white-space:nowrap}.certificate-artwork__program{z-index:3;font-size:clamp(6px,.85vw,12px);white-space:nowrap}.certificate-artwork__from-date,.certificate-artwork__to-date{z-index:3;position:absolute;font:600 clamp(5px,.72vw,10px) Georgia,serif;line-height:1;color:#36336d;white-space:nowrap;transform:translateY(-50%)}.certificate-artwork__from-date{left:49%;top:58.8%}.certificate-artwork__to-date{left:63%;top:58.8%}
+.student-certificate-actions{display:flex;justify-content:flex-end;margin-top:10px}.student-certificate-actions button{display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border:1px solid #e1e5f2;border-radius:7px;background:#fff;color:#6248db;font-size:11px;font-weight:800}
+@media print{body *{visibility:hidden!important}.student-certificate-card,.student-certificate-card *{visibility:visible!important}.student-certificate-card{position:absolute;left:0;top:0;width:100%;padding:0!important}.student-certificate-actions,.student-certificate-card .student-module-text{display:none!important}.certificate-artwork{width:100%;max-width:none}}
 
 @keyframes hero-grid-drift {
   from {

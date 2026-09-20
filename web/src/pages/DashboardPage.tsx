@@ -1,5 +1,6 @@
 import "../styles/admin-modules.css";
 import { AcademyOverview } from "../components/AcademyOverview";
+import { CertificateArtwork } from "../components/CertificateArtwork";
 import { StudentOverview } from "../components/StudentOverview";
 import { StudentModuleHeader, StudentModuleEmpty, StudentCertificates, StudentPayments } from "../components/StudentModules";
 import { studentPreviewDashboard, studentPreviewWorkspace } from "../data/studentPreview";
@@ -9,6 +10,7 @@ import { createPortal } from "react-dom";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Award,
+  ArrowRight,
   BadgePercent,
   BarChart3,
   Bell,
@@ -83,6 +85,7 @@ import type {
   CouponResponse,
   CurriculumModuleResponse,
   EnrollmentResponse,
+  IssueCertificateRequest,
   PaymentTransactionResponse,
   ProgramCategoryResponse,
   ProgramDetailsResponse,
@@ -677,6 +680,18 @@ function AdminLmsPanel({
   const [programThumbnailUrl, setProgramThumbnailUrl] = useState("");
   const [programThumbnailFile, setProgramThumbnailFile] = useState<File | null>(null);
   const [programThumbnailPreviewUrl, setProgramThumbnailPreviewUrl] = useState("");
+  const [certificateDraft, setCertificateDraft] = useState<IssueCertificateRequest>(() => ({
+    studentId: "",
+    programId: "",
+    enrollmentId: "",
+    type: 1,
+    studentName: "",
+    fromDate: new Date().toISOString().slice(0, 10),
+    toDate: new Date(Date.now() + 180 * 86400000).toISOString().slice(0, 10),
+    authorizedSignatory: "M VIJAYARAMARAJU",
+    signatureText: "Executive Director"
+  }));
+  const [isIssuingCertificate, setIsIssuingCertificate] = useState(false);
   const [categoryDialogMode, setCategoryDialogMode] = useState<"create" | "edit" | null>(null);
   const [categoryEditor, setCategoryEditor] = useState<ProgramCategoryResponse | null>(null);
   const [isSavingCategory, setIsSavingCategory] = useState(false);
@@ -1539,6 +1554,40 @@ function AdminLmsPanel({
       await onRefresh();
     } catch (error) {
       onMessage({ tone: "error", text: formatApiError(error) });
+    }
+  }
+
+  function selectCertificateEnrollment(enrollmentId: string) {
+    const enrollment = adminEnrollments.find((item) => item.id === enrollmentId);
+    setCertificateDraft((current) => ({
+      ...current,
+      enrollmentId,
+      studentId: enrollment?.studentId ?? "",
+      programId: enrollment?.programId ?? "",
+      studentName: enrollment?.studentName ?? students.find((student) => student.id === enrollment?.studentId)?.fullName ?? "",
+      fromDate: enrollment?.startDate ?? current.fromDate,
+      toDate: enrollment?.accessExpiresAt?.slice(0, 10) ?? current.toDate
+    }));
+  }
+
+  async function issueCertificate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsIssuingCertificate(true);
+    onMessage(null);
+    try {
+      await adminLmsApi.issueCertificate({
+        ...certificateDraft,
+        enrollmentId: certificateDraft.enrollmentId || undefined,
+        type: Number(certificateDraft.type),
+        authorizedSignatory: certificateDraft.authorizedSignatory?.trim() || undefined,
+        signatureText: certificateDraft.signatureText?.trim() || undefined
+      });
+      onMessage({ tone: "success", text: "Certificate issued and added to the certificate register." });
+      await onRefresh();
+    } catch (error) {
+      onMessage({ tone: "error", text: formatApiError(error) });
+    } finally {
+      setIsIssuingCertificate(false);
     }
   }
 
@@ -2780,7 +2829,30 @@ function AdminLmsPanel({
 
         {showModule("Certificates") ? (
           <section className="lms-list-panel lms-list-panel--wide">
-            <h3>Certificates</h3>
+            <div className="certificate-admin-heading"><div><span className="eyebrow">CERTIFICATE ISSUANCE</span><h3>Create certificate</h3><p>Select a fully paid enrollment, complete the certificate details, preview it, then issue.</p></div><Award size={28} /></div>
+            <form className="certificate-admin-form" onSubmit={issueCertificate}>
+              <div className="certificate-admin-fields">
+                <label>Paid student<select required value={certificateDraft.enrollmentId} onChange={(event) => selectCertificateEnrollment(event.currentTarget.value)}><option value="">Select a fully paid enrollment</option>{adminEnrollments.filter((enrollment) => enrollment.hasFullAccess && !enrollment.isAccessExpired).map((enrollment) => <option key={enrollment.id} value={enrollment.id}>{enrollment.studentName ?? enrollment.studentEmail ?? enrollment.studentId} · {enrollment.programTitle}</option>)}</select></label>
+                <label>Certificate type<select value={certificateDraft.type} onChange={(event) => setCertificateDraft((current) => ({ ...current, type: Number(event.currentTarget.value) }))}><option value={1}>Training Certificate</option><option value={2}>Internship Certificate</option></select></label>
+                <label>Student full name<input required value={certificateDraft.studentName} onChange={(event) => setCertificateDraft((current) => ({ ...current, studentName: event.currentTarget.value }))} placeholder="Full name on certificate" /></label>
+                <label>Program<input readOnly value={adminEnrollments.find((item) => item.id === certificateDraft.enrollmentId)?.programTitle ?? "Select an enrollment"} /></label>
+                <label>Starting date<input required type="date" value={certificateDraft.fromDate} onChange={(event) => setCertificateDraft((current) => ({ ...current, fromDate: event.currentTarget.value }))} /></label>
+                <label>Ending date<input required type="date" value={certificateDraft.toDate} onChange={(event) => setCertificateDraft((current) => ({ ...current, toDate: event.currentTarget.value }))} /></label>
+                <label>Director name<input value={certificateDraft.authorizedSignatory} onChange={(event) => setCertificateDraft((current) => ({ ...current, authorizedSignatory: event.currentTarget.value }))} placeholder="Director name" /></label>
+                <label>Signature label<input value={certificateDraft.signatureText} onChange={(event) => setCertificateDraft((current) => ({ ...current, signatureText: event.currentTarget.value }))} placeholder="Executive Director" /></label>
+              </div>
+              <CertificateArtwork
+                type={certificateDraft.type === 2 ? "Internship" : "Training"}
+                studentName={certificateDraft.studentName}
+                programTitle={adminEnrollments.find((item) => item.id === certificateDraft.enrollmentId)?.programTitle}
+                fromDate={certificateDraft.fromDate}
+                toDate={certificateDraft.toDate}
+                authorizedSignatory={certificateDraft.authorizedSignatory}
+                signatureText={certificateDraft.signatureText}
+              />
+              <button className="primary-action" type="submit" disabled={isIssuingCertificate || !certificateDraft.enrollmentId}>{isIssuingCertificate ? "Issuing certificate..." : "Issue certificate"}<ArrowRight size={16} /></button>
+            </form>
+            <h3>Issued certificates</h3>
             <div className="lms-scroll-list">
               {adminCertificates.length === 0 ? <div className="table-state">No certificates issued yet.</div> : null}
               {adminCertificates.map((certificate) => (

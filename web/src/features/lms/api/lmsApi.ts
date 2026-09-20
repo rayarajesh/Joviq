@@ -66,6 +66,10 @@ export const publicLmsApi = {
 
   getProgram(slug: string) {
     return request<ProgramDetailsResponse>(`/api/v1/public/programs/${slug}`);
+  },
+
+  verifyCertificate(certificateId: string) {
+    return request<import("./lmsTypes").CertificateVerificationResponse>(`/api/v1/public/certificates/verify/${certificateId}`);
   }
 };
 

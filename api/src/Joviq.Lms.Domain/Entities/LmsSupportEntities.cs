@@ -32,6 +32,14 @@ public sealed class Certificate : AuditableEntity
     public string? QrCodeUrl { get; set; }
 
     public string? AuthorizedSignatory { get; set; }
+
+    public string StudentName { get; set; } = string.Empty;
+
+    public DateOnly? FromDate { get; set; }
+
+    public DateOnly? ToDate { get; set; }
+
+    public string? SignatureText { get; set; }
 }
 
 public sealed class Notification : AuditableEntity

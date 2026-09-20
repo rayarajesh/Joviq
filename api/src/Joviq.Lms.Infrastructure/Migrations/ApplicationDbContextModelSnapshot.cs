@@ -257,6 +257,9 @@ namespace Joviq.Lms.Infrastructure.Migrations
                     b.Property<Guid?>("EnrollmentId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateOnly?>("FromDate")
+                        .HasColumnType("date");
+
                     b.Property<DateTimeOffset?>("IssuedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -267,6 +270,10 @@ namespace Joviq.Lms.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("SignatureText")
+                        .HasMaxLength(180)
+                        .HasColumnType("character varying(180)");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -274,6 +281,14 @@ namespace Joviq.Lms.Infrastructure.Migrations
 
                     b.Property<Guid>("StudentId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("StudentName")
+                        .IsRequired()
+                        .HasMaxLength(180)
+                        .HasColumnType("character varying(180)");
+
+                    b.Property<DateOnly?>("ToDate")
+                        .HasColumnType("date");
 
                     b.Property<string>("Type")
                         .IsRequired()

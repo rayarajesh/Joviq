@@ -279,14 +279,18 @@ export type CertificateResponse = {
   studentId: string;
   programId: string;
   programTitle: string;
+  studentName: string;
   type: string;
   status: string;
   certificateId: string;
   issuedAt?: string;
+  fromDate?: string;
+  toDate?: string;
   verificationSlug: string;
   verificationUrl?: string;
   qrCodeUrl?: string;
   authorizedSignatory?: string;
+  signatureText?: string;
 };
 
 export type NotificationResponse = {
@@ -526,7 +530,26 @@ export type IssueCertificateRequest = {
   programId: string;
   enrollmentId?: string;
   type?: number;
+  studentName: string;
+  fromDate: string;
+  toDate: string;
   authorizedSignatory?: string;
+  signatureText?: string;
+};
+
+export type CertificateVerificationResponse = {
+  isValid: boolean;
+  certificateId: string;
+  studentName: string;
+  programTitle: string;
+  type: string;
+  issuedAt?: string;
+  status: string;
+  fromDate?: string;
+  toDate?: string;
+  authorizedSignatory?: string;
+  signatureText?: string;
+  qrCodeUrl?: string;
 };
 
 export type UpdateCertificateStatusRequest = {

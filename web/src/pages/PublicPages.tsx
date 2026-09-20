@@ -1,6 +1,6 @@
 import { FormEvent, lazy, Suspense, useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowRight,
   BarChart3,
@@ -23,7 +23,6 @@ import {
   ShieldCheck,
   Sparkles,
   Star,
-  UserPlus,
   UserRound,
   X
 } from "lucide-react";
@@ -42,6 +41,7 @@ import {
 } from "../data/siteContent";
 import { authApi } from "../features/auth/api/authApi";
 import { useAuth } from "../features/auth/context/useAuth";
+import { publicLmsApi } from "../features/lms/api/lmsApi";
 import { normalizeOAuthReturnUrl } from "../features/auth/oauthPopup";
 import { ApiError, formatApiError } from "../lib/api/httpClient";
 import { PasswordRecovery } from "../components/PasswordRecovery";
@@ -69,6 +69,10 @@ const RouteScene3D = lazy(async () => {
 });
 
 const aboutValues = ["Industry-focused education", "Project-first learning", "Expert-reviewed outcomes", "Career preparation"];
+
+function GoogleMark() {
+  return <svg className="google-mark" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.35 12.27c0-.72-.06-1.42-.18-2.09H12v3.96h5.24a4.48 4.48 0 0 1-1.94 2.94v2.45h3.14c1.84-1.7 2.91-4.2 2.91-7.26Z" /><path fill="#34A853" d="M12 21.7c2.63 0 4.84-.87 6.45-2.36l-3.14-2.45c-.87.58-1.98.92-3.31.92-2.54 0-4.69-1.72-5.46-4.03H3.3v2.53A9.74 9.74 0 0 0 12 21.7Z" /><path fill="#FBBC05" d="M6.54 13.78a5.85 5.85 0 0 1 0-3.56V7.69H3.3a9.74 9.74 0 0 0 0 8.62l3.24-2.53Z" /><path fill="#EA4335" d="M12 6.19c1.43 0 2.72.49 3.73 1.45l2.8-2.8C16.83 3.28 14.63 2.3 12 2.3a9.74 9.74 0 0 0-8.7 5.39l3.24 2.53C7.31 7.91 9.46 6.19 12 6.19Z" /></svg>;
+}
 export { ProgramsPage } from "./ProgramsPage";
 
 export { FeaturesPage } from "./FeaturesPage";
@@ -128,13 +132,37 @@ export function RequestCallbackPage() {
   );
 }
 
+export function VerifyCertificatePage() {
+  const { certificateId } = useParams();
+  const [certificate, setCertificate] = useState<Awaited<ReturnType<typeof publicLmsApi.verifyCertificate>>["data"] | null>(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!certificateId) return;
+    void publicLmsApi.verifyCertificate(certificateId)
+      .then((response) => setCertificate(response.data))
+      .catch((reason) => setError(formatApiError(reason)));
+  }, [certificateId]);
+
+  return <main className="certificate-verification-page">
+    <div className="certificate-verification-card">
+      <span className="certificate-verification-eyebrow">JOVIQ TECHNOLOGIES</span>
+      <h1>{certificate ? "Certificate verified" : error ? "Certificate unavailable" : "Checking certificate"}</h1>
+      {error ? <p>{error}</p> : certificate ? <>
+        <div className={`certificate-verification-status ${certificate.isValid ? "is-valid" : "is-invalid"}`}>{certificate.isValid ? "Valid certificate" : "Certificate revoked"}</div>
+        <dl><div><dt>Certificate ID</dt><dd>{certificate.certificateId}</dd></div><div><dt>Student</dt><dd>{certificate.studentName}</dd></div><div><dt>Program</dt><dd>{certificate.programTitle}</dd></div><div><dt>Certificate type</dt><dd>{certificate.type}</dd></div><div><dt>Duration</dt><dd>{certificate.fromDate ?? "-"} to {certificate.toDate ?? "-"}</dd></div><div><dt>Director</dt><dd>{certificate.authorizedSignatory ?? "Joviq Technologies"}</dd></div></dl>
+      </> : <p>We are checking the certificate details.</p>}
+      <Link to="/login" className="certificate-verification-back">Open Joviq LMS</Link>
+    </div>
+  </main>;
+}
+
 export function LoginPage() {
   const auth = useAuth();
   const navigate = useNavigate();
   const [loginSearchParams] = useSearchParams();
   const returnUrl = normalizeOAuthReturnUrl(loginSearchParams.get("returnUrl"));
   const [mode, setMode] = useState<AuthPageMode>("login");
-  const [loginRole, setLoginRole] = useState<"student" | "admin">(loginSearchParams.get("role") === "admin" ? "admin" : "student");
   const [message, setMessage] = useState<PageMessage>(null);
   const [pendingEmail, setPendingEmail] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -286,7 +314,7 @@ export function LoginPage() {
         <div className="login-page__intro">
           <span className="login-page__eyebrow"><KeyRound size={15} /> LMS ACCESS</span>
           <h1>{mode === "register" || mode === "verify-email" ? <>Create your<br /><span>learning account.</span></> : <>Login to your<br /><span>LMS Dashboard</span></>}</h1>
-          <p>Secure access for students and admins with<br className="login-page__desktop-break" /> project-driven learning workflows.</p>
+          <p>Secure access to your<br className="login-page__desktop-break" /> project-driven learning workflows.</p>
           <div className="login-page__benefits">
             <div><span><BookOpen size={27} /></span><strong>Learn</strong><small>Access your<br />courses anytime</small></div>
             <div><span><BarChart3 size={25} /></span><strong>Track</strong><small>Monitor your<br />progress</small></div>
@@ -297,13 +325,12 @@ export function LoginPage() {
 
         <div className="route-auth-card">
           <div className="auth-card__tabs">
-            <button className={mode === "login" && loginRole === "student" ? "is-active" : undefined} type="button" onClick={() => { setLoginRole("student"); setMode("login"); }}>
+            <button className={mode === "login" ? "is-active" : undefined} type="button" onClick={() => setMode("login")}>
               <UserRound size={17} />
-              {mode === "login" ? "Student Login" : "Login"}
+              Login
             </button>
-            <button className={mode === "login" && loginRole === "admin" ? "is-active" : mode !== "login" ? "is-active" : undefined} type="button" onClick={() => { if (mode === "login") { setLoginRole("admin"); } else { setMode("register"); } }}>
-              <UserPlus size={17} />
-              {mode === "login" ? "Admin Login" : "Register"}
+            <button className={mode === "register" ? "is-active" : undefined} type="button" onClick={() => setMode("register")}>
+              Register
             </button>
           </div>
 
@@ -315,7 +342,7 @@ export function LoginPage() {
                 onClick={() => beginGoogleOAuth(false)}
                 disabled={isSubmitting}
               >
-                <ShieldCheck size={18} />
+                <GoogleMark />
                 Sign in with Google
               </button>
               <div className="auth-divider">
@@ -360,7 +387,7 @@ export function LoginPage() {
                   onClick={() => beginGoogleOAuth(true)}
                   disabled={isSubmitting}
                 >
-                  <ShieldCheck size={18} />
+                  <GoogleMark />
                   Create account with Google
                 </button>
               </div>

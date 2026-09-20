@@ -263,14 +263,18 @@ public sealed record CertificateResponse(
     Guid StudentId,
     Guid ProgramId,
     string ProgramTitle,
+    string StudentName,
     string Type,
     string Status,
     string CertificateId,
     DateTimeOffset? IssuedAt,
+    DateOnly? FromDate,
+    DateOnly? ToDate,
     string VerificationSlug,
     string? VerificationUrl,
     string? QrCodeUrl,
-    string? AuthorizedSignatory);
+    string? AuthorizedSignatory,
+    string? SignatureText);
 
 public sealed record CertificateVerificationResponse(
     bool IsValid,
@@ -279,7 +283,12 @@ public sealed record CertificateVerificationResponse(
     string ProgramTitle,
     string Type,
     DateTimeOffset? IssuedAt,
-    string Status);
+    string Status,
+    DateOnly? FromDate,
+    DateOnly? ToDate,
+    string? AuthorizedSignatory,
+    string? SignatureText,
+    string? QrCodeUrl);
 
 public sealed record NotificationResponse(
     Guid Id,
@@ -691,7 +700,15 @@ public sealed class IssueCertificateRequest
 
     public CertificateType Type { get; init; } = CertificateType.Training;
 
+    public string StudentName { get; init; } = string.Empty;
+
+    public DateOnly FromDate { get; init; }
+
+    public DateOnly ToDate { get; init; }
+
     public string? AuthorizedSignatory { get; init; }
+
+    public string? SignatureText { get; init; }
 }
 
 public sealed class UpdateCertificateStatusRequest

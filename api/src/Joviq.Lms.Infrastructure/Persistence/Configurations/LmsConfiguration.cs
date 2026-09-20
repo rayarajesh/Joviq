@@ -310,6 +310,8 @@ public sealed class CertificateConfiguration : IEntityTypeConfiguration<Certific
         builder.Property(x => x.VerificationUrl).HasMaxLength(500);
         builder.Property(x => x.QrCodeUrl).HasMaxLength(500);
         builder.Property(x => x.AuthorizedSignatory).HasMaxLength(180);
+        builder.Property(x => x.StudentName).HasMaxLength(180).IsRequired();
+        builder.Property(x => x.SignatureText).HasMaxLength(180);
         builder.HasOne(x => x.Program)
             .WithMany()
             .HasForeignKey(x => x.ProgramId)

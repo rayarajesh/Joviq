@@ -42,6 +42,7 @@ public static class RoleSeeder
 
         var adminEmail = configuration["SeedAdmin:Email"];
         var adminPassword = configuration["SeedAdmin:Password"];
+        var resetAdminPassword = configuration.GetValue<bool>("SeedAdmin:ResetPassword");
         var adminName = configuration["SeedAdmin:FullName"] ?? "Joviq Admin";
 
         if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(adminPassword))
@@ -71,6 +72,27 @@ public static class RoleSeeder
                 logger.LogError("Failed to seed admin user: {Errors}", string.Join(", ", createResult.Errors.Select(e => e.Description)));
                 return;
             }
+        }
+        else if (resetAdminPassword)
+        {
+            var removePasswordResult = await userManager.RemovePasswordAsync(admin);
+            if (!removePasswordResult.Succeeded)
+            {
+                logger.LogError("Failed to reset seeded admin password: {Errors}", string.Join(", ", removePasswordResult.Errors.Select(e => e.Description)));
+                return;
+            }
+
+            var addPasswordResult = await userManager.AddPasswordAsync(admin, adminPassword);
+            if (!addPasswordResult.Succeeded)
+            {
+                logger.LogError("Failed to apply seeded admin password: {Errors}", string.Join(", ", addPasswordResult.Errors.Select(e => e.Description)));
+                return;
+            }
+
+            admin.EmailConfirmed = true;
+            admin.AccountStatus = AccountStatus.Active;
+            admin.LockoutEnd = null;
+            await userManager.UpdateAsync(admin);
         }
 
         if (!await userManager.IsInRoleAsync(admin, RoleNames.Admin))
