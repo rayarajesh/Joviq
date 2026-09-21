@@ -1,0 +1,22 @@
+:root {
+  --heading-color: #504b91;
+}
+
+/* Dark sections need light headings for readable contrast. */
+.faq-showcase > aside,
+.public-footer,
+.joviq-start,
+.ft-cta,
+.partners-cta {
+  --heading-color: #fff;
+}
+
+/* Keep headings consistent across page-specific themes and gradient accents. */
+:is(h1, h2, h3, h4, h5, h6, [role="heading"]),
+:is(h1, h2, h3, h4, h5, h6, [role="heading"]) :is(span, em, strong, b, a),
+.learn-hero__highlight strong,
+.program-showcase-card__body > strong {
+  color: var(--heading-color) !important;
+  -webkit-text-fill-color: var(--heading-color) !important;
+  background-image: none !important;
+}

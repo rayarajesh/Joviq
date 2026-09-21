@@ -28,3 +28,35 @@
 #pricing > h2{font-family:Poppins,sans-serif;font-size:clamp(23px,2.2vw,30px);line-height:1.3;letter-spacing:-.6px;margin:16px auto 10px;font-weight:600}
 #pricing > p{font-family:Poppins,sans-serif;font-size:13px;line-height:1.65;font-weight:400;max-width:680px;margin:0 auto 22px}
 @media(max-width:760px){#pricing > h2{font-size:23px}#pricing > p{font-size:12px;max-width:340px}}
+
+/* Reset the legacy horizontal carousel only for mobile pricing. */
+@media (max-width: 760px) {
+  #pricing .pricing-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+    overflow: visible;
+    scroll-snap-type: none;
+    padding: 0;
+  }
+
+  #pricing .pricing-grid > article {
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    box-sizing: border-box;
+  }
+
+  #pricing .pricing-meta {
+    flex-wrap: wrap;
+  }
+
+  #pricing .pricing-actions a,
+  #pricing .pricing-actions a:last-child {
+    box-sizing: border-box;
+    height: auto;
+    min-height: 44px;
+    max-height: none;
+  }
+}

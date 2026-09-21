@@ -1,5 +1,6 @@
 import businessProgramContent from "./businessProgramContent.json";
 import programCurriculum from "./programCurriculum.json";
+import programProjects from "./programProjects.json";
 
 export type ProgramContent = {
   title: string;
@@ -11,6 +12,7 @@ export type ProgramContent = {
 };
 
 export type Program = {
+  projectDetails?: ProgramContent["projects"];
   curriculumDetails?: ProgramContent["curriculum"];
   content?: ProgramContent;
   slug: string;
@@ -155,6 +157,7 @@ function ensureTenModuleCurriculum(title: string, curriculum: string[]) {
 }
 
 function createProgram(program: ProgramSeed): Program {
+  const projectDetails = (programProjects as Record<string, ProgramContent["projects"]>)[program.slug];
   const content = (businessProgramContent as Record<string, ProgramContent>)[program.slug];
   const curriculumDetails = (programCurriculum as Record<string, ProgramContent["curriculum"]>)[program.slug];
   return {
@@ -168,10 +171,12 @@ function createProgram(program: ProgramSeed): Program {
       projects: content.projects.map(project => project.title),
       tags: content.skills
     } : {}),
+    projectDetails,
+    projects: (projectDetails ?? content?.projects)?.map(project => project.title) ?? program.projects,
     curriculumDetails,
     curriculum: curriculumDetails ? curriculumDetails.map(module => module.title) : content ? content.curriculum.map(module => module.title) : ensureTenModuleCurriculum(program.title, program.curriculum),
     plans: (program.plans ?? defaultProgramPlans).map((plan) => ({ ...plan, features: [...plan.features] })),
-    faqs: content ? commonFaqs.map(faq => faq.question === "Are projects included?" ? { ...faq, answer: "Yes. This program includes eight real-world projects with domain-specific features and tools." } : faq) : program.faqs.length ? program.faqs : commonFaqs
+    faqs: (content ? commonFaqs : program.faqs.length ? program.faqs : commonFaqs).map(faq => projectDetails && faq.question === "Are projects included?" ? { ...faq, answer: "Yes. This program includes six real-world projects with domain-specific features and tools." } : faq)
   };
 }
 

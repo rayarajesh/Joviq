@@ -1,8 +1,7 @@
-import { ArrowRight, BarChart3, CalendarDays, Check, GraduationCap, Rocket, Star, UsersRound } from "lucide-react";
+import { ArrowRight, BarChart3, Check, GraduationCap, Rocket, Star, UsersRound } from "lucide-react";
 import { Link } from "react-router-dom";
 const highlights = [
  { icon: GraduationCap, title: "Admissions Open", detail: "For Next Cohort", tone: "green" },
- { icon: CalendarDays, title: "10 Oct 2026", detail: "Next Live Class", tone: "purple" },
  { icon: UsersRound, title: "2,500+", detail: "Learners & Growing", tone: "purple" },
  { icon: Star, title: "4.9/5", detail: "Learner Satisfaction", tone: "yellow" }
 ];

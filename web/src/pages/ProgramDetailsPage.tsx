@@ -625,7 +625,7 @@ function buildProgramViewModel(local: Program | undefined, remote: ProgramDetail
     text: `Create a portfolio-ready ${project.toLowerCase()} with clear deliverables and expert feedback.`,
     artifacts: ["Project output", "Documentation", "Interview walkthrough"]
   }));
-  const projects = completeProjectExamples(remoteProjects.length ? remoteProjects : localProjects, title);
+  const projects = local?.projectDetails ?? completeProjectExamples(remoteProjects.length ? remoteProjects : localProjects, title);
   const curriculum = completeCurriculum(
     remoteCurriculum.length
       ? remoteCurriculum
@@ -670,7 +670,7 @@ function buildProgramViewModel(local: Program | undefined, remote: ProgramDetail
     const content = local.content;
     return { ...view, title: content.title, shortDescription: content.shortDescription,
       overview: content.overview, skills: content.skills, curriculum: local.curriculumDetails ?? content.curriculum,
-      projects: content.projects, faqs: local.faqs };
+      projects: local.projectDetails ?? content.projects, faqs: local.faqs };
   }
   return view;
 }

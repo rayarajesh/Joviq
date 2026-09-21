@@ -24,7 +24,6 @@ const questions = [
 export function CampusPartnersPage() {
   return <div className="campus-partners-page"><PublicNavbar /><main className="partners-main">
     <section className="partners-hero" aria-labelledby="partners-title">
-      <span className="partners-kicker"><Handshake size={17} /> CAMPUS PARTNERSHIPS</span>
       <h1 id="partners-title">Great opportunities<br />start with <em>working together.</em></h1>
       <p>Bring institutions, student communities, and industry closer. Partner with Joviq to create practical learning experiences and meaningful connections for emerging talent.</p>
       <div className="partners-actions"><Link className="partners-button" to="/request-callback">Let’s collaborate <ArrowRight size={18} /></Link><a className="partners-link" href="#partnership-options">Explore opportunities <ArrowRight size={17} /></a></div>
