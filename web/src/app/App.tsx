@@ -28,6 +28,7 @@ import { CampusDelegatePage } from "../pages/CampusDelegatePage";
 import { CampusPartnersPage } from "../pages/CampusPartnersPage";
 import { CareersPage } from "../pages/CareersPage";
 import { ReviewsPage } from "../pages/ReviewsPage";
+import { CompanyInformationPage } from "../pages/CompanyInformationPage";
 
 export function App() {
   return (
@@ -46,6 +47,7 @@ export function App() {
           <Route path="/programs" element={<ProgramsPage />} />
           <Route path="/features" element={<FeaturesPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/company-information" element={<CompanyInformationPage />} />
           <Route path="/campus-delegate" element={<CampusDelegatePage />} />
           <Route path="/campus-partners" element={<CampusPartnersPage />} />
           <Route path="/careers" element={<CareersPage />} />

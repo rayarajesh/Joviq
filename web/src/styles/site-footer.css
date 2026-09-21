@@ -26,3 +26,10 @@
 .public-footer.public-footer--restored::before,.public-footer.public-footer--restored::after{display:none!important;content:none!important}
 .public-footer.public-footer--restored{position:relative;z-index:2;isolation:isolate}
 @media(max-width:600px){.public-footer--restored .public-footer__brand{grid-column:1/-1}.public-footer--restored .public-footer__brand .public-footer__brand-copy{max-width:340px}}
+.public-footer--restored .public-footer__legal-details{font-size:13px;line-height:1.65;overflow-wrap:anywhere}
+.public-footer--restored .public-footer__legal-details strong{color:#fff}
+.public-footer--restored .public-footer__column{display:flex;flex-direction:column;align-items:stretch;gap:18px}
+.public-footer--restored .public-footer__column h3{min-height:26px;margin-bottom:8px}
+.public-footer--restored .public-footer__contact-item--address{align-items:start}
+.public-footer--restored .public-footer__contact-item--address .public-footer__contact-text>span{font-size:13px;line-height:1.65}
+.public-footer--restored .public-footer__bottom{margin-top:36px;padding-top:22px;gap:16px;flex-wrap:wrap}

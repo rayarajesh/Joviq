@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { BrandLogo } from "./BrandLogo";
+import { companyInformation } from "../data/companyInformation";
 import "../styles/site-footer.css";
 
 const platformLinks = [
@@ -29,6 +30,7 @@ const legalLinks = [
 ];
 
 const companyLinks = [
+  { label: "Company Information", href: "/company-information" },
   { label: "About Us", href: "/about" },
   { label: "College Collaboration", href: "/request-callback" }
 ];
@@ -93,6 +95,9 @@ export function SiteFooter() {
             <p className="public-footer__brand-copy">
               Turn curiosity into capability with practical, project-backed learning for the careers ahead.
             </p>
+            <div className="public-footer__legal-details">
+              <strong>{companyInformation.legalName}</strong>
+            </div>
             <div className="public-footer__promise">
               <span aria-hidden="true"><Sparkles size={17} strokeWidth={2.2} /></span>
               <div>
@@ -155,15 +160,15 @@ export function SiteFooter() {
             <div className="public-footer__contact-item public-footer__contact-item--address">
               <span className="public-footer__contact-icon" aria-hidden="true"><MapPin size={16} /></span>
               <span className="public-footer__contact-text">
-                <strong>Visit us</strong>
-                <span>CS COWORKING SPACE, 6TH FLOOR, MELKIORS PRIDE, HITEX ROAD, VINAYAKA NAGAR, IZZATHNAGAR, HITECH CITY, KHANAMMET, HYDERABAD, TELANGANA 500084.</span>
+                <strong> Address</strong>
+                <span>{companyInformation.mailingAddress}</span>
               </span>
             </div>
           </address>
         </section>
 
         <div className="public-footer__bottom">
-          <span>© {currentYear} Joviq Technologies. All rights reserved.</span>
+          <span>© {currentYear} {companyInformation.legalName}. All Rights Reserved.</span>
           <span className="public-footer__bottom-note"><ShieldCheck size={15} aria-hidden="true" />Built for ambitious learners.</span>
         </div>
       </div>
