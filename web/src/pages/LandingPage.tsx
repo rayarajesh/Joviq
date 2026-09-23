@@ -655,10 +655,6 @@ export function LandingPage() {
                 <h3>{plan.price.replace("INR", "\u20b9")}</h3>
               </div>
               <p className="pricing-card__description">{plan.description}</p>
-              <div className="pricing-meta">
-                <small><CalendarClock size={18} /> Next batch:<br /><b>10 Sept</b></small>
-                <small><UsersRound size={18} /> Limited<br /><b>slots</b></small>
-              </div>
               <div className="pricing-actions">
                 <Link to="/programs">
                   View programs

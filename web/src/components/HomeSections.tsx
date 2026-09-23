@@ -39,7 +39,7 @@ export function KeyStatisticsSection() {
 }
 
 export function ProgramCategoriesSection() {
-  const icons = [Code2, Cpu, Settings, PenTool, Box, BarChart3];
+  const icons = [Code2, Cpu, Settings, BriefcaseBusiness];
   return (
     <section id="program-categories" className="category-showcase" aria-labelledby="category-showcase-title">
       <div className="category-showcase__inner">

@@ -65,11 +65,11 @@
   width: clamp(156px, 18vw, 218px);
   height: auto;
   flex: 0 0 auto;
-  opacity: 0;
-  filter: blur(7px);
+  /* opacity: 0;
+  filter: blur(7px); */
   transform: scale(0.96);
   transform-origin: center;
-  animation: brand-logo-reveal 8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  /* animation: brand-logo-reveal 8s cubic-bezier(0.22, 1, 0.36, 1) infinite; */
   will-change: opacity, transform, filter;
 }
 
@@ -10559,6 +10559,9 @@ button.hero-button {
 }
 .public-footer__social-icon--facebook {
   color: #a8b9ff;
+}
+.public-footer__social-icon--whatsapp {
+  color: #8ff0c0;
 }
 
 .public-footer__social-link:hover,
@@ -24653,6 +24656,7 @@ button.hero-button {
 }
 
 .pd-credential__sample {
+  position: relative;
   display: block;
   align-self: center;
   min-width: 0;
@@ -24663,6 +24667,29 @@ button.hero-button {
   display: block;
   width: 100%;
   height: auto;
+}
+
+.pd-credential__dots {
+  position: absolute;
+  right: 18px;
+  bottom: 14px;
+  display: flex;
+  gap: 7px;
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.pd-credential__dots i {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(73, 63, 157, 0.3);
+}
+
+.pd-credential__dots i.is-active {
+  background: #51489d;
 }
 
 .pd-credential__sample:focus-visible {
@@ -31797,7 +31824,7 @@ button.hero-button {
 .enrollment-dialog__header h2 {
   max-width: 590px;
   margin: 0;
-  color: #fff;
+  color: #fff !important;
   font-size: clamp(22px, 3vw, 30px);
   line-height: 1.12;
 }

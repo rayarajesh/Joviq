@@ -156,11 +156,6 @@ export function RequestCallbackPage() {
             </div>
           </div>
           <div className="contact-hero__visual">
-            <span className="contact-hero__scribble">
-              Career Your Journey
-              <br />
-              Starts Here
-            </span>
             <img
               src="/assets/about/hero.png"
               alt="Learner planning her next career step with a laptop"
@@ -283,9 +278,9 @@ export function RequestCallbackPage() {
             <span className="contact-details__icon">
               <Building2 size={22} />
             </span>
-            <div>
-              <h3>Visit Our Office</h3>
+            <div className="contact-office__content">
               <p>Let&apos;s discuss your goals in person.</p>
+              <h3>Visit Our Office</h3>
               <small>
                 CS COWORKING SPACE, 6TH FLOOR,
                 <br />
@@ -297,14 +292,14 @@ export function RequestCallbackPage() {
                 <br />
                 HYDERABAD, TELANGANA 500084
               </small>
+              <iframe
+                className="contact-map"
+                title="Joviq office location"
+                src="https://www.google.com/maps?q=CS+COWORKING+SPACE%2C+6TH+FLOOR%2C+MELKIORS+PRIDE%2C+HITEX+ROAD%2C+VINAYAKA+NAGAR%2C+IZZATHNAGAR%2C+HITECH+CITY%2C+KHANAMMET%2C+HYDERABAD%2C+TELANGANA+500084&output=embed"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
             </div>
-            <iframe
-              className="contact-map"
-              title="Joviq office location"
-              src="https://www.google.com/maps?q=CS+COWORKING+SPACE%2C+6TH+FLOOR%2C+MELKIORS+PRIDE%2C+HITEX+ROAD%2C+VINAYAKA+NAGAR%2C+IZZATHNAGAR%2C+HITECH+CITY%2C+KHANAMMET%2C+HYDERABAD%2C+TELANGANA+500084&output=embed"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-            />
           </article>
         </section>
       </main>

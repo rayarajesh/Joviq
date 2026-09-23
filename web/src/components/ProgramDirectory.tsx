@@ -9,11 +9,12 @@ export function ProgramDirectory() {
   const [domain, setDomain] = useState("All");
   const [categoryStart, setCategoryStart] = useState(0);
   const [paused, setPaused] = useState(false);
-  const [interacting, setInteracting] = useState(false);
   const [page, setPage] = useState(0);
-  const [pages, setPages] = useState(1);
+  const [positions, setPositions] = useState<number[]>([0]);
+  const [isInViewport, setIsInViewport] = useState(false);
   const viewport = useRef<HTMLDivElement>(null);
   const section = useRef<HTMLElement>(null);
+  const autoplayTimer = useRef<number | null>(null);
   const directoryCategories = [
     { domain: "All", label: "All Programs", icon: Grid2X2 },
     { domain: "Computer Science & IT", label: "CSE/IT", icon: Laptop },
@@ -23,15 +24,41 @@ export function ProgramDirectory() {
   ];
   const programs = useMemo(() => allPrograms.filter(program => (domain === "All" || program.domain === domain) && [program.title, program.domain, program.shortDescription, ...program.skills, ...program.tags].join(" ").toLowerCase().includes(query.trim().toLowerCase())), [domain, query]);
 
-  function move(target: number, smooth = true) {
+  function getCarouselMetrics() {
     const el = viewport.current;
-    if (!el) return;
-    el.scrollTo({ left: target * (el.clientWidth + 22), behavior: smooth && !window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "smooth" : "instant" });
+    const card = el?.querySelector<HTMLElement>(".directory-course");
+    if (!el || !card) return null;
+    const styles = window.getComputedStyle(el);
+    const gap = Number.parseFloat(styles.columnGap || styles.gap) || 0;
+    const cardStep = card.getBoundingClientRect().width + gap;
+    const visibleCards = Math.max(1, Math.floor((el.clientWidth + gap) / cardStep));
+    const maxIndex = Math.max(0, programs.length - visibleCards);
+    const groupPositions = [0];
+    for (let index = visibleCards; index < maxIndex; index += visibleCards) groupPositions.push(index);
+    if (maxIndex > 0 && groupPositions[groupPositions.length - 1] !== maxIndex) groupPositions.push(maxIndex);
+    return { el, cardStep, visibleCards, maxIndex, groupPositions };
+  }
+
+  function move(target: number, smooth = true) {
+    const metrics = getCarouselMetrics();
+    if (!metrics) return;
+    const index = Math.max(0, Math.min(target, metrics.maxIndex));
+    const lastScrollLeft = Math.max(0, metrics.el.scrollWidth - metrics.el.clientWidth);
+    const left = index === metrics.maxIndex ? lastScrollLeft : index * metrics.cardStep;
+    metrics.el.scrollTo({ left, behavior: smooth && !window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "smooth" : "instant" });
   }
   useEffect(() => {
     const el = viewport.current;
     if (!el) return;
-    const measure = () => { const count = Math.max(1, Math.ceil((el.scrollWidth + 22) / (el.clientWidth + 22))); setPages(count); setPage(Math.min(count - 1, Math.round(el.scrollLeft / (el.clientWidth + 22)))); };
+    const measure = () => {
+      const metrics = getCarouselMetrics();
+      if (!metrics) return;
+      const scrollProgress = metrics.el.scrollWidth - metrics.el.clientWidth;
+      const rawIndex = scrollProgress <= 0 ? 0 : Math.min(metrics.maxIndex, Math.round(metrics.el.scrollLeft / metrics.cardStep));
+      const nextPage = metrics.groupPositions.reduce((closest, position) => Math.abs(position - rawIndex) < Math.abs(closest - rawIndex) ? position : closest, 0);
+      setPositions(metrics.groupPositions);
+      setPage(nextPage);
+    };
     const observer = new ResizeObserver(measure);
     observer.observe(el);
     el.addEventListener("scroll", measure, { passive: true });
@@ -40,17 +67,35 @@ export function ProgramDirectory() {
     return () => { observer.disconnect(); el.removeEventListener("scroll", measure); };
   }, [programs]);
   useEffect(() => {
-    if (paused || interacting || query || pages < 2) return;
-    const timer = window.setInterval(() => {
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || document.hidden) return;
-      const bounds = section.current?.getBoundingClientRect();
-      if (!bounds || bounds.bottom < 0 || bounds.top > innerHeight) return;
-      move(page >= pages - 1 ? 0 : page + 1);
-    }, 4500);
-    return () => window.clearInterval(timer);
-  }, [paused, interacting, query, page, pages]);
+    const clearAutoplay = () => {
+      if (autoplayTimer.current !== null) window.clearTimeout(autoplayTimer.current);
+      autoplayTimer.current = null;
+    };
+    clearAutoplay();
+    if (!isInViewport || paused || query || positions.length < 2) return;
+    const currentPosition = positions.indexOf(page);
+    const nextPosition = currentPosition >= positions.length - 1 ? positions[0] : positions[currentPosition + 1];
+    autoplayTimer.current = window.setTimeout(() => {
+      if (!document.hidden) move(nextPosition);
+    }, currentPosition === 0 ? 3500 : 4500);
+    return clearAutoplay;
+  }, [isInViewport, paused, query, positions, page]);
 
-  return <section id="program-search" className="directory-refresh" ref={section} aria-labelledby="directory-title" onMouseEnter={() => setInteracting(true)} onMouseLeave={() => setInteracting(false)} onFocusCapture={() => setInteracting(true)} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setInteracting(false); }}>
+  useEffect(() => {
+    const element = section.current;
+    if (!element) return;
+    const observer = new IntersectionObserver(([entry]) => setIsInViewport(entry.isIntersecting), { threshold: 0.35 });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  function moveGroup(direction: "next" | "previous") {
+    const currentPosition = positions.indexOf(page);
+    const index = currentPosition < 0 ? 0 : currentPosition;
+    move(positions[direction === "next" ? Math.min(index + 1, positions.length - 1) : Math.max(index - 1, 0)]);
+  }
+
+  return <section id="program-search" className="directory-refresh" ref={section} aria-labelledby="directory-title">
     <div className="directory-refresh__inner">
       <div className="directory-refresh__copy">
         <span className="directory-refresh__eyebrow"><BookOpen size={20} /> PROGRAM DIRECTORY</span>
@@ -70,15 +115,15 @@ export function ProgramDirectory() {
         </div>
       </div>
       <div className="directory-refresh__carousel" aria-label="Programs carousel" aria-roledescription="carousel">
-        <div className="directory-refresh__controls"><button onClick={() => setPaused(value => !value)} aria-label={paused ? "Resume program scrolling" : "Pause program scrolling"} aria-pressed={paused}>{paused ? <Play size={18} /> : <Pause size={18} />}</button><button aria-label="Previous programs" disabled={pages < 2} onClick={() => move(page === 0 ? pages - 1 : page - 1)}><ArrowLeft size={22} /></button><button aria-label="Next programs" disabled={pages < 2} onClick={() => move(page >= pages - 1 ? 0 : page + 1)}><ArrowRight size={22} /></button></div>
-        <div className="directory-refresh__viewport" ref={viewport} tabIndex={0} aria-label="Matching programs" onTouchStart={() => setPaused(true)} onKeyDown={event => { if (event.key === "ArrowRight" || event.key === "ArrowLeft") { event.preventDefault(); move(event.key === "ArrowRight" ? Math.min(page + 1, pages - 1) : Math.max(page - 1, 0)); } }}>
+        <div className="directory-refresh__controls"><button onClick={() => setPaused(value => !value)} aria-label={paused ? "Resume program scrolling" : "Pause program scrolling"} aria-pressed={paused}>{paused ? <Play size={18} /> : <Pause size={18} />}</button><button aria-label="Previous programs" disabled={page === 0} onClick={() => moveGroup("previous")}><ArrowLeft size={22} /></button><button aria-label="Next programs" disabled={page === positions[positions.length - 1]} onClick={() => moveGroup("next")}><ArrowRight size={22} /></button></div>
+        <div className="directory-refresh__viewport" ref={viewport} tabIndex={0} aria-label="Matching programs" onTouchStart={() => setPaused(true)} onKeyDown={event => { if (event.key === "ArrowRight" || event.key === "ArrowLeft") { event.preventDefault(); moveGroup(event.key === "ArrowRight" ? "next" : "previous"); } }}>
           {programs.map(program => <Link className="directory-course" to={`/programs/${program.slug}`} key={program.slug}>
             <div className="directory-course__image"><img src={getProgramImage(program.slug, program.domain)} alt="" loading="lazy" /><span>{program.tags[0] || "Project-based"}</span></div>
-            <div className="directory-course__body"><small>{program.domain}</small><h3>{program.title}</h3><p>{program.shortDescription}</p><ul><li><Folder size={19} />{program.projects.length} Projects</li><li><Clock3 size={19} />{program.duration}</li><li><BarChart3 size={19} />{program.level}</li></ul><span className="directory-course__link">Explore Program <ArrowRight size={16} /><i><ArrowRight size={19} /></i></span></div>
+            <div className="directory-course__body"><small>{program.domain}</small><h3>{program.title}</h3><p>{program.shortDescription}</p><ul><li><Clock3 size={19} />{program.duration}</li><li><BarChart3 size={19} />{program.level}</li></ul><span className="directory-course__link">Explore Program <ArrowRight size={16} /><i><ArrowRight size={19} /></i></span></div>
           </Link>)}
           {!programs.length && <p className="directory-refresh__empty" role="status">No matching programs found. Try another skill or category.</p>}
         </div>
-        <div className="directory-refresh__dots" aria-label="Program pages">{Array.from({ length: pages }, (_, index) => <button key={index} aria-label={`Go to program page ${index + 1}`} aria-current={index === page ? "true" : undefined} onClick={() => move(index)} />)}</div>
+        <div className="directory-refresh__dots" aria-label="Program positions">{positions.map((position, index) => <button key={position} aria-label={`Go to program group ${index + 1}`} aria-current={position === page ? "true" : undefined} onClick={() => move(position)} />)}</div>
       </div>
     </div>
   </section>;

@@ -7,7 +7,6 @@ import {
   Award,
   BadgeCheck,
   BookOpenCheck,
-  CalendarDays,
   CalendarClock,
   CheckCircle2,
   Code2,
@@ -106,6 +105,19 @@ const domainFeatures: DomainFeatureItem[] = [
   }
 ];
 
+const credentialCertificates = [
+  {
+    title: "Training Certificate",
+    image: "/assets/training-certificate.png",
+    alt: "Joviq Technologies training certificate"
+  },
+  {
+    title: "Internship Certificate",
+    image: "/assets/internship-certificate.jpg",
+    alt: "Joviq Technologies internship certificate"
+  }
+];
+
 export function ProgramDetailsPage() {
   const { slug } = useParams();
   const auth = useAuth();
@@ -115,6 +127,15 @@ export function ProgramDetailsPage() {
   const [isLoading, setIsLoading] = useState(!localProgram);
   const [selectedPlanCode, setSelectedPlanCode] = useState("INTERMEDIATE");
   const [registrationPlan, setRegistrationPlan] = useState<ProgramPlan | null>(null);
+  const [activeCertificateIndex, setActiveCertificateIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setActiveCertificateIndex((current) => (current + 1) % credentialCertificates.length);
+    }, 2000);
+
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (!slug) {
@@ -244,7 +265,6 @@ export function ProgramDetailsPage() {
           <div className="pd-hero__metrics" aria-label="Program highlights">
             <Metric icon={<CalendarClock size={18} />} label="Duration" value={program.duration} />
             <Metric icon={<Laptop size={18} />} label="Learning mode" value={program.mode} />
-            <Metric icon={<FolderKanban size={18} />} label="Portfolio work" value={`${program.projects.length} projects`} />
             <Metric icon={<Award size={18} />} label="Outcome" value="Verified certificate" />
           </div>
         </div>
@@ -353,8 +373,11 @@ export function ProgramDetailsPage() {
           <h2>Review from someone who understands the work.</h2><p>{program.guidance}</p>
           <div><Headphones size={20} /><span>Live guidance, project reviews, doubt support, and interview feedback.</span></div>
         </div>
-        <a className="pd-credential__sample" href="/assets/training-certificate.png" target="_blank" rel="noopener noreferrer" aria-label={`View sample training certificate for ${program.title} in full size`}>
-          <img src="/assets/training-certificate.png" alt={`Joviq Technologies sample training certificate for ${program.title}`} width="1600" height="1131" loading="lazy" />
+        <a className="pd-credential__sample" href={credentialCertificates[activeCertificateIndex].image} target="_blank" rel="noopener noreferrer" aria-label={`View ${credentialCertificates[activeCertificateIndex].title} for ${program.title} in full size`}>
+          <img src={credentialCertificates[activeCertificateIndex].image} alt={credentialCertificates[activeCertificateIndex].alt} width="1600" height="1131" loading="lazy" />
+          <span className="pd-credential__dots" aria-label="Certificate carousel indicators">
+            {credentialCertificates.map((certificate, index) => <i className={index === activeCertificateIndex ? "is-active" : ""} key={certificate.title} aria-hidden="true" />)}
+          </span>
         </a>
       </section>
 
@@ -442,7 +465,7 @@ function PlanCard({ onChoose, plan }: { onChoose: () => void; plan: ProgramPlan 
       </div>
       {includedPlan ? <p className="pd-plan-includes">{includedPlan}</p> : null}
       <ul>{plan.features.map((feature) => <li key={feature}><CheckCircle2 size={16} /> {feature}</li>)}</ul>
-      <small className="pd-plan-deposit">Reserve with {formatInr(plan.reserveAmount)} · choose your start date</small>
+      <small className="pd-plan-deposit">Reserve with {formatInr(plan.reserveAmount)}</small>
       <button onClick={onChoose} type="button">Choose {plan.name}<ArrowRight size={17} /></button>
     </article>
   );
@@ -484,11 +507,9 @@ function RegistrationDialog({ onClose, onSubmit, plan, programTitle }: {
   const [email, setEmail] = useState("");
   const [collegeName, setCollegeName] = useState("");
   const [paymentChoice, setPaymentChoice] = useState<"token" | "full">("token");
-  const [startDate, setStartDate] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const minimumStartDate = getLocalDateInputValue();
   useDialogAccessibility(true, ".enrollment-dialog", onClose);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -500,7 +521,6 @@ function RegistrationDialog({ onClose, onSubmit, plan, programTitle }: {
       await onSubmit({
         applicant: { fullName: fullName.trim(), phoneNumber, email: email.trim(), collegeName: collegeName.trim() },
         paymentChoice,
-        startDate: paymentChoice === "token" ? startDate : undefined,
         acceptedTerms
       });
     } catch (error) {
@@ -559,8 +579,8 @@ function RegistrationDialog({ onClose, onSubmit, plan, programTitle }: {
               <label className={`enrollment-dialog__payment-option${paymentChoice === "token" ? " is-selected" : ""}`}>
                 <input checked={paymentChoice === "token"} name="paymentChoice" onChange={() => setPaymentChoice("token")} type="radio" value="token" />
                 <span className="enrollment-dialog__payment-icon"><WalletCards size={20} /></span>
-                <span><strong>Reserve my seat</strong><small>Pay {formatInr(plan.reserveAmount)} token now. Full access unlocks after the balance is paid.</small></span>
-                <b>Token</b>
+                <span><strong>Reserve my seat</strong><small>Pay INR 1,499 for pre-registration now.</small></span>
+                <b>Pre-registration</b>
               </label>
               <label className={`enrollment-dialog__payment-option${paymentChoice === "full" ? " is-selected" : ""}`}>
                 <input checked={paymentChoice === "full"} name="paymentChoice" onChange={() => setPaymentChoice("full")} type="radio" value="full" />
@@ -569,13 +589,6 @@ function RegistrationDialog({ onClose, onSubmit, plan, programTitle }: {
                 <b>Full access</b>
               </label>
             </div>
-            {paymentChoice === "token" ? (
-              <label className="enrollment-dialog__start-date">
-                <span><CalendarDays size={17} /> Preferred start date <b>*</b></span>
-                <input min={minimumStartDate} onChange={(event) => setStartDate(event.target.value)} required type="date" value={startDate} />
-                <small>Choose the date from which your reserved seat and six-month access period should begin.</small>
-              </label>
-            ) : null}
           </fieldset>
 
           <label className="enrollment-dialog__terms">
@@ -584,7 +597,7 @@ function RegistrationDialog({ onClose, onSubmit, plan, programTitle }: {
           </label>
           {errorMessage ? <p className="enrollment-dialog__error" role="alert">{errorMessage}</p> : null}
           <div className="enrollment-dialog__secure-note"><ShieldCheck size={18} /><span>Your details are saved securely. After you continue, you’ll be signed in to this new account and Cashfree checkout will open.</span></div>
-          <button className="enrollment-dialog__submit" disabled={isSubmitting} type="submit"><ArrowRight size={18} /> {isSubmitting ? "Preparing your account…" : `Continue with ${paymentChoice === "token" ? `token · ${formatInr(plan.reserveAmount)}` : `full payment · ${formatInr(plan.offerPrice)}`}`}</button>
+          <button className="enrollment-dialog__submit" disabled={isSubmitting} type="submit"><ArrowRight size={18} /> {isSubmitting ? "Preparing your account…" : `Continue with ${paymentChoice === "token" ? "pre-registration · INR 1,499/-" : `full payment · ${formatInr(plan.offerPrice)}`}`}</button>
         </form>
       </section>
     </div>
@@ -762,8 +775,3 @@ function formatInr(amount: number) {
   return `INR ${new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(amount)}`;
 }
 
-function getLocalDateInputValue() {
-  const today = new Date();
-  const localDate = new Date(today.getTime() - today.getTimezoneOffset() * 60_000);
-  return localDate.toISOString().slice(0, 10);
-}

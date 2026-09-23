@@ -73,9 +73,9 @@ export const defaultProgramPlans: ProgramPlan[] = [
   {
     name: "Launch",
     code: "SELF",
-    actualPrice: 8000,
-    offerPrice: 8000,
-    reserveAmount: 1500,
+    actualPrice: 7999,
+    offerPrice: 7999,
+    reserveAmount: 1499,
     features: [
       "16 Live Sessions",
       "Recorded Lessons",
@@ -92,9 +92,9 @@ export const defaultProgramPlans: ProgramPlan[] = [
   {
     name: "Elevate",
     code: "INTERMEDIATE",
-    actualPrice: 10000,
-    offerPrice: 10000,
-    reserveAmount: 1500,
+    actualPrice: 9999,
+    offerPrice: 9999,
+    reserveAmount: 1499,
     features: [
       "22 Live Sessions",
       "Recorded Lessons",
@@ -113,9 +113,9 @@ export const defaultProgramPlans: ProgramPlan[] = [
   {
     name: "Mastery",
     code: "MASTER",
-    actualPrice: 15000,
-    offerPrice: 15000,
-    reserveAmount: 3000,
+    actualPrice: 14999,
+    offerPrice: 14999,
+    reserveAmount: 1499,
     features: [
       "28 Live Sessions",
       "Recorded Lessons",
@@ -162,6 +162,7 @@ function createProgram(program: ProgramSeed): Program {
   const curriculumDetails = (programCurriculum as Record<string, ProgramContent["curriculum"]>)[program.slug];
   return {
     ...program,
+    duration: "2 months",
     ...(content ? {
       content,
       title: content.title,
@@ -181,6 +182,27 @@ function createProgram(program: ProgramSeed): Program {
 }
 
 const csPrograms = [
+  createProgram({
+    slug: "ui-ux-design",
+    title: "UI/UX Design",
+    domain: "Computer Science & IT",
+    shortDescription: "Design clear digital experiences through user research, wireframes, prototypes, and visual systems.",
+    overview: "A practical UI/UX design program covering user research, information architecture, interaction design, visual design, prototyping, and portfolio-ready case studies.",
+    audience: ["Students exploring design careers", "Developers moving into product design", "Creative professionals building digital portfolios"],
+    skills: ["User research", "Wireframing", "Interaction design", "Visual design", "Prototyping", "Design systems"],
+    curriculum: ["UX foundations", "User research", "Information architecture", "Wireframes and flows", "UI visual systems", "Prototyping and testing"],
+    duration: "2 months",
+    mode: "Live expert-led online classes with design labs",
+    expert: "Product designer with user research and digital product experience",
+    projects: ["Mobile app redesign", "Responsive website concept", "User journey map", "Design system starter kit", "Interactive product prototype", "Portfolio case study"],
+    certification: "UI/UX Design Certification",
+    outcomes: ["UI/UX design intern", "Junior product designer", "UX researcher trainee", "Visual designer"],
+    interviewPrep: ["Portfolio walkthrough", "Design critique practice", "UX scenario questions", "Case study presentation"],
+    pricing: "Career track from INR 14,999",
+    faqs: [],
+    tags: ["UI/UX", "Figma", "User Research", "Prototyping"],
+    level: "Beginner"
+  }),
   createProgram({
     slug: "generative-ai",
     title: "Generative AI",
@@ -393,13 +415,34 @@ const electricalPrograms = [
     faqs: [],
     tags: ["Verilog", "Digital", "Verification", "Semiconductor"],
     level: "Intermediate"
+  }),
+  createProgram({
+    slug: "hev-management",
+    title: "HEV Management",
+    domain: "Electrical & Electronics",
+    shortDescription: "Hybrid electric vehicle systems, batteries, controls, and project analysis.",
+    overview: "A hybrid electric vehicle program introducing EV/HEV architecture, battery systems, powertrain components, and system-level analysis.",
+    audience: ["ECE/EEE students", "Automobile learners", "EV enthusiasts", "Mobility career starters"],
+    skills: ["EV/HEV architecture", "Battery basics", "Motor systems", "Power electronics awareness", "Energy management", "Diagnostics"],
+    curriculum: ["EV and HEV fundamentals", "Battery systems", "Motor and controller basics", "Regenerative braking", "Thermal management", "Vehicle project study"],
+    duration: "10 weeks",
+    mode: "Online technical sessions with case-based projects",
+    expert: "Automotive systems expert with EV project exposure",
+    projects: ["HEV architecture comparison", "Battery pack sizing study", "Regenerative braking model", "Thermal management case", "Charging strategy analysis", "Vehicle energy dashboard"],
+    certification: "HEV Management Certification",
+    outcomes: ["EV trainee", "Automotive systems intern", "Battery analysis trainee", "Mobility project associate"],
+    interviewPrep: ["EV fundamentals", "Battery Q&A", "System design cases", "Automotive project walkthrough"],
+    pricing: "Career track from INR 17,999",
+    faqs: [],
+    tags: ["EV", "HEV", "Battery", "Automotive"],
+    level: "Beginner to Intermediate"
   })
 ];
 
 const mechanicalPrograms = [
   createProgram({
     slug: "solidworks",
-    title: "SolidWorks / Creo",
+    title: "SolidWorks & Creo",
     domain: "Mechanical & Civil",
     shortDescription: "3D modeling, assemblies, drawings, design validation, and portfolio work across SolidWorks and Creo.",
     overview: "A combined CAD program focused on building accurate parts, assemblies, drawings, and design-ready mechanical portfolios using SolidWorks and Creo workflows.",
@@ -410,7 +453,7 @@ const mechanicalPrograms = [
     mode: "Software lab sessions with expert review",
     expert: "Mechanical design expert with CAD portfolio experience",
     projects: ["Gearbox assembly", "Sheet metal enclosure", "Bottle jack model", "Conveyor roller assembly", "Bracket design", "Product casing render"],
-    certification: "SolidWorks / Creo Design Certification",
+    certification: "SolidWorks & Creo Design Certification",
     outcomes: ["CAD designer trainee", "Mechanical design intern", "Product design assistant", "Drafting associate"],
     interviewPrep: ["CAD command practice", "Drawing interpretation", "Portfolio explanation", "Design intent questions"],
     pricing: "Career track from INR 12,999",
@@ -591,76 +634,6 @@ const managementPrograms = [
   })
 ];
 
-const uiUxPrograms = [
-  createProgram({
-    slug: "ui-ux-design",
-    title: "UI/UX Design",
-    domain: "Computer Science & IT",
-    shortDescription: "User research, wireframes, visual design, prototypes, testing, and portfolio case studies.",
-    overview: "A practical UI/UX program for learners who want to design clean digital products, understand users, build interactive prototypes, and present job-ready case studies.",
-    audience: ["Design beginners", "Frontend learners moving into product design", "Students building a UX portfolio", "Career switchers targeting UI/UX roles"],
-    skills: ["User research", "Information architecture", "Wireframing", "Figma", "Prototyping", "Usability testing", "Design systems"],
-    curriculum: [
-      "UI/UX foundations",
-      "User research and personas",
-      "Information architecture",
-      "Wireframing and user flows",
-      "Visual design principles",
-      "Figma components and variants",
-      "Interactive prototyping",
-      "Usability testing",
-      "Design systems and handoff",
-      "Portfolio case study"
-    ],
-    duration: "10 weeks",
-    mode: "Live design studio sessions with recorded access and critique reviews",
-    expert: "Product design expert with UX research, interface design, and portfolio review experience",
-    projects: ["Mobile app onboarding redesign", "SaaS dashboard UX case study", "E-commerce checkout prototype", "Portfolio website design", "Design system starter kit", "Usability test report"],
-    certification: "UI/UX Design QR-Verified Certification",
-    outcomes: ["UI/UX designer intern", "Product design trainee", "UX research assistant", "Visual designer fresher"],
-    interviewPrep: ["Portfolio storytelling", "Design challenge practice", "UX process Q&A", "Mock design interview"],
-    pricing: "Launch from INR 4,000",
-    faqs: [],
-    tags: ["UX", "UI", "Figma", "Prototype"],
-    level: "Beginner to Intermediate"
-  })
-];
-
-const solidWorksCreoPrograms = [
-  createProgram({
-    slug: "solidworks-creo",
-    title: "SolidWorks & Creo",
-    domain: "SolidWorks & Creo",
-    shortDescription: "Parametric CAD modeling, assemblies, drawings, surfaces, and mechanical design portfolio work.",
-    overview: "A combined CAD track that helps mechanical learners build confidence in SolidWorks and Creo through part modeling, assemblies, drawing standards, and manufacturable design projects.",
-    audience: ["Mechanical engineering students", "Diploma learners", "CAD beginners", "Design fresher candidates"],
-    skills: ["SolidWorks", "Creo", "Parametric modeling", "Assemblies", "Manufacturing drawings", "Design intent", "Portfolio presentation"],
-    curriculum: [
-      "CAD fundamentals and interface setup",
-      "Sketching constraints and design intent",
-      "SolidWorks part modeling",
-      "Creo parametric modeling",
-      "Assembly constraints and mechanisms",
-      "Engineering drawings and GD&T basics",
-      "Sheet metal and surface modeling intro",
-      "Design validation and revisions",
-      "Manufacturing-ready documentation",
-      "Mechanical CAD portfolio capstone"
-    ],
-    duration: "10 weeks",
-    mode: "CAD lab training with live expert review and recorded practice access",
-    expert: "Mechanical CAD expert with product modeling and drawing review experience",
-    projects: ["Gearbox assembly", "Pump casing model", "Sheet metal enclosure", "Fixture design", "Consumer product housing", "Manufacturing drawing set"],
-    certification: "SolidWorks & Creo QR-Verified Certification",
-    outcomes: ["CAD designer trainee", "Mechanical design intern", "Drafting associate", "Product modeling assistant"],
-    interviewPrep: ["CAD tool Q&A", "Drawing standards discussion", "Design intent explanation", "Portfolio walkthrough"],
-    pricing: "Launch from INR 4,000",
-    faqs: [],
-    tags: ["SolidWorks", "Creo", "CAD", "Mechanical"],
-    level: "Beginner to Intermediate"
-  })
-];
-
 export const programCategories: ProgramCategory[] = [
   {
     domain: "Computer Science & IT",
@@ -676,16 +649,6 @@ export const programCategories: ProgramCategory[] = [
     domain: "Mechanical & Civil",
     description: "CAD, mobility, drafting, and design programs for engineering portfolios.",
     programs: mechanicalPrograms
-  },
-  {
-    domain: "UI/UX Design",
-    description: "Research, wireframing, prototyping, usability testing, and design portfolio readiness.",
-    programs: uiUxPrograms
-  },
-  {
-    domain: "SolidWorks & Creo",
-    description: "Combined CAD modeling, assembly, drawing, and mechanical design portfolio training.",
-    programs: solidWorksCreoPrograms
   },
   {
     domain: "Management",
@@ -762,19 +725,19 @@ export const successOutcomes = [
 export const pricingPlans = [
   {
     name: "Launch",
-    price: "INR 8,000",
+    price: "INR 7,999",
     description: "For learners who want a strong, structured start with guided learning and essential support.",
     features: ["16 live sessions", "Real-time project", "Interview assistance", "6 months LMS access"]
   },
   {
     name: "Elevate",
-    price: "INR 10,000",
+    price: "INR 9,999",
     description: "For learners who want personal expert support, deeper project review, and placement readiness.",
     features: ["22 live sessions", "Personal expert support", "Expert guidance & review", "Placement support", "6 months LMS access"]
   },
   {
     name: "Mastery",
-    price: "INR 15,000",
+    price: "INR 14,999",
     description: "For learners who want advanced hands-on projects, detailed expert review, and full career guidance.",
     features: ["28 live sessions", "Multiple real-time projects", "Advanced interview prep", "Career guidance", "6 months LMS access"]
   }

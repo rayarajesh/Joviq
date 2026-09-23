@@ -1,7 +1,5 @@
 /* Programs catalog, matched to the supplied reference. */
 .programs-page{--pc-ink:#100d48;--pc-muted:#62679e;--pc-purple:#5736ff;background:radial-gradient(ellipse at 3% 17%,#efedff80,transparent 34%),radial-gradient(ellipse at 98% 20%,#f0eeff90,transparent 30%),#fdfdff;color:var(--pc-ink);min-height:100vh}
-.programs-page .site-header{position:relative;height:76px;min-height:76px;padding:0 max(5%,calc((100vw - 1150px)/2));box-shadow:0 8px 22px #5141c207}
-.programs-page .site-header__brand{height:76px}
 .pc-main{max-width:1180px;margin:0 auto;padding:0 24px 24px}
 .pc-hero{display:grid;grid-template-columns:1fr 1fr;position:relative;min-height:392px;padding:42px 0 0;margin:0 0 0 48px;isolation:isolate}
 .pc-hero-copy{z-index:2;padding:12px 0 36px}
@@ -70,7 +68,6 @@
 .pc-skills{flex-wrap:nowrap;min-width:0}.pc-skills span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .programs-page .site-nav__actions .is-primary{background:linear-gradient(135deg,#5840ed,#4334d9)}
 @media(min-width:851px) and (max-width:1100px){
-.programs-page .site-header,.programs-page .site-header__brand{height:55px;min-height:55px}.programs-page .site-header .brand-logo{height:51px;max-height:51px}
 .programs-page .site-nav__links{display:flex;gap:8px}.programs-page .site-nav__links a{font-size:9px;padding:0 5px}.programs-page .site-nav__menu-button{display:none}.programs-page .site-nav{gap:14px}.programs-page .site-nav__actions a{font-size:9px;padding:8px 13px;min-height:29px}
 .pc-main{padding-left:38px;padding-right:38px}.pc-hero,.pc-stats,.pc-discovery{margin-left:35px}.pc-hero{min-height:279px;padding-top:29px}.pc-hero-copy{padding:10px 0 22px}.pc-eyebrow{font-size:8px;padding:6px 10px}.pc-hero h1{font-size:35px;line-height:1.08;margin:12px 0}.pc-hero-copy>p{font-size:10px;margin:16px 0}.pc-benefits{gap:20px}.pc-benefits p{font-size:9px}.pc-benefits .pc-icon{width:37px;height:37px}.pc-benefits .pc-icon svg{width:25px;height:25px}.pc-hero-art{margin-left:0}.pc-student{height:255px;width:230px;left:28px}.pc-art-blob{height:215px;width:220px;left:30px}.pc-hero-note{font-size:18px;top:15px;right:-5px}.pc-float{padding:13px;font-size:8px;border-radius:13px}.pc-float svg{width:24px;height:24px}.pc-float-skills{top:83px;left:-20px}.pc-float-portfolio{bottom:28px;right:-4px}.pc-doodle-star{right:131px;top:3px;width:24px}.pc-rays-left{top:42px;height:39px;left:-30px}.pc-rays-right{top:122px;right:113px;height:43px}
 .pc-stats{gap:8px;margin-bottom:18px}.pc-stats>div{min-height:68px;padding:9px 12px;border-radius:17px;gap:12px}.pc-stats .pc-icon{width:48px;height:48px}.pc-stats strong{font-size:18px}.pc-stats p>span{font-size:10px}
