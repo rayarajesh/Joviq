@@ -1,5 +1,6 @@
 using Joviq.Lms.Application.Common.Interfaces;
 using Joviq.Lms.Application.Common.Models;
+using Joviq.Lms.Application.Contracts.Payments;
 using Joviq.Lms.Application.Lms;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -75,7 +76,14 @@ public sealed class StudentLmsController(
         VerifyPaymentRequest request,
         CancellationToken cancellationToken)
     {
-        var result = await lmsPortalService.VerifyPaymentAsync(RequiredUserId, request, cancellationToken);
+        var lmsRequest = new VerifyPaymentLmsRequest
+        {
+            PaymentTransactionId = request.PaymentTransactionId,
+            GatewayOrderId = request.OrderId,
+            GatewayPaymentId = request.PaymentId,
+            GatewaySignature = request.Signature
+        };
+        var result = await lmsPortalService.VerifyPaymentAsync(RequiredUserId, lmsRequest, cancellationToken);
         return Ok(ApiResponse<PaymentTransactionResponse>.Ok(result, "Payment verified.", CorrelationId));
     }
 

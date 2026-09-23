@@ -22,6 +22,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Joviq.Lms.Infrastructure;
@@ -188,27 +189,38 @@ public static class DependencyInjection
         services.AddScoped<IAssetService, AssetService>();
         services.AddScoped<IAdminUserService, AdminUserService>();
         services.AddScoped<ILmsPortalService, LmsPortalService>();
-        var paymentProvider = configuration.GetValue<string>($"{PaymentOptions.SectionName}:Provider");
-        if (string.Equals(paymentProvider, "Cashfree", StringComparison.OrdinalIgnoreCase))
+        
+        // Register HTTP client for payment gateway
+        services.AddHttpClient<RazorpayPaymentGateway>(client =>
         {
-            var cashfreeEnvironment = configuration.GetValue<string>($"{PaymentOptions.SectionName}:CashfreeEnvironment");
-            var cashfreeBaseUrl = string.Equals(cashfreeEnvironment, "Production", StringComparison.OrdinalIgnoreCase)
-                ? "https://api.cashfree.com/pg/"
-                : "https://sandbox.cashfree.com/pg/";
-            services.AddHttpClient<IPaymentGateway, CashfreePaymentGateway>(client =>
-            {
-                client.BaseAddress = new Uri(cashfreeBaseUrl);
-                client.Timeout = TimeSpan.FromSeconds(20);
-            });
-        }
-        else
+            client.BaseAddress = new Uri("https://api.razorpay.com/v1/");
+            client.Timeout = TimeSpan.FromSeconds(20);
+        });
+
+        services.AddHttpClient<CashfreePaymentGateway>((serviceProvider, client) =>
         {
-            services.AddHttpClient<IPaymentGateway, RazorpayPaymentGateway>(client =>
+            var paymentOptions = serviceProvider.GetRequiredService<IOptions<PaymentOptions>>().Value;
+            client.BaseAddress = paymentOptions.CashfreeEnvironment.Equals("production", StringComparison.OrdinalIgnoreCase)
+                ? new Uri("https://api.cashfree.com/pg/")
+                : new Uri("https://sandbox.cashfree.com/pg/");
+            client.Timeout = TimeSpan.FromSeconds(20);
+        });
+        
+        // Register the concrete implementation based on provider
+        services.AddScoped<IPaymentGateway>(serviceProvider =>
+        {
+            var paymentOptions = serviceProvider.GetRequiredService<IOptions<PaymentOptions>>();
+            
+            if (paymentOptions.Value.Provider.Equals("Cashfree", StringComparison.OrdinalIgnoreCase))
             {
-                client.BaseAddress = new Uri("https://api.razorpay.com/v1/");
-                client.Timeout = TimeSpan.FromSeconds(20);
-            });
-        }
+                return serviceProvider.GetRequiredService<CashfreePaymentGateway>();
+            }
+            else
+            {
+                return serviceProvider.GetRequiredService<RazorpayPaymentGateway>();
+            }
+        });
+        
         services.AddScoped<IStudentOnboardingService, StudentOnboardingService>();
         services.AddScoped<IAuditLogService, AuditLogService>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();

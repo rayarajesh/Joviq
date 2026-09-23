@@ -56,6 +56,15 @@ async function send<T>(path: string, options: RequestOptions, hasRetried: boolea
     headers.set("Authorization", `Bearer ${token}`);
   }
 
+  // Debug logging for login requests
+  if (path.includes("/auth/login")) {
+    const bodyObj = options.body as any;
+    console.log("[httpClient] Sending login request to:", `${env.apiBaseUrl}${path}`);
+    console.log("[httpClient] Email:", bodyObj?.email);
+    console.log("[httpClient] Password:", bodyObj?.password);
+    console.log("[httpClient] Password length:", bodyObj?.password?.length ?? 0);
+  }
+
   const response = await fetch(`${env.apiBaseUrl}${path}`, {
     method: options.method ?? "GET",
     headers,
@@ -84,6 +93,13 @@ async function send<T>(path: string, options: RequestOptions, hasRetried: boolea
 
     const problem = payload as ProblemDetails | null;
     const message = problem?.title ?? `Request failed with ${response.status}`;
+    
+    // Debug logging for login errors
+    if (path.includes("/auth/login")) {
+      console.error("[httpClient] Login failed with status:", response.status);
+      console.error("[httpClient] Response body:", payload);
+    }
+    
     throw new ApiError(message, response.status, problem ?? undefined);
   }
 

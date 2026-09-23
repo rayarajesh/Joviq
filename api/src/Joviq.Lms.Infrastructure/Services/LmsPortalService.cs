@@ -516,7 +516,7 @@ public sealed class LmsPortalService(
         }
 
         var amount = couponEvaluation?.PayableAmount ?? originalAmount;
-        var checkoutExpiresAt = clock.UtcNow.AddMinutes(Math.Clamp(Payments.CheckoutExpiryMinutes, 5, 30));
+        var checkoutExpiresAt = clock.UtcNow.AddMinutes(Math.Clamp(Payments.CheckoutExpiryMinutes, 15, 30));
         var transaction = new PaymentTransaction
         {
             Id = Guid.NewGuid(),
@@ -673,7 +673,7 @@ public sealed class LmsPortalService(
 
     public async Task<PaymentTransactionResponse> VerifyPaymentAsync(
         Guid studentId,
-        VerifyPaymentRequest request,
+        VerifyPaymentLmsRequest request,
         CancellationToken cancellationToken)
     {
         var transaction = await dbContext.PaymentTransactions
@@ -693,9 +693,10 @@ public sealed class LmsPortalService(
             return MapPayment(transaction);
         }
 
-        var orderId = RequiredText(request.GatewayOrderId ?? string.Empty, nameof(request.GatewayOrderId), 3, 160);
+        var orderId = request.GatewayOrderId ?? transaction.GatewayOrderId;
         var isFreePayment = string.Equals(transaction.Gateway, "Free", StringComparison.OrdinalIgnoreCase);
-        if (!string.Equals(transaction.GatewayOrderId, orderId, StringComparison.Ordinal))
+        if (!string.IsNullOrWhiteSpace(request.GatewayOrderId) &&
+            !string.Equals(transaction.GatewayOrderId, orderId, StringComparison.Ordinal))
         {
             throw new AppException("The payment order does not match this checkout.", 400, "payment_order_mismatch");
         }
@@ -717,7 +718,7 @@ public sealed class LmsPortalService(
         var paymentVerification = isFreePayment
             ? new PaymentGatewayVerification(true, $"free_{transaction.Id:N}")
             : await paymentGateway.VerifyPaymentAsync(
-                orderId,
+                transaction.GatewayOrderId,
                 request.GatewayPaymentId,
                 request.GatewaySignature,
                 cancellationToken);

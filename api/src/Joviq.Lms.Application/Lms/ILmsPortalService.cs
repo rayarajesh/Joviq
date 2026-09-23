@@ -30,7 +30,7 @@ public interface ILmsPortalService
 
     Task<CouponValidationResponse> ValidateCouponAsync(Guid studentId, ValidateCouponRequest request, CancellationToken cancellationToken);
 
-    Task<PaymentTransactionResponse> VerifyPaymentAsync(Guid studentId, VerifyPaymentRequest request, CancellationToken cancellationToken);
+    Task<PaymentTransactionResponse> VerifyPaymentAsync(Guid studentId, VerifyPaymentLmsRequest request, CancellationToken cancellationToken);
 
     Task<PaymentTransactionResponse> MarkPaymentFailedAsync(Guid studentId, Guid paymentId, string? failureReason, CancellationToken cancellationToken);
 

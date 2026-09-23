@@ -302,9 +302,27 @@ export function EnrollmentCheckoutPage() {
       mode: currentCheckout.paymentEnvironment?.toLowerCase() === "production" ? "production" : "sandbox"
     });
     const result = await cashfree.checkout({ paymentSessionId: currentCheckout.paymentSessionId, redirectTarget: "_modal" });
-    if (result && typeof result === "object" && "error" in result) {
-      const error = (result as { error?: { message?: string } }).error;
-      if (error) throw new Error(error.message ?? "Cashfree payment was not completed.");
+
+    // Check if the user cancelled or if there was an error before verifying
+    if (result && typeof result === "object") {
+      if ("error" in result) {
+        const error = (result as { error?: { message?: string; code?: string } }).error;
+        if (error) {
+          // Mark the transaction as failed if user cancelled
+          void studentLmsApi.markPaymentFailed(currentCheckout.transaction.id, {
+            failureReason: error.message ?? "Payment was cancelled or not completed."
+          });
+          throw new Error(error.message ?? "Payment was not completed. Please try again.");
+        }
+      }
+      // If paymentDetails exists the payment was successful
+      if (!("paymentDetails" in result)) {
+        // Modal closed without clear success — verify with backend to confirm
+        void studentLmsApi.markPaymentFailed(currentCheckout.transaction.id, {
+          failureReason: "Checkout was closed without payment confirmation."
+        });
+        throw new Error("Payment was not completed. Please try again.");
+      }
     }
 
     await confirmCashfreePayment(currentCheckout);

@@ -61,9 +61,19 @@ public sealed class AuthController(
     [EnableRateLimiting("AuthLogin")]
     public async Task<ActionResult<ApiResponse<AuthTokenResponse>>> Login(LoginRequest request, CancellationToken cancellationToken)
     {
-        var result = await authService.LoginAsync(request, RequestMetadata(request.DeviceName), cancellationToken);
-        SetRefreshTokenCookieIfPresent(result);
-        return Ok(ApiResponse<AuthTokenResponse>.Ok(result, "Login successful.", CorrelationId));
+        try
+        {
+            var result = await authService.LoginAsync(request, RequestMetadata(request.DeviceName), cancellationToken);
+            SetRefreshTokenCookieIfPresent(result);
+            return Ok(ApiResponse<AuthTokenResponse>.Ok(result, "Login successful.", CorrelationId));
+        }
+        catch (AppException ex)
+        {
+            logger.LogError("Login failed for email {Email}: {Message}", request.Email, ex.Message);
+            logger.LogError("Request body - Email: {Email}, Password length: {PasswordLength}", 
+                request.Email, request.Password?.Length ?? 0);
+            throw;
+        }
     }
 
     [HttpGet("oauth/google/start")]

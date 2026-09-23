@@ -176,23 +176,33 @@ public sealed class AuthService(
     public async Task<AuthTokenResponse> LoginAsync(LoginRequest request, RequestMetadata metadata, CancellationToken cancellationToken)
     {
         var email = NormalizeEmail(request.Email);
+        logger.LogInformation("LoginAsync called with email: {Email}, password length: {PasswordLength}", email, request.Password?.Length ?? 0);
+        
         var user = await userManager.FindByEmailAsync(email);
         if (user is null)
         {
+            logger.LogError("User not found for email: {Email}", email);
             AddAudit(null, "LoginFailed", email, null, metadata, new { reason = "user_not_found" });
             await dbContext.SaveChangesAsync(cancellationToken);
             throw new AppException("Invalid email or password.", 401, "invalid_credentials");
         }
 
+        logger.LogInformation("User found: {UserId}, Email: {Email}", user.Id, user.Email);
+
         if (await userManager.IsLockedOutAsync(user))
         {
+            logger.LogError("User is locked out: {Email}", email);
             AddAudit(user.Id, "LoginFailed", user.Email, user.PhoneNumber, metadata, new { reason = "locked_out" });
             await dbContext.SaveChangesAsync(cancellationToken);
             throw new AppException("Invalid email or password.", 401, "invalid_credentials");
         }
 
-        if (!await userManager.CheckPasswordAsync(user, request.Password))
+        var passwordOk = await userManager.CheckPasswordAsync(user, request.Password);
+        logger.LogInformation("Password check result for {Email}: {Result}", email, passwordOk);
+        
+        if (!passwordOk)
         {
+            logger.LogError("Password check failed for email: {Email}", email);
             EnsureIdentitySucceeded(await userManager.AccessFailedAsync(user));
             AddAudit(user.Id, "LoginFailed", user.Email, user.PhoneNumber, metadata, new { reason = "bad_password" });
             await dbContext.SaveChangesAsync(cancellationToken);

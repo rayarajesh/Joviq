@@ -72,6 +72,8 @@ public static class RoleSeeder
                 logger.LogError("Failed to seed admin user: {Errors}", string.Join(", ", createResult.Errors.Select(e => e.Description)));
                 return;
             }
+
+            logger.LogInformation("Successfully created seeded admin user {AdminEmail}", normalizedEmail);
         }
         else if (resetAdminPassword)
         {
@@ -97,8 +99,20 @@ public static class RoleSeeder
 
         if (!await userManager.IsInRoleAsync(admin, RoleNames.Admin))
         {
-            await userManager.AddToRoleAsync(admin, RoleNames.Admin);
-            logger.LogInformation("Seeded default admin user {AdminEmail}", normalizedEmail);
+            var roleAddResult = await userManager.AddToRoleAsync(admin, RoleNames.Admin);
+            if (roleAddResult.Succeeded)
+            {
+                logger.LogInformation("Seeded default admin user {AdminEmail} successfully", normalizedEmail);
+            }
+            else
+            {
+                logger.LogError("Failed to add admin role to seeded user {AdminEmail}: {Errors}", 
+                    normalizedEmail, string.Join(", ", roleAddResult.Errors.Select(e => e.Description)));
+            }
+        }
+        else
+        {
+            logger.LogInformation("Admin user {AdminEmail} already has admin role", normalizedEmail);
         }
     }
 

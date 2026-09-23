@@ -620,7 +620,7 @@ public sealed class CreateAdminNotificationRequest
 
 }
 
-public sealed class VerifyPaymentRequest
+public sealed class VerifyPaymentLmsRequest
 {
     public Guid? PaymentTransactionId { get; init; }
 

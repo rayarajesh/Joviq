@@ -5,13 +5,15 @@ using System.Text.Json;
 using Joviq.Lms.Application.Common.Exceptions;
 using Joviq.Lms.Application.Common.Interfaces;
 using Joviq.Lms.Application.Common.Options;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Joviq.Lms.Infrastructure.Services;
 
 public sealed class CashfreePaymentGateway(
     HttpClient httpClient,
-    IOptions<PaymentOptions> paymentOptions) : IPaymentGateway
+    IOptions<PaymentOptions> paymentOptions,
+    ILogger<CashfreePaymentGateway> logger) : IPaymentGateway
 {
     private readonly PaymentOptions options = paymentOptions.Value;
 
@@ -41,20 +43,18 @@ public sealed class CashfreePaymentGateway(
                 customer_email = string.IsNullOrWhiteSpace(customerEmail) ? $"student+{transactionId:N}@joviq.com" : customerEmail.Trim(),
                 customer_phone = NormalizePhone(customerPhone)
             },
-            ["order_expiry_time"] = expiresAt.ToUniversalTime().ToString("O"),
-            ["order_note"] = "Joviq LMS enrollment payment",
-            ["order_tags"] = new
-            {
-                transaction_id = transactionId.ToString("N"),
-                college = string.IsNullOrWhiteSpace(customerCollege) ? "Not provided" : customerCollege.Trim()[..Math.Min(customerCollege.Trim().Length, 200)]
-            }
+            ["order_expiry_time"] = expiresAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"),
+            ["order_note"] = "Joviq LMS enrollment payment"
         };
 
         if (!string.IsNullOrWhiteSpace(options.PublicBaseUrl))
         {
+            var frontendBase = string.IsNullOrWhiteSpace(options.FrontendBaseUrl)
+                ? options.PublicBaseUrl
+                : options.FrontendBaseUrl;
             body["order_meta"] = new
             {
-                return_url = $"{options.PublicBaseUrl.TrimEnd('/')}/checkout?cashfree=return&order_id={orderId}"
+                return_url = $"{frontendBase.TrimEnd('/')}/checkout?cashfree=return&order_id={orderId}"
             };
         }
 
@@ -66,6 +66,13 @@ public sealed class CashfreePaymentGateway(
         var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
+            logger.LogError(
+                "Cashfree order creation failed. Status: {StatusCode}, KeyId: {KeyId}, ApiVersion: {ApiVersion}, Environment: {Env}, Response: {Body}",
+                response.StatusCode,
+                string.IsNullOrWhiteSpace(options.KeyId) ? "(empty)" : options.KeyId[..Math.Min(options.KeyId.Length, 12)] + "...",
+                options.CashfreeApiVersion,
+                options.CashfreeEnvironment,
+                responseBody);
             throw new AppException("Cashfree could not create the payment session. Please try again.", 503, "payment_gateway_unavailable");
         }
 
@@ -109,6 +116,10 @@ public sealed class CashfreePaymentGateway(
         using var orderResponse = await httpClient.SendAsync(orderRequest, cancellationToken);
         if (!orderResponse.IsSuccessStatusCode)
         {
+            var errorBody = await orderResponse.Content.ReadAsStringAsync(cancellationToken);
+            logger.LogError(
+                "Cashfree order fetch failed during verify. OrderId: {OrderId}, Status: {StatusCode}, Response: {Body}",
+                orderId, orderResponse.StatusCode, errorBody);
             return new PaymentGatewayVerification(false);
         }
 
