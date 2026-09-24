@@ -31,10 +31,12 @@ export function ProgramDirectory() {
     const styles = window.getComputedStyle(el);
     const gap = Number.parseFloat(styles.columnGap || styles.gap) || 0;
     const cardStep = card.getBoundingClientRect().width + gap;
-    const visibleCards = Math.max(1, Math.floor((el.clientWidth + gap) / cardStep));
+    // +0.1 tolerance so sub-pixel rounding doesn't under-count a card that actually fits (3-up layout)
+    const visibleCards = Math.max(1, Math.floor((el.clientWidth + gap) / cardStep + 0.1));
+    const step = Math.min(3, visibleCards); // advance 3 programs per scroll on desktop; never skip when fewer fit (mobile)
     const maxIndex = Math.max(0, programs.length - visibleCards);
     const groupPositions = [0];
-    for (let index = visibleCards; index < maxIndex; index += visibleCards) groupPositions.push(index);
+    for (let index = step; index < maxIndex; index += step) groupPositions.push(index);
     if (maxIndex > 0 && groupPositions[groupPositions.length - 1] !== maxIndex) groupPositions.push(maxIndex);
     return { el, cardStep, visibleCards, maxIndex, groupPositions };
   }
@@ -117,7 +119,7 @@ export function ProgramDirectory() {
       <div className="directory-refresh__carousel" aria-label="Programs carousel" aria-roledescription="carousel">
         <div className="directory-refresh__controls"><button onClick={() => setPaused(value => !value)} aria-label={paused ? "Resume program scrolling" : "Pause program scrolling"} aria-pressed={paused}>{paused ? <Play size={18} /> : <Pause size={18} />}</button><button aria-label="Previous programs" disabled={page === 0} onClick={() => moveGroup("previous")}><ArrowLeft size={22} /></button><button aria-label="Next programs" disabled={page === positions[positions.length - 1]} onClick={() => moveGroup("next")}><ArrowRight size={22} /></button></div>
         <div className="directory-refresh__viewport" ref={viewport} tabIndex={0} aria-label="Matching programs" onTouchStart={() => setPaused(true)} onKeyDown={event => { if (event.key === "ArrowRight" || event.key === "ArrowLeft") { event.preventDefault(); moveGroup(event.key === "ArrowRight" ? "next" : "previous"); } }}>
-          {programs.map(program => <Link className="directory-course" to={`/programs/${program.slug}`} key={program.slug}>
+          {programs.map(program => <Link className="directory-course" to={`/programs/${program.slug}`} key={`${program.domain}-${program.slug}`}>
             <div className="directory-course__image"><img src={getProgramImage(program.slug, program.domain)} alt="" loading="lazy" /><span>{program.tags[0] || "Project-based"}</span></div>
             <div className="directory-course__body"><small>{program.domain}</small><h3>{program.title}</h3><p>{program.shortDescription}</p><ul><li><Clock3 size={19} />{program.duration}</li><li><BarChart3 size={19} />{program.level}</li></ul><span className="directory-course__link">Explore Program <ArrowRight size={16} /><i><ArrowRight size={19} /></i></span></div>
           </Link>)}
