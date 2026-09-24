@@ -1,0 +1,30 @@
+﻿{
+  "name": "joviq",
+  "version": "1.0.0",
+  "description": "Joviq monorepo for the LMS API and web client",
+  "homepage": "https://github.com/rayarajesh/Joviq#readme",
+  "bugs": {
+    "url": "https://github.com/rayarajesh/Joviq/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rayarajesh/Joviq.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "install:web": "npm --prefix web install",
+    "install:api": "dotnet restore api/Joviq.Lms.sln",
+    "dev:web": "npm --prefix web run dev",
+    "dev:api": "dotnet run --project api/src/Joviq.Lms.Api",
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
+    "build:web": "npm --prefix web run build",
+    "typecheck:web": "npm --prefix web run typecheck",
+    "test": "npm run typecheck:web"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

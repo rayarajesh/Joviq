@@ -9,7 +9,14 @@
   "cloud-computing": "/assets/programs/cloud-computing.jpg",
   "embedded-systems": "/assets/programs/Embedded-system.jpg",
   vlsi: "/assets/programs/Vlsi.jpg",
-  devops: "/assets/programs/devops.jpg"
+  devops: "/assets/programs/devops.jpg",
+  finance: "/assets/programs/Finance.jpg",
+  "digital-marketing": "/assets/programs/digital-marketing.jpg",
+  "stock-market": "/assets/programs/stock-market.jpg",
+  "hev-management": "/assets/programs/HEV-management.jpg",
+  autocad: "/assets/programs/Autocad.jpg",
+  "international-business-management": "/assets/programs/international-business-management.jpg",
+  hrm: "/assets/programs/Human- resources.Jpg.jpg"
 };
 
 export const programImageByDomain: Record<string, string> = {
