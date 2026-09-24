@@ -184,8 +184,9 @@ const programThumbnailOptions = [
   { label: "DevOps", url: "/assets/programs/devops.jpg" },
   { label: "Electrical", url: "/assets/programs/electrical-electronics.jpg" },
   { label: "Mechanical", url: "/assets/programs/mechanical-civil.jpg" },
-  { label: "Management", url: "/assets/programs/management.jpg" },
+  { label: "Management", url: "/assets/programs/business-analytics.jpg" },
   { label: "Studio", url: "/assets/joviq-learning-studio.png" },
+  { label: "Business Analytics", url: "/assets/programs/business-analytics.jpg" },
 ];
 const dashboardNavItems: Record<PrimaryRole, string[]> = {
   Admin: [

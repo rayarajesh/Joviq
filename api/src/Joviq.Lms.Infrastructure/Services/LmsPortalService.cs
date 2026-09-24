@@ -34,9 +34,9 @@ public sealed class LmsPortalService(
     private static readonly IReadOnlyDictionary<string, FixedPlanPricing> FixedPlans =
         new Dictionary<string, FixedPlanPricing>(StringComparer.OrdinalIgnoreCase)
         {
-            ["SELF"] = new("Launch", 8000m, 1500m),
-            ["INTERMEDIATE"] = new("Elevate", 10000m, 1500m),
-            ["MASTER"] = new("Mastery", 15000m, 3000m)
+            ["SELF"] = new("Launch", 7999m, 1500m),
+            ["INTERMEDIATE"] = new("Elevate", 9999m, 1500m),
+            ["MASTER"] = new("Mastery", 14999m, 1500m)
         };
 
     private PaymentOptions Payments => paymentOptions.Value;

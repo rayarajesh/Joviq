@@ -75,7 +75,7 @@ export const defaultProgramPlans: ProgramPlan[] = [
     code: "SELF",
     actualPrice: 7999,
     offerPrice: 7999,
-    reserveAmount: 1499,
+    reserveAmount: 1500,
     features: [
       "16 Live Sessions",
       "Recorded Lessons",
@@ -94,7 +94,7 @@ export const defaultProgramPlans: ProgramPlan[] = [
     code: "INTERMEDIATE",
     actualPrice: 9999,
     offerPrice: 9999,
-    reserveAmount: 1499,
+    reserveAmount: 1500,
     features: [
       "22 Live Sessions",
       "Recorded Lessons",
@@ -115,7 +115,7 @@ export const defaultProgramPlans: ProgramPlan[] = [
     code: "MASTER",
     actualPrice: 14999,
     offerPrice: 14999,
-    reserveAmount: 1499,
+    reserveAmount: 1500,
     features: [
       "28 Live Sessions",
       "Recorded Lessons",

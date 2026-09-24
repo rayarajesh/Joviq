@@ -7,6 +7,8 @@
   "data-analytics": "/assets/programs/data-analytics.jpg",
   "data-science": "/assets/programs/data-science-catalog.png",
   "cloud-computing": "/assets/programs/cloud-computing.jpg",
+  "embedded-systems": "/assets/programs/Embedded-system.jpg",
+  vlsi: "/assets/programs/Vlsi.jpg",
   devops: "/assets/programs/devops.jpg"
 };
 
@@ -14,7 +16,7 @@ export const programImageByDomain: Record<string, string> = {
   "Computer Science & IT": "/assets/programs/generative-ai.jpg",
   "Electrical & Electronics": "/assets/programs/electrical-electronics.jpg",
   "Mechanical & Civil": "/assets/programs/mechanical-civil.jpg",
-  Management: "/assets/programs/management.jpg"
+  Management: "/assets/programs/business-analytics.jpg"
 };
 
 export function getProgramImage(slug: string, domain: string) {

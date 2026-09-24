@@ -29069,6 +29069,9 @@ button.hero-button {
 .checkout-launcher__retry {
   margin-top: 13px;
 }
+.checkout-launcher__retry:hover {
+  color: #fff !important;
+}
 .checkout-launcher__back {
   display: inline-flex;
   align-items: center;
