@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Security.Claims;
 using System.Threading.RateLimiting;
 using Joviq.Lms.Api.Middleware;
 using Joviq.Lms.Api.Services;
@@ -72,6 +74,7 @@ builder.Services.AddCors(options =>
             policy.WithOrigins("http://localhost:5173", "https://localhost:5173")
                 .AllowAnyHeader()
                 .AllowAnyMethod()
+                .WithExposedHeaders("Retry-After")
                 .AllowCredentials();
             return;
         }
@@ -79,6 +82,7 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(allowedOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod()
+            .WithExposedHeaders("Retry-After")
             .AllowCredentials();
     });
 });
@@ -86,6 +90,19 @@ builder.Services.AddCors(options =>
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        var seconds = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter)
+            ? Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds))
+            : 60;
+        context.HttpContext.Response.Headers.RetryAfter = seconds.ToString(CultureInfo.InvariantCulture);
+        await Results.Problem(
+            statusCode: StatusCodes.Status429TooManyRequests,
+            title: "Too many attempts. Please wait before trying again.",
+            detail: $"You can try again in {seconds} seconds.",
+            extensions: new Dictionary<string, object?> { ["retryAfterSeconds"] = seconds }
+        ).ExecuteAsync(context.HttpContext);
+    };
     options.AddPolicy("AuthLogin", context =>
     {
         var partitionKey = context.Connection.RemoteIpAddress?.ToString() ?? "anonymous";
@@ -108,9 +125,21 @@ builder.Services.AddRateLimiter(options =>
             AutoReplenishment = true
         });
     });
+    // Checkout retries must not consume the hour-long registration allowance.
+    options.AddPolicy("CheckoutAccount", context =>
+    {
+        var partitionKey = context.Connection.RemoteIpAddress?.ToString() ?? "anonymous";
+        return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        });
+    });
     options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
     {
-        var partitionKey = context.User.Identity?.Name
+        var partitionKey = context.User.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? context.Connection.RemoteIpAddress?.ToString()
             ?? "anonymous";
 
@@ -148,8 +177,8 @@ if (!app.Environment.IsDevelopment())
 }
 app.UseStaticFiles();
 app.UseCors("ReactClient");
-app.UseRateLimiter();
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();

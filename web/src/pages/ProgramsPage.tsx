@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowDownLeft, ArrowRight, BarChart3, BriefcaseBusiness, Clock3, FolderKanban, GraduationCap, Heart, RefreshCw, Rocket, Search, ShieldCheck, Star, UsersRound } from "lucide-react";
+import { ArrowDownLeft, ArrowRight, BarChart3, BriefcaseBusiness, Clock3, GraduationCap, Heart, RefreshCw, Search, ShieldCheck, Star, UsersRound } from "lucide-react";
 import { PublicNavbar } from "../components/PublicNavbar";
 import { SiteFooter } from "../components/SiteFooter";
 import { allPrograms, programCategories, type Program } from "../data/siteContent";
@@ -56,7 +56,6 @@ export function ProgramsPage() {
       <main className="pc-main">
         <section className="pc-hero" aria-labelledby="programs-title">
           <div className="pc-hero-copy">
-            <span className="pc-eyebrow"><Rocket size={15} /> EXPLORE OUR PROGRAMS</span>
             <h1 id="programs-title">Career programs<br />built for <span>real work.</span></h1>
             <p>Learn in-demand skills, work on real projects, get expert feedback,<br className="pc-desktop-break" /> and build a portfolio that gets you noticed.</p>
             <div className="pc-benefits">

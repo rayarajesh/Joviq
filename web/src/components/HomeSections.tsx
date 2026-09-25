@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, BadgeCheck, Code2, GraduationCap, Layers3, MessagesSquare, Sparkles, Cpu, Settings, PenTool, Box, BarChart3, Blocks, Trophy, FileBadge, BriefcaseBusiness, UsersRound, BookOpen, MessageSquare } from "lucide-react";
-import { keyStatistics, programCategories, recognitions, successOutcomes } from "../data/siteContent";
+import { allPrograms, keyStatistics, programCategories, recognitions, successOutcomes } from "../data/siteContent";
 
 export function KeyStatisticsSection() {
   const details = [
@@ -53,8 +53,12 @@ export function ProgramCategoriesSection() {
         </header>
         <div className="category-showcase__grid">
           {programCategories.map((category, index) => {
+            if (category.domain === "UI/UX Design" || category.domain === "SolidWorks & Creo") return null;
             const Icon = icons[index];
-            const count = category.programs.length;
+            const programs = category.domain === "Electrical & Electronics"
+              ? [...category.programs, ...allPrograms.filter(program => program.slug === "hev-management" && !category.programs.some(item => item.slug === program.slug))]
+              : category.programs;
+            const count = programs.length;
             const categorySlug = category.domain.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
             return (
               <article className={`category-tile category-tile--${index}`} key={category.domain}>
@@ -62,7 +66,7 @@ export function ProgramCategoriesSection() {
                 <span className="category-tile__art" aria-hidden="true" />
                 <h3>{category.domain}</h3>
                 <p>{category.description}</p>
-                <div className="category-tile__links">{category.programs.slice(0, index === 0 ? 5 : 6).map(program => <Link key={program.slug} to={`/programs/${program.slug}`}>{program.title}<ArrowRight size={16} aria-hidden="true" /></Link>)}</div>
+                <div className="category-tile__links">{programs.slice(0, index === 0 ? 5 : 6).map(program => <Link key={program.slug} to={`/programs/${program.slug}`}>{program.title}<ArrowRight size={16} aria-hidden="true" /></Link>)}</div>
                 <Link className="category-tile__all" to={`/programs?category=${categorySlug}`} aria-label={`View all ${count} ${category.domain} programs`}>View All {count} {count === 1 ? "Program" : "Programs"}<ArrowRight size={16} aria-hidden="true" /></Link>
               </article>
             );

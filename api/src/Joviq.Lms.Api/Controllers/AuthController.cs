@@ -48,7 +48,7 @@ public sealed class AuthController(
 
     [HttpPost("checkout-account")]
     [AllowAnonymous]
-    [EnableRateLimiting("AuthRegister")]
+    [EnableRateLimiting("CheckoutAccount")]
     public async Task<ActionResult<ApiResponse<AuthTokenResponse>>> CreateCheckoutAccount(CheckoutAccountRequest request, CancellationToken cancellationToken)
     {
         var result = await authService.CreateCheckoutAccountAsync(request, RequestMetadata(), cancellationToken);

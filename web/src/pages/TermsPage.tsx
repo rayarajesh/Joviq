@@ -95,7 +95,7 @@ const termsSections = [
       "For any questions regarding these Terms, please contact us at:",
       "Joviq Technologies Private Limited",
       "6th Floor, Melkiors Pride, Hitex Road, Vinayaka Nagar, Izzathnagar, HITEC City, Khanammet, Hyderabad, Telangana – 500084",
-      "Email: info@joviqtechnologies.com",
+      "Email: support@joviqtechnologies.com",
       "Website: joviqtechnologies.com"
     ]
   }

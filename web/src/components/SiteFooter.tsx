@@ -1,3 +1,4 @@
+import { socialLinks } from "./socialLinks";
 import type { ReactNode } from "react";
 import {
   ArrowUpRight,
@@ -34,62 +35,6 @@ const companyLinks = [
   { label: "About Us", href: "/about" },
   { label: "College Collaboration", href: "/request-callback" }
 ];
-
-const socialLinks = [
-  { label: "Instagram", shortLabel: "IG", href: "https://www.instagram.com/joviqtechnologies?stkn=MXY1djRvd3VjNmNoMg==", Icon: InstagramIcon, tone: "instagram" },
-  { label: "LinkedIn", shortLabel: "in", href: "https://www.linkedin.com/company/joviq-technologies-private-limited/", Icon: LinkedInIcon, tone: "linkedin" },
-  { label: "YouTube", shortLabel: "YT", href: "https://youtube.com", Icon: YouTubeIcon, tone: "youtube" },
-  { label: "Facebook", shortLabel: "f", href: "https://www.facebook.com/joviqtechnologies?rdid=SVZR8OQtIHtWHw5s&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1Bx12pxKtp%2F#", Icon: FacebookIcon, tone: "facebook" },
-  { label: "WhatsApp", shortLabel: "WA", href: "https://wa.me/919281977188", Icon: WhatsAppIcon, tone: "whatsapp" }
-];
-
-type SocialIconProps = {
-  size?: number;
-  strokeWidth?: number;
-};
-
-function InstagramIcon({ size = 24 }: SocialIconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="3.5" y="3.5" width="17" height="17" rx="5" fill="none" stroke="currentColor" strokeWidth="2" />
-      <circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" strokeWidth="2" />
-      <circle cx="17.1" cy="6.9" r="1.2" fill="currentColor" />
-    </svg>
-  );
-}
-
-function LinkedInIcon({ size = 24 }: SocialIconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M6.5 8.8A1.8 1.8 0 1 1 6.5 5.2a1.8 1.8 0 0 1 0 3.6Zm-1.4 1.7h2.8v8.5H5.1v-8.5Zm4.3 0h2.7v1.2h.1c.4-.8 1.5-1.6 3.1-1.6 3.3 0 3.9 2.2 3.9 5.1v4.8h-2.8v-4.4c0-1-.1-2.3-1.4-2.3s-1.6 1.1-1.6 2.3v4.4h-2.8v-8.5Z" fill="currentColor"/>
-    </svg>
-  );
-}
-
-function YouTubeIcon({ size = 24 }: SocialIconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M21.2 8.5a2.8 2.8 0 0 0-2-2A56.8 56.8 0 0 0 12 6a56.8 56.8 0 0 0-7.2.5 2.8 2.8 0 0 0-2 2A28.6 28.6 0 0 0 2.8 12a28.6 28.6 0 0 0 .1 3.5 2.8 2.8 0 0 0 2 2A56.8 56.8 0 0 0 12 18a56.8 56.8 0 0 0 7.2-.5 2.8 2.8 0 0 0 2-2A28.6 28.6 0 0 0 21.2 12a28.6 28.6 0 0 0 0-3.5ZM10 15.5v-7l6 3.5-6 3.5Z" fill="currentColor"/>
-    </svg>
-  );
-}
-
-function FacebookIcon({ size = 24 }: SocialIconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M13.4 21v-8h2.6l.5-3h-3.1V7.2c0-.9.3-1.5 1.7-1.5H17V2.9c-.3 0-1.4-.1-2.7-.1-2.7 0-4.5 1.7-4.5 4.7V10H7v3h2.8v8h3.6Z" fill="currentColor"/>
-    </svg>
-  );
-}
-
-function WhatsAppIcon({ size = 24 }: SocialIconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M5.2 19.2 6.3 16A8.2 8.2 0 1 1 9.5 19l-4.3.2Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-      <path d="M9.2 8.8c.2-.4.4-.4.7-.4h.5c.2 0 .4.1.5.4l.6 1.4c.1.2 0 .4-.1.6l-.5.6c.6 1.1 1.5 2 2.6 2.6l.6-.5c.2-.2.4-.2.6-.1l1.4.6c.3.1.4.3.4.5v.5c0 .3 0 .5-.4.7-.4.2-1 .3-1.6.1-2.6-.8-4.8-3-5.8-5.6-.2-.6-.1-1.2.1-1.6Z" fill="currentColor" />
-    </svg>
-  );
-}
 
 export function SiteFooter() {
   const currentYear = new Date().getFullYear();
@@ -162,9 +107,9 @@ export function SiteFooter() {
               <span className="public-footer__contact-text"><strong>Phone</strong><span>+91 9281977188</span></span>
               <ArrowUpRight className="public-footer__contact-arrow" size={16} aria-hidden="true" />
             </a>
-            <a className="public-footer__contact-item" href="mailto:support@joviqtechnologies.com">
+            <a className="public-footer__contact-item" href="mailto:info@joviqtechnologies.com">
               <span className="public-footer__contact-icon" aria-hidden="true"><Mail size={16} /></span>
-              <span className="public-footer__contact-text"><strong>Email</strong><span>support@joviqtechnologies.com</span></span>
+              <span className="public-footer__contact-text"><strong>Email</strong><span>info@joviqtechnologies.com</span></span>
               <ArrowUpRight className="public-footer__contact-arrow" size={16} aria-hidden="true" />
             </a>
             <div className="public-footer__contact-item public-footer__contact-item--address">

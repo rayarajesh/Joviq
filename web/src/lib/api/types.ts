@@ -14,6 +14,7 @@ export type ProblemDetails = {
   errorCode?: string;
   correlationId?: string;
   errors?: Record<string, string[]>;
+  retryAfterSeconds?: number;
 };
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";

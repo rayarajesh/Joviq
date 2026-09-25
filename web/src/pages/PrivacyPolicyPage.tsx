@@ -87,7 +87,7 @@ const policySections = [
       "If you have questions or concerns about this Privacy Policy or our data practices, please contact us at:",
       "Joviq Technologies Private Limited",
       "6th Floor, Melkiors Pride, Hitex Road, Vinayaka Nagar, Izzathnagar, HITEC City, Khanammet, Hyderabad, Telangana – 500084",
-      "Email: info@joviqtechnologies.com",
+      "Email: support@joviqtechnologies.com",
       "Website: joviqtechnologies.com"
     ]
   }

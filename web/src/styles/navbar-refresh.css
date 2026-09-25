@@ -1,4 +1,13 @@
 /* Compact, aligned public navigation. */
+/* Keep menu text consistent across routes and interaction states. */
+.site-header .site-nav__links a,
+.site-header .site-nav__links a:is(:visited, :hover, :focus-visible, .is-active),
+.site-header .site-nav__mobile > a,
+.site-header .site-nav__mobile > a:is(:visited, :hover, :focus-visible, .is-active),
+.site-page:has(.learn-hero) .site-header .site-nav__links a,
+.site-page:has(.learn-hero) .site-header .site-nav__links a:is(:visited, :hover, :focus-visible, .is-active) {
+  color: #111111;
+}
 .site-header,.site-page:has(.learn-hero) .site-header{height:72px;min-height:72px;padding:0 max(24px,calc((100vw - 1400px)/2));gap:24px;background:#fff;border-bottom:1px solid #ece9f5;box-shadow:0 3px 14px #302a7305}
 .site-header .site-header__brand{flex:0 0 auto;display:flex;align-items:center;justify-content:flex-start;height:72px;width:100px;padding:0;margin:0}
 .site-header .site-header__brand .brand-logo{display:block;height:62px;max-height:62px;width:auto;object-fit:contain;margin:0;transform:none}
@@ -11,3 +20,77 @@
 .learn-hero{margin-top:72px}
 @media(max-width:900px){.site-header,.site-page:has(.learn-hero) .site-header{height:64px;min-height:64px;padding-inline:20px}.site-header .site-header__brand{height:64px;width:85px}.site-header .site-header__brand .brand-logo{height:55px;max-height:55px}.learn-hero{margin-top:64px}.site-header .site-nav{gap:12px}.site-header .site-nav__links{gap:3px}}
 @media(max-width:760px){.site-header .site-nav__actions{display:none}.site-header .site-nav__menu-button{height:36px;min-height:36px;width:36px;border-radius:9px}.site-header .site-nav__links{display:none}}
+
+/* One shared navbar appearance; page themes must not restyle its contents. */
+#public-navbar {
+  position: fixed;
+  inset: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: none;
+  height: 80px;
+  min-height: 80px;
+  margin: 0;
+  padding: 0 max(24px, calc((100vw - 1720px) / 2));
+  gap: 24px;
+  background: #fff;
+  border: 0;
+  border-radius: 0;
+  box-shadow: 0 2px 12px #302a7308;
+  z-index: 50;
+  font-family: inherit;
+}
+#public-navbar .site-header__brand { width: 100px; height: 80px; flex: 0 0 100px; }
+#public-navbar .brand-logo { height: 74px; max-height: 74px; width: auto; margin: 0; transform: none; }
+#public-navbar .site-nav { display: flex; width: auto; min-width: 0; height: auto; min-height: 0; padding: 0; margin: 0; gap: 28px; background: transparent; border: 0; box-shadow: none; }
+#public-navbar .site-nav__links { display: flex; align-items: center; gap: 18px; }
+#public-navbar .site-nav__links a,
+#public-navbar .site-nav__mobile > a { color: #111111; font-size: 16px; font-weight: 600; letter-spacing: 0; line-height: 1.4; text-transform: none; text-decoration: none; background: transparent; border: 0; box-shadow: none; }
+#public-navbar .site-nav__links a { padding: 0 8px; min-height: 40px; white-space: nowrap; }
+#public-navbar .site-nav__links a:is(:hover, :focus-visible, .is-active),
+#public-navbar .site-nav__mobile > a:is(:hover, :focus-visible, .is-active) { color: #111111; background: transparent; transform: none; }
+#public-navbar .site-nav__links a.is-active,
+#public-navbar .site-nav__mobile > a.is-active {
+  background: #eeedfa;
+  border-radius: 8px;
+  box-shadow: inset 0 -3px 0 #504b91;
+}
+#public-navbar .site-nav__actions { display: flex; align-items: center; gap: 12px; }
+#public-navbar .site-nav__actions a,
+#public-navbar .site-nav__mobile-actions a { font-size: 16px; font-weight: 700; line-height: 1.4; padding: 0 20px; height: 46px; min-height: 46px; border-radius: 11px; white-space: nowrap; }
+#public-navbar .site-nav__menu-button { display: none; }
+@media (min-width: 1221px) and (max-width: 1550px) {
+  #public-navbar .site-nav { gap: 16px; }
+  #public-navbar .site-nav__links { gap: 6px; }
+  #public-navbar .site-nav__links a { font-size: 13px; padding-inline: 6px; }
+  #public-navbar .site-nav__actions a { font-size: 13px; padding-inline: 14px; }
+}
+@media (max-width: 1220px) {
+  #public-navbar .site-nav__links { display: none; }
+  #public-navbar .site-nav__menu-button { display: inline-flex; }
+}
+@media (max-width: 760px) {
+  #public-navbar { height: 64px; min-height: 64px; padding-inline: 20px; }
+  #public-navbar .site-header__brand { height: 64px; }
+  #public-navbar .brand-logo { height: 55px; max-height: 55px; }
+  #public-navbar .site-nav__actions { display: none; }
+}
+.features-page:has(#public-navbar) main { padding-top: 80px; }
+@media (max-width: 760px) { .features-page:has(#public-navbar) main { padding-top: 64px; } }
+#public-navbar, #public-navbar .site-nav, #public-navbar .site-nav__links {
+  font-family: "Poppins", sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  color: #111111;
+}
+
+/* Restore the original logo reveal alongside its existing shine effect. */
+#public-navbar .site-header__brand { translate: 30px 0; }
+/* #public-navbar .brand-logo {
+  animation: brand-logo-reveal 8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+} */
+@media (prefers-reduced-motion: reduce) {
+  #public-navbar .brand-logo { animation: none; opacity: 1; filter: none; transform: none; }
+}

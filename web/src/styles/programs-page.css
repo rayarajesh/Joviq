@@ -4,7 +4,7 @@
 .pc-hero{display:grid;grid-template-columns:1fr 1fr;position:relative;min-height:392px;padding:42px 0 0;margin:0 0 0 48px;isolation:isolate}
 .pc-hero-copy{z-index:2;padding:12px 0 36px}
 .pc-eyebrow{display:inline-flex;align-items:center;gap:9px;padding:8px 13px;border-radius:30px;background:#edebff;color:#4730ff;font-size:10px;font-weight:700;letter-spacing:.3px}
-.pc-hero h1{font-size:46px;line-height:1.1;letter-spacing:-1.8px;font-weight:700;margin:16px 0;color:#100940}
+.pc-hero h1{font-size:46px;line-height:1.1;letter-spacing:-1.8px;font-weight:700;margin:50px 0;color:#100940}
 .pc-hero h1 span{color:#7042fa;position:relative;white-space:nowrap}
 .pc-hero h1 span:after{content:'';position:absolute;left:2px;right:0;bottom:-5px;height:4px;background:#ab92ff;border-radius:50%;transform:rotate(-1deg)}
 .pc-hero-copy>p{font-size:14px;line-height:1.65;color:var(--pc-muted);margin:20px 0 23px}

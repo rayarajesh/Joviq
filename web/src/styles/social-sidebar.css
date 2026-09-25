@@ -1,0 +1,70 @@
+.social-sidebar {
+  position: fixed;
+  right: max(20px, env(safe-area-inset-right));
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.social-sidebar__link {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  color: #fff;
+  text-decoration: none;
+  box-shadow: 0 4px 16px #0003;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.social-sidebar__link--whatsapp { background: #20c65a; }
+.social-sidebar__link--instagram { background: linear-gradient(35deg, #ff963e, #ff285c 50%, #be27aa); }
+.social-sidebar__link--facebook { background: #1877f2; }
+.social-sidebar__link--linkedin { background: #007bb5; }
+
+.social-sidebar__link:hover,
+.social-sidebar__link:focus-visible {
+  color: #fff;
+  transform: translateX(-3px);
+  box-shadow: 0 6px 20px #0004;
+}
+
+.social-sidebar__link:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
+
+.social-sidebar__label {
+  position: absolute;
+  right: calc(100% + 12px);
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #17212d;
+  color: #fff;
+  font: 600 12px/1.4 sans-serif;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.social-sidebar__link:hover .social-sidebar__label,
+.social-sidebar__link:focus-visible .social-sidebar__label { opacity: 1; }
+
+@media (max-width: 640px), (max-height: 500px) {
+  .social-sidebar { right: max(8px, env(safe-area-inset-right)); gap: 8px; }
+  .social-sidebar__link { width: 40px; height: 40px; }
+  .social-sidebar__link svg { width: 21px; height: 21px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .social-sidebar__link { transition: none; }
+}
+
+@media print {
+  .social-sidebar { display: none; }
+}
