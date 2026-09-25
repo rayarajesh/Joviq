@@ -57,7 +57,7 @@ namespace Joviq.Lms.Infrastructure.Migrations
                 type: "character varying(64)",
                 maxLength: 64,
                 nullable: false,
-                defaultValue: "");
+                defaultValue: "Everyone");
 
             migrationBuilder.AddColumn<int>(
                 name: "MaxRedemptions",
@@ -93,28 +93,28 @@ namespace Joviq.Lms.Infrastructure.Migrations
                 table: "coupons",
                 type: "jsonb",
                 nullable: false,
-                defaultValue: "");
+                defaultValue: "[]");
 
             migrationBuilder.AddColumn<string>(
                 name: "TargetProgramIdsJson",
                 table: "coupons",
                 type: "jsonb",
                 nullable: false,
-                defaultValue: "");
+                defaultValue: "[]");
 
             migrationBuilder.AddColumn<string>(
                 name: "TargetStudentEmailsJson",
                 table: "coupons",
                 type: "jsonb",
                 nullable: false,
-                defaultValue: "");
+                defaultValue: "[]");
 
             migrationBuilder.AddColumn<string>(
                 name: "TargetStudentIdsJson",
                 table: "coupons",
                 type: "jsonb",
                 nullable: false,
-                defaultValue: "");
+                defaultValue: "[]");
 
             migrationBuilder.CreateTable(
                 name: "coupon_redemptions",

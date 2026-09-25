@@ -181,6 +181,26 @@ export function EnrollmentCheckoutPage() {
     setMessage(null);
   }
 
+  async function retryCheckout() {
+    if (!pending || isLoading || isPaying) return;
+    if (program && selectedPlan) {
+      await startPayment();
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage(null);
+    try {
+      const response = await publicLmsApi.getProgram(pending.slug);
+      autoStartRef.current = false;
+      setProgram(response.data);
+    } catch (error) {
+      setMessage({ tone: "error", text: formatApiError(error) });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   async function startPayment() {
     if (!pending || !program || !selectedPlan) return;
     setIsPaying(true);
@@ -414,7 +434,7 @@ export function EnrollmentCheckoutPage() {
             </button>
           ) : null}
           {message?.tone === "error" ? (
-            <button className="secondary-action checkout-launcher__retry" type="button" disabled={isPaying} onClick={() => void startPayment()}>
+            <button className="secondary-action checkout-launcher__retry" type="button" disabled={isLoading || isPaying} onClick={() => void retryCheckout()}>
               Try again
             </button>
           ) : null}

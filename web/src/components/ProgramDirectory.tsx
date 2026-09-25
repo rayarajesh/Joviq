@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, BookOpen, Search, Grid2X2, Laptop, Cpu, Settings, PenTool, Box, BarChart3, Folder, Clock3, Pause, Play } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, Search, Grid2X2, Laptop, Cpu, Settings, PenTool, Box, BarChart3, Clock3, Pause, Play } from "lucide-react";
 import { allPrograms, programCategories } from "../data/siteContent";
 import { getProgramImage } from "../data/programVisuals";
 

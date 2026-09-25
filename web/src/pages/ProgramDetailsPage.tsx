@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
@@ -36,7 +36,7 @@ import { publicLmsApi } from "../features/lms/api/lmsApi";
 import { savePendingEnrollment } from "../features/lms/checkout";
 import type { EnrollmentApplicant } from "../features/lms/checkout";
 import type { ProgramDetailsResponse } from "../features/lms/api/lmsTypes";
-import { formatApiError } from "../lib/api/httpClient";
+import { ApiError, formatApiError } from "../lib/api/httpClient";
 
 type DetailItem = { title: string; text: string };
 type CurriculumItem = DetailItem & { lessons: string[] };
@@ -510,10 +510,23 @@ function RegistrationDialog({ onClose, onSubmit, plan, programTitle }: {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const submittingRef = useRef(false);
+  const [retryAt, setRetryAt] = useState(0);
+  const [retrySeconds, setRetrySeconds] = useState(0);
   useDialogAccessibility(true, ".enrollment-dialog", onClose);
+
+  useEffect(() => {
+    if (!retryAt) return;
+    const update = () => setRetrySeconds(Math.max(0, Math.ceil((retryAt - Date.now()) / 1000)));
+    update();
+    const timer = window.setInterval(update, 1000);
+    return () => window.clearInterval(timer);
+  }, [retryAt]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submittingRef.current || Date.now() < retryAt) return;
+    submittingRef.current = true;
     setIsSubmitting(true);
     setErrorMessage("");
 
@@ -524,8 +537,16 @@ function RegistrationDialog({ onClose, onSubmit, plan, programTitle }: {
         acceptedTerms
       });
     } catch (error) {
-      setErrorMessage(formatApiError(error));
+      if (error instanceof ApiError && error.status === 429) {
+        const seconds = error.retryAfterSeconds ?? 60;
+        setRetrySeconds(seconds);
+        setRetryAt(Date.now() + seconds * 1000);
+        setErrorMessage("Too many attempts. Your details are still here; please wait before continuing.");
+      } else {
+        setErrorMessage(formatApiError(error));
+      }
     } finally {
+      submittingRef.current = false;
       setIsSubmitting(false);
     }
   }
@@ -597,7 +618,7 @@ function RegistrationDialog({ onClose, onSubmit, plan, programTitle }: {
           </label>
           {errorMessage ? <p className="enrollment-dialog__error" role="alert">{errorMessage}</p> : null}
           <div className="enrollment-dialog__secure-note"><ShieldCheck size={18} /><span>Your details are saved securely. After you continue, you’ll be signed in to this new account and Cashfree checkout will open.</span></div>
-          <button className="enrollment-dialog__submit" disabled={isSubmitting} type="submit"><ArrowRight size={18} /> {isSubmitting ? "Preparing your account…" : `Continue with ${paymentChoice === "token" ? "pre-registration · INR 1,499/-" : `full payment · ${formatInr(plan.offerPrice)}`}`}</button>
+          <button className="enrollment-dialog__submit" disabled={isSubmitting || retrySeconds > 0} type="submit"><ArrowRight size={18} /> {retrySeconds > 0 ? `Try again in ${retrySeconds}s` : isSubmitting ? "Preparing your account…" : `Continue with ${paymentChoice === "token" ? "pre-registration · INR 1,499/-" : `full payment · ${formatInr(plan.offerPrice)}`}`}</button>
         </form>
       </section>
     </div>

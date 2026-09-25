@@ -66,6 +66,7 @@ export function PublicNavbar() {
 
   return (
     <header
+      id="public-navbar"
       ref={headerRef}
       className={`site-header ${isMenuOpen ? "is-open" : ""}`}
       onBlur={(event) => {

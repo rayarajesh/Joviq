@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import { ScrollToTopButton } from "../components/ScrollToTopButton";
+import { SocialSidebar } from "../components/SocialSidebar";
+import { WelcomePopup } from "../components/WelcomePopup";
 import { AuthProvider } from "../features/auth/context/AuthContext";
 import { DashboardPage } from "../pages/DashboardPage";
 import { CoursePlayerPage } from "../pages/CoursePlayerPage";
@@ -36,6 +38,8 @@ export function App() {
       <AuthProvider>
         <HashScroll />
         <ScrollToTopButton />
+        <SocialSidebar />
+        <WelcomePopup />
         <Routes>
           {import.meta.env.DEV && (
             <Route

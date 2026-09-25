@@ -4821,9 +4821,34 @@ button.hero-button {
 
 .auth-nav__identity small {
   margin-top: 2px;
-  color: #7b867f;
+  color: #626078;
   font-size: 0.67rem;
   font-weight: 800;
+}
+
+/* Keep workspace controls readable under the shared button theme. */
+.auth-nav .auth-nav__icon-button,
+.auth-nav .auth-nav__support-link,
+.auth-nav .auth-nav__profile-button {
+  background: #ffffff !important;
+  border-color: #dcd9ef !important;
+  color: #302a73 !important;
+}
+
+.auth-nav .auth-nav__icon-button:is(:hover, :focus-visible, .is-active),
+.auth-nav .auth-nav__support-link:is(:hover, :focus-visible, .is-active),
+.auth-nav .auth-nav__profile-button:is(:hover, :focus-visible, .is-active) {
+  background: #eeedfa !important;
+  border-color: #8e89c2 !important;
+  color: #302a73 !important;
+}
+
+.auth-nav .auth-nav__profile-button .auth-nav__identity strong {
+  color: #302a73 !important;
+}
+
+.auth-nav .auth-nav__profile-button .auth-nav__identity small {
+  color: #626078 !important;
 }
 
 .auth-nav__popover {
@@ -29066,11 +29091,16 @@ button.hero-button {
 .checkout-launcher__card .checkout-pay-button {
   margin-top: 24px;
 }
-.checkout-launcher__retry {
+.checkout-launcher .checkout-launcher__retry {
   margin-top: 13px;
+  background: #514b95 !important;
+  border-color: #514b95 !important;
+  color: #ffffff !important;
 }
-.checkout-launcher__retry:hover {
-  color: #fff !important;
+.checkout-launcher .checkout-launcher__retry:is(:hover, :focus-visible) {
+  background: #302a73 !important;
+  border-color: #302a73 !important;
+  color: #ffffff !important;
 }
 .checkout-launcher__back {
   display: inline-flex;

@@ -4,6 +4,7 @@ import type { ApiResponse, ProblemDetails, RequestOptions } from "./types";
 export class ApiError extends Error {
   status: number;
   problem?: ProblemDetails;
+  retryAfterSeconds?: number;
 
   constructor(message: string, status: number, problem?: ProblemDetails) {
     super(message);
@@ -92,7 +93,9 @@ async function send<T>(path: string, options: RequestOptions, hasRetried: boolea
     }
 
     const problem = payload as ProblemDetails | null;
-    const message = problem?.title ?? `Request failed with ${response.status}`;
+    const message = problem?.title ?? (response.status === 429
+      ? "Too many attempts. Please wait before trying again."
+      : `Request failed with ${response.status}`);
     
     // Debug logging for login errors
     if (path.includes("/auth/login")) {
@@ -100,7 +103,17 @@ async function send<T>(path: string, options: RequestOptions, hasRetried: boolea
       console.error("[httpClient] Response body:", payload);
     }
     
-    throw new ApiError(message, response.status, problem ?? undefined);
+    const error = new ApiError(message, response.status, problem ?? undefined);
+    if (response.status === 429) {
+      const retryAfter = response.headers.get("Retry-After");
+      const seconds = retryAfter === null
+        ? problem?.retryAfterSeconds ?? 60
+        : /^\d+$/.test(retryAfter)
+          ? Number(retryAfter)
+          : (Date.parse(retryAfter) - Date.now()) / 1000;
+      error.retryAfterSeconds = Number.isFinite(seconds) ? Math.max(1, Math.ceil(seconds)) : 60;
+    }
+    throw error;
   }
 
   return payload as ApiResponse<T>;
@@ -108,6 +121,9 @@ async function send<T>(path: string, options: RequestOptions, hasRetried: boolea
 
 export function formatApiError(error: unknown): string {
   if (error instanceof ApiError) {
+    if (error.status === 429) {
+      return `Too many attempts. Please wait ${error.retryAfterSeconds ?? 60} seconds before trying again.`;
+    }
     const fieldErrors = error.problem?.errors
       ? Object.entries(error.problem.errors)
           .flatMap(([field, messages]) => messages.map((message) => `${formatFieldName(field)}: ${message}`))
