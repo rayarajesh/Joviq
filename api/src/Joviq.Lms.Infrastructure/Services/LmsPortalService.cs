@@ -402,6 +402,37 @@ public sealed class LmsPortalService(
             enrollment);
     }
 
+    public async Task<LessonResponse> CompleteLessonAsync(Guid studentId, Guid lessonId, CancellationToken cancellationToken)
+    {
+        var enrollment = await RequireEnrollmentAsync(studentId, cancellationToken);
+        var lesson = await dbContext.Lessons
+            .Include(item => item.Module)
+            .Include(item => item.Resources)
+            .FirstOrDefaultAsync(item => item.Id == lessonId && item.IsActive && item.Module != null && item.Module.ProgramId == enrollment.ProgramId, cancellationToken)
+            ?? throw new AppException("Lesson was not found.", 404, "lesson_not_found");
+
+        var progress = await dbContext.LessonProgress
+            .FirstOrDefaultAsync(item => item.StudentId == studentId && item.LessonId == lessonId, cancellationToken);
+
+        if (progress is null)
+        {
+            progress = new LessonProgress
+            {
+                Id = Guid.NewGuid(),
+                StudentId = studentId,
+                LessonId = lessonId
+            };
+            dbContext.LessonProgress.Add(progress);
+        }
+
+        progress.IsCompleted = true;
+        progress.ProgressPercentage = 100;
+        progress.CompletedAt ??= clock.UtcNow;
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return MapLesson(lesson, enrollment, progress);
+    }
+
     public async Task<EnrollmentResponse> CreateEnrollmentAsync(
         Guid studentId,
         CreateEnrollmentRequest request,
@@ -1985,8 +2016,10 @@ public sealed class LmsPortalService(
         var coupon = new Coupon
         {
             Id = Guid.NewGuid(),
+            Name = RequiredText(request.Name, nameof(request.Name), 2, 180),
             Code = code,
-            Description = RequiredText(request.Description, nameof(request.Description), 2, 500),
+            Description = OptionalText(request.Description, 500) ?? string.Empty,
+            Tag = OptionalText(request.Tag, 80),
             DiscountValue = request.DiscountValue,
             IsPercentage = request.IsPercentage,
             IsActive = request.IsActive,
@@ -2026,7 +2059,9 @@ public sealed class LmsPortalService(
         }
 
         coupon.Code = code;
-        coupon.Description = RequiredText(request.Description, nameof(request.Description), 2, 500);
+        coupon.Name = RequiredText(request.Name, nameof(request.Name), 2, 180);
+        coupon.Description = OptionalText(request.Description, 500) ?? string.Empty;
+        coupon.Tag = OptionalText(request.Tag, 80);
         coupon.DiscountValue = request.DiscountValue;
         coupon.IsPercentage = request.IsPercentage;
         coupon.IsActive = request.IsActive;
@@ -2938,8 +2973,10 @@ public sealed class LmsPortalService(
     {
         return new CouponResponse(
             coupon.Id,
+            string.IsNullOrWhiteSpace(coupon.Name) ? coupon.Code : coupon.Name,
             coupon.Code,
             coupon.Description,
+            coupon.Tag,
             coupon.DiscountValue,
             coupon.IsPercentage,
             coupon.IsActive,

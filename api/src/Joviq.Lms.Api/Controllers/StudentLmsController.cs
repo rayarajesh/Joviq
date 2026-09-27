@@ -44,6 +44,15 @@ public sealed class StudentLmsController(
         return Ok(ApiResponse<StudentMyProgramsResponse>.Ok(result, "Enrolled programs loaded.", CorrelationId));
     }
 
+    [HttpPost("lessons/{lessonId:guid}/complete")]
+    public async Task<ActionResult<ApiResponse<LessonResponse>>> CompleteLesson(
+        Guid lessonId,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.CompleteLessonAsync(RequiredUserId, lessonId, cancellationToken);
+        return Ok(ApiResponse<LessonResponse>.Ok(result, "Lesson marked as complete.", CorrelationId));
+    }
+
     [HttpPost("enrollments")]
     public async Task<ActionResult<ApiResponse<EnrollmentResponse>>> CreateEnrollment(
         CreateEnrollmentRequest request,

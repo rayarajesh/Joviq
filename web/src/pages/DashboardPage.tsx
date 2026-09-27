@@ -1,5 +1,6 @@
 import "../styles/admin-modules.css";
 import { AcademyOverview } from "../components/AcademyOverview";
+import { AdminCallbackRequests } from "../components/AdminCallbackRequests";
 import { CertificateArtwork } from "../components/CertificateArtwork";
 import { StudentOverview } from "../components/StudentOverview";
 import {
@@ -67,6 +68,7 @@ import {
   Zap,
   ListChecks,
   UsersRound,
+  PhoneCall,
 } from "lucide-react";
 import { IndiaMobileInput } from "../components/IndiaMobileInput";
 import { CurriculumAdminPanel } from "../components/CurriculumAdminPanel";
@@ -100,6 +102,7 @@ import type {
   AuditLogResponse,
   CertificateResponse,
   CouponResponse,
+  CreateCouponRequest,
   CurriculumModuleResponse,
   EnrollmentResponse,
   IssueCertificateRequest,
@@ -198,6 +201,7 @@ const dashboardNavItems: Record<PrimaryRole, string[]> = {
     "Certificates",
     "Students",
     "Enrollments",
+    "Callback Requests",
     "Payments",
     "Coupons",
     "Audit Logs",
@@ -224,6 +228,7 @@ const adminNavGroups: DashboardNavGroup[] = [
   },
   { label: "People", items: ["Students", "Enrollments"] },
   { label: "Billing", items: ["Payments", "Coupons"] },
+  { label: "Inquiries", items: ["Callback Requests"] },
   { label: "System", items: ["Audit Logs"] },
 ];
 
@@ -239,6 +244,7 @@ const moduleIconMap: Record<string, ComponentType<{ size?: number }>> = {
   Payments: CreditCard,
   Coupons: BadgePercent,
   Certificates: Award,
+  "Callback Requests": PhoneCall,
   Notifications: Bell,
   Profile: UserRoundCheck,
   "Audit Logs": ShieldCheck,
@@ -293,7 +299,7 @@ export function DashboardPage({
   const hideDashboardHeader =
     usesAdminModuleHero ||
     (primaryRole === "Admin" &&
-      ["Overview", "Enrollments", "Payments"].includes(activeModule)) ||
+      ["Overview", "Enrollments", "Payments", "Callback Requests"].includes(activeModule)) ||
     (primaryRole === "Student" &&
       [
         "My Program",
@@ -464,6 +470,12 @@ function AdminDashboard({
   );
   const [actionUserId, setActionUserId] = useState<string | null>(null);
   const students = studentsPage?.items ?? [];
+  const handleCallbackMessage = useCallback(
+    (text: string, tone: "success" | "error" = "success") => {
+      setMessage({ tone, text });
+    },
+    [],
+  );
 
   const loadDashboard = useCallback(async () => {
     setIsLoading(true);
@@ -702,7 +714,6 @@ function AdminDashboard({
     <section className="dashboard-stack">
       {showOverview ? (
         <AdminOverview
-          auditLogs={auditLogs}
           categories={programCategories}
           certificates={adminCertificates}
           coupons={adminCoupons}
@@ -739,7 +750,11 @@ function AdminDashboard({
         />
       ) : null}
 
-      {!showOverview && !showPeopleModule ? (
+      {activeModule === "Callback Requests" ? (
+        <AdminCallbackRequests onMessage={handleCallbackMessage} />
+      ) : null}
+
+      {!showOverview && !showPeopleModule && activeModule !== "Callback Requests" ? (
         <AdminLmsPanel
           activeModule={activeModule}
           adminCertificates={adminCertificates}
@@ -763,7 +778,6 @@ function AdminDashboard({
 }
 
 function AdminOverview({
-  auditLogs,
   categories,
   certificates,
   coupons,
@@ -775,7 +789,6 @@ function AdminOverview({
   projects,
   summary,
 }: {
-  auditLogs: AuditLogResponse[];
   categories: ProgramCategoryResponse[];
   certificates: CertificateResponse[];
   coupons: CouponResponse[];
@@ -799,9 +812,13 @@ function AdminOverview({
   const activeEnrollments =
     lmsSummary?.activeEnrollments ??
     enrollments.filter((enrollment) => enrollment.status === "Active").length;
-  const projectReviews =
+  const pendingSubmissions =
     lmsSummary?.pendingProjectReviews ??
     projects.filter((project) => !project.latestSubmission).length;
+  const newCallbackRequests = lmsSummary?.newCallbackRequests ?? 0;
+  const pendingPayments = payments.filter(
+    (payment) => payment.status === "Pending",
+  ).length;
   const activeCoupons = coupons.filter((coupon) => coupon.isActive).length;
   const issuedCertificates = certificates.filter(
     (certificate) => certificate.status === "Issued",
@@ -843,10 +860,10 @@ function AdminOverview({
       tone: "teal",
     },
     {
-      icon: FolderKanban,
-      label: "Reviews",
-      value: projectReviews,
-      detail: "Project queue",
+      icon: PhoneCall,
+      label: "Callback requests",
+      value: newCallbackRequests,
+      detail: "New enquiries",
       tone: "rose",
     },
   ];
@@ -854,8 +871,8 @@ function AdminOverview({
   const priorities = [
     {
       icon: FolderKanban,
-      label: "Project reviews",
-      value: projectReviews,
+      label: "Pending submissions",
+      value: pendingSubmissions,
       module: "Projects",
     },
     {
@@ -875,6 +892,37 @@ function AdminOverview({
       label: "Issued certificates",
       value: issuedCertificates,
       module: "Certificates",
+    },
+  ];
+
+  const actionItems = [
+    {
+      icon: PhoneCall,
+      label: "Callback requests",
+      detail: "New enquiries to respond to",
+      value: newCallbackRequests,
+      module: "Callback Requests",
+    },
+    {
+      icon: CreditCard,
+      label: "Payment verification",
+      detail: "Transactions awaiting review",
+      value: pendingPayments,
+      module: "Payments",
+    },
+    {
+      icon: UsersRound,
+      label: "Student accounts",
+      detail: "Pending email verification",
+      value: pendingUsers,
+      module: "Students",
+    },
+    {
+      icon: Tags,
+      label: "Active coupons",
+      detail: "Offers currently running",
+      value: activeCoupons,
+      module: "Coupons",
     },
   ];
 
@@ -898,7 +946,7 @@ function AdminOverview({
         }))}
       kpis={kpis}
       priorities={priorities}
-      logs={auditLogs}
+      actionItems={actionItems}
       loading={isLoading}
       openModule={openModule}
       enrollmentDates={enrollments.map((item) => item.enrolledAt)}
@@ -914,6 +962,8 @@ type ProgramProjectDraft = {
   title: string;
   description: string;
 };
+
+type CouponTargetMode = "all" | "courses" | "students";
 
 function AdminLmsPanel({
   activeModule,
@@ -992,6 +1042,10 @@ function AdminLmsPanel({
   const [categoryEditor, setCategoryEditor] =
     useState<ProgramCategoryResponse | null>(null);
   const [isSavingCategory, setIsSavingCategory] = useState(false);
+  const [isCouponDialogOpen, setIsCouponDialogOpen] = useState(false);
+  const [couponTargetMode, setCouponTargetMode] =
+    useState<CouponTargetMode>("all");
+  const [auditLogSearch, setAuditLogSearch] = useState("");
   const [projectDialogMode, setProjectDialogMode] = useState<
     "create" | "edit" | null
   >(null);
@@ -2024,32 +2078,43 @@ function AdminLmsPanel({
     const form = new FormData(formElement);
 
     try {
-      await adminLmsApi.createCoupon({
+      const couponRequest: CreateCouponRequest = {
+        name: String(form.get("name") ?? "").trim(),
         code: String(form.get("code") ?? "").trim(),
         description: String(form.get("description") ?? "").trim(),
+        tag: String(form.get("tag") ?? "").trim() || undefined,
         discountValue: Number(form.get("discountValue") ?? 0),
         isPercentage: form.get("discountType") === "percentage",
-        isActive: form.get("isActive") === "on",
-        audienceType: Number(form.get("audienceType") ?? 1) as 1 | 2 | 3 | 4,
+        isActive: true,
+        audienceType: couponTargetMode === "students" ? 4 : 1,
         minimumOrderAmount:
           Number(form.get("minimumOrderAmount") || 0) || undefined,
-        maximumDiscountAmount:
-          Number(form.get("maximumDiscountAmount") || 0) || undefined,
         maxRedemptions: Number(form.get("maxRedemptions") || 0) || undefined,
-        maxRedemptionsPerStudent: Number(
-          form.get("maxRedemptionsPerStudent") || 1,
-        ),
-        startsAt: String(form.get("startsAt") ?? "") || undefined,
-        expiresAt: String(form.get("expiresAt") ?? "") || undefined,
-        targetStudentIds: form.getAll("targetStudentIds").map(String),
-        targetStudentEmails: String(form.get("targetStudentEmails") ?? "")
-          .split(/[\n,;]+/)
-          .map((value) => value.trim())
-          .filter(Boolean),
-        targetProgramIds: form.getAll("targetProgramIds").map(String),
-        targetCategoryIds: form.getAll("targetCategoryIds").map(String),
-      });
+        maxRedemptionsPerStudent: 1,
+        startsAt: toCouponDateTime(String(form.get("startsAt") ?? "")),
+        expiresAt: toCouponDateTime(String(form.get("expiresAt") ?? ""), true),
+        targetStudentIds:
+          couponTargetMode === "students"
+            ? form.getAll("targetStudentIds").map(String)
+            : [],
+        targetStudentEmails:
+          couponTargetMode === "students"
+            ? String(form.get("targetStudentEmails") ?? "")
+                .split(/[\n,;]+/)
+                .map((value) => value.trim())
+                .filter(Boolean)
+            : [],
+        targetProgramIds:
+          couponTargetMode === "courses"
+            ? form.getAll("targetProgramIds").map(String)
+            : [],
+        targetCategoryIds: [],
+      };
+
+      await adminLmsApi.createCoupon(couponRequest);
       formElement.reset();
+      setIsCouponDialogOpen(false);
+      setCouponTargetMode("all");
       onMessage({ tone: "success", text: "Coupon created." });
       await onRefresh();
     } catch (error) {
@@ -2065,8 +2130,10 @@ function AdminLmsPanel({
 
     try {
       await adminLmsApi.updateCoupon(coupon.id, {
+        name: coupon.name,
         code: coupon.code,
         description,
+        tag: coupon.tag,
         discountValue: coupon.discountValue,
         isPercentage: coupon.isPercentage,
         isActive: coupon.isActive,
@@ -2235,7 +2302,8 @@ function AdminLmsPanel({
   const isCurriculumModule = activeModule === "Curriculum";
   const usesCatalogModuleHero = isCategoriesModule || isProgramsModule;
   const showGenericLmsHero =
-    !isCurriculumModule && !["Enrollments", "Payments"].includes(activeModule);
+    !isCurriculumModule &&
+    !["Enrollments", "Payments", "Coupons", "Audit Logs"].includes(activeModule);
   const selectedCategorySlug = searchParams.get("category");
   const selectedProgramCategory = selectedCategorySlug
     ? categories.find(
@@ -2275,6 +2343,24 @@ function AdminLmsPanel({
     filteredProjectStudents.every((student) =>
       selectedProjectStudentIds.includes(student.studentId),
     );
+  const normalizedAuditLogSearch = auditLogSearch.trim().toLowerCase();
+  const visibleAuditLogs = auditLogs.filter((log) => {
+    if (!normalizedAuditLogSearch) {
+      return true;
+    }
+
+    return [
+      log.eventType,
+      log.email,
+      log.phone,
+      log.ipAddress,
+      log.metadataJson,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase()
+      .includes(normalizedAuditLogSearch);
+  });
   const showPrograms = activeModule === "Programs";
   const showModule = (module: string) => activeModule === module;
 
@@ -4812,9 +4898,31 @@ function AdminLmsPanel({
 
         {showModule("Coupons") ? (
           <section className="lms-list-panel lms-list-panel--wide">
-            <h3>Coupons</h3>
+            <div className="coupon-admin-actions">
+              <p>Create and manage offers for your learners.</p>
+              <button
+                className="primary-action"
+                type="button"
+                onClick={() => setIsCouponDialogOpen(true)}
+              >
+                <Tags size={16} /> Create discount
+              </button>
+            </div>
+            {isCouponDialogOpen ? (
+              <CouponDiscountDialog
+                programs={programs}
+                students={students}
+                targetMode={couponTargetMode}
+                onClose={() => {
+                  setIsCouponDialogOpen(false);
+                  setCouponTargetMode("all");
+                }}
+                onSubmit={createCoupon}
+                onTargetModeChange={setCouponTargetMode}
+              />
+            ) : null}
             <form
-              className="lms-mini-form coupon-admin-form"
+              className="lms-mini-form coupon-admin-form coupon-admin-form--legacy"
               onSubmit={createCoupon}
             >
               <div className="coupon-admin-form__grid">
@@ -4972,8 +5080,11 @@ function AdminLmsPanel({
               {adminCoupons.map((coupon) => (
                 <article key={coupon.id} className="lms-list-item">
                   <div>
-                    <strong>{coupon.code}</strong>
-                    <span>{coupon.description}</span>
+                    <strong>{coupon.name || coupon.code}</strong>
+                    <span>
+                      {coupon.code}
+                      {coupon.description ? ` · ${coupon.description}` : ""}
+                    </span>
                   </div>
                   <div className="lms-row-actions">
                     <small>
@@ -4981,6 +5092,7 @@ function AdminLmsPanel({
                         ? `${coupon.discountValue}%`
                         : formatCurrency(coupon.discountValue)}
                     </small>
+                    {coupon.tag ? <small>{coupon.tag}</small> : null}
                     <button
                       type="button"
                       onClick={() => void editCoupon(coupon)}
@@ -5238,33 +5350,368 @@ function AdminLmsPanel({
         ) : null}
 
         {showModule("Audit Logs") ? (
-          <section className="lms-list-panel lms-list-panel--wide">
-            <h3>Audit logs</h3>
-            <div className="lms-scroll-list">
-              {auditLogs.length === 0 ? (
-                <div className="table-state">
-                  No audit logs in the last 15 days.
+          <section className="lms-list-panel lms-list-panel--wide audit-log-panel">
+            <div className="audit-log-toolbar">
+              <label className="audit-log-search">
+                <Search size={17} />
+                <span className="sr-only">Search audit logs</span>
+                <input
+                  value={auditLogSearch}
+                  onChange={(event) => setAuditLogSearch(event.target.value)}
+                  placeholder="Search by action, email, phone, or IP address"
+                />
+              </label>
+              <div className="audit-log-count">
+                <strong>{visibleAuditLogs.length}</strong>
+                <span>{visibleAuditLogs.length === 1 ? "entry" : "entries"} shown</span>
+              </div>
+              <div className="audit-log-retention-note">
+                <ShieldCheck size={17} />
+                <span>
+                  <strong>15-day retention</strong>
+                  <small>Older records are removed automatically.</small>
+                </span>
+              </div>
+            </div>
+
+            <div className="audit-log-table-wrap">
+              {visibleAuditLogs.length === 0 ? (
+                <div className="audit-log-empty">
+                  <FileText size={34} />
+                  <strong>
+                    {auditLogs.length === 0
+                      ? "No audit activity in the last 15 days"
+                      : "No matching audit logs"}
+                  </strong>
+                  <span>
+                    {auditLogs.length === 0
+                      ? "Sign-ins and admin actions will appear here."
+                      : "Try a different search term."}
+                  </span>
                 </div>
               ) : null}
-              {auditLogs.map((log) => (
-                <article key={log.id} className="lms-list-item">
-                  <div>
-                    <strong>{log.eventType}</strong>
-                    <span>
-                      {formatDateTime(log.createdAt)} - {log.userId ?? "public"}
-                    </span>
-                    {log.metadataJson ? (
-                      <span>{compactJson(log.metadataJson)}</span>
-                    ) : null}
-                  </div>
-                  <small>15 day retention</small>
-                </article>
-              ))}
+              {visibleAuditLogs.length > 0 ? (
+                <table className="audit-log-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Activity</th>
+                      <th scope="col">Actor</th>
+                      <th scope="col">Source</th>
+                      <th scope="col">Date &amp; time</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Details</th>
+                      <th scope="col">Retention</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleAuditLogs.map((log) => {
+                      const presentation = getAuditLogPresentation(log.eventType);
+                      const metadata = getAuditLogMetadata(log.metadataJson);
+
+                      return (
+                        <tr key={log.id}>
+                          <td>
+                            <div className="audit-log-table__activity">
+                              <span className={`audit-log-table__icon audit-log-table__icon--${presentation.tone}`}>
+                                {presentation.tone === "success" ? (
+                                  <CheckCircle2 size={17} />
+                                ) : presentation.tone === "warning" ? (
+                                  <ShieldCheck size={17} />
+                                ) : (
+                                  <FileText size={17} />
+                                )}
+                              </span>
+                              <span>
+                                <strong>{presentation.title}</strong>
+                                <small>{presentation.category}</small>
+                                <em>{presentation.description}</em>
+                              </span>
+                            </div>
+                          </td>
+                          <td>
+                            <span className="audit-log-table__actor">
+                              <UserRoundCheck size={14} />
+                              {getAuditLogActor(log)}
+                            </span>
+                          </td>
+                          <td>
+                            <span className="audit-log-table__source">
+                              <ShieldCheck size={14} />
+                              {getAuditLogSource(log)}
+                            </span>
+                          </td>
+                          <td>
+                            <time className="audit-log-table__date" dateTime={log.createdAt}>
+                              <CalendarDays size={14} />
+                              {formatAuditLogDate(log.createdAt)}
+                            </time>
+                          </td>
+                          <td>
+                            <span className={`audit-log-status audit-log-status--${presentation.tone}`}>
+                              {presentation.status}
+                            </span>
+                          </td>
+                          <td>
+                            {metadata.length > 0 ? (
+                              <div className="audit-log-table__details">
+                                {metadata.map((item) => (
+                                  <span key={item}>{item}</span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="audit-log-table__muted">No extra details</span>
+                            )}
+                          </td>
+                          <td>
+                            <span className="audit-log-table__retention">
+                              <ShieldCheck size={14} /> 15 days
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              ) : null}
             </div>
           </section>
         ) : null}
       </div>
     </section>
+  );
+}
+
+function CouponDiscountDialog({
+  programs,
+  students,
+  targetMode,
+  onClose,
+  onSubmit,
+  onTargetModeChange,
+}: {
+  programs: ProgramSummaryResponse[];
+  students: AdminUserResponse[];
+  targetMode: CouponTargetMode;
+  onClose: () => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onTargetModeChange: (mode: CouponTargetMode) => void;
+}) {
+  const [discountType, setDiscountType] = useState<"fixed" | "percentage">(
+    "fixed",
+  );
+
+  return (
+    <div
+      className="coupon-discount-dialog-backdrop"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="coupon-discount-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="coupon-discount-dialog-title"
+      >
+        <header className="coupon-discount-dialog__header">
+          <div>
+            <span className="coupon-discount-dialog__title-row">
+              <Tags size={22} />
+              <h2 id="coupon-discount-dialog-title">Create Discount</h2>
+            </span>
+            <p>Set up a new offer, coupon, or discount rule.</p>
+          </div>
+          <button
+            className="coupon-discount-dialog__close"
+            type="button"
+            aria-label="Close create discount dialog"
+            onClick={onClose}
+          >
+            <X size={20} />
+          </button>
+        </header>
+
+        <form onSubmit={onSubmit}>
+          <div className="coupon-discount-dialog__body">
+            <div className="coupon-discount-dialog__fields">
+              <label className="coupon-discount-field coupon-discount-field--full">
+                <span>Name <b>*</b></span>
+                <input
+                  name="name"
+                  placeholder="e.g. Diwali 2025 Offer"
+                  required
+                  autoFocus
+                />
+              </label>
+              <label className="coupon-discount-field coupon-discount-field--full">
+                <span>Coupon Code <b>*</b></span>
+                <input
+                  name="code"
+                  placeholder="E.G. DIWALI20"
+                  style={{ textTransform: "uppercase" }}
+                  required
+                />
+              </label>
+              <label className="coupon-discount-field">
+                <span>Type <b>*</b></span>
+                <select
+                  name="discountType"
+                  value={discountType}
+                  onChange={(event) =>
+                    setDiscountType(event.target.value as "fixed" | "percentage")
+                  }
+                >
+                  <option value="fixed">Flat Amount (₹)</option>
+                  <option value="percentage">Percentage (%)</option>
+                </select>
+              </label>
+              <label className="coupon-discount-field">
+                <span>Value <b>*</b></span>
+                <div className="coupon-discount-input-prefix">
+                  <span>{discountType === "fixed" ? "₹" : "%"}</span>
+                  <input
+                    name="discountValue"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    placeholder="500"
+                    required
+                  />
+                </div>
+              </label>
+              <label className="coupon-discount-field">
+                <span>Tag <em>(optional)</em></span>
+                <select name="tag" defaultValue="">
+                  <option value="">None</option>
+                  <option value="Festival">Festival</option>
+                  <option value="Early Bird">Early Bird</option>
+                  <option value="Student Offer">Student Offer</option>
+                </select>
+              </label>
+              <label className="coupon-discount-field">
+                <span>Max Uses <em>(optional)</em></span>
+                <input
+                  name="maxRedemptions"
+                  type="number"
+                  min="1"
+                  placeholder="Unlimited"
+                />
+              </label>
+              <label className="coupon-discount-field coupon-discount-field--full">
+                <span>Min Invoice Amount <em>(optional)</em></span>
+                <div className="coupon-discount-input-prefix">
+                  <span>₹</span>
+                  <input
+                    name="minimumOrderAmount"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="No minimum"
+                  />
+                </div>
+              </label>
+              <label className="coupon-discount-field">
+                <span>Start Date <em>(optional)</em></span>
+                <input name="startsAt" type="date" />
+              </label>
+              <label className="coupon-discount-field">
+                <span>End Date <em>(optional)</em></span>
+                <input name="expiresAt" type="date" />
+              </label>
+              <label className="coupon-discount-field coupon-discount-field--full">
+                <span>Description <em>(optional)</em></span>
+                <textarea
+                  name="description"
+                  rows={3}
+                  placeholder="Internal note..."
+                />
+              </label>
+            </div>
+
+            <div className="coupon-discount-dialog__targets">
+              <div className="coupon-discount-field__legend">
+                Applies To <b>*</b>
+              </div>
+              <div className="coupon-target-options">
+                <button
+                  type="button"
+                  className={targetMode === "all" ? "is-selected" : ""}
+                  onClick={() => onTargetModeChange("all")}
+                >
+                  <UsersRound size={18} /> All Students
+                </button>
+                <button
+                  type="button"
+                  className={targetMode === "courses" ? "is-selected" : ""}
+                  onClick={() => onTargetModeChange("courses")}
+                >
+                  <BookOpen size={18} /> Course(s)
+                </button>
+                <button
+                  type="button"
+                  className={targetMode === "students" ? "is-selected" : ""}
+                  onClick={() => onTargetModeChange("students")}
+                >
+                  <UsersRound size={18} /> Student(s)
+                </button>
+              </div>
+
+              {targetMode === "all" ? (
+                <div className="coupon-target-hint">
+                  This discount applies to all students automatically — no specific target needed.
+                </div>
+              ) : null}
+              {targetMode === "courses" ? (
+                <label className="coupon-discount-field coupon-target-picker">
+                  <span>Select course(s) <b>*</b></span>
+                  <select name="targetProgramIds" multiple required size={5}>
+                    {programs.map((program) => (
+                      <option key={program.id} value={program.id}>
+                        {program.title}
+                      </option>
+                    ))}
+                  </select>
+                  <small>Hold Ctrl/Cmd to select more than one course.</small>
+                </label>
+              ) : null}
+              {targetMode === "students" ? (
+                <div className="coupon-target-picker">
+                  <label className="coupon-discount-field">
+                    <span>Select student(s)</span>
+                    <select name="targetStudentIds" multiple size={5}>
+                      {students.map((student) => (
+                        <option key={student.id} value={student.id}>
+                          {student.fullName} · {student.email}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="coupon-discount-field">
+                    <span>Or enter student email(s)</span>
+                    <textarea
+                      name="targetStudentEmails"
+                      rows={3}
+                      placeholder="student@example.com, another@example.com"
+                    />
+                    <small>Separate multiple emails with commas or new lines.</small>
+                  </label>
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <footer className="coupon-discount-dialog__footer">
+            <button className="coupon-dialog-cancel" type="button" onClick={onClose}>
+              Cancel
+            </button>
+            <button className="coupon-dialog-submit" type="submit">
+              Create Discount
+            </button>
+          </footer>
+        </form>
+      </div>
+    </div>
   );
 }
 
@@ -6812,6 +7259,15 @@ function toDateTimeLocalValue(value?: string) {
   return localDate.toISOString().slice(0, 16);
 }
 
+function toCouponDateTime(value: string, endOfDay = false) {
+  if (!value) {
+    return undefined;
+  }
+
+  const date = new Date(`${value}T${endOfDay ? "23:59:59.999" : "00:00:00"}`);
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+}
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -6965,12 +7421,219 @@ function parseMultilineList(value: string) {
     .filter(Boolean);
 }
 
-function compactJson(value: string) {
+type AuditLogTone = "success" | "warning" | "info";
+
+type AuditLogPresentation = {
+  category: string;
+  description: string;
+  status: string;
+  title: string;
+  tone: AuditLogTone;
+};
+
+function getAuditLogPresentation(eventType: string): AuditLogPresentation {
+  const rawEvent = eventType.split(".").filter(Boolean).pop() ?? eventType;
+  const normalizedEvent = rawEvent.toLowerCase();
+  const knownEvents: Record<string, AuditLogPresentation> = {
+    loginsucceeded: {
+      category: "Authentication",
+      description: "A user signed in successfully.",
+      status: "Successful",
+      title: "Successful sign-in",
+      tone: "success",
+    },
+    loginfailed: {
+      category: "Authentication",
+      description: "A sign-in attempt was rejected.",
+      status: "Needs attention",
+      title: "Sign-in failed",
+      tone: "warning",
+    },
+    refreshtokenrotated: {
+      category: "Authentication",
+      description: "An active session refreshed its access token.",
+      status: "Completed",
+      title: "Session refreshed",
+      tone: "info",
+    },
+    userregistered: {
+      category: "Account",
+      description: "A new user account was created.",
+      status: "Completed",
+      title: "New account registered",
+      tone: "success",
+    },
+    passwordchanged: {
+      category: "Account security",
+      description: "A user password was changed successfully.",
+      status: "Completed",
+      title: "Password changed",
+      tone: "success",
+    },
+    passwordresetsucceeded: {
+      category: "Account security",
+      description: "A password reset was completed successfully.",
+      status: "Completed",
+      title: "Password reset completed",
+      tone: "success",
+    },
+  };
+
+  if (knownEvents[normalizedEvent]) {
+    return knownEvents[normalizedEvent];
+  }
+
+  const actionSuffixes = [
+    "Succeeded",
+    "Failed",
+    "Created",
+    "Updated",
+    "Deleted",
+    "Verified",
+    "Requested",
+    "Submitted",
+    "Published",
+    "Archived",
+    "Issued",
+    "Activated",
+    "Completed",
+    "Rotated",
+    "Registered",
+    "Changed",
+    "Locked",
+    "Unlocked",
+    "Revoked",
+    "Read",
+  ];
+  const action = actionSuffixes.find((suffix) => rawEvent.endsWith(suffix));
+  const subject = action
+    ? rawEvent.slice(0, -action.length) ||
+      eventType.split(".").filter(Boolean).slice(-2, -1)[0] ||
+      "System action"
+    : rawEvent;
+  const title = `${humanizeAuditKey(subject)}${action ? ` ${action.toLowerCase()}` : ""}`;
+  const isWarning = /failed|deleted|locked|revoked/i.test(rawEvent);
+  const category = eventType.includes("Admin")
+    ? "Admin activity"
+    : eventType.includes("Student")
+      ? "Student activity"
+      : eventType.includes("Assets")
+        ? "Asset activity"
+        : "System activity";
+
+  return {
+    category,
+    description: "This activity was recorded for administrative traceability.",
+    status: isWarning ? "Needs attention" : action ? "Completed" : "Recorded",
+    title,
+    tone: isWarning ? "warning" : action ? "success" : "info",
+  };
+}
+
+function getAuditLogActor(log: AuditLogResponse) {
+  if (log.email) {
+    return log.email;
+  }
+
+  if (log.phone) {
+    return log.phone;
+  }
+
+  if (log.eventType.includes("Admin") || log.eventType.includes("Lms.Admin")) {
+    return "Joviq Admin";
+  }
+
+  return log.userId ? `User ${shortAuditIdentifier(log.userId)}` : "Public visitor";
+}
+
+function getAuditLogSource(log: AuditLogResponse) {
+  if (log.ipAddress) {
+    return log.ipAddress;
+  }
+
+  if (log.eventType.includes("Admin") || log.eventType.includes("Lms.Admin")) {
+    return "Admin workspace";
+  }
+
+  if (log.eventType.includes("Student")) {
+    return "Student portal";
+  }
+
+  if (log.eventType.includes("Auth") || /login|token|password/i.test(log.eventType)) {
+    return "Authentication service";
+  }
+
+  return "Joviq LMS";
+}
+
+function getAuditLogMetadata(value?: string) {
+  if (!value) {
+    return [];
+  }
+
   try {
-    return JSON.stringify(JSON.parse(value));
+    const parsed = JSON.parse(value) as Record<string, unknown>;
+    const data =
+      parsed.data && typeof parsed.data === "object" && !Array.isArray(parsed.data)
+        ? (parsed.data as Record<string, unknown>)
+        : parsed;
+
+    return Object.entries(data)
+      .filter(([key]) => !["actorUserId", "actorSessionId", "actorRoles"].includes(key))
+      .map(([key, item]) => `${humanizeAuditKey(key)}: ${formatAuditValue(item)}`)
+      .filter((item) => !item.endsWith(": -"))
+      .slice(0, 4);
   } catch {
+    return [];
+  }
+}
+
+function formatAuditValue(value: unknown): string {
+  if (value === null || value === undefined || value === "") {
+    return "-";
+  }
+
+  if (Array.isArray(value)) {
+    return value.length > 2 ? `${value.length} items` : value.map(formatAuditValue).join(", ");
+  }
+
+  if (typeof value === "object") {
+    return "Details available";
+  }
+
+  const text = String(value);
+  return /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(text)
+    ? shortAuditIdentifier(text)
+    : text.length > 64
+      ? `${text.slice(0, 61)}...`
+      : text;
+}
+
+function humanizeAuditKey(value: string) {
+  return value
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function shortAuditIdentifier(value: string) {
+  return value.length > 14 ? `${value.slice(0, 8)}...${value.slice(-4)}` : value;
+}
+
+function formatAuditLogDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
     return value;
   }
+
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
 }
 
 function toSlug(value: string) {

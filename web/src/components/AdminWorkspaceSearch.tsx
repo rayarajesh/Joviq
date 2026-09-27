@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Search } from "lucide-react";
 import { Link } from "react-router-dom";
-const sections = ["Students", "Programs", "Payments", "Categories", "Curriculum", "Projects", "Certificates", "Enrollments", "Coupons", "Audit Logs"];
+const sections = ["Students", "Programs", "Payments", "Categories", "Curriculum", "Projects", "Certificates", "Enrollments", "Callback Requests", "Coupons", "Audit Logs"];
 export function AdminWorkspaceSearch() {
  const [query,setQuery]=useState("");
  const matches=sections.filter(item=>item.toLowerCase().includes(query.trim().toLowerCase()));

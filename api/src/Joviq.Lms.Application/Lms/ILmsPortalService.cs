@@ -24,6 +24,8 @@ public interface ILmsPortalService
 
     Task<ProgramDetailsResponse> GetStudentMyProgramAsync(Guid studentId, CancellationToken cancellationToken);
 
+    Task<LessonResponse> CompleteLessonAsync(Guid studentId, Guid lessonId, CancellationToken cancellationToken);
+
     Task<EnrollmentResponse> CreateEnrollmentAsync(Guid studentId, CreateEnrollmentRequest request, CancellationToken cancellationToken);
 
     Task<PaymentCheckoutResponse> CreatePaymentCheckoutAsync(Guid studentId, CreatePaymentCheckoutRequest request, CancellationToken cancellationToken);

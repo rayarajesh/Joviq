@@ -116,11 +116,8 @@ export function AuthenticatedNavbar() {
     <header className="auth-nav">
       <div className="auth-nav__inner">
         <Link className="auth-nav__brand" to="/dashboard" aria-label="Joviq workspace">
-          <BrandLogo compact />
-          <div>
-            <strong>Joviq Technologies</strong>
-            <small>{user.roles[0] ?? "Member"} workspace</small>
-          </div>
+          <BrandLogo className="auth-nav__logo" />
+          <small className="auth-nav__workspace-label">{user.roles[0] ?? "Member"} workspace</small>
         </Link>
 
         {user.roles.includes("Admin") ? <AdminWorkspaceSearch /> : null}

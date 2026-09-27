@@ -315,8 +315,10 @@ export type AdminLmsSummaryResponse = {
 
 export type CouponResponse = {
   id: string;
+  name: string;
   code: string;
   description: string;
+  tag?: string;
   discountValue: number;
   isPercentage: boolean;
   isActive: boolean;
@@ -507,8 +509,10 @@ export type CreateAdminNotificationRequest = {
 };
 
 export type CreateCouponRequest = {
+  name: string;
   code: string;
   description: string;
+  tag?: string;
   discountValue: number;
   isPercentage: boolean;
   isActive?: boolean;

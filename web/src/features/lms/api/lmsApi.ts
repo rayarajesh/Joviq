@@ -102,6 +102,12 @@ export const studentLmsApi = {
     );
   },
 
+  completeLesson(lessonId: string) {
+    return request<LessonResponse>(`/api/v1/student/lms/lessons/${lessonId}/complete`, {
+      method: "POST",
+    });
+  },
+
   createEnrollment(body: CreateEnrollmentRequest) {
     return request<EnrollmentResponse>("/api/v1/student/lms/enrollments", {
       method: "POST",

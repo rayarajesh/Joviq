@@ -197,8 +197,10 @@ public sealed class CouponConfiguration : IEntityTypeConfiguration<Coupon>
         builder.ToTable("coupons");
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.Code).IsUnique();
+        builder.Property(x => x.Name).HasMaxLength(180).IsRequired();
         builder.Property(x => x.Code).HasMaxLength(80).IsRequired();
         builder.Property(x => x.Description).HasMaxLength(500).IsRequired();
+        builder.Property(x => x.Tag).HasMaxLength(80);
         builder.Property(x => x.DiscountValue).HasPrecision(12, 2);
         builder.Property(x => x.AudienceType).HasConversion<string>().HasMaxLength(64);
         builder.Property(x => x.MinimumOrderAmount).HasPrecision(12, 2);

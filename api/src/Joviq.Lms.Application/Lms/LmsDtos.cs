@@ -312,8 +312,10 @@ public sealed record AdminLmsSummaryResponse(
 
 public sealed record CouponResponse(
     Guid Id,
+    string Name,
     string Code,
     string Description,
+    string? Tag,
     decimal DiscountValue,
     bool IsPercentage,
     bool IsActive,
@@ -657,9 +659,13 @@ public sealed class ReviewProjectSubmissionRequest
 
 public sealed class CreateCouponRequest
 {
+    public string Name { get; init; } = string.Empty;
+
     public string Code { get; init; } = string.Empty;
 
     public string Description { get; init; } = string.Empty;
+
+    public string? Tag { get; init; }
 
     public decimal DiscountValue { get; init; }
 

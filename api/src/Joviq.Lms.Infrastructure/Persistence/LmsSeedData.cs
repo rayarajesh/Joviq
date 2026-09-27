@@ -10,6 +10,7 @@ namespace Joviq.Lms.Infrastructure.Persistence;
 public static class LmsSeedData
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private const string SampleLessonVideoUrl = "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
 
     public static async Task SeedAsync(IServiceProvider services)
     {
@@ -111,6 +112,7 @@ public static class LmsSeedData
             dbContext.Coupons.Add(new Coupon
             {
                 Id = Guid.NewGuid(),
+                Name = "Joviq Early Access",
                 Code = "JOVIQEARLY",
                 Description = "Early learner launch discount",
                 DiscountValue = 10,
@@ -244,7 +246,7 @@ public static class LmsSeedData
                     Summary = "Structured lesson with notes, practice prompts, and project checkpoints.",
                     DurationMinutes = 45 + lessonIndex * 5,
                     AccessLevel = moduleIndex == 0 && lessonIndex == 1 ? ContentAccessLevel.Preview : ContentAccessLevel.Full,
-                    VideoUrl = $"https://learn.joviq.com/videos/{program.Slug}/lesson-{moduleIndex + 1}-{lessonIndex}",
+                    VideoUrl = SampleLessonVideoUrl,
                     NotesUrl = $"https://learn.joviq.com/notes/{program.Slug}/lesson-{moduleIndex + 1}-{lessonIndex}",
                     SortOrder = lessonIndex
                 };

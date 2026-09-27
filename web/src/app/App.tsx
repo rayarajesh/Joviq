@@ -4,6 +4,7 @@ import { useLocation } from "react-router-dom";
 import { ScrollToTopButton } from "../components/ScrollToTopButton";
 import { SocialSidebar } from "../components/SocialSidebar";
 import { WelcomePopup } from "../components/WelcomePopup";
+import { CookieConsentBanner } from "../components/CookieConsentBanner";
 import { AuthProvider } from "../features/auth/context/AuthContext";
 import { DashboardPage } from "../pages/DashboardPage";
 import { CoursePlayerPage } from "../pages/CoursePlayerPage";
@@ -26,6 +27,7 @@ import { StudentPreviewPage } from "../pages/StudentPreviewPage";
 import { PrivacyPolicyPage } from "../pages/PrivacyPolicyPage";
 import { TermsPage } from "../pages/TermsPage";
 import { RefundPolicyPage } from "../pages/RefundPolicyPage";
+import { CookiePolicyPage } from "../pages/CookiePolicyPage";
 import { CampusDelegatePage } from "../pages/CampusDelegatePage";
 import { CampusPartnersPage } from "../pages/CampusPartnersPage";
 import { CareersPage } from "../pages/CareersPage";
@@ -40,6 +42,7 @@ export function App() {
         <ScrollToTopButton />
         <SocialSidebar />
         <WelcomePopup />
+        <CookieConsentBanner />
         <Routes>
           {import.meta.env.DEV && (
             <Route
@@ -58,6 +61,7 @@ export function App() {
           <Route path="/reviews" element={<ReviewsPage />} />
           <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
           <Route path="/terms" element={<TermsPage />} />
+          <Route path="/cookie-policy" element={<CookiePolicyPage />} />
           <Route path="/return-policy" element={<RefundPolicyPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route

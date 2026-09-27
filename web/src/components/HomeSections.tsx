@@ -1,6 +1,21 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, BadgeCheck, Code2, GraduationCap, Layers3, MessagesSquare, Sparkles, Cpu, Settings, PenTool, Box, BarChart3, Blocks, Trophy, FileBadge, BriefcaseBusiness, UsersRound, BookOpen, MessageSquare } from "lucide-react";
 import { allPrograms, keyStatistics, programCategories, recognitions, successOutcomes } from "../data/siteContent";
+import { useCounter } from "./useCounter";
+
+function StatisticCard({ stat, tone, text, icon: Icon }: any) {
+  const displayValue = useCounter(stat.value, 1200);
+
+  return (
+    <article className={`learning-numbers__card learning-numbers__card--${tone}`}>
+      <span className="learning-numbers__icon"><Icon size={22} strokeWidth={1.8} aria-hidden="true" /></span>
+      <strong className="learning-numbers__value">{displayValue}</strong>
+      <h3>{stat.label}</h3>
+      <p>{text}</p>
+      <span className="learning-numbers__accent" aria-hidden="true" />
+    </article>
+  );
+}
 
 export function KeyStatisticsSection() {
   const details = [
@@ -21,15 +36,15 @@ export function KeyStatisticsSection() {
         </header>
         <div className="learning-numbers__grid">
           {keyStatistics.map((stat, index) => {
-            const { icon: Icon, text, tone } = details[index];
+            const { icon, text, tone } = details[index];
             return (
-              <article className={`learning-numbers__card learning-numbers__card--${tone}`} key={stat.label}>
-                <span className="learning-numbers__icon"><Icon size={25} strokeWidth={1.7} aria-hidden="true" /></span>
-                <strong className="learning-numbers__value">{stat.value}</strong>
-                <h3>{stat.label}</h3>
-                <p>{text}</p>
-                <span className="learning-numbers__accent" aria-hidden="true" />
-              </article>
+              <StatisticCard 
+                key={stat.label} 
+                stat={stat} 
+                tone={tone} 
+                text={text} 
+                icon={icon}
+              />
             );
           })}
         </div>

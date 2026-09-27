@@ -48,7 +48,7 @@ import { authApi } from "../features/auth/api/authApi";
 import { useAuth } from "../features/auth/context/useAuth";
 import { publicLmsApi } from "../features/lms/api/lmsApi";
 import { normalizeOAuthReturnUrl } from "../features/auth/oauthPopup";
-import { ApiError, formatApiError } from "../lib/api/httpClient";
+import { ApiError, formatApiError, request } from "../lib/api/httpClient";
 import { PasswordRecovery } from "../components/PasswordRecovery";
 import "../styles/login-flow.css";
 import { toIndiaMobileNumber } from "../lib/validation/indiaMobile";
@@ -993,13 +993,15 @@ function ImmersiveRouteHero({
 
 function CallbackRequestForm() {
   const [message, setMessage] = useState<PageMessage>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
 
-    if (!toIndiaMobileNumber(form.get("phoneNumber"))) {
+    const phone = toIndiaMobileNumber(form.get("phoneNumber"));
+    if (!phone) {
       setMessage({
         tone: "error",
         text: "Phone must be a valid India +91 mobile number with exactly 10 digits.",
@@ -1007,11 +1009,37 @@ function CallbackRequestForm() {
       return;
     }
 
-    formElement.reset();
-    setMessage({
-      tone: "success",
-      text: "Callback request captured. The team can contact you soon.",
-    });
+    setSubmitting(true);
+    try {
+      await request("/api/v1/callbackrequests", {
+        method: "POST",
+        accessToken: null,
+        skipAuthRetry: true,
+        body: {
+          fullName: (form.get("fullName") as string) ?? "",
+          email: (form.get("email") as string) ?? "",
+          phone,
+          collegeUniversity: (form.get("college") as string) || null,
+          programInterest: (form.get("program") as string) || null,
+        },
+      });
+
+      formElement.reset();
+      setMessage({
+        tone: "success",
+        text: "Your request was submitted! Our team will reach out to you soon.",
+      });
+    } catch (error) {
+      setMessage({
+        tone: "error",
+        text:
+          error instanceof ApiError
+            ? formatApiError(error)
+            : "Network error. Please check your connection and try again.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -1052,9 +1080,9 @@ function CallbackRequestForm() {
           ))}
         </select>
       </label>
-      <button type="submit">
+      <button type="submit" disabled={submitting}>
         <Send size={18} />
-        Submit request
+        {submitting ? "Submitting…" : "Submit request"}
       </button>
       <ToastMessage message={message} onDismiss={() => setMessage(null)} />
     </form>
