@@ -7,7 +7,10 @@ export function initializeJob(input) {
 }
 
 export function latestRun(job) {
-  return job?.properties?.latest_run || job?.properties?.latestRun || job?.latest_run || job?.latestRun || {};
+  const run = job?.properties?.latest_run || job?.properties?.latestRun || job?.latest_run || job?.latestRun || {};
+  // Some Azure CLI versions omit the run ID but retain its unique history URL.
+  if (!run.id && run.url) return { ...run, id: new URL(run.url).pathname.split('/').at(-1) };
+  return run;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
@@ -16,7 +19,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   switch (process.argv[2]) {
     case 'exists': process.stdout.write(job ? 'true' : 'false'); break;
     case 'id': process.stdout.write(run.id || ''); break;
-    case 'status': process.stdout.write(run.id !== process.argv[3] ? run.status || '' : ''); break;
+    case 'status': process.stdout.write(run.id && run.id !== process.argv[3] ? run.status || '' : ''); break;
     default: throw new Error('Use exists, id, or status');
   }
 }

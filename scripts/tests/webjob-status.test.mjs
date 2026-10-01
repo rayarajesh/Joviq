@@ -13,3 +13,8 @@ test('a missing job or a job without history cannot be mistaken for success', ()
   assert.equal(initializeJob([]), undefined);
   assert.deepEqual(latestRun({ name: 'initialize' }), {});
 });
+test('derives a stable run ID from the Azure CLI camelCase history URL', () => {
+  const run = latestRun({ latestRun: { url: 'https://example.scm.azurewebsites.net/api/triggeredwebjobs/initialize/history/202610010810323621', status: 'Success' } });
+  assert.equal(run.id, '202610010810323621');
+  assert.equal(run.status, 'Success');
+});

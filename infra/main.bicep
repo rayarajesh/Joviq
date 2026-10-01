@@ -273,16 +273,18 @@ resource api 'Microsoft.Web/sites@2023-12-01' = {
     httpsOnly: true
     keyVaultReferenceIdentity: runtimeIdentity.id
     virtualNetworkSubnetId: '${network.id}/subnets/app'
-    siteConfig: {
+    // WebJobs is supported by ARM but absent from the published Bicep SiteConfig type.
+    siteConfig: any({
       linuxFxVersion: 'DOTNETCORE|10.0'
       appCommandLine: 'dotnet Joviq.Lms.Api.dll'
       alwaysOn: true
+      vnetRouteAllEnabled: true
       webJobsEnabled: true
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
       healthCheckPath: '/health/ready'
       appSettings: concat(apiSettings, integrationSettings)
-    }
+    })
   }
   dependsOn: [database, postgresExtensions, containers, secretRole, blobRole, cryptoRole, secrets, protectionKey]
 }
@@ -297,16 +299,17 @@ resource releaseSlot 'Microsoft.Web/sites/slots@2023-12-01' = if (enableReleaseS
     httpsOnly: true
     keyVaultReferenceIdentity: runtimeIdentity.id
     virtualNetworkSubnetId: '${network.id}/subnets/app'
-    siteConfig: {
+    siteConfig: any({
       linuxFxVersion: 'DOTNETCORE|10.0'
       appCommandLine: 'dotnet Joviq.Lms.Api.dll'
       alwaysOn: true
+      vnetRouteAllEnabled: true
       webJobsEnabled: true
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
       healthCheckPath: '/health/ready'
       appSettings: concat(apiSettings, integrationSettings)
-    }
+    })
   }
 }
 resource alerts 'Microsoft.Insights/actionGroups@2023-01-01' = if (!empty(alertEmail)) {

@@ -15,6 +15,12 @@ fi
 az webapp deploy --resource-group "$AZURE_RESOURCE_GROUP" --name "$AZURE_API_NAME" \
   "${slot_args[@]}" --src-path "$artifact" --type zip --clean true --track-status false --output none
 
+host=$(az webapp show --resource-group "$AZURE_RESOURCE_GROUP" --name "$AZURE_API_NAME" \
+  "${slot_args[@]}" --query defaultHostName --output tsv)
+# Zip deployment returns before the Linux worker and its private-network routing are ready.
+curl --fail --silent --show-error --retry 30 --retry-all-errors --retry-delay 10 \
+  --connect-timeout 10 --max-time 30 "https://$host/health/live" --output /dev/null
+
 # Run inside App Service so PostgreSQL stays private. Compare run IDs to avoid accepting an older success.
 job_found=false
 for _attempt in $(seq 1 30); do
