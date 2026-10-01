@@ -222,6 +222,19 @@ internal sealed class AssetService(
         return new AssetFileDownload(file.Content, file.ContentType, file.FileName, file.LastModified);
     }
 
+    public async Task<string?> GetPublicStorageReadUrlAsync(Guid assetId, CancellationToken cancellationToken)
+    {
+        var asset = await GetAssetEntityAsync(assetId, cancellationToken);
+        if (asset.Status != AssetStatus.Ready || asset.Visibility != AssetVisibility.Public ||
+            asset.StorageProvider != storageProvider.ProviderName)
+            throw new AppException("Asset file was not found.", 404, "asset_file_not_found");
+
+        if (storageProvider.ProviderName == "Local") return null;
+        var read = await storageProvider.CreateReadInstructionsAsync(asset,
+            clock.UtcNow.AddMinutes(Math.Max(_options.PrivateReadUrlExpiryMinutes, 1)), cancellationToken);
+        return read.Url;
+    }
+
     public async Task<AssetFileDownload> OpenPublicLocalAssetAsync(
         Guid assetId,
         CancellationToken cancellationToken)

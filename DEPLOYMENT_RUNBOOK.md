@@ -27,6 +27,8 @@ Without `--apply`, bootstrap configures identities/GitHub settings and previews 
 
 Bootstrap generates credentials once and retains them in `.deploy-state/<environment>.json`, with owner-only filesystem permissions. This directory is ignored by Git. Do not delete it during an incomplete deployment; it permits a retry without rotating database credentials. Azure Key Vault holds deployed secrets and GitHub environment secrets hold the secure infrastructure inputs. Back up local bootstrap state securely; do not commit or share it.
 
+OIDC trust reads GitHub's current `sub_claim_prefix`, including immutable owner/repository IDs. `node scripts/bootstrap-azure.mjs <environment> --trust-only` repairs account/environment trust without deploying infrastructure. See [GitHub OIDC subject documentation](https://docs.github.com/en/actions/reference/security/oidc).
+
 If provisioning fails, inspect `az deployment group show` and `az deployment operation group list` for the environment. Retry with the same bootstrap state. Do not remove the spending limit or switch regions silently to resolve quota failures.
 
 ## Pipeline Behavior
@@ -93,7 +95,7 @@ The script also persists nonsecret settings/Key Vault references in `AZURE_INTEG
 
 Azure's built-in domains permit initial testing. No ownership of `joviq.com` has been assumed. Before public launch, configure an owned frontend/API domain, TLS, exact API and Blob CORS origins, OAuth callbacks, and provider URLs. Using sibling frontend/API subdomains avoids refresh-cookie problems caused by browser third-party-cookie policies on separate Azure domains.
 
-Blob containers are private, but the storage network endpoint is public for browser uploads and downloads using short-lived SAS URLs. Upload SAS permits creation of one blob without overwrite; completion checks declared size/content type. Private reads require API authorization. Old local/S3 files are not transferred automatically.
+Blob containers are private, but the storage network endpoint is public for browser uploads and downloads using short-lived SAS URLs. Upload SAS permits creation of one blob without overwrite; completion checks declared size/content type. Private reads require API authorization. Public thumbnails use stable API URLs that redirect to short-lived signed Blob URLs only after verifying public visibility and ready status. Old local/S3 files are not transferred automatically.
 
 Readiness: `/health/ready`; liveness: `/health/live`. API server errors and unhealthy instances alert the configured recipient. PostgreSQL backups retain 7 days in dev and 14 days in production; Blob versioning and soft delete are enabled. Monitoring ingestion has a small daily quota; quotas and budgets are not strict billing caps.
 

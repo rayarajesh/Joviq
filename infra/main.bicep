@@ -236,6 +236,7 @@ var apiSettings = [
   { name: 'Assets__Provider', value: 'AzureBlob' }
   { name: 'Assets__AzureBlob__ServiceUri', value: storage.properties.primaryEndpoints.blob }
   { name: 'Assets__AzureBlob__ContainerName', value: 'assets' }
+  { name: 'Assets__AzureBlob__PublicBaseUrl', value: 'https://${baseName}-api.azurewebsites.net' }
   { name: 'DataProtection__BlobUri', value: '${storage.properties.primaryEndpoints.blob}system/data-protection.xml' }
   { name: 'DataProtection__KeyIdentifier', value: '${vault.properties.vaultUri}keys/data-protection' }
   { name: 'Jwt__SigningKey', value: '@Microsoft.KeyVault(SecretUri=${vault.properties.vaultUri}secrets/jwt-signing-key)' }

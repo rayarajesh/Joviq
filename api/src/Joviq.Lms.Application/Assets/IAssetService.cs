@@ -17,6 +17,8 @@ public interface IAssetService
 
     Task<AssetAccessResponse> GetReadUrlAsync(Guid userId, Guid assetId, CancellationToken cancellationToken);
 
+    Task<string?> GetPublicStorageReadUrlAsync(Guid assetId, CancellationToken cancellationToken);
+
     Task UploadLocalAssetAsync(
         Guid assetId,
         string token,

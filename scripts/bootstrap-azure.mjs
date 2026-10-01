@@ -18,7 +18,10 @@ function run(tool, args, input) {
   return result.stdout.trim();
 }
 const az = (...args) => run('az', [...args, '--only-show-errors', '--output', 'json']);
-const json = (...args) => JSON.parse(az(...args));
+const json = (...args) => {
+  const output = az(...args);
+  return output ? JSON.parse(output) : undefined;
+};
 const gh = (...args) => run('gh', args);
 function save(state) { writeFileSync(statePath, JSON.stringify(state, null, 2), { mode: 0o600 }); }
 function file(name, value) {
@@ -58,6 +61,9 @@ try {
     gh('api', '--method', 'POST', `repos/${repo}/environments/${environment}/deployment-branch-policies`, '--input', file('branch.json', { name: 'main', type: 'branch' }));
   const existingVariables = JSON.parse(gh('variable', 'list', '--repo', repo, '--env', environment, '--json', 'name,value'));
   const existingValue = name => existingVariables.find(variable => variable.name === name)?.value;
+  const oidc = JSON.parse(gh('api', `repos/${repo}/actions/oidc/customization/sub`));
+  if (!oidc.use_default) throw new Error('Custom GitHub OIDC subject template requires explicit mapping before bootstrap');
+  const subject = `${oidc.sub_claim_prefix || `repo:${repo}`}:environment:${environment}`;
 
   const scope = `/subscriptions/${account.id}/resourceGroups/${state.resourceGroup}`;
   for (const purpose of ['infra', 'deploy']) {
@@ -70,10 +76,12 @@ try {
     }
     const identity = state.identities[purpose];
     const credentials = json('ad', 'app', 'federated-credential', 'list', '--id', identity.objectId);
-    if (!credentials.some(credential => credential.name === 'github-environment'))
-      json('ad', 'app', 'federated-credential', 'create', '--id', identity.objectId, '--parameters', file(`${purpose}-oidc.json`, {
+    const existingCredential = credentials.find(credential => credential.name === 'github-environment');
+    if (!existingCredential || existingCredential.subject !== subject)
+      json('ad', 'app', 'federated-credential', existingCredential ? 'update' : 'create', '--id', identity.objectId,
+        ...(existingCredential ? ['--federated-credential-id', existingCredential.id] : []), '--parameters', file(`${purpose}-oidc.json`, {
         name: 'github-environment', issuer: 'https://token.actions.githubusercontent.com',
-        subject: `repo:${repo}:environment:${environment}`, audiences: ['api://AzureADTokenExchange']
+        subject, audiences: ['api://AzureADTokenExchange']
       }));
     if (purpose === 'infra') {
       for (const role of ['Contributor', 'User Access Administrator'])
@@ -93,7 +101,7 @@ try {
     JWT_SIGNING_KEY: state.jwtSigningKey, SEED_ADMIN_PASSWORD: state.seedAdminPassword
   })) secret(name, value);
 
-  const result = spawnSync(process.execPath, ['scripts/provision.mjs'], {
+  const result = process.argv.includes('--trust-only') ? { status: 0 } : spawnSync(process.execPath, ['scripts/provision.mjs'], {
     stdio: 'inherit', env: {
       ...process.env, AZURE_RESOURCE_GROUP: state.resourceGroup, AZURE_LOCATION: state.location,
       DEPLOY_ENVIRONMENT: environment, DEPLOY_OPERATION: process.argv.includes('--apply') ? 'apply' : 'preview',

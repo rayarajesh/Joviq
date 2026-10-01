@@ -5,6 +5,7 @@ using Azure.Storage.Sas;
 using Joviq.Lms.Application.Common.Exceptions;
 using Joviq.Lms.Application.Common.Options;
 using Joviq.Lms.Domain.Entities;
+using Joviq.Lms.Domain.Enums;
 using Microsoft.Extensions.Options;
 
 namespace Joviq.Lms.Infrastructure.Services.Assets;
@@ -18,9 +19,10 @@ internal sealed class AzureBlobAssetStorageProvider : IAssetStorageProvider
     {
         _options = options.Value.AzureBlob;
         if (!Uri.TryCreate(_options.ServiceUri, UriKind.Absolute, out var serviceUri) ||
-            serviceUri.Scheme != Uri.UriSchemeHttps || string.IsNullOrWhiteSpace(_options.ContainerName))
+            serviceUri.Scheme != Uri.UriSchemeHttps || string.IsNullOrWhiteSpace(_options.ContainerName) ||
+            !Uri.TryCreate(_options.PublicBaseUrl, UriKind.Absolute, out var publicUri) || publicUri.Scheme != Uri.UriSchemeHttps)
         {
-            throw new InvalidOperationException("Azure Blob Storage requires an HTTPS ServiceUri and ContainerName.");
+            throw new InvalidOperationException("Azure Blob Storage requires HTTPS ServiceUri, PublicBaseUrl, and ContainerName.");
         }
 
         _client = new BlobServiceClient(serviceUri, new DefaultAzureCredential());
@@ -34,7 +36,9 @@ internal sealed class AzureBlobAssetStorageProvider : IAssetStorageProvider
     }
 
     public string ContainerName => _options.ContainerName;
-    public string? GetPublicUrl(Asset asset) => null;
+    public string? GetPublicUrl(Asset asset) => asset.Visibility == AssetVisibility.Public
+        ? $"{_options.PublicBaseUrl.TrimEnd('/')}/api/v1/assets/public-files/{asset.Id:D}"
+        : null;
 
     public async Task<AssetUploadInstructions> CreateUploadInstructionsAsync(
         Asset asset, string rawUploadToken, DateTimeOffset expiresAt, CancellationToken cancellationToken)

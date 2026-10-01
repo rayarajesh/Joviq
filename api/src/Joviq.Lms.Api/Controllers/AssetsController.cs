@@ -70,10 +70,16 @@ public sealed class AssetsController(
 
     [AllowAnonymous]
     [HttpGet("public-files/{assetId:guid}")]
-    public async Task<IActionResult> OpenPublicLocalAsset(
+    public async Task<IActionResult> OpenPublicAsset(
         Guid assetId,
         CancellationToken cancellationToken)
     {
+        var storageUrl = await assetService.GetPublicStorageReadUrlAsync(assetId, cancellationToken);
+        if (storageUrl is not null)
+        {
+            Response.Headers.CacheControl = "no-store";
+            return Redirect(storageUrl);
+        }
         var download = await assetService.OpenPublicLocalAssetAsync(assetId, cancellationToken);
         return new FileStreamResult(download.Content, download.ContentType)
         {

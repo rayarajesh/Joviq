@@ -36,7 +36,7 @@ public class AzureBlobStorageTests
                 "b", "2023-11-03", Convert.ToBase64String(new byte[32])), Mock.Of<Response>()));
         return new AzureBlobAssetStorageProvider(Options.Create(new AssetStorageOptions
         {
-            AzureBlob = new AzureBlobAssetStorageOptions { ServiceUri = "https://joviq.blob.core.windows.net", ContainerName = "assets" }
+            AzureBlob = new AzureBlobAssetStorageOptions { ServiceUri = "https://joviq.blob.core.windows.net", ContainerName = "assets", PublicBaseUrl = "https://api.example.com" }
         }), service.Object);
     }
 
@@ -67,6 +67,13 @@ public class AzureBlobStorageTests
     [InlineData(42, "text/html")]
     public async Task CompletionRejectsMismatchedUploadedMetadata(long size, string contentType) =>
         await Assert.ThrowsAsync<AppException>(() => Provider(size, contentType).ExistsAsync(Asset, default));
+
+    [Fact]
+    public void PublicAssetsUsePermanentApiUrlsWithoutSasCredentials()
+    {
+        var asset = new Asset { Id = Guid.NewGuid(), Visibility = Joviq.Lms.Domain.Enums.AssetVisibility.Public };
+        Assert.Equal($"https://api.example.com/api/v1/assets/public-files/{asset.Id:D}", Provider().GetPublicUrl(asset));
+    }
 
     [Fact]
     public async Task RefusesAssetsFromAnotherProvider() =>
