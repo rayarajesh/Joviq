@@ -39,6 +39,7 @@ jobs:
           SEED_ADMIN_PASSWORD: ${{ secrets.SEED_ADMIN_PASSWORD }}
           SEED_ADMIN_EMAIL: ${{ vars.SEED_ADMIN_EMAIL }}
           FRONTEND_ORIGIN: ${{ vars.FRONTEND_ORIGIN }}
+          ADDITIONAL_FRONTEND_ORIGINS: ${{ vars.ADDITIONAL_FRONTEND_ORIGINS }}
           ALERT_EMAIL: ${{ vars.ALERT_EMAIL }}
           MONTHLY_BUDGET: ${{ vars.MONTHLY_BUDGET }}
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}

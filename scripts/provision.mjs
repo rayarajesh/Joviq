@@ -25,6 +25,17 @@ export function parameters(env) {
   }
   const budget = Number(env.MONTHLY_BUDGET || 150);
   if (!Number.isFinite(budget) || budget <= 0) throw new Error('Invalid budget');
+  const additionalOrigins = JSON.parse(env.ADDITIONAL_FRONTEND_ORIGINS || '[]');
+  const validOrigin = value => {
+    if (typeof value !== 'string') return false;
+    try {
+      const url = new URL(value);
+      return url.protocol === 'https:' && url.origin === value && !url.username && !url.password;
+    } catch { return false; }
+  };
+  if (!Array.isArray(additionalOrigins) || additionalOrigins.length > 4 || additionalOrigins.some(value => !validOrigin(value)))
+    throw new Error('Additional frontend origins must be up to four exact HTTPS origins');
+  if (env.FRONTEND_ORIGIN && !validOrigin(env.FRONTEND_ORIGIN)) throw new Error('Invalid frontend origin');
   return Object.fromEntries(Object.entries({
     environment: env.DEPLOY_ENVIRONMENT,
     location: env.AZURE_LOCATION || 'centralindia',
@@ -37,6 +48,7 @@ export function parameters(env) {
     seedAdminPassword: env.SEED_ADMIN_PASSWORD || '',
     seedAdminEmail: env.SEED_ADMIN_EMAIL || '',
     frontendOrigin: env.FRONTEND_ORIGIN || '',
+    additionalFrontendOrigins: additionalOrigins,
     alertEmail: env.ALERT_EMAIL || '',
     monthlyBudget: budget,
     budgetStartDate: env.AZURE_BUDGET_START_DATE || new Date().toISOString().slice(0, 7) + '-01',

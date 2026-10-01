@@ -20,3 +20,12 @@ test('rejects unexpected environment, weak credentials and invalid budget', () =
   assert.throws(() => parameters({ ...env, POSTGRES_ADMIN_PASSWORD: 'unsafe;password' }));
   assert.throws(() => parameters({ ...env, MONTHLY_BUDGET: '-1' }));
 });
+test('custom domains retain exact HTTPS origins and reject unsafe values', () => {
+  const values = parameters({ ...env, FRONTEND_ORIGIN: 'https://joviqtechnologies.com', ADDITIONAL_FRONTEND_ORIGINS: '["https://www.joviqtechnologies.com"]' });
+  assert.deepEqual(values.additionalFrontendOrigins.value, ['https://www.joviqtechnologies.com']);
+  for (const value of ['http://example.com', 'https://example.com/path', '*', 'https://user:pass@example.com']) {
+    assert.throws(() => parameters({ ...env, FRONTEND_ORIGIN: value }));
+    assert.throws(() => parameters({ ...env, ADDITIONAL_FRONTEND_ORIGINS: JSON.stringify([value]) }));
+  }
+  assert.throws(() => parameters({ ...env, ADDITIONAL_FRONTEND_ORIGINS: '{}' }));
+});
