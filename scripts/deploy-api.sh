@@ -13,11 +13,11 @@ elif [[ "$DEPLOY_ENVIRONMENT" != dev && "$DEPLOY_ENVIRONMENT" != production ]]; 
 fi
 
 az webapp deploy --resource-group "$AZURE_RESOURCE_GROUP" --name "$AZURE_API_NAME" \
-  "${slot_args[@]}" --src-path "$artifact" --type zip --clean true --track-status false --output none
+  "${slot_args[@]}" --src-path "$artifact" --type zip --clean true --track-status true --timeout 1200000 --output none
 
 host=$(az webapp show --resource-group "$AZURE_RESOURCE_GROUP" --name "$AZURE_API_NAME" \
   "${slot_args[@]}" --query defaultHostName --output tsv)
-# Zip deployment returns before the Linux worker and its private-network routing are ready.
+# Check HTTP ingress too, after Azure confirms the new deployment's worker has started.
 curl --fail --silent --show-error --retry 30 --retry-all-errors --retry-delay 10 \
   --connect-timeout 10 --max-time 30 "https://$host/health/live" --output /dev/null
 

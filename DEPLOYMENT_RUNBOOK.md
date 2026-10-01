@@ -6,9 +6,15 @@ GitHub repository: `rayarajesh/Joviq`.
 Azure subscription: `Azure subscription 1` (`967bdbb5-a7f7-4923-9ea1-d6ecc1ebd33f`).
 Alert recipient: `joviqtechnologies@gmail.com`.
 
+Frontend URLs: [production](https://icy-dune-05c1e1d00.4.azurestaticapps.net) and [dev](https://salmon-river-019f1cc00.5.azurestaticapps.net).
+API origins: `https://joviq-production-att374savogto-api.azurewebsites.net` and `https://joviq-dev-ru6cvhzsck7os-api.azurewebsites.net`.
+The initial administrator is `joviqtechnologies@gmail.com`; its generated password is the `seed-admin-password` secret in each environment's Key Vault. Do not put that password in source control or chat.
+
 The low-cost default is Linux App Service B1, PostgreSQL Burstable B1ms (32 GB), Static Web Apps Free, and locally redundant Blob Storage. Separate dev and production resource groups isolate data. There is no high availability or production hosting SLA implied by this configuration. API deployments on B1 can cause brief downtime. Stopping an app does not stop App Service plan billing.
 
 The subscription is currently a free trial with its spending limit enabled. Bootstrap does not remove that limit or upgrade the subscription. Budget alerts are configured at 150 units of the subscription's billing currency; this is an initial alert threshold, not a cost estimate or spending cap. Confirm a suitable value in Cost Management or `MONTHLY_BUDGET` before removing the trial spending limit.
+
+Azure reported the budget currency as INR on October 1, 2026. At the queried Central India retail rates, B1 Linux compute (INR 1.7278/hour), PostgreSQL B1ms (INR 2.3517/hour), and 32 GB database storage (INR 12.5746/GB/month) total approximately INR 3,380 per environment at 730 hours/month, or INR 6,760 for both. This excludes Blob usage, Key Vault, monitoring, backups beyond the included allowance, transfer, taxes, and trial discounts. INR retail rates are reference estimates, not a billing quote. The INR 150 alert is deliberately early and does not make the deployment cost INR 150/month. See [Azure Retail Prices API](https://learn.microsoft.com/en-us/rest/api/cost-management/retail-prices/azure-retail-prices).
 
 ## First Provisioning or Recovery
 
@@ -39,6 +45,8 @@ If provisioning fails, inspect `az deployment group show` and `az deployment ope
 - `Rollback`: restores the API and matching frontend artifacts for a previous compatible production release. It does not reverse database migrations.
 
 Production uses a required GitHub environment reviewer. For a single-owner repository, self-review is allowed; deployments still wait for an explicit review action. Artifacts are retained for 30 days. Releases older than retained artifacts must be rebuilt and revalidated.
+
+The main branch requires pull requests and successful `frontend`, `backend`, and `infrastructure` checks, including for administrators. It blocks force pushes and deletion. A second approving reviewer is not required for this single-owner repository.
 
 The API artifact is built once in CI. Vite embeds `VITE_API_BASE_URL`, so frontend artifacts are built for each environment from the selected commit. Application, infrastructure, and rollback workflows use the same environment concurrency group to prevent overlapping releases.
 

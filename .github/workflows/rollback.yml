@@ -76,8 +76,6 @@ jobs:
           action: upload
           app_location: rollback-web
           skip_app_build: true
-          skip_api_build: true
-          production_branch: main
       - run: bash scripts/smoke.sh "$API_URL"
         env:
           API_URL: ${{ vars.AZURE_API_URL }}
