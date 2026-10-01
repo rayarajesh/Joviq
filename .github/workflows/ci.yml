@@ -21,8 +21,14 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - run: npm ci
         working-directory: web
+      - run: npx playwright install --with-deps chromium
+        working-directory: web
       - run: npm run typecheck && npm run build
         working-directory: web
+      - run: npm run build
+        working-directory: web
+        env:
+          VITE_SEO_INDEXABLE: 'true'
   backend:
     runs-on: ubuntu-latest
     services:
