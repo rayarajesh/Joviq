@@ -9,6 +9,7 @@ param enableReleaseSlot bool = false
 @allowed(['Free', 'Standard'])
 param staticWebAppSku string = 'Free'
 param frontendOrigin string = ''
+param additionalFrontendOrigins array = []
 param integrationSettings array = []
 @secure()
 param postgresAdminPassword string
@@ -33,6 +34,7 @@ var databaseName = 'joviq'
 var databaseHost = '${baseName}.postgres.database.azure.com'
 var tags = { application: 'joviq', environment: environment, managedBy: 'bicep' }
 var origin = empty(frontendOrigin) ? 'https://${frontend.properties.defaultHostname}' : frontendOrigin
+var origins = union([origin, 'https://${frontend.properties.defaultHostname}'], additionalFrontendOrigins)
 
 resource runtimeIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: '${baseName}-runtime'
@@ -130,7 +132,7 @@ resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01' = {
     containerDeleteRetentionPolicy: { enabled: true, days: 14 }
     cors: {
       corsRules: [{
-        allowedOrigins: [origin]
+        allowedOrigins: origins
         allowedMethods: ['PUT', 'GET', 'HEAD', 'OPTIONS']
         allowedHeaders: ['content-type', 'x-ms-blob-type', 'x-ms-version', 'x-ms-client-request-id']
         exposedHeaders: ['ETag', 'Content-Length', 'Content-Type', 'Accept-Ranges', 'Content-Range']
@@ -243,12 +245,12 @@ var apiSettings = [
   { name: 'Jwt__Issuer', value: 'https://${baseName}-api.azurewebsites.net' }
   { name: 'ConnectionStrings__DefaultConnection', value: '@Microsoft.KeyVault(SecretUri=${vault.properties.vaultUri}secrets/database-runtime)' }
   { name: 'ConnectionStrings__MigrationConnection', value: '@Microsoft.KeyVault(SecretUri=${vault.properties.vaultUri}secrets/database-migration)' }
-  { name: 'Cors__AllowedOrigins__0', value: origin }
-  { name: 'Cors__AllowedOrigins__1', value: origin }
-  { name: 'Cors__AllowedOrigins__2', value: origin }
-  { name: 'Cors__AllowedOrigins__3', value: origin }
-  { name: 'Cors__AllowedOrigins__4', value: origin }
-  { name: 'Cors__AllowedOrigins__5', value: origin }
+  { name: 'Cors__AllowedOrigins__0', value: origins[0] }
+  { name: 'Cors__AllowedOrigins__1', value: origins[length(origins) > 1 ? 1 : 0] }
+  { name: 'Cors__AllowedOrigins__2', value: origins[length(origins) > 2 ? 2 : 0] }
+  { name: 'Cors__AllowedOrigins__3', value: origins[length(origins) > 3 ? 3 : 0] }
+  { name: 'Cors__AllowedOrigins__4', value: origins[length(origins) > 4 ? 4 : 0] }
+  { name: 'Cors__AllowedOrigins__5', value: origins[length(origins) > 5 ? 5 : 0] }
   { name: 'ExternalAuth__FrontendCallbackUrl', value: '${origin}/auth/google/callback' }
   { name: 'Payments__FrontendBaseUrl', value: origin }
   { name: 'Payments__PublicBaseUrl', value: 'https://${baseName}-api.azurewebsites.net' }

@@ -101,7 +101,9 @@ The script also persists nonsecret settings/Key Vault references in `AZURE_INTEG
 
 ## Domains, Storage, and Launch Checks
 
-Azure's built-in domains permit initial testing. No ownership of `joviq.com` has been assumed. Before public launch, configure an owned frontend/API domain, TLS, exact API and Blob CORS origins, OAuth callbacks, and provider URLs. Using sibling frontend/API subdomains avoids refresh-cookie problems caused by browser third-party-cookie policies on separate Azure domains.
+The owned production frontend domain is `joviqtechnologies.com`, with `www.joviqtechnologies.com` as an additional origin. GoDaddy DNS uses Azure's stable inbound IP `20.239.34.78` for `A @`, an Azure ownership-verification TXT at `@`, and a `www` CNAME to `icy-dune-05c1e1d00.4.azurestaticapps.net`. All three records were saved on October 1, 2026. Both hostnames are registered in Azure; domain validation/TLS must complete before either hostname is considered live. Preserve the Google MX, SPF, DKIM, verification and DMARC records.
+
+The production GitHub environment stores `FRONTEND_ORIGIN=https://joviqtechnologies.com` and `ADDITIONAL_FRONTEND_ORIGINS=["https://www.joviqtechnologies.com"]`. The infrastructure keeps the built-in Azure frontend allowed alongside custom origins for API and Blob CORS. Before public launch, configure an owned API domain, verify TLS, OAuth callbacks and provider URLs. Using sibling frontend/API subdomains avoids refresh-cookie problems caused by browser third-party-cookie policies on separate Azure domains. Do not assume an `api` DNS record or custom API certificate is configured yet.
 
 Blob containers are private, but the storage network endpoint is public for browser uploads and downloads using short-lived SAS URLs. Upload SAS permits creation of one blob without overwrite; completion checks declared size/content type. Private reads require API authorization. Public thumbnails use stable API URLs that redirect to short-lived signed Blob URLs only after verifying public visibility and ready status. Old local/S3 files are not transferred automatically.
 
