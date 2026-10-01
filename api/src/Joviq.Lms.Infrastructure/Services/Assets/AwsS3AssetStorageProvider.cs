@@ -57,10 +57,11 @@ internal sealed class AwsS3AssetStorageProvider : IAssetStorageProvider
         return BuildCdnUrl(asset.StorageKey);
     }
 
-    public AssetUploadInstructions CreateUploadInstructions(
+    public Task<AssetUploadInstructions> CreateUploadInstructionsAsync(
         Asset asset,
         string rawUploadToken,
-        DateTimeOffset expiresAt)
+        DateTimeOffset expiresAt,
+        CancellationToken cancellationToken)
     {
         EnsureConfigured();
 
@@ -73,11 +74,11 @@ internal sealed class AwsS3AssetStorageProvider : IAssetStorageProvider
             ContentType = asset.ContentType
         };
 
-        return new AssetUploadInstructions(
+        return Task.FromResult(new AssetUploadInstructions(
             _s3Client.GetPreSignedURL(request),
             "PUT",
             new Dictionary<string, string> { ["Content-Type"] = asset.ContentType },
-            expiresAt);
+            expiresAt));
     }
 
     public Task<AssetReadInstructions> CreateReadInstructionsAsync(

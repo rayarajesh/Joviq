@@ -1,0 +1,110 @@
+name: Deploy
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        options: [dev, production]
+        required: true
+      commit:
+        description: Full commit SHA with successful main-branch CI
+        required: true
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: azure-${{ inputs.environment || 'dev' }}
+  cancel-in-progress: false
+jobs:
+  resolve:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    outputs:
+      commit: ${{ steps.release.outputs.commit }}
+      run: ${{ steps.release.outputs.run }}
+      environment: ${{ steps.release.outputs.environment }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_COMMIT: ${{ inputs.commit || github.event.workflow_run.head_sha }}
+          DEPLOY_ENVIRONMENT: ${{ inputs.environment || 'dev' }}
+        run: |
+          [[ "$RELEASE_COMMIT" =~ ^[a-f0-9]{40}$ ]]
+          git merge-base --is-ancestor "$RELEASE_COMMIT" origin/main
+          run=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$RELEASE_COMMIT&branch=main&event=push&status=success" --jq '.workflow_runs[0].id')
+          [[ "$run" =~ ^[0-9]+$ ]]
+          printf 'commit=%s\nrun=%s\nenvironment=%s\n' "$RELEASE_COMMIT" "$run" "$DEPLOY_ENVIRONMENT" >> "$GITHUB_OUTPUT"
+  deploy:
+    needs: resolve
+    runs-on: ubuntu-latest
+    environment: ${{ needs.resolve.outputs.environment }}
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.resolve.outputs.commit }}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: api-${{ needs.resolve.outputs.commit }}
+          path: artifacts
+          github-token: ${{ github.token }}
+          run-id: ${{ needs.resolve.outputs.run }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci && npm run build
+        working-directory: web
+        env:
+          VITE_API_BASE_URL: ${{ vars.AZURE_API_URL }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: web-${{ needs.resolve.outputs.environment }}-${{ needs.resolve.outputs.commit }}
+          path: web/dist
+          retention-days: 30
+          if-no-files-found: error
+      - uses: azure/login@8216e11d8cd9b42fe925c852af8e76311ff067ac # v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Initialize database and deploy API
+        env:
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          AZURE_API_NAME: ${{ vars.AZURE_API_NAME }}
+          AZURE_USE_RELEASE_SLOT: ${{ vars.AZURE_USE_RELEASE_SLOT }}
+          DEPLOY_ENVIRONMENT: ${{ needs.resolve.outputs.environment }}
+        run: bash scripts/deploy-api.sh artifacts/api.zip
+      - uses: Azure/static-web-apps-deploy@1a947af9992250f3bc2e68ad0754c0b0c11566c9 # v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          action: upload
+          app_location: web/dist
+          output_location: ''
+          skip_app_build: true
+          skip_api_build: true
+          production_branch: main
+      - name: Verify frontend and API
+        env:
+          FRONTEND_URL: ${{ vars.AZURE_FRONTEND_URL }}
+          API_URL: ${{ vars.AZURE_API_URL }}
+        run: |
+          curl --fail --silent --show-error --retry 8 --retry-all-errors "$FRONTEND_URL" --output /dev/null
+          bash scripts/smoke.sh "$API_URL"
+          echo "Deployed commit ${{ needs.resolve.outputs.commit }} to ${{ needs.resolve.outputs.environment }}" >> "$GITHUB_STEP_SUMMARY"

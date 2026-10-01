@@ -27,10 +27,11 @@ internal interface IAssetStorageProvider
 
     string? GetPublicUrl(Asset asset);
 
-    AssetUploadInstructions CreateUploadInstructions(
+    Task<AssetUploadInstructions> CreateUploadInstructionsAsync(
         Asset asset,
         string rawUploadToken,
-        DateTimeOffset expiresAt);
+        DateTimeOffset expiresAt,
+        CancellationToken cancellationToken);
 
     Task<AssetReadInstructions> CreateReadInstructionsAsync(
         Asset asset,

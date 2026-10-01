@@ -6,11 +6,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Joviq.Lms.Tests" />
     <ProjectReference Include="..\Joviq.Lms.Application\Joviq.Lms.Application.csproj" />
     <ProjectReference Include="..\Joviq.Lms.Domain\Joviq.Lms.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Azure.Identity" Version="1.21.0" />
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.30.0" />
+    <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Blobs" Version="1.5.4" />
+    <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Keys" Version="1.6.4" />
     <PackageReference Include="AWSSDK.S3" Version="4.0.102.4" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.11" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.11" />

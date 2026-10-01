@@ -1,0 +1,62 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        working-directory: web
+      - run: npm run typecheck && npm run build
+        working-directory: web
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: joviq_migrator
+          POSTGRES_PASSWORD: ci-only-postgres
+          POSTGRES_DB: joviq
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      TEST_POSTGRES_CONNECTION: Host=localhost;Database=joviq;Username=joviq_migrator;Password=ci-only-postgres
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          global-json-file: api/global.json
+      - run: dotnet build api/Joviq.Lms.sln --configuration Release
+      - run: dotnet test api/tests/Joviq.Lms.Tests --configuration Release
+      - run: bash scripts/package-api.sh artifacts/api
+      - run: zip -qr ../api.zip .
+        working-directory: artifacts/api
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: api-${{ github.sha }}
+          path: artifacts/api.zip
+          retention-days: 30
+          if-no-files-found: error
+  infrastructure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - run: az bicep build --file infra/main.bicep --outfile /tmp/main.json
+      - run: node --test scripts/tests/*.test.mjs
+      - run: bash -n scripts/*.sh api/deployment/run.sh

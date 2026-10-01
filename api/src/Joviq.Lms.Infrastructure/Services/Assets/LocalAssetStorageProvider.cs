@@ -47,17 +47,18 @@ internal sealed class LocalAssetStorageProvider : IAssetStorageProvider
         return $"{BaseUrl}/api/v1/assets/public-files/{asset.Id:D}";
     }
 
-    public AssetUploadInstructions CreateUploadInstructions(
+    public Task<AssetUploadInstructions> CreateUploadInstructionsAsync(
         Asset asset,
         string rawUploadToken,
-        DateTimeOffset expiresAt)
+        DateTimeOffset expiresAt,
+        CancellationToken cancellationToken)
     {
         var url = $"{BaseUrl}/api/v1/assets/local-upload/{asset.Id:D}?token={Uri.EscapeDataString(rawUploadToken)}";
-        return new AssetUploadInstructions(
+        return Task.FromResult(new AssetUploadInstructions(
             url,
             "PUT",
             new Dictionary<string, string> { ["Content-Type"] = asset.ContentType },
-            expiresAt);
+            expiresAt));
     }
 
     public Task<AssetReadInstructions> CreateReadInstructionsAsync(

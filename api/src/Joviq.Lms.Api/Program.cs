@@ -9,9 +9,33 @@ using Joviq.Lms.Infrastructure;
 using Joviq.Lms.Infrastructure.Identity;
 using Joviq.Lms.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.OpenApi;
 
-var builder = WebApplication.CreateBuilder(args);
+var initializeDatabase = args.Contains("--initialize", StringComparer.Ordinal);
+var builder = WebApplication.CreateBuilder(args.Where(arg => arg != "--initialize").ToArray());
+DeploymentConfiguration.Validate(builder.Configuration, builder.Environment);
+var runtimeConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")!;
+if (initializeDatabase)
+{
+    builder.Configuration["ConnectionStrings:DefaultConnection"] = builder.Configuration.GetConnectionString("MigrationConnection")
+        ?? throw new InvalidOperationException("ConnectionStrings:MigrationConnection is required for initialization.");
+}
+
+builder.Services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database", tags: ["ready"]);
+builder.Services.AddApplicationInsightsTelemetry();
+if (builder.Configuration.GetValue<bool>("Hosting:AzureAppService"))
+{
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        // Only enable this on App Service, where ingress passes through the platform proxy.
+        options.KnownIPNetworks.Clear();
+        options.KnownProxies.Clear();
+        options.ForwardLimit = 1;
+    });
+}
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
@@ -155,8 +179,19 @@ builder.Services.AddRateLimiter(options =>
 
 var app = builder.Build();
 
-await RoleSeeder.SeedRolesAsync(app.Services);
-await LmsSeedData.SeedAsync(app.Services);
+if (initializeDatabase)
+{
+    await DatabaseInitializer.InitializeAsync(app.Services, runtimeConnectionString);
+    return;
+}
+
+if (app.Environment.IsDevelopment())
+{
+    await RoleSeeder.SeedRolesAsync(app.Services);
+    await LmsSeedData.SeedAsync(app.Services);
+}
+
+if (builder.Configuration.GetValue<bool>("Hosting:AzureAppService")) app.UseForwardedHeaders();
 
 app.UseApiMiddleware();
 
@@ -182,6 +217,8 @@ app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
+app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
 app.MapGet("/", () => Results.Ok(new
 {
     name = "Joviq LMS API",

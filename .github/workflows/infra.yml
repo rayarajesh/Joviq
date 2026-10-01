@@ -1,0 +1,49 @@
+name: Infrastructure
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        options: [dev, production]
+        required: true
+      operation:
+        type: choice
+        options: [preview, apply]
+        default: preview
+        required: true
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: azure-${{ inputs.environment }}
+  cancel-in-progress: false
+jobs:
+  infrastructure:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: azure/login@8216e11d8cd9b42fe925c852af8e76311ff067ac # v2
+        with:
+          client-id: ${{ vars.AZURE_INFRA_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Preview or apply resources
+        env:
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
+          DEPLOY_OPERATION: ${{ inputs.operation }}
+          POSTGRES_ADMIN_PASSWORD: ${{ secrets.POSTGRES_ADMIN_PASSWORD }}
+          POSTGRES_RUNTIME_PASSWORD: ${{ secrets.POSTGRES_RUNTIME_PASSWORD }}
+          JWT_SIGNING_KEY: ${{ secrets.JWT_SIGNING_KEY }}
+          SEED_ADMIN_PASSWORD: ${{ secrets.SEED_ADMIN_PASSWORD }}
+          SEED_ADMIN_EMAIL: ${{ vars.SEED_ADMIN_EMAIL }}
+          FRONTEND_ORIGIN: ${{ vars.FRONTEND_ORIGIN }}
+          ALERT_EMAIL: ${{ vars.ALERT_EMAIL }}
+          MONTHLY_BUDGET: ${{ vars.MONTHLY_BUDGET }}
+          AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+          AZURE_STATIC_LOCATION: ${{ vars.AZURE_STATIC_LOCATION }}
+          AZURE_USE_RELEASE_SLOT: ${{ vars.AZURE_USE_RELEASE_SLOT }}
+          AZURE_INTEGRATION_SETTINGS: ${{ vars.AZURE_INTEGRATION_SETTINGS }}
+          AZURE_BUDGET_START_DATE: ${{ vars.AZURE_BUDGET_START_DATE }}
+        run: node scripts/provision.mjs

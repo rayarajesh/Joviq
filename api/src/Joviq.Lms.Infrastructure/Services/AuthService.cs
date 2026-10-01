@@ -176,7 +176,6 @@ public sealed class AuthService(
     public async Task<AuthTokenResponse> LoginAsync(LoginRequest request, RequestMetadata metadata, CancellationToken cancellationToken)
     {
         var email = NormalizeEmail(request.Email);
-        logger.LogInformation("LoginAsync called with email: {Email}, password length: {PasswordLength}", email, request.Password?.Length ?? 0);
         
         var user = await userManager.FindByEmailAsync(email);
         if (user is null)
@@ -198,7 +197,6 @@ public sealed class AuthService(
         }
 
         var passwordOk = await userManager.CheckPasswordAsync(user, request.Password);
-        logger.LogInformation("Password check result for {Email}: {Result}", email, passwordOk);
         
         if (!passwordOk)
         {

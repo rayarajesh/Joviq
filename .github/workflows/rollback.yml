@@ -1,0 +1,83 @@
+name: Rollback
+on:
+  workflow_dispatch:
+    inputs:
+      deployment_run:
+        description: Successful Deploy workflow run containing the previous production frontend artifact
+        required: true
+      commit:
+        description: Previous production commit (release slot must contain this API)
+        required: true
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+concurrency:
+  group: azure-production
+  cancel-in-progress: false
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Resolve verified API artifact
+        id: api
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_COMMIT: ${{ inputs.commit }}
+          DEPLOYMENT_RUN: ${{ inputs.deployment_run }}
+        run: |
+          [[ "$EXPECTED_COMMIT" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$DEPLOYMENT_RUN" =~ ^[0-9]+$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$DEPLOYMENT_RUN" --jq 'select(.path==".github/workflows/deploy.yml" and .conclusion=="success") | .id' | grep -q "$DEPLOYMENT_RUN"
+          run=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$EXPECTED_COMMIT&branch=main&event=push&status=success" --jq '.workflow_runs[0].id')
+          [[ "$run" =~ ^[0-9]+$ ]]
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: api-${{ inputs.commit }}
+          path: rollback-api
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.api.outputs.run }}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: web-production-${{ inputs.commit }}
+          path: rollback-web
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.deployment_run }}
+      - uses: azure/login@8216e11d8cd9b42fe925c852af8e76311ff067ac # v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Verify previous slot, then swap
+        env:
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          AZURE_API_NAME: ${{ vars.AZURE_API_NAME }}
+          EXPECTED_COMMIT: ${{ inputs.commit }}
+          USE_RELEASE_SLOT: ${{ vars.AZURE_USE_RELEASE_SLOT }}
+        run: |
+          [[ "$EXPECTED_COMMIT" =~ ^[a-f0-9]{40}$ ]]
+          if [[ "$USE_RELEASE_SLOT" == true ]]; then
+            host=$(az webapp show -g "$AZURE_RESOURCE_GROUP" -n "$AZURE_API_NAME" --slot release --query defaultHostName -o tsv)
+            actual=$(curl --fail --silent --show-error "https://$host/release.json" | jq -r .commit)
+            [[ "$actual" == "$EXPECTED_COMMIT" ]]
+            bash scripts/smoke.sh "https://$host"
+            az webapp deployment slot swap -g "$AZURE_RESOURCE_GROUP" -n "$AZURE_API_NAME" --slot release --target-slot production --output none
+          else
+            az webapp deploy -g "$AZURE_RESOURCE_GROUP" -n "$AZURE_API_NAME" --src-path rollback-api/api.zip --type zip --clean true --track-status false --output none
+            host=$(az webapp show -g "$AZURE_RESOURCE_GROUP" -n "$AZURE_API_NAME" --query defaultHostName -o tsv)
+            bash scripts/smoke.sh "https://$host"
+          fi
+      - uses: Azure/static-web-apps-deploy@1a947af9992250f3bc2e68ad0754c0b0c11566c9 # v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          action: upload
+          app_location: rollback-web
+          skip_app_build: true
+          skip_api_build: true
+          production_branch: main
+      - run: bash scripts/smoke.sh "$API_URL"
+        env:
+          API_URL: ${{ vars.AZURE_API_URL }}

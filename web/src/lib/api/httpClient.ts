@@ -57,15 +57,6 @@ async function send<T>(path: string, options: RequestOptions, hasRetried: boolea
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  // Debug logging for login requests
-  if (path.includes("/auth/login")) {
-    const bodyObj = options.body as any;
-    console.log("[httpClient] Sending login request to:", `${env.apiBaseUrl}${path}`);
-    console.log("[httpClient] Email:", bodyObj?.email);
-    console.log("[httpClient] Password:", bodyObj?.password);
-    console.log("[httpClient] Password length:", bodyObj?.password?.length ?? 0);
-  }
-
   const response = await fetch(`${env.apiBaseUrl}${path}`, {
     method: options.method ?? "GET",
     headers,

@@ -44,6 +44,15 @@ public sealed class AssetStorageOptions
     public LocalAssetStorageOptions Local { get; init; } = new();
 
     public AwsS3AssetStorageOptions AwsS3 { get; init; } = new();
+
+    public AzureBlobAssetStorageOptions AzureBlob { get; init; } = new();
+}
+
+public sealed class AzureBlobAssetStorageOptions
+{
+    public string ServiceUri { get; init; } = string.Empty;
+
+    public string ContainerName { get; init; } = "assets";
 }
 
 public sealed class LocalAssetStorageOptions

@@ -18,8 +18,9 @@ public sealed class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Ap
             .AddEnvironmentVariables()
             .Build();
 
-        var connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? "Host=localhost;Port=5432;Database=joviq_lms;Username=postgres;Password=s";
+        var connectionString = configuration.GetConnectionString("DefaultConnection");
+        if (string.IsNullOrWhiteSpace(connectionString))
+            throw new InvalidOperationException("Configure ConnectionStrings:DefaultConnection before running EF tools.");
 
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseNpgsql(connectionString)

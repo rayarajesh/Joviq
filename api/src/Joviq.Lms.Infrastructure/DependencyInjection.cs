@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text;
+using Azure.Identity;
 using Joviq.Lms.Application.Assets;
 using Joviq.Lms.Application.Auth;
 using Joviq.Lms.Application.Common.Interfaces;
@@ -18,6 +19,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OAuth.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -40,7 +42,7 @@ public static class DependencyInjection
         services.Configure<PaymentOptions>(configuration.GetSection(PaymentOptions.SectionName));
 
         var connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? "Host=localhost;Port=5432;Database=joviq_lms;Username=postgres;Password=s";
+            ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection must be configured.");
 
         services.AddDbContext<ApplicationDbContext>(options =>
         {
@@ -183,7 +185,15 @@ public static class DependencyInjection
             options.AddPolicy("StudentOrAdmin", policy => policy.RequireRole(RoleNames.Student, RoleNames.Admin));
         });
 
-        services.AddDataProtection();
+        var protection = services.AddDataProtection().SetApplicationName("Joviq.Lms");
+        var protectionBlobUri = configuration["DataProtection:BlobUri"];
+        if (!string.IsNullOrWhiteSpace(protectionBlobUri))
+        {
+            var credential = new DefaultAzureCredential();
+            protection.PersistKeysToAzureBlobStorage(new Uri(protectionBlobUri), credential)
+                .ProtectKeysWithAzureKeyVault(new Uri(configuration["DataProtection:KeyIdentifier"]
+                    ?? throw new InvalidOperationException("DataProtection:KeyIdentifier is required.")), credential);
+        }
 
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IAssetService, AssetService>();
@@ -231,13 +241,21 @@ public static class DependencyInjection
         services.AddHostedService<AuditLogRetentionService>();
 
         var assetStorageOptions = configuration.GetSection(AssetStorageOptions.SectionName).Get<AssetStorageOptions>() ?? new AssetStorageOptions();
-        if (assetStorageOptions.Provider.Equals("AwsS3", StringComparison.OrdinalIgnoreCase))
+        if (assetStorageOptions.Provider.Equals("AzureBlob", StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddSingleton<IAssetStorageProvider, AzureBlobAssetStorageProvider>();
+        }
+        else if (assetStorageOptions.Provider.Equals("AwsS3", StringComparison.OrdinalIgnoreCase))
         {
             services.AddSingleton<IAssetStorageProvider, AwsS3AssetStorageProvider>();
         }
-        else
+        else if (assetStorageOptions.Provider.Equals("Local", StringComparison.OrdinalIgnoreCase))
         {
             services.AddSingleton<IAssetStorageProvider, LocalAssetStorageProvider>();
+        }
+        else
+        {
+            throw new InvalidOperationException("Unsupported Assets:Provider.");
         }
 
         return services;

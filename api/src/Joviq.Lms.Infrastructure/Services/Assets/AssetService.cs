@@ -67,7 +67,7 @@ internal sealed class AssetService(
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        var upload = storageProvider.CreateUploadInstructions(asset, rawUploadToken, expiresAt);
+        var upload = await storageProvider.CreateUploadInstructionsAsync(asset, rawUploadToken, expiresAt, cancellationToken);
         return new AssetUploadUrlResponse(
             asset.Id,
             upload.Url,
