@@ -69,10 +69,15 @@ jobs:
           node-version: '24'
           cache: npm
           cache-dependency-path: web/package-lock.json
-      - run: npm ci && npm run build
+      - run: npm ci
+        working-directory: web
+      - run: npx playwright install --with-deps chromium
+        working-directory: web
+      - run: npm run build
         working-directory: web
         env:
           VITE_API_BASE_URL: ${{ vars.AZURE_API_URL }}
+          VITE_SEO_INDEXABLE: ${{ needs.resolve.outputs.environment == 'production' && 'true' || 'false' }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: web-${{ needs.resolve.outputs.environment }}-${{ needs.resolve.outputs.commit }}

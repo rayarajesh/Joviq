@@ -33,11 +33,13 @@ import { CampusPartnersPage } from "../pages/CampusPartnersPage";
 import { CareersPage } from "../pages/CareersPage";
 import { ReviewsPage } from "../pages/ReviewsPage";
 import { CompanyInformationPage } from "../pages/CompanyInformationPage";
+import { SeoMetadata } from "../components/SeoMetadata";
 
 export function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <SeoMetadata />
         <HashScroll />
         <ScrollToTopButton />
         <SocialSidebar />
