@@ -48,9 +48,9 @@ try {
   const configPath = resolve(dist, 'staticwebapp.config.json');
   const config = JSON.parse(await readFile(configPath, 'utf8'));
   config.routes = [
-    ...publicPages.flatMap(({ path }) => {
+    ...publicPages.map(({ path }) => {
       const rewrite = path === '/' ? '/index.html' : `${path}/index.html`;
-      return (path === '/' ? [path] : [path, `${path}/`]).map(route => ({ route, rewrite }));
+      return { route: path, rewrite };
     }),
     ...['/login', '/dashboard', '/dashboard/*', '/profile', '/checkout', '/learning/*', '/student/*', '/auth/*', '/verify/*', '/dev/*'].map(route => ({ route, headers: { 'X-Robots-Tag': 'noindex, nofollow' }, rewrite: '/account.html' })),
     { route: '/account.html', headers: { 'X-Robots-Tag': 'noindex, nofollow' } }

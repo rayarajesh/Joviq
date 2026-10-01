@@ -3,6 +3,9 @@ import { readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 
 const config = JSON.parse(await readFile('dist/staticwebapp.config.json', 'utf8'));
+// Azure normalizes trailing slashes when checking duplicate route rules.
+const normalizedRoutes = config.routes.map(({ route }) => route.replace(/\/$/, '') || '/');
+assert.equal(new Set(normalizedRoutes).size, normalizedRoutes.length, 'Duplicate Azure route rules');
 const indexable = !config.globalHeaders['X-Robots-Tag'];
 const browser = await chromium.launch();
 try {
