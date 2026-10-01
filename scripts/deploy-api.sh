@@ -24,8 +24,12 @@ curl --fail --silent --show-error --retry 30 --retry-all-errors --retry-delay 10
 # Run inside App Service so PostgreSQL stays private. Compare run IDs to avoid accepting an older success.
 job_found=false
 for _attempt in $(seq 1 30); do
-  jobs=$(az webapp webjob triggered list --resource-group "$AZURE_RESOURCE_GROUP" --name "$AZURE_API_NAME" \
-    "${slot_args[@]}" --output json)
+  if ! jobs=$(az webapp webjob triggered list --resource-group "$AZURE_RESOURCE_GROUP" --name "$AZURE_API_NAME" \
+    "${slot_args[@]}" --output json); then
+    echo 'WebJob discovery is temporarily unavailable; retrying.' >&2
+    sleep 5
+    continue
+  fi
   if [[ $(printf '%s' "$jobs" | node scripts/webjob-status.mjs exists) == true ]]; then job_found=true; break; fi
   sleep 5
 done
@@ -35,8 +39,12 @@ az webapp webjob triggered run --resource-group "$AZURE_RESOURCE_GROUP" --name "
   "${slot_args[@]}" --webjob-name initialize --output none
 initialized=false
 for _attempt in $(seq 1 90); do
-  jobs=$(az webapp webjob triggered list --resource-group "$AZURE_RESOURCE_GROUP" --name "$AZURE_API_NAME" \
-    "${slot_args[@]}" --output json)
+  if ! jobs=$(az webapp webjob triggered list --resource-group "$AZURE_RESOURCE_GROUP" --name "$AZURE_API_NAME" \
+    "${slot_args[@]}" --output json); then
+    echo 'WebJob status is temporarily unavailable; retrying.' >&2
+    sleep 10
+    continue
+  fi
   status=$(printf '%s' "$jobs" | node scripts/webjob-status.mjs status "$previous")
   if [[ "$status" == Success ]]; then initialized=true; break; fi
   if [[ "$status" == Failed || "$status" == Aborted ]]; then
