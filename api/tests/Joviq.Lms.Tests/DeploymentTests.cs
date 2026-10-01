@@ -5,6 +5,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Npgsql;
 
 namespace Joviq.Lms.Tests;
@@ -68,6 +70,20 @@ public class DeploymentTests
         await connection.OpenAsync();
         await using var read = new NpgsqlCommand("SELECT COUNT(*) FROM \"AspNetRoles\"", connection);
         Assert.True(Convert.ToInt64(await read.ExecuteScalarAsync()) > 0);
+        using var scope = services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var quoting = new NpgsqlCommandBuilder();
+        foreach (var entity in db.Model.GetEntityTypes())
+        {
+            var tableName = entity.GetTableName();
+            if (tableName is null) continue;
+            var table = StoreObjectIdentifier.Table(tableName, entity.GetSchema());
+            var columns = entity.GetProperties().Select(property => property.GetColumnName(table))
+                .OfType<string>().Distinct().Select(quoting.QuoteIdentifier);
+            var target = $"{quoting.QuoteIdentifier(entity.GetSchema() ?? "public")}.{quoting.QuoteIdentifier(tableName)}";
+            await using var query = new NpgsqlCommand($"SELECT {string.Join(", ", columns)} FROM {target} LIMIT 0", connection);
+            await using var reader = await query.ExecuteReaderAsync();
+        }
         await using var ddl = new NpgsqlCommand("CREATE TABLE runtime_must_not_create(id int)", connection);
         var error = await Assert.ThrowsAsync<PostgresException>(() => ddl.ExecuteNonQueryAsync());
         Assert.Equal("42501", error.SqlState);
