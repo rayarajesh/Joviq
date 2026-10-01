@@ -260,6 +260,7 @@ var apiSettings = [
   { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: insights.properties.ConnectionString }
   { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT', value: 'false' }
   { name: 'WEBJOBS_STOPPED', value: '0' }
+  { name: 'WEBSITE_SKIP_RUNNING_KUDUAGENT', value: 'false' }
 ]
 resource api 'Microsoft.Web/sites@2023-12-01' = {
   name: '${baseName}-api'
@@ -276,6 +277,7 @@ resource api 'Microsoft.Web/sites@2023-12-01' = {
       linuxFxVersion: 'DOTNETCORE|10.0'
       appCommandLine: 'dotnet Joviq.Lms.Api.dll'
       alwaysOn: true
+      webJobsEnabled: true
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
       healthCheckPath: '/health/ready'
@@ -299,6 +301,7 @@ resource releaseSlot 'Microsoft.Web/sites/slots@2023-12-01' = if (enableReleaseS
       linuxFxVersion: 'DOTNETCORE|10.0'
       appCommandLine: 'dotnet Joviq.Lms.Api.dll'
       alwaysOn: true
+      webJobsEnabled: true
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
       healthCheckPath: '/health/ready'

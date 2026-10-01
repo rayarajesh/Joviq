@@ -53,6 +53,7 @@ jobs:
           path: artifacts/api.zip
           retention-days: 30
           if-no-files-found: error
+          overwrite: true
   infrastructure:
     runs-on: ubuntu-latest
     steps:

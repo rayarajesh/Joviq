@@ -44,7 +44,7 @@ The API artifact is built once in CI. Vite embeds `VITE_API_BASE_URL`, so fronte
 
 ## Database Initialization
 
-The published API includes a manually triggered `initialize` WebJob. The release workflow deploys the package, triggers the job through Azure Resource Manager, waits for its own run to succeed, and checks health before proceeding.
+The published API includes a manually triggered `initialize` WebJob. Infrastructure explicitly enables `webJobsEnabled` and the Linux Kudu agent. The release workflow deploys the package, triggers the job through Azure Resource Manager, waits for its own run to succeed, and checks health before proceeding.
 
 The job runs `dotnet Joviq.Lms.Api.dll --initialize` on App Service, so it can reach the private PostgreSQL server without a separate migration VM or a publicly open database. It applies EF migrations, initializes identity roles/admin, optionally seeds the dev catalog, and grants the runtime role data access without schema privileges. Production does not automatically populate sample lesson/catalog data.
 
