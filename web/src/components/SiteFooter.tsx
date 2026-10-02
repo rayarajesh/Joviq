@@ -22,6 +22,7 @@ const platformLinks = [
   { label: "Home", href: "/" },
   { label: "Joviq LMS", href: "/login" },
   { label: "Programs", href: "/programs" },
+  { label: "Learning Experience", href: "/features" },
 ];
 
 const legalLinks = [
@@ -33,7 +34,9 @@ const legalLinks = [
 const companyLinks = [
   { label: "Company Information", href: "/company-information" },
   { label: "About Us", href: "/about" },
-  { label: "College Collaboration", href: "/request-callback" }
+  { label: "Careers", href: "/careers" },
+  { label: "Campus Partnerships", href: "/campus-partners" },
+  { label: "Contact Us", href: "/request-callback" }
 ];
 
 export function SiteFooter() {

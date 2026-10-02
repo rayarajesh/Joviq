@@ -35,7 +35,11 @@ export function pageSeo(pathname: string, indexable = true) {
       '@context': 'https://schema.org',
       '@graph': [
         { '@type': 'Organization', '@id': `${siteUrl}/#organization`, name: siteName, legalName: companyInformation.legalName, alternateName: ['JoviQ Technologies', 'Joviq'], url: siteUrl, logo: `${siteUrl}/assets/joviq-brand.png` },
-        ...(path === '/' ? [{ '@type': 'WebSite', '@id': `${siteUrl}/#website`, url: siteUrl, name: siteName, alternateName: 'JoviQ Technologies', publisher: { '@id': `${siteUrl}/#organization` } }] : [{ '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name: siteName, item: `${siteUrl}/` }, { '@type': 'ListItem', position: 2, name: page.title, item: `${siteUrl}${path}` }] }])
+        ...(path === '/' ? [{ '@type': 'WebSite', '@id': `${siteUrl}/#website`, url: siteUrl, name: siteName, alternateName: ['Joviq', 'JoviQ Technologies'], publisher: { '@id': `${siteUrl}/#organization` } }] : [{ '@type': 'BreadcrumbList', itemListElement: [
+          { '@type': 'ListItem', position: 1, name: siteName, item: `${siteUrl}/` },
+          ...(path.startsWith('/programs/') ? [{ '@type': 'ListItem', position: 2, name: 'Training Programs', item: `${siteUrl}/programs` }] : []),
+          { '@type': 'ListItem', position: path.startsWith('/programs/') ? 3 : 2, name: page.title, item: `${siteUrl}${path}` }
+        ] }])
       ]
     } : null
   };
