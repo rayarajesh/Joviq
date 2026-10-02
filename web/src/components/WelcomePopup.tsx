@@ -3,21 +3,48 @@ import { ArrowRight, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import "../styles/welcome-popup.css";
 
+const welcomeSeenKey = "joviq:welcome-seen";
+const welcomeDelayMs = 5000;
+
+function hasSeenWelcome() {
+  try {
+    return localStorage.getItem(welcomeSeenKey) === "true";
+  } catch {
+    // Avoid repeated interruptions when browser storage is unavailable.
+    return true;
+  }
+}
+
 export function WelcomePopup() {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const restoreScrollRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const dialog = dialogRef.current;
-    if (!dialog) return;
-    const previousOverflow = document.body.style.overflow;
-    const restoreScroll = () => { document.body.style.overflow = previousOverflow; };
-    restoreScrollRef.current = restoreScroll;
-    dialog.showModal();
-    document.body.style.overflow = "hidden";
+    if (!dialog || hasSeenWelcome()) return;
+    let timer: ReturnType<typeof setTimeout>;
+    function showWelcome() {
+      if (!dialog || hasSeenWelcome()) return;
+      // Let visitors finish any existing dialog before showing the welcome.
+      if (document.querySelector('dialog[open], [role="dialog"][aria-modal="true"]')) {
+        timer = setTimeout(showWelcome, 1000);
+        return;
+      }
+      try {
+        localStorage.setItem(welcomeSeenKey, "true");
+      } catch {
+        return;
+      }
+      const previousOverflow = document.body.style.overflow;
+      restoreScrollRef.current = () => { document.body.style.overflow = previousOverflow; };
+      dialog.showModal();
+      document.body.style.overflow = "hidden";
+    }
+    timer = setTimeout(showWelcome, welcomeDelayMs);
     return () => {
-      dialog.close();
-      restoreScroll();
+      clearTimeout(timer);
+      if (dialog.open) dialog.close();
+      restoreScrollRef.current?.();
       restoreScrollRef.current = null;
     };
   }, []);

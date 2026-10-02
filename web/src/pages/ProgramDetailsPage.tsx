@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { FormEvent, ReactNode } from "react";
+import type { CSSProperties, FormEvent, ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -7,7 +7,9 @@ import {
   Award,
   BadgeCheck,
   BookOpenCheck,
+  BriefcaseBusiness,
   CalendarClock,
+  Check,
   CheckCircle2,
   Code2,
   FolderKanban,
@@ -15,6 +17,8 @@ import {
   Headphones,
   Laptop,
   PhoneCall,
+  PlayCircle,
+  Plus,
   Send,
   ShieldCheck,
   Sparkles,
@@ -26,6 +30,9 @@ import {
 import { PublicNavbar } from "../components/PublicNavbar";
 import { useDialogAccessibility } from "../components/useDialogAccessibility";
 import { SiteFooter } from "../components/SiteFooter";
+import { useScrollReveal } from "../hooks/useScrollReveal";
+import "../styles/showcase.css";
+import "../styles/program-details.css";
 import { IndiaMobileInput } from "../components/IndiaMobileInput";
 import { allPrograms, defaultProgramPlans, findProgramBySlug } from "../data/siteContent";
 import type { Program, ProgramPlan } from "../data/siteContent";
@@ -44,6 +51,9 @@ type ProjectItem = DetailItem & { artifacts: string[]; technologies?: string[] }
 type DomainFeatureItem = { icon: ReactNode; title: string; text: string; bullets: string[] };
 type RegistrationSubmission = { applicant: EnrollmentApplicant; paymentChoice: "token" | "full"; startDate?: string; acceptedTerms: boolean };
 const checkoutPolicyVersion = "2026-08-20";
+const tones = ["lilac", "mint", "peach", "sky", "rose", "butter"];
+const order = (index: number) => ({ "--i": index }) as CSSProperties;
+const sectionLinks = [["overview", "Overview"], ["skills", "Skills"], ["curriculum", "Curriculum"], ["projects", "Projects"], ["certification", "Certification"], ["pricing", "Pricing"], ["faq", "FAQ"]] as const;
 
 type ProgramViewModel = {
   slug: string;
@@ -128,6 +138,8 @@ export function ProgramDetailsPage() {
   const [selectedPlanCode, setSelectedPlanCode] = useState("INTERMEDIATE");
   const [registrationPlan, setRegistrationPlan] = useState<ProgramPlan | null>(null);
   const [activeCertificateIndex, setActiveCertificateIndex] = useState(0);
+  const [activeSection, setActiveSection] = useState("overview");
+  const mainRef = useScrollReveal<HTMLDivElement>();
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -165,6 +177,18 @@ export function ProgramDetailsPage() {
   }, [localProgram, slug]);
 
   const program = useMemo(() => buildProgramViewModel(localProgram, remoteProgram), [localProgram, remoteProgram]);
+
+  // Highlight the tab for whichever section is currently in view.
+  useEffect(() => {
+    if (!("IntersectionObserver" in window)) return;
+    const sections = sectionLinks.map(([id]) => document.getElementById(id)).filter((element): element is HTMLElement => Boolean(element));
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+      if (visible) setActiveSection(visible.target.id);
+    }, { rootMargin: "-30% 0px -60% 0px" });
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, [program?.slug]);
 
   useEffect(() => {
     if (!program?.plans.some((plan) => plan.code === selectedPlanCode)) {
@@ -244,189 +268,186 @@ export function ProgramDetailsPage() {
   }
 
   return (
-    <main className="program-detail-page program-detail-v2">
+    <main className="pdx sc-page">
       <PublicNavbar />
-
-      <section className="pd-hero" aria-labelledby="program-detail-title">
-        <img alt="" aria-hidden="true" className="pd-hero__image" src={heroImage} />
-        <div className="pd-hero__veil" aria-hidden="true" />
-        <div className="pd-hero__content">
-          <div className="pd-hero__copy">
-            <Link className="pd-back-link" to="/programs"><ArrowLeft size={17} /> All programs</Link>
-            <span className="pd-kicker"><Sparkles size={15} /> {program.domain}</span>
-            <h1 id="program-detail-title">{program.title}</h1>
-            <p>{program.shortDescription}</p>
-            <div className="pd-hero__actions">
-              <a className="site-button site-button--primary" href="#pricing">Compare plans <ArrowRight size={18} /></a>
-              <Link className="site-button pd-button--glass" to="/request-callback">Talk to an expert <PhoneCall size={18} /></Link>
+      <div className="sc-main" ref={mainRef}>
+        <section className="sc-hero pdx-hero" aria-labelledby="program-detail-title">
+          <div className="sc-hero-grid">
+            <div className="sc-hero-copy">
+              <Link className="pdx-back" to="/programs"><ArrowLeft size={16} /> All programs</Link>
+              <span className="sc-badge"><span className="sc-pulse" aria-hidden="true" /><Sparkles size={15} /> {program.domain}</span>
+              <h1 id="program-detail-title">{program.title}</h1>
+              <p>{program.shortDescription}</p>
+              <div className="sc-actions">
+                <a className="sc-button" href="#pricing">Compare plans <ArrowRight size={18} /></a>
+                <Link className="sc-ghost" to="/request-callback">Talk to an expert <PhoneCall size={16} /></Link>
+              </div>
+              <ul className="pdx-hero-facts" aria-label="Program highlights">
+                <li className="tone-lilac"><span className="sc-icon sc-icon--tone-solid"><CalendarClock size={17} /></span><span><small>Duration</small>{program.duration}</span></li>
+                <li className="tone-mint"><span className="sc-icon sc-icon--tone-solid"><GraduationCap size={17} /></span><span><small>Level</small>{program.level}</span></li>
+                <li className="tone-peach"><span className="sc-icon sc-icon--tone-solid"><Award size={17} /></span><span><small>Outcome</small>Verified certificate</span></li>
+              </ul>
+            </div>
+            <div className="sc-hero-visual pdx-hero-visual">
+              <div className="pdx-hero-frame"><img src={heroImage} alt="" width={1200} height={800} fetchPriority="high" /></div>
+              <div className="sc-floater pdx-float pdx-float--1 tone-sky" style={order(0)}><span className="sc-icon sc-icon--tone-solid"><Laptop size={18} /></span><span><strong>{program.mode}</strong>Learning mode</span></div>
+              <div className="sc-floater pdx-float pdx-float--2 tone-mint" style={order(1)}><span className="sc-icon sc-icon--tone-solid"><FolderKanban size={18} /></span><span><strong>{program.projects.length} real projects</strong>Portfolio-ready work</span></div>
+              <div className="sc-floater pdx-float pdx-float--3 tone-butter" style={order(2)}><span className="sc-icon sc-icon--tone-solid"><BookOpenCheck size={18} /></span><span><strong>{program.curriculum.length} modules</strong>Step-by-step path</span></div>
             </div>
           </div>
+        </section>
 
-          <div className="pd-hero__metrics" aria-label="Program highlights">
-            <Metric icon={<CalendarClock size={18} />} label="Duration" value={program.duration} />
-            <Metric icon={<Laptop size={18} />} label="Learning mode" value={program.mode} />
-            <Metric icon={<Award size={18} />} label="Outcome" value="Verified certificate" />
-          </div>
-        </div>
-      </section>
+        <nav className="pdx-tabs" aria-label="Program page sections">
+          <div>{sectionLinks.map(([id, label]) => <a key={id} href={`#${id}`} aria-current={activeSection === id ? "true" : undefined}>{label}</a>)}</div>
+        </nav>
 
-      <nav className="pd-anchor-nav" aria-label="Program page sections">
-        <div>
-          <a href="#overview">Overview</a><a href="#skills">Skills</a><a href="#curriculum">Curriculum</a>
-          <a href="#projects">Projects</a><a href="#certification">Certification</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a>
-        </div>
-      </nav>
-
-      <section className="pd-section pd-overview" id="overview">
-        <div className="pd-section-heading">
-          <span>Program overview</span>
-          <h2>Build capability you can demonstrate, not just describe.</h2>
-        </div>
-        <div className="pd-overview__body">
-          <div className="pd-overview__statement">
+        <section className="sc-section pdx-overview" id="overview">
+          <div className="sc-heading" data-reveal>
+            <span className="sc-eyebrow">Program overview</span>
+            <h2>Build capability you can demonstrate, not just describe.</h2>
             <p>{program.overview}</p>
-            <div className="pd-overview__facts">
-              <span><CalendarClock size={18} /><small>Duration</small><strong>{program.duration}</strong></span>
-              <span><Video size={18} /><small>Learning mode</small><strong>{program.mode}</strong></span>
-              <span><GraduationCap size={18} /><small>Level</small><strong>{program.level}</strong></span>
-              <span><UsersRound size={18} /><small>Review</small><strong>Expert reviewed</strong></span>
+            <div className="pdx-facts">
+              <span className="tone-lilac"><span className="sc-icon sc-icon--tone"><CalendarClock size={18} /></span><small>Duration</small><strong>{program.duration}</strong></span>
+              <span className="tone-sky"><span className="sc-icon sc-icon--tone"><Video size={18} /></span><small>Learning mode</small><strong>{program.mode}</strong></span>
+              <span className="tone-mint"><span className="sc-icon sc-icon--tone"><GraduationCap size={18} /></span><small>Level</small><strong>{program.level}</strong></span>
+              <span className="tone-peach"><span className="sc-icon sc-icon--tone"><UsersRound size={18} /></span><small>Review</small><strong>Expert reviewed</strong></span>
             </div>
           </div>
-          <aside className="pd-audience">
-            <div><UserPlus size={22} /><h3>Who should join</h3></div>
+          <aside className="pdx-audience tone-mint" data-reveal style={order(1)}>
+            <span className="sc-icon sc-icon--tone-solid"><UserPlus size={20} /></span>
+            <h3>Who should join</h3>
             <ul>{program.audience.map((item) => <li key={item}><CheckCircle2 size={17} /> {item}</li>)}</ul>
           </aside>
-        </div>
-      </section>
+        </section>
 
-      <section className="pd-skill-band" id="skills">
-        <div className="pd-skill-band__intro">
-          <span className="pd-kicker"><Code2 size={15} /> Domain Features</span>
-          <h2>Domain Features</h2>
-          <p>Everything you need - structured learning, real projects, expert support & certification.</p>
-        </div>
-        <div className="pd-skill-band__grid">
-          {domainFeatures.map((feature) => (
-            <article key={feature.title}>
-              <span className="pd-feature-card__icon">{feature.icon}</span>
-              <div>
-                <h3>{feature.title}</h3>
-                <p>{feature.text}</p>
-              </div>
-              <ul>
-                {feature.bullets.map((bullet) => (
-                  <li key={bullet}><CheckCircle2 size={17} /> {bullet}</li>
-                ))}
-              </ul>
+        <section className="sc-section" id="skills">
+          <div className="sc-heading sc-heading--center" data-reveal><span className="sc-eyebrow">Skills you’ll build</span><h2>Tools and skills you’ll use on real work.</h2></div>
+          <ul className="pdx-skills sc-stagger" data-reveal>{program.skills.map((skill, index) => <li key={skill} className={`tone-${tones[index % tones.length]}`} style={order(index)}><Code2 size={15} />{skill}</li>)}</ul>
+          <div className="pdx-features">{domainFeatures.map((feature, index) => (
+            <article key={feature.title} className={`sc-card tone-${tones[index % tones.length]}`} data-reveal style={order(index)}>
+              <span className="sc-icon sc-icon--tone-solid">{feature.icon}</span>
+              <h3>{feature.title}</h3>
+              <p>{feature.text}</p>
+              <ul className="sc-checklist">{feature.bullets.map((bullet) => <li key={bullet}><Check size={16} />{bullet}</li>)}</ul>
             </article>
-          ))}
-        </div>
-      </section>
+          ))}</div>
+        </section>
 
-      <section className="pd-section pd-curriculum" id="curriculum">
-        <div className="pd-section-heading pd-section-heading--split">
-          <div><span>Curriculum</span><h2>A clear path from foundations to career proof.</h2></div>
-          <p>Explore each module to see what you’ll learn.</p>
-        </div>
-        <div className="pd-curriculum__list">
-          {program.curriculum.map((module) => (
-            <details className="pd-module" key={`${program.slug}-${module.title}`} name="program-curriculum">
-              <summary>
-                <div><h3>{module.title}</h3><p>{module.text}</p></div>
-                <span className="pd-module__plus" aria-hidden="true">+</span>
-              </summary>
-              <ul>{module.lessons.map((lesson) => <li key={lesson}>{lesson}</li>)}</ul>
-            </details>
-          ))}
-        </div>
-      </section>
+        <section className="sc-section pdx-curriculum" id="curriculum">
+          <div className="sc-heading" data-reveal>
+            <span className="sc-eyebrow">Curriculum</span>
+            <h2>A clear path from foundations to career proof.</h2>
+            <p>Explore each module to see what you’ll learn.</p>
+            <div className="pdx-curriculum-stats"><span><b>{program.curriculum.length}</b> modules</span><span><b>{program.curriculum.reduce((total, module) => total + module.lessons.length, 0)}</b> lessons</span><span><b>{program.projects.length}</b> projects</span></div>
+          </div>
+          <ol className="pdx-modules" data-reveal>
+            {program.curriculum.map((module, index) => (
+              <li key={`${program.slug}-${module.title}`} className={`tone-${tones[index % tones.length]}`}>
+                <details name="program-curriculum" open={index === 0}>
+                  <summary>
+                    <span className="pdx-module-num">{String(index + 1).padStart(2, "0")}</span>
+                    <div><h3>{module.title}</h3><p>{module.text}</p></div>
+                    <span className="pdx-module-toggle" aria-hidden="true"><Plus size={16} /></span>
+                  </summary>
+                  <ul>{module.lessons.map((lesson) => <li key={lesson}><PlayCircle size={16} />{lesson}</li>)}</ul>
+                </details>
+              </li>
+            ))}
+          </ol>
+        </section>
 
-      <section className="pd-projects" id="projects">
-        <div className="pd-projects__head">
-          <span className="pd-kicker"><FolderKanban size={15} /> Real-world projects</span>
-          <h2>Real-World Hands-On Projects</h2>
-          <p>Build strong industry-ready skills with practical experience.</p>
-        </div>
-        <div className="pd-projects__grid">
-          {program.projects.map((project, index) => (
-            <article key={project.title}>
-              <header><span>{index + 1}</span></header>
-              <h3>{project.title}</h3>
-              <p>{project.text}</p>
-              <details open={index === 0}>
-                <summary>View Details</summary>
-                <div>
-                  <strong>Key Features</strong>
-                  <ul>{(project.technologies ? project.artifacts : project.artifacts.slice(0, 4)).map((artifact) => <li key={artifact}>{artifact}</li>)}</ul>
+        <section className="sc-band pdx-projects" id="projects">
+          <div className="sc-heading sc-heading--center" data-reveal>
+            <span className="sc-eyebrow">Real-world projects</span>
+            <h2>Real-World Hands-On Projects</h2>
+            <p>Build strong industry-ready skills with practical experience.</p>
+          </div>
+          <div className="pdx-project-grid">
+            {program.projects.map((project, index) => (
+              <article key={project.title} className={`sc-glass tone-${tones[index % tones.length]}`} data-reveal style={order(index)}>
+                <header><span className="sc-icon sc-icon--tone-solid"><FolderKanban size={19} /></span><span className="pdx-project-num">Project {index + 1}</span></header>
+                <h3>{project.title}</h3>
+                <p>{project.text}</p>
+                <details>
+                  <summary>View details <Plus size={15} /></summary>
+                  <strong>Key features</strong>
+                  <ul>{(project.technologies ? project.artifacts : project.artifacts.slice(0, 4)).map((artifact) => <li key={artifact}><Check size={14} />{artifact}</li>)}</ul>
                   <strong>Technologies</strong>
-                  <ul>{(project.technologies ?? program.skills.slice(0, 4)).map((skill) => <li key={skill}>{skill}</li>)}</ul>
-                </div>
+                  <div className="pdx-tech">{(project.technologies ?? program.skills.slice(0, 4)).map((skill) => <span key={skill}>{skill}</span>)}</div>
+                </details>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="sc-section pdx-credential" id="certification">
+          <div className="sc-heading" data-reveal>
+            <span className="sc-eyebrow">Expert guidance & certification</span>
+            <h2>Review from someone who understands the work.</h2>
+            <p>{program.guidance}</p>
+            <ul className="pdx-credential-points">
+              <li className="tone-sky"><span className="sc-icon sc-icon--tone-solid"><Headphones size={17} /></span>Live guidance, project reviews, doubt support, and interview feedback.</li>
+              <li className="tone-mint"><span className="sc-icon sc-icon--tone-solid"><ShieldCheck size={17} /></span>{program.certification}</li>
+            </ul>
+          </div>
+          <a className="pdx-certificate" data-reveal style={order(1)} href={credentialCertificates[activeCertificateIndex].image} target="_blank" rel="noopener noreferrer" aria-label={`View ${credentialCertificates[activeCertificateIndex].title} for ${program.title} in full size`}>
+            <span className="sc-pill tone-butter"><Award size={14} /> {credentialCertificates[activeCertificateIndex].title}</span>
+            <img key={activeCertificateIndex} src={credentialCertificates[activeCertificateIndex].image} alt={credentialCertificates[activeCertificateIndex].alt} width="1600" height="1131" loading="lazy" />
+            <span className="pdx-certificate-dots" aria-hidden="true">{credentialCertificates.map((certificate, index) => <i className={index === activeCertificateIndex ? "is-active" : ""} key={certificate.title} />)}</span>
+          </a>
+        </section>
+
+        <section className="sc-section pdx-career">
+          <article className="sc-card tone-lilac" data-reveal>
+            <span className="sc-eyebrow">Career outcomes</span><h2>Know where this program can take you.</h2>
+            <ul className="pdx-outcomes">{program.outcomes.map((outcome, index) => <li key={outcome} className={`tone-${tones[index % tones.length]}`}><span className="sc-icon sc-icon--tone-solid"><BriefcaseBusiness size={16} /></span>{outcome}</li>)}</ul>
+          </article>
+          <article className="sc-card tone-peach" data-reveal style={order(1)}>
+            <span className="sc-eyebrow">Interview preparation</span><h2>Practice explaining the decisions behind your work.</h2>
+            <ul className="sc-checklist">{program.interviewPrep.map((item) => <li key={item}><BadgeCheck size={16} />{item}</li>)}</ul>
+          </article>
+        </section>
+
+        <section className="sc-section pdx-pricing" id="pricing">
+          <div className="sc-heading sc-heading--center" data-reveal>
+            <span className="sc-eyebrow">Program plans</span>
+            <h2>Choose the support level that fits your goal.</h2>
+            <p>Every plan provides structured learning and certification. Upgrade when you want deeper expert review.</p>
+          </div>
+          <div className="pdx-plans">
+            {program.plans.map((plan, index) => <PlanCard key={plan.code} index={index} onChoose={() => choosePlan(plan.code)} plan={plan} />)}
+          </div>
+          {remoteProgram ? <p className="pdx-admin-note"><ShieldCheck size={15} /> Prices and features are managed per program from the Admin Panel.</p> : null}
+        </section>
+
+        <section className="sc-section sc-faq" id="faq">
+          <div className="sc-heading" data-reveal>
+            <span className="sc-eyebrow">FAQ</span><h2>Questions before you enroll.</h2>
+            <p>Clear answers about eligibility, projects, certification, and learner guidance.</p>
+            <Link className="sc-ghost" to="/request-callback">Ask an advisor <ArrowRight size={16} /></Link>
+          </div>
+          <div className="sc-faq-list" data-reveal>
+            {program.faqs.map((faq, index) => (
+              <details key={faq.question} name="program-faq" open={index === 0}>
+                <summary>{faq.question}<span aria-hidden="true"><Plus size={16} /></span></summary><p>{faq.answer}</p>
               </details>
-            </article>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
 
-      <section className="pd-credential" id="certification">
-        <div className="pd-credential__expert">
-          <span className="pd-kicker"><UsersRound size={15} /> Expert guidance</span>
-          <h2>Review from someone who understands the work.</h2><p>{program.guidance}</p>
-          <div><Headphones size={20} /><span>Live guidance, project reviews, doubt support, and interview feedback.</span></div>
-        </div>
-        <a className="pd-credential__sample" href={credentialCertificates[activeCertificateIndex].image} target="_blank" rel="noopener noreferrer" aria-label={`View ${credentialCertificates[activeCertificateIndex].title} for ${program.title} in full size`}>
-          <img src={credentialCertificates[activeCertificateIndex].image} alt={credentialCertificates[activeCertificateIndex].alt} width="1600" height="1131" loading="lazy" />
-          <span className="pd-credential__dots" aria-label="Certificate carousel indicators">
-            {credentialCertificates.map((certificate, index) => <i className={index === activeCertificateIndex ? "is-active" : ""} key={certificate.title} aria-hidden="true" />)}
-          </span>
-        </a>
-      </section>
-
-      <section className="pd-section pd-career">
-        <div className="pd-career__outcomes">
-          <span>Career outcomes</span><h2>Know where this program can take you.</h2>
-          <div>{program.outcomes.map((outcome) => <strong key={outcome}><ArrowRight size={17} /> {outcome}</strong>)}</div>
-        </div>
-        <div className="pd-career__interview">
-          <span>Interview preparation</span><h3>Practice explaining the decisions behind your work.</h3>
-          <ul>{program.interviewPrep.map((item) => <li key={item}><BadgeCheck size={17} /> {item}</li>)}</ul>
-        </div>
-      </section>
-
-      <section className="pd-pricing" id="pricing">
-        <div className="pd-pricing__head">
-          <span className="pd-kicker"><WalletCards size={15} /> Program plans</span>
-          <h2>Choose the support level that fits your goal.</h2>
-          <p>Every plan provides structured learning and certification. Upgrade when you want deeper expert review.</p>
-        </div>
-        <div className="pd-pricing__grid">
-          {program.plans.map((plan) => <PlanCard key={plan.code} onChoose={() => choosePlan(plan.code)} plan={plan} />)}
-        </div>
-        {remoteProgram ? <p className="pd-pricing__admin-note"><ShieldCheck size={15} /> Prices and features are managed per program from the Admin Panel.</p> : null}
-      </section>
-
-      <section className="pd-section pd-faq" id="faq">
-        <div className="pd-section-heading pd-section-heading--split">
-          <div><span>FAQ</span><h2>Questions before you enroll.</h2></div>
-          <p>Clear answers about eligibility, projects, certification, and learner guidance.</p>
-        </div>
-        <div className="pd-faq__grid">
-          {program.faqs.map((faq, index) => (
-            <details key={faq.question} open={index === 0}>
-              <summary>{faq.question}<span>+</span></summary><p>{faq.answer}</p>
-            </details>
-          ))}
-        </div>
-      </section>
-
-      <section className="pd-enroll" id="enroll">
-        <div className="pd-enroll__copy">
-          <span className="pd-kicker"><Send size={15} /> Enroll now</span><h2>Start your {program.title} journey.</h2>
-          <p>Choose your level, share your details, and reserve your place or pay in full securely. Full access lasts six months after verification.</p>
-          <div><CheckCircle2 size={18} /> No hidden plan features</div><div><CheckCircle2 size={18} /> Guided onboarding</div>
-          <div><CheckCircle2 size={18} /> Secure LMS access</div>
-        </div>
-        <EnrollForm onCheckout={beginCheckout} onPlanChange={setSelectedPlanCode} plans={program.plans} programTitle={program.title} selectedPlanCode={selectedPlanCode} />
-      </section>
+        <section className="pdx-enroll" id="enroll" data-reveal>
+          <div className="pdx-enroll-copy">
+            <span className="sc-eyebrow">Enroll now</span><h2>Start your {program.title} journey.</h2>
+            <p>Choose your level, share your details, and reserve your place or pay in full securely. Full access lasts six months after verification.</p>
+            <ul>
+              <li><CheckCircle2 size={18} /> No hidden plan features</li>
+              <li><CheckCircle2 size={18} /> Guided onboarding</li>
+              <li><CheckCircle2 size={18} /> Secure LMS access</li>
+            </ul>
+          </div>
+          <EnrollForm onCheckout={beginCheckout} onPlanChange={setSelectedPlanCode} plans={program.plans} programTitle={program.title} selectedPlanCode={selectedPlanCode} />
+        </section>
+      </div>
 
       {registrationPlan ? (
         <RegistrationDialog
@@ -443,29 +464,27 @@ export function ProgramDetailsPage() {
   );
 }
 
-function Metric({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
-  return <span>{icon}<small>{label}</small><strong>{value}</strong></span>;
-}
-
-function PlanCard({ onChoose, plan }: { onChoose: () => void; plan: ProgramPlan }) {
+function PlanCard({ index, onChoose, plan }: { index: number; onChoose: () => void; plan: ProgramPlan }) {
   const isRecommended = plan.code === "INTERMEDIATE";
   const includedPlan = plan.code === "INTERMEDIATE" ? "Everything in Launch, plus" : plan.code === "MASTER" ? "Everything in Elevate, plus" : null;
   const savings = Math.max(0, plan.actualPrice - plan.offerPrice);
+  const tone = ["mint", "lilac", "peach"][index % 3];
+  const PlanIcon = [Send, Sparkles, Award][index % 3];
 
   return (
-    <article className={isRecommended ? "is-recommended" : undefined}>
+    <article className={`pdx-plan tone-${tone}${isRecommended ? " is-recommended" : ""}`} data-reveal style={order(index)}>
+      {isRecommended ? <span className="pdx-plan-flag"><BadgeCheck size={15} /> Most popular</span> : null}
       <header>
-        <div><span>{plan.name}</span><small>{isRecommended ? "Most popular" : plan.code === "MASTER" ? "Maximum support" : "Strong start"}</small></div>
-        {isRecommended ? <BadgeCheck size={23} /> : null}
+        <span className="sc-icon sc-icon--tone-solid"><PlanIcon size={20} /></span>
+        <div><h3>{plan.name}</h3><small>{isRecommended ? "Best value for most learners" : plan.code === "MASTER" ? "Maximum support" : "Strong start"}</small></div>
       </header>
-      <div className="pd-plan-price">
-        {savings > 0 ? <del>{formatInr(plan.actualPrice)}</del> : null}
+      <div className="pdx-plan-price">
         <strong>{formatInr(plan.offerPrice)}</strong>
-        {savings > 0 ? <span>Save {formatInr(savings)}</span> : null}
+        {savings > 0 ? <span><del>{formatInr(plan.actualPrice)}</del><b>Save {formatInr(savings)}</b></span> : null}
       </div>
-      {includedPlan ? <p className="pd-plan-includes">{includedPlan}</p> : null}
-      <ul>{plan.features.map((feature) => <li key={feature}><CheckCircle2 size={16} /> {feature}</li>)}</ul>
-      <small className="pd-plan-deposit">Reserve with {formatInr(plan.reserveAmount)}</small>
+      {includedPlan ? <p className="pdx-plan-includes">{includedPlan}</p> : null}
+      <ul className="sc-checklist">{plan.features.map((feature) => <li key={feature}><Check size={16} />{feature}</li>)}</ul>
+      <small className="pdx-plan-deposit"><WalletCards size={14} /> Reserve with {formatInr(plan.reserveAmount)}</small>
       <button onClick={onChoose} type="button">Choose {plan.name}<ArrowRight size={17} /></button>
     </article>
   );
@@ -481,17 +500,17 @@ function EnrollForm({ onCheckout, onPlanChange, plans, programTitle, selectedPla
   const selectedPlan = plans.find((plan) => plan.code === selectedPlanCode) ?? plans[0];
 
   return (
-    <div className="pd-enroll-form">
-      <div className="pd-enroll-form__summary"><span>Selected plan</span><strong>{selectedPlan?.name ?? "Choose a plan"}</strong><small>{selectedPlan ? `${formatInr(selectedPlan.offerPrice)} full plan` : "Pricing unavailable"}</small></div>
+    <div className="pdx-enroll-form">
+      <div className="pdx-enroll-summary"><span>Selected plan</span><strong>{selectedPlan?.name ?? "Choose a plan"}</strong><small>{selectedPlan ? `${formatInr(selectedPlan.offerPrice)} full plan` : "Pricing unavailable"}</small></div>
       <label>
         Plan
         <select name="planCode" value={selectedPlanCode} onChange={(event) => onPlanChange(event.target.value)}>
           {plans.map((plan) => <option key={plan.code} value={plan.code}>{plan.name} - {formatInr(plan.offerPrice)}</option>)}
         </select>
       </label>
-      <div className="pd-enroll-form__payment-note"><ShieldCheck size={17} /><span>Register with your name, phone, email, and college. Then choose a seat token or pay the full plan amount securely.</span></div>
+      <div className="pdx-enroll-note"><ShieldCheck size={17} /><span>Register with your name, phone, email, and college. Then choose a seat token or pay the full plan amount securely.</span></div>
       <button type="button" disabled={!selectedPlan} onClick={() => selectedPlan && onCheckout(selectedPlan)}><UserPlus size={18} /> Continue to registration</button>
-      <small className="pd-enroll-form__program-label">{programTitle} · UPI, UPI QR, cards, and net banking supported by the payment gateway.</small>
+      <small className="pdx-enroll-label">{programTitle} · UPI, UPI QR, cards, and net banking supported by the payment gateway.</small>
     </div>
   );
 }

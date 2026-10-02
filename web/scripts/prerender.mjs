@@ -35,6 +35,10 @@ try {
     const html = await page.evaluate(() => {
       document.querySelectorAll('dialog[open]').forEach(dialog => dialog.close());
       document.body.style.overflow = '';
+      // Scroll animation state must not hide static content before JavaScript runs.
+      document.querySelectorAll('[data-reveal]').forEach(element => {
+        element.classList.remove('sc-reveal', 'dl-reveal', 'is-visible');
+      });
       document.querySelectorAll('canvas').forEach(canvas => canvas.replaceChildren());
       return '<!doctype html>\n' + document.documentElement.outerHTML;
     });

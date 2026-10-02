@@ -18,9 +18,21 @@ try {
   assert.ok((await page.locator('#root').innerText()).length > 500);
   const schema = JSON.parse(await page.locator('#seo-structured-data').textContent());
   assert.ok(schema['@graph'].some(item => item['@type'] === 'Organization'));
+  const organization = schema['@graph'].find(item => item['@type'] === 'Organization');
+  assert.deepEqual(organization.sameAs, [
+    'https://www.instagram.com/joviqtechnologies/',
+    'https://www.linkedin.com/company/joviq-technologies-private-limited/',
+    'https://www.facebook.com/joviqtechnologies'
+  ]);
+  assert.equal(organization.telephone, '+919281977188');
+  assert.equal(organization.email, 'info@joviqtechnologies.com');
+  for (const url of organization.sameAs) {
+    assert.equal(new URL(url).search, '');
+    assert.ok(await page.locator(`footer a[href="${url}"]`).count(), `Social profile not visible: ${url}`);
+  }
   assert.ok(schema['@graph'].some(item => item['@type'] === 'WebSite'));
   assert.ok(schema['@graph'].find(item => item['@type'] === 'WebSite').alternateName.includes('Joviq'));
-  for (const path of ['/programs', '/features', '/about', '/careers', '/campus-partners', '/request-callback']) {
+  for (const path of ['/programs', '/features', '/about', '/careers', '/campus-partners', '/request-callback', '/reviews', '/campus-delegate', '/cookie-policy']) {
     assert.ok(await page.locator(`footer a[href="${path}"]`).count(), `Missing crawlable footer link: ${path}`);
   }
   assert.equal(await page.locator('meta[property="og:image"]').count(), 1);
@@ -30,6 +42,11 @@ try {
   assert.ok((await page.locator('#root').innerText()).length > 500);
   assert.ok(await page.locator('main a[href="/careers"]').count());
   assert.ok(await page.locator('main a[href="/campus-delegate"]').count());
+  for (const { rewrite } of config.routes.filter(route => route.rewrite?.endsWith('/index.html'))) {
+    await page.setContent(await readFile(`dist${rewrite}`, 'utf8'));
+    assert.equal(await page.locator('[data-reveal].sc-reveal, [data-reveal].dl-reveal').count(), 0,
+      `Runtime animation state hides static content: ${rewrite}`);
+  }
   await page.setContent(await readFile('dist/account.html', 'utf8'));
   assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'), 'noindex, follow');
   assert.equal(config.routes.find(route => route.route === '/dashboard').headers['X-Robots-Tag'], 'noindex, nofollow');

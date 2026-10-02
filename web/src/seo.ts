@@ -1,5 +1,6 @@
 import { allPrograms } from './data/siteContent';
 import { companyInformation } from './data/companyInformation';
+import { socialProfileUrls } from './components/socialLinks';
 
 export const siteUrl = 'https://joviqtechnologies.com';
 export const siteName = 'Joviq Technologies';
@@ -34,7 +35,7 @@ export function pageSeo(pathname: string, indexable = true) {
     structuredData: page ? {
       '@context': 'https://schema.org',
       '@graph': [
-        { '@type': 'Organization', '@id': `${siteUrl}/#organization`, name: siteName, legalName: companyInformation.legalName, alternateName: ['JoviQ Technologies', 'Joviq'], url: siteUrl, logo: `${siteUrl}/assets/joviq-brand.png` },
+        { '@type': 'Organization', '@id': `${siteUrl}/#organization`, name: siteName, legalName: companyInformation.legalName, alternateName: ['JoviQ Technologies', 'Joviq'], url: siteUrl, logo: `${siteUrl}/assets/joviq-brand.png`, sameAs: socialProfileUrls, telephone: '+919281977188', email: 'info@joviqtechnologies.com' },
         ...(path === '/' ? [{ '@type': 'WebSite', '@id': `${siteUrl}/#website`, url: siteUrl, name: siteName, alternateName: ['Joviq', 'JoviQ Technologies'], publisher: { '@id': `${siteUrl}/#organization` } }] : [{ '@type': 'BreadcrumbList', itemListElement: [
           { '@type': 'ListItem', position: 1, name: siteName, item: `${siteUrl}/` },
           ...(path.startsWith('/programs/') ? [{ '@type': 'ListItem', position: 2, name: 'Training Programs', item: `${siteUrl}/programs` }] : []),

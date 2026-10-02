@@ -1,9 +1,11 @@
 export const socialLinks = [
-  { label: "Instagram", shortLabel: "IG", href: "https://www.instagram.com/joviqtechnologies?stkn=MXY1djRvd3VjNmNoMg==", Icon: InstagramIcon, tone: "instagram" },
+  { label: "Instagram", shortLabel: "IG", href: "https://www.instagram.com/joviqtechnologies/", Icon: InstagramIcon, tone: "instagram" },
   { label: "LinkedIn", shortLabel: "in", href: "https://www.linkedin.com/company/joviq-technologies-private-limited/", Icon: LinkedInIcon, tone: "linkedin" },
-  { label: "Facebook", shortLabel: "f", href: "https://www.facebook.com/joviqtechnologies?rdid=SVZR8OQtIHtWHw5s&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1Bx12pxKtp%2F#", Icon: FacebookIcon, tone: "facebook" },
+  { label: "Facebook", shortLabel: "f", href: "https://www.facebook.com/joviqtechnologies", Icon: FacebookIcon, tone: "facebook" },
   { label: "WhatsApp", shortLabel: "WA", href: "https://wa.me/919281977188", Icon: WhatsAppIcon, tone: "whatsapp" }
 ];
+
+export const socialProfileUrls = socialLinks.filter(link => link.label !== "WhatsApp").map(link => link.href);
 
 type SocialIconProps = {
   size?: number;
@@ -43,4 +45,3 @@ function WhatsAppIcon({ size = 24 }: SocialIconProps) {
     </svg>
   );
 }
-

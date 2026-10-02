@@ -1,70 +1,130 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Award, BarChart3, BookOpen, BriefcaseBusiness, Code2, Eye, Heart, Lightbulb, Play, ShieldCheck, Star, Target, UsersRound, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Award, BarChart3, BookOpen, BriefcaseBusiness, Code2, Eye, GraduationCap, Hammer, Heart, Lightbulb, Megaphone, MessagesSquare, Rocket, ShieldCheck, Sparkles, Target, UsersRound } from "lucide-react";
 import { PublicNavbar } from "../components/PublicNavbar";
 import { SiteFooter } from "../components/SiteFooter";
 import { companyInformation } from "../data/companyInformation";
 import { keyStatistics } from "../data/siteContent";
+import { useScrollReveal } from "../hooks/useScrollReveal";
+import "../styles/showcase.css";
 import "../styles/about-page.css";
 
+const order = (index: number) => ({ "--i": index }) as CSSProperties;
+const initials = (name: string) => name.split(" ").map(part => part[0]).join("");
 const values = [
-  { icon: Heart, title: "Learner First", text: "Our learners are at the heart of every decision we make." },
-  { icon: Lightbulb, title: "Practical Learning", text: "We focus on real-world skills and hands-on experience." },
-  { icon: BarChart3, title: "Continuous Growth", text: "We innovate and improve every day to create more opportunities." },
-  { icon: ShieldCheck, title: "Integrity", text: "We believe in transparency, trust, and doing what's right." }
+  { icon: Heart, tone: "rose", title: "Learner First", text: "Our learners are at the heart of every decision we make." },
+  { icon: Lightbulb, tone: "butter", title: "Practical Learning", text: "We focus on real-world skills and hands-on experience." },
+  { icon: BarChart3, tone: "mint", title: "Continuous Growth", text: "We innovate and improve every day to create more opportunities." },
+  { icon: ShieldCheck, tone: "sky", title: "Integrity", text: "We believe in transparency, trust, and doing what's right." }
 ];
 const strengths = [
-  { icon: BriefcaseBusiness, title: "Industry-Relevant Curriculum", text: "Learn the skills companies actually need." },
-  { icon: Code2, title: "Hands-On Projects", text: "Build, create, and showcase your work." },
-  { icon: UsersRound, title: "Expert Guidance", text: "Learn from industry professionals." },
-  { icon: BarChart3, title: "Career Support", text: "Get placement support and career resources." }
+  { icon: BriefcaseBusiness, tone: "lilac", title: "Industry-Relevant Curriculum", text: "Learn the skills companies actually need." },
+  { icon: Code2, tone: "mint", title: "Hands-On Projects", text: "Build, create, and showcase your work." },
+  { icon: UsersRound, tone: "peach", title: "Expert Guidance", text: "Learn from industry professionals." },
+  { icon: BarChart3, tone: "sky", title: "Career Support", text: "Get placement support and career resources." }
+];
+const path = [
+  { icon: BookOpen, label: "Learn", tone: "lilac" },
+  { icon: Hammer, label: "Practice", tone: "peach" },
+  { icon: MessagesSquare, label: "Get feedback", tone: "sky" },
+  { icon: Rocket, label: "Grow", tone: "mint" }
 ];
 const stories = [
-  { name: "Ananya Rao", program: "CSE - 3rd Year", quote: "Portfolio and resume cleanup changed the way I explained my work.", portrait: "0% 0%" },
-  { name: "Ishita Sharma", program: "IT - 4th Year", quote: "Rubric-based feedback taught me to explain projects with confidence.", portrait: "50% 0%" },
-  { name: "Karthik Iyer", program: "ECE - Final Year", quote: "The interview became a walkthrough of the projects I had already built.", portrait: "100% 0%" },
-  { name: "Nikhil Shetty", program: "Mechanical - 4th Year", quote: "I learned to present work with clarity and evidence.", portrait: "0% 100%" },
-  { name: "Tanvi Joshi", program: "CSE - Final Year", quote: "Expert feedback exposed weak spots before the real interview.", portrait: "50% 100%" },
-  { name: "Sanjana Reddy", program: "CSE - 3rd Year", quote: "Timed practice fixed my speed and project storytelling.", portrait: "100% 100%" }
+  { name: "Ananya Rao", program: "CSE - 3rd Year", quote: "Portfolio and resume cleanup changed the way I explained my work." },
+  { name: "Ishita Sharma", program: "IT - 4th Year", quote: "Rubric-based feedback taught me to explain projects with confidence." },
+  { name: "Karthik Iyer", program: "ECE - Final Year", quote: "The interview became a walkthrough of the projects I had already built." },
+  { name: "Nikhil Shetty", program: "Mechanical - 4th Year", quote: "I learned to present work with clarity and evidence." },
+  { name: "Tanvi Joshi", program: "CSE - Final Year", quote: "Expert feedback exposed weak spots before the real interview." },
+  { name: "Sanjana Reddy", program: "CSE - 3rd Year", quote: "Timed practice fixed my speed and project storytelling." }
 ];
-const storySlides = [
-  { title: "Learning should open doors.", text: "Joviq brings practical education, expert guidance, and career preparation together so learners can take their next step with confidence.", image: "hero" },
-  { title: "Real skills come from doing.", text: "Our learning experience connects lessons with projects, feedback, and a portfolio of work that learners can explain and share.", image: "team" },
-  { title: "A brighter tomorrow starts with you.", text: "Explore a program, build with guidance, and turn your learning into skills you can use.", image: "hero" }
-];
+const statIcons = [BookOpen, Code2, UsersRound, Award];
+const statTones = ["lilac", "mint", "peach", "sky"];
+
+/* Counts up plain numbers ("20+", "6") once visible; other values such as "1:1" render as-is. */
+function StatValue({ value }: { value: string }) {
+  const ref = useRef<HTMLElement>(null);
+  const [shown, setShown] = useState(value);
+  useEffect(() => {
+    const match = /^(\d+)(\+?)$/.exec(value);
+    const element = ref.current;
+    if (!match || !element || !("IntersectionObserver" in window) || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const [, digits, suffix] = match;
+    const target = Number(digits);
+    let frame = 0;
+    setShown(`0${suffix}`);
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      observer.disconnect();
+      const start = performance.now();
+      const tick = (now: number) => {
+        const progress = Math.min((now - start) / 1200, 1);
+        setShown(`${Math.round(target * (1 - Math.pow(1 - progress, 3)))}${suffix}`);
+        if (progress < 1) frame = requestAnimationFrame(tick);
+      };
+      frame = requestAnimationFrame(tick);
+    }, { threshold: .6 });
+    observer.observe(element);
+    return () => { observer.disconnect(); cancelAnimationFrame(frame); setShown(value); };
+  }, [value]);
+  return <strong ref={ref}>{shown}</strong>;
+}
 
 export function AboutPage() {
-  const [storyOpen, setStoryOpen] = useState(false);
-  const [slide, setSlide] = useState(0);
+  const mainRef = useScrollReveal();
   const [allStories, setAllStories] = useState(false);
   const [storyIndex, setStoryIndex] = useState(0);
-  const dialog = useRef<HTMLDialogElement>(null);
-  const metricsIcons = [BookOpen, Code2, UsersRound, Award];
-  useEffect(() => {
-    if (!storyOpen) return;
-    dialog.current?.showModal();
-    const timer = window.setInterval(() => setSlide(value => Math.min(value + 1, 2)), 20000);
-    return () => window.clearInterval(timer);
-  }, [storyOpen]);
-  function closeStory() { dialog.current?.close(); setStoryOpen(false); }
-  return <div className="site-page about-redesign">
-    <PublicNavbar />
-    <main>
-      <section className="about-hero">
-        <div className="about-hero__copy"><span className="about-eyebrow">ABOUT US</span><h1>Learning<br />Without Limits<br /><span>for a Brighter Tomorrow</span></h1><p>At Joviq, we're on a mission to make high-quality, industry-relevant education accessible to everyone. We empower learners with real-world skills, practical projects, and expert guidance to help them grow, succeed, and create a brighter future.</p><div className="about-hero__actions"><a className="about-button" href="#our-story">Our Story <ArrowRight size={18} /></a></div></div>
-        <div className="about-hero__visual"><img src="/assets/about/learner-hero.png" alt="Learner in a blue sweater studying at her laptop. Real Skills, Real Careers." width="1536" height="1024" /></div>
-      </section>
-      <div className="about-content">
-        <section className="about-stats" aria-label="Joviq learning at a glance">{keyStatistics.map((stat, index) => { const Icon = metricsIcons[index]; return <div key={stat.label}><span><Icon size={29} /></span><p><strong>{stat.value}</strong><small>{stat.label}</small></p></div>; })}</section>
-        <section className="about-purpose"><article><div><span><Target size={30} /></span><small className="about-eyebrow">OUR MISSION</small></div><h2>To make high-quality,<br />practical education accessible<br />to everyone</h2><p>and bridge the gap between learning<br />and real-world opportunities.</p></article><article><div><span><Eye size={30} /></span><small className="about-eyebrow">OUR VISION</small></div><h2>To be a global platform where<br />learners build in-demand skills,<br />gain real experience</h2><p>and unlock meaningful career opportunities.</p></article></section>
-        <section id="our-story" className="about-story-new"><div className="about-story-new__visual"><img src="/assets/about/team.png" alt="A group of learners collaborating around a laptop" /><div className="about-image-badge"><span><BarChart3 size={29} /></span><div><strong>From Learners<br />to Doers</strong><small>Real Skills. Real Impact.</small></div></div></div><div><span className="about-eyebrow">WHO WE ARE</span><h2>A Learning Platform<br />Built for <em>What's Next</em></h2><p>JoviQ Technologies is the brand of {companyInformation.legalName}.</p><p>JOVIQ is an online learning platform designed for today's learners and tomorrow's opportunities. We combine expert-led training, hands-on projects, and industry insights to help individuals upskill, switch careers, and stay ahead in a rapidly evolving world.</p><a className="about-text-link" href="#why-joviq">More About JOVIQ <ArrowRight size={17} /></a></div></section>
-        <section id="why-joviq" className="about-why"><div><span className="about-eyebrow">WHY JOVIQ</span><h2>Industry-Focused<br />Learning, Real-World Impact</h2><p>Our programs are designed with industry experts to ensure you learn what truly matters. From live classes to real-world projects, we focus on practical skills that prepare you for real opportunities.</p></div><div className="about-why__grid">{strengths.map(({ icon: Icon, title, text }) => <article key={title}><span><Icon size={29} /></span><div><h3>{title}</h3><p>{text}</p></div></article>)}</div></section>
-        <section className="about-values"><header><div><span className="about-eyebrow">OUR CORE VALUES</span><h2>What Drives Us</h2></div></header><div>{values.map(({ icon: Icon, title, text }) => <article key={title}><span><Icon size={29} /></span><h3>{title}</h3><p>{text}</p></article>)}</div></section>
-        <section className="about-stories"><header><div><span className="about-eyebrow">SUCCESS STORIES</span><h2>Real People. Real Progress.</h2></div><div><button className="about-text-link" aria-expanded={allStories} aria-controls="about-story-list" onClick={() => setAllStories(value => !value)}>{allStories ? "Show Fewer Stories" : "View All Stories"}<ArrowRight size={16} /></button><button aria-label="Previous stories" onClick={() => setStoryIndex(value => (value + stories.length - 1) % stories.length)}><ArrowLeft size={18} /></button><button aria-label="Next stories" onClick={() => setStoryIndex(value => (value + 1) % stories.length)}><ArrowRight size={18} /></button></div></header><div id="about-story-list" className="about-stories__grid">{(allStories ? stories : Array.from({ length: 3 }, (_, index) => stories[(storyIndex + index) % stories.length])).map(story => <article key={story.name}><span className="about-avatar" style={{ backgroundPosition: story.portrait }} aria-hidden="true" /><div><blockquote>“{story.quote}”</blockquote><strong>{story.name}</strong><small>{story.program}</small></div></article>)}</div></section>
-        <section className="about-opportunities"><article><UsersRound size={30} /><h2>Join Our<br />Campus Ambassador Program</h2><p>Be the voice of JOVIQ on your campus. Build leadership skills, create impact, and grow with us.</p><Link className="about-text-link" to="/campus-delegate">Explore Campus Delegate Program <ArrowRight size={17} /></Link><img src="/assets/about/ambassador.png" alt="Student ambassador holding notebooks" /></article><article><BriefcaseBusiness size={30} /><h2>Explore<br />Career Opportunities</h2><p>Join our growing team and help us shape the future of learning.</p><Link className="about-text-link" to="/careers">Explore Careers <ArrowRight size={17} /></Link><div className="about-opportunities__office" aria-hidden="true" /></article></section>
+  const shownStories = allStories ? stories : Array.from({ length: 3 }, (_, index) => stories[(storyIndex + index) % stories.length]);
+  return <div className="about-page sc-page"><PublicNavbar /><main className="sc-main" ref={mainRef}>
+    <section className="sc-hero about-hero" aria-labelledby="about-title"><div className="sc-hero-grid">
+      <div className="sc-hero-copy"><span className="sc-badge"><span className="sc-pulse" aria-hidden="true" /><GraduationCap size={16} /> About Joviq</span>
+        <h1 id="about-title"><span>Learning</span> <span>Without Limits</span> <span>for a Brighter</span> <em>Tomorrow</em></h1>
+        <p>At Joviq, we're on a mission to make high-quality, industry-relevant education accessible to everyone. We empower learners with real-world skills, practical projects, and expert guidance to help them grow, succeed, and create a brighter future.</p>
+        <div className="sc-actions"><a className="sc-button" href="#our-story">Our Story <ArrowRight size={18} /></a><Link className="sc-ghost" to="/programs">Explore programs <ArrowRight size={17} /></Link></div>
       </div>
-    </main>
-    <SiteFooter />
-    {storyOpen && <dialog className="about-story-dialog" ref={dialog} onCancel={closeStory} aria-label="Our story"><button className="about-story-dialog__close" aria-label="Close story" onClick={closeStory}><X /></button><img src={`/assets/about/${storySlides[slide].image}.png`} alt="" /><div><span className="about-eyebrow">OUR STORY · {slide + 1} / 3</span><h2>{storySlides[slide].title}</h2><p>{storySlides[slide].text}</p><div className="about-story-dialog__controls">{storySlides.map((item, index) => <button key={item.title} aria-label={`Story chapter ${index + 1}`} aria-pressed={slide === index} onClick={() => setSlide(index)}>{index + 1}</button>)}</div></div></dialog>}
-  </div>;
+      <div className="sc-hero-visual about-hero-visual">
+        <img className="about-hero-photo" src="/assets/showcase/learners-laptop.webp" alt="Two learners smiling while working together on a laptop" width={900} height={821} fetchPriority="high" />
+        <div className="sc-floater about-float about-float--1 tone-mint" style={order(0)}><span className="sc-icon sc-icon--tone-solid"><Code2 size={18} /></span><span><strong>Hands-On Projects</strong>Build, create, and showcase</span></div>
+        <div className="sc-floater about-float about-float--2 tone-peach" style={order(1)}><span className="sc-icon sc-icon--tone-solid"><UsersRound size={18} /></span><span><strong>Expert Guidance</strong>Learn from professionals</span></div>
+        <div className="sc-floater about-float about-float--3 tone-sky" style={order(2)}><span className="sc-icon sc-icon--tone-solid"><BriefcaseBusiness size={18} /></span><span><strong>Career Support</strong>Placement support and resources</span></div>
+      </div>
+    </div></section>
+
+    <section className="about-stats" aria-label="Joviq learning at a glance" data-reveal>{keyStatistics.map((stat, index) => { const Icon = statIcons[index]; return <div key={stat.label} className={`tone-${statTones[index]}`}><span className="sc-icon sc-icon--tone"><Icon size={22} /></span><p><StatValue value={stat.value} /><small>{stat.label}</small></p></div>; })}</section>
+
+    <section className="about-purpose sc-section">
+      <article className="sc-card about-mission" data-reveal><span className="sc-icon sc-icon--solid"><Target size={22} /></span><span className="sc-eyebrow">Our mission</span><h2>To make high-quality, practical education accessible to everyone</h2><p>and bridge the gap between learning and real-world opportunities.</p></article>
+      <article className="about-vision sc-dark" data-reveal style={order(1)}><span className="sc-icon sc-icon--glass"><Eye size={22} /></span><span className="sc-eyebrow">Our vision</span><h2>To be a global platform where learners build in-demand skills, gain real experience</h2><p>and unlock meaningful career opportunities.</p></article>
+    </section>
+
+    <section id="our-story" className="sc-section about-who">
+      <div className="about-path" data-reveal aria-label="The Joviq learning path: learn, practice, get feedback, grow">
+        <svg className="about-path-line" viewBox="0 0 400 420" preserveAspectRatio="none" aria-hidden="true"><path d="M80 50 C 260 40, 320 110, 300 160 C 280 220, 120 210, 100 270 C 80 330, 250 370, 312 378" /></svg>
+        <ol className="sc-stagger" data-reveal>{path.map(({ icon: Icon, label, tone }, index) => <li key={label} className={`tone-${tone}`} style={order(index)}><span className="sc-icon sc-icon--tone-solid"><Icon size={20} /></span><strong>{label}</strong></li>)}</ol>
+        <div className="about-path-badge"><span className="sc-icon sc-icon--gold"><BarChart3 size={20} /></span><span><strong>From Learners to Doers</strong>Real Skills. Real Impact.</span></div>
+      </div>
+      <div className="sc-heading" data-reveal><span className="sc-eyebrow">Who we are</span><h2>A Learning Platform Built for <em className="about-accent">What's Next</em></h2><p>JoviQ Technologies is the brand of {companyInformation.legalName}.</p><p>JOVIQ is an online learning platform designed for today's learners and tomorrow's opportunities. We combine expert-led training, hands-on projects, and industry insights to help individuals upskill, switch careers, and stay ahead in a rapidly evolving world.</p><a className="sc-ghost" href="#why-joviq">More About JOVIQ <ArrowRight size={17} /></a></div>
+    </section>
+
+    <section id="why-joviq" className="sc-band about-why">
+      <div className="sc-heading" data-reveal><span className="sc-eyebrow">Why Joviq</span><h2>Industry-Focused Learning, Real-World Impact</h2><p>Our programs are designed with industry experts to ensure you learn what truly matters. From live classes to real-world projects, we focus on practical skills that prepare you for real opportunities.</p></div>
+      <div className="about-why-grid sc-stagger" data-reveal>{strengths.map(({ icon: Icon, tone, title, text }, index) => <article className={`sc-glass tone-${tone}`} key={title} style={order(index)}><span className="sc-icon sc-icon--tone-solid"><Icon size={20} /></span><h3>{title}</h3><p>{text}</p></article>)}</div>
+    </section>
+
+    <section className="sc-section">
+      <div className="sc-heading sc-heading--center" data-reveal><span className="sc-eyebrow">Our core values</span><h2>What Drives Us</h2></div>
+      <div className="sc-grid-4">{values.map(({ icon: Icon, tone, title, text }, index) => <article className={`sc-card about-value tone-${tone}`} key={title} data-reveal style={order(index)}><span className="sc-icon sc-icon--tone-solid"><Icon size={22} /></span><h3>{title}</h3><p>{text}</p></article>)}</div>
+    </section>
+
+    <section className="sc-section about-stories">
+      <div className="about-stories-head" data-reveal><div className="sc-heading"><span className="sc-eyebrow">Success stories</span><h2>Real People. Real Progress.</h2></div>
+        <div className="about-stories-controls"><button className="sc-ghost" type="button" aria-expanded={allStories} aria-controls="about-story-list" onClick={() => setAllStories(value => !value)}>{allStories ? "Show Fewer Stories" : "View All Stories"} <ArrowRight size={16} /></button>{!allStories && <><button className="sc-icon-button" type="button" aria-label="Previous stories" onClick={() => setStoryIndex(value => (value + stories.length - 1) % stories.length)}><ArrowLeft size={18} /></button><button className="sc-icon-button" type="button" aria-label="Next stories" onClick={() => setStoryIndex(value => (value + 1) % stories.length)}><ArrowRight size={18} /></button></>}</div></div>
+      <div id="about-story-list" className="about-story-grid">{shownStories.map((story, index) => <article className="sc-card about-story-card sc-fade-in" key={`${storyIndex}-${allStories}-${story.name}`} style={order(index)}><blockquote>“{story.quote}”</blockquote><div><span className="about-avatar" aria-hidden="true">{initials(story.name)}</span><span><strong>{story.name}</strong><small>{story.program}</small></span></div></article>)}</div>
+      <Link className="sc-ghost about-stories-more" to="/reviews">Read more learner reviews <ArrowRight size={16} /></Link>
+    </section>
+
+    <section className="sc-section about-opportunities">
+      <article className="about-opportunity" data-reveal><div className="about-opportunity-art" aria-hidden="true"><span className="about-orbit" /><span className="sc-icon sc-icon--solid"><Megaphone size={30} /></span><i className="about-chip about-chip--1"><UsersRound size={14} /></i><i className="about-chip about-chip--2"><Sparkles size={14} /></i><i className="about-chip about-chip--3"><GraduationCap size={14} /></i></div><div><span className="sc-eyebrow">Campus program</span><h2>Join Our Campus Ambassador Program</h2><p>Be the voice of JOVIQ on your campus. Build leadership skills, create impact, and grow with us.</p><Link className="sc-ghost" to="/campus-delegate">Explore Campus Delegate Program <ArrowRight size={17} /></Link></div></article>
+      <article className="about-opportunity about-opportunity--dark sc-dark" data-reveal style={order(1)}><div className="about-opportunity-art" aria-hidden="true"><span className="about-orbit" /><span className="sc-icon sc-icon--gold"><BriefcaseBusiness size={30} /></span><i className="about-chip about-chip--1"><Lightbulb size={14} /></i><i className="about-chip about-chip--2"><Heart size={14} /></i><i className="about-chip about-chip--3"><Rocket size={14} /></i></div><div><span className="sc-eyebrow">Work with us</span><h2>Explore Career Opportunities</h2><p>Join our growing team and help us shape the future of learning.</p><Link className="sc-ghost sc-ghost--light" to="/careers">Explore Careers <ArrowRight size={17} /></Link></div></article>
+    </section>
+  </main><SiteFooter /></div>;
 }
