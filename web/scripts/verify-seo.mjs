@@ -19,11 +19,17 @@ try {
   const schema = JSON.parse(await page.locator('#seo-structured-data').textContent());
   assert.ok(schema['@graph'].some(item => item['@type'] === 'Organization'));
   assert.ok(schema['@graph'].some(item => item['@type'] === 'WebSite'));
+  assert.ok(schema['@graph'].find(item => item['@type'] === 'WebSite').alternateName.includes('Joviq'));
+  for (const path of ['/programs', '/features', '/about', '/careers', '/campus-partners', '/request-callback']) {
+    assert.ok(await page.locator(`footer a[href="${path}"]`).count(), `Missing crawlable footer link: ${path}`);
+  }
   assert.equal(await page.locator('meta[property="og:image"]').count(), 1);
   await page.setContent(await readFile('dist/about/index.html', 'utf8'));
   assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), 'https://joviqtechnologies.com/about');
   assert.match(await page.title(), /About Joviq Technologies/);
   assert.ok((await page.locator('#root').innerText()).length > 500);
+  assert.ok(await page.locator('main a[href="/careers"]').count());
+  assert.ok(await page.locator('main a[href="/campus-delegate"]').count());
   await page.setContent(await readFile('dist/account.html', 'utf8'));
   assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'), 'noindex, follow');
   assert.equal(config.routes.find(route => route.route === '/dashboard').headers['X-Robots-Tag'], 'noindex, nofollow');
