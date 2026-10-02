@@ -23,12 +23,15 @@ const platformLinks = [
   { label: "Joviq LMS", href: "/login" },
   { label: "Programs", href: "/programs" },
   { label: "Learning Experience", href: "/features" },
+  { label: "Learner Reviews", href: "/reviews" },
+  { label: "Campus Delegate Program", href: "/campus-delegate" },
 ];
 
 const legalLinks = [
   { label: "Privacy Policy", href: "/privacy-policy" },
   { label: "Return Policy", href: "/return-policy" },
-  { label: "Terms & Conditions", href: "/terms" }
+  { label: "Terms & Conditions", href: "/terms" },
+  { label: "Cookie Policy", href: "/cookie-policy" }
 ];
 
 const companyLinks = [

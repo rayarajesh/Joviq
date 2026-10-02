@@ -1,5 +1,5 @@
 import { FormEvent, lazy, Suspense, useEffect, useState } from "react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import {
   Link,
   useNavigate,
@@ -8,6 +8,7 @@ import {
 } from "react-router-dom";
 import {
   ArrowRight,
+  ArrowUpRight,
   BarChart3,
   BookOpen,
   BadgeCheck,
@@ -20,6 +21,7 @@ import {
   KeyRound,
   LockKeyhole,
   Mail,
+  MapPin,
   MailCheck,
   MessageCircle,
   PhoneCall,
@@ -36,6 +38,8 @@ import { PublicNavbar } from "../components/PublicNavbar";
 import { ToastMessage } from "../components/ToastMessage";
 import type { RouteSceneVariant } from "../components/RouteScene3D";
 import { SiteFooter } from "../components/SiteFooter";
+import { useScrollReveal } from "../hooks/useScrollReveal";
+import "../styles/showcase.css";
 import "../styles/contact-page.css";
 import {
   allPrograms,
@@ -108,105 +112,102 @@ export { FeaturesPage } from "./FeaturesPage";
 
 export { AboutPage } from "./AboutPage";
 
+const contactOrder = (index: number) => ({ "--i": index }) as CSSProperties;
+const contactBenefits = [
+  { icon: UserRound, label: "Personalized guidance", tone: "lilac" },
+  { icon: ShieldCheck, label: "No spam promise", tone: "mint" },
+  { icon: Send, label: "Quick response", tone: "peach" },
+];
+const contactSupport = [
+  { icon: MessageCircle, title: "Free Consultation", text: "Get answers to all your questions" },
+  { icon: Clock3, title: "Quick Response", text: "We usually respond within 24 hours" },
+  { icon: UserRound, title: "Personalized Support", text: "Guidance from experts" },
+  { icon: LockKeyhole, title: "Your Information is Safe", text: "We value your privacy" },
+];
+const planIcons = [Send, GraduationCap, ShieldCheck];
+const planTones = ["mint", "peach", "sky"];
+const supportTones = ["lilac", "butter", "rose", "mint"];
+
 export function RequestCallbackPage() {
+  const mainRef = useScrollReveal();
   return (
-    <PublicPageShell>
-      <main className="contact-page">
-        <section className="contact-hero" aria-labelledby="contact-title">
-          <div className="contact-hero__copy">
-            <span className="contact-pill">
-              <PhoneCall size={14} /> REQUEST CALLBACK
-            </span>
-            <h1 id="contact-title">
-              Let&apos;s Find the
-              <br />
-              Right Program
-              <br />
-              <span>for You</span>
-            </h1>
-            <p>
-              Share a few details and our team will guide you with the best
-              program, plan, batch, and LMS access path - completely free.
-            </p>
-            <div className="contact-hero__benefits">
-              <span>
-                <UserRound size={19} />
-                <small>
-                  Personalized
-                  <br />
-                  Guidance
-                </small>
+    <div className="contact-v2 sc-page">
+      <PublicNavbar />
+      <main className="sc-main" ref={mainRef}>
+        <section className="sc-hero contact-hero" aria-labelledby="contact-title">
+          <div className="sc-hero-grid">
+            <div className="sc-hero-copy">
+              <span className="sc-badge">
+                <span className="sc-pulse" aria-hidden="true" />
+                <PhoneCall size={15} /> Request a callback
               </span>
-              <span>
-                <ShieldCheck size={19} />
-                <small>
-                  No Spam
-                  <br />
-                  Promise
-                </small>
-              </span>
-              <span>
-                <Send size={19} />
-                <small>
-                  Quick
-                  <br />
-                  Response
-                </small>
-              </span>
+              <h1 id="contact-title">
+                <span>Let&apos;s Find the</span> <span>Right Program</span>{" "}
+                <em>for You</em>
+              </h1>
+              <p>
+                Share a few details and our team will guide you with the best
+                program, plan, batch, and LMS access path - completely free.
+              </p>
+              <ul className="contact-benefits" aria-label="Why request a callback">
+                {contactBenefits.map(({ icon: Icon, label, tone }) => (
+                  <li key={label} className={`tone-${tone}`}>
+                    <span className="sc-icon sc-icon--tone-solid"><Icon size={16} /></span>
+                    {label}
+                  </li>
+                ))}
+              </ul>
+              <div className="contact-quick">
+                <a href="tel:+919281977188" className="tone-mint">
+                  <span className="sc-icon sc-icon--tone"><PhoneCall size={17} /></span>
+                  <span><small>Call us</small>+91 92819 77188</span>
+                </a>
+                <a href="mailto:info@joviqtechnologies.com" className="tone-sky">
+                  <span className="sc-icon sc-icon--tone"><Mail size={17} /></span>
+                  <span><small>Email us</small>info@joviqtechnologies.com</span>
+                </a>
+              </div>
             </div>
-          </div>
-          <div className="contact-hero__visual">
-            <img
-              src="/assets/about/hero.png"
-              alt="Learner planning her next career step with a laptop"
-            />
-            <span className="contact-hero__badge">
-              <GraduationCap size={19} />
-              <b>
-                Learn
-                <br />
-                Build
-                <br />
-                Grow
-              </b>
-            </span>
+            <div className="sc-hero-visual contact-form-stage">
+              <span className="contact-blob contact-blob--peach" aria-hidden="true" />
+              <span className="contact-blob contact-blob--mint" aria-hidden="true" />
+              <div className="contact-form-card" id="contact-form">
+                <span className="sc-pill tone-lilac"><Sparkles size={13} /> Free consultation</span>
+                <h2 id="contact-form-title">Request your free callback</h2>
+                <p>Fill in your details and we&apos;ll get in touch.</p>
+                <CallbackRequestForm />
+              </div>
+              <div className="sc-floater contact-float tone-butter" style={contactOrder(0)}>
+                <span className="sc-icon sc-icon--tone-solid"><Clock3 size={18} /></span>
+                <span><strong>Quick Response</strong>Usually within 24 hours</span>
+              </div>
+            </div>
           </div>
         </section>
 
-        <section
-          className="contact-form-panel"
-          aria-labelledby="contact-form-title"
-        >
-          <div className="contact-form-panel__copy">
-            <span className="contact-pill">
-              <MessageCircle size={14} /> TALK TO AN EXPERT
-            </span>
-            <h2 id="contact-form-title">Get Expert Guidance</h2>
+        <section className="contact-guidance" aria-labelledby="contact-guidance-title" data-reveal>
+          <div className="contact-panel-copy sc-dark">
+            <span className="sc-eyebrow">Talk to an expert</span>
+            <h2 id="contact-guidance-title">Get Expert Guidance</h2>
             <p>
               Our team will help you with program selection, pricing, payment
               options, and onboarding.
             </p>
-            <ul>
-              {pricingPlans.map((plan, index) => (
-                <li key={plan.name}>
-                  <span>
-                    {index === 0 ? (
-                      <Send size={17} />
-                    ) : index === 1 ? (
-                      <GraduationCap size={17} />
-                    ) : (
-                      <ShieldCheck size={17} />
-                    )}
-                  </span>
-                  <b>
-                    {plan.name}: {plan.price}
-                  </b>
-                </li>
-              ))}
+            <ul className="contact-plans">
+              {pricingPlans.map((plan, index) => {
+                const Icon = planIcons[index % planIcons.length];
+                return (
+                  <li key={plan.name} className={`tone-${planTones[index % planTones.length]}`}>
+                    <span className="sc-icon sc-icon--tone-solid"><Icon size={17} /></span>
+                    <span>{plan.name}</span>
+                    <b>{plan.price}</b>
+                  </li>
+                );
+              })}
             </ul>
             <div className="contact-trust">
-              <span className="contact-trust__avatars">
-                <span /> <span /> <span /> <b>+</b>
+              <span className="contact-trust-icons" aria-hidden="true">
+                <i><UserRound size={14} /></i><i><GraduationCap size={14} /></i><i><Sparkles size={14} /></i>
               </span>
               <p>
                 Trusted by <strong>50K+ learners</strong>
@@ -215,95 +216,66 @@ export function RequestCallbackPage() {
               </p>
             </div>
           </div>
-          <CallbackRequestForm />
+          <div className="contact-guidance-photo">
+            <img
+              src="/assets/about/hero.png"
+              alt="Learner planning her next career step with a laptop"
+              width={1254}
+              height={1254}
+              loading="lazy"
+            />
+            <div className="sc-floater contact-photo-badge tone-lilac" style={contactOrder(1)}>
+              <span className="sc-icon sc-icon--tone-solid"><GraduationCap size={18} /></span>
+              <span><strong>Learn · Build · Grow</strong>Guidance at every step</span>
+            </div>
+          </div>
         </section>
 
-        <section
-          className="contact-support-strip"
-          aria-label="Callback support benefits"
-        >
-          <span>
-            <MessageCircle size={21} />
-            <b>Free Consultation</b>
-            <small>
-              Get answers to all
-              <br />
-              your questions
-            </small>
-          </span>
-          <span>
-            <Clock3 size={21} />
-            <b>Quick Response</b>
-            <small>
-              We usually respond
-              <br />
-              within 24 hours
-            </small>
-          </span>
-          <span>
-            <UserRound size={21} />
-            <b>Personalized Support</b>
-            <small>
-              Guidance from
-              <br />
-              experts
-            </small>
-          </span>
-          <span>
-            <LockKeyhole size={21} />
-            <b>Your Information is Safe</b>
-            <small>We value your privacy</small>
-          </span>
+        <section className="contact-support sc-grid-4" aria-label="Callback support benefits">
+          {contactSupport.map(({ icon: Icon, title, text }, index) => (
+            <article className={`sc-card tone-${supportTones[index]}`} key={title} data-reveal style={contactOrder(index)}>
+              <span className="sc-icon sc-icon--tone-solid"><Icon size={20} /></span>
+              <h3>{title}</h3>
+              <p>{text}</p>
+            </article>
+          ))}
         </section>
 
-        <section className="contact-details" aria-label="Contact details">
-          <article>
-            <span className="contact-details__icon">
-              <PhoneCall size={22} />
-            </span>
-            <div>
-              <h3>Prefer to Contact Us Directly?</h3>
-              <p>You can also reach us through email or phone.</p>
-              <div className="contact-details__links">
-                <a href="tel:+919281977188">
-                  <PhoneCall size={20} /> +91 92819 77188
-                </a>
-                <a href="mailto:info@joviqtechnologies.com">
-                  <Mail size={20} /> info@joviqtechnologies.com
-                </a>
+        <section className="contact-reach sc-section" aria-label="Contact details">
+          <article className="contact-office sc-card tone-lilac" data-reveal>
+            <div className="contact-office-info">
+              <div className="contact-office-head">
+                <span className="sc-icon sc-icon--tone-solid"><Building2 size={20} /></span>
+                <div>
+                  <span className="sc-eyebrow">Let&apos;s discuss your goals in person</span>
+                  <h3>Visit Our Office</h3>
+                </div>
+              </div>
+              <p className="contact-address">
+                <MapPin size={16} />
+                <span>
+                  CS COWORKING SPACE, 6TH FLOOR, MELKIORS PRIDE, HITEX ROAD,
+                  VINAYAKA NAGAR, IZZATHNAGAR, HITECH CITY, KHANAMMET, HYDERABAD,
+                  TELANGANA 500084
+                </span>
+              </p>
+              <div className="contact-office-links">
+                <a className="sc-ghost" href="tel:+919281977188">+91 92819 77188 <ArrowUpRight size={16} /></a>
+                <a className="sc-ghost" href="mailto:info@joviqtechnologies.com">info@joviqtechnologies.com <ArrowUpRight size={16} /></a>
               </div>
             </div>
-          </article>
-          <article>
-            <span className="contact-details__icon">
-              <Building2 size={22} />
-            </span>
-            <div className="contact-office__content">
-              <p>Let&apos;s discuss your goals in person.</p>
-              <h3>Visit Our Office</h3>
-              <small>
-                CS COWORKING SPACE, 6TH FLOOR,
-                <br />
-                MELKIORS PRIDE, HITEX ROAD,
-                <br />
-                VINAYAKA NAGAR, IZZATHNAGAR,
-                <br />
-                HITECH CITY, KHANAMMET,
-                <br />
-                HYDERABAD, TELANGANA 500084
-              </small>
-              <iframe
-                className="contact-map"
-                title="Joviq office location"
-                src="https://www.google.com/maps?q=CS+COWORKING+SPACE%2C+6TH+FLOOR%2C+MELKIORS+PRIDE%2C+HITEX+ROAD%2C+VINAYAKA+NAGAR%2C+IZZATHNAGAR%2C+HITECH+CITY%2C+KHANAMMET%2C+HYDERABAD%2C+TELANGANA+500084&output=embed"
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              />
-            </div>
+            <iframe
+              className="contact-map"
+              title="Joviq office location"
+              src="https://www.google.com/maps?q=CS+COWORKING+SPACE%2C+6TH+FLOOR%2C+MELKIORS+PRIDE%2C+HITEX+ROAD%2C+VINAYAKA+NAGAR%2C+IZZATHNAGAR%2C+HITECH+CITY%2C+KHANAMMET%2C+HYDERABAD%2C+TELANGANA+500084&output=embed"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
           </article>
         </section>
       </main>
-    </PublicPageShell>
+      <SiteFooter />
+    </div>
   );
 }
 
@@ -928,16 +900,6 @@ export function LoginPage() {
           <ToastMessage message={message} onDismiss={() => setMessage(null)} />
         </div>
       </section>
-      <SiteFooter />
-    </main>
-  );
-}
-
-function PublicPageShell({ children }: { children: ReactNode }) {
-  return (
-    <main className="site-page public-route-page">
-      <PublicNavbar />
-      {children}
       <SiteFooter />
     </main>
   );

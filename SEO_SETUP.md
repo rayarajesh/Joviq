@@ -14,6 +14,12 @@ Canonical website: https://joviqtechnologies.com
 
 ## Owner Follow-Up
 
+Local follow-up changes add Learner Reviews, Campus Delegate Program and Cookie Policy footer links, plus existing Instagram, LinkedIn and Facebook profile URLs in Organization structured data. WhatsApp remains a contact link, not an identity profile. These changes do not create or modify Google Business Profile social links. No additional social accounts, reviews, opening hours or visit data are invented.
+
+Google generates sitelinks and related searches automatically; there is no website setting to force a particular list or top rankings. Google also generates Popular times from sufficient aggregated visit data and does not allow manually adding the chart. Confirm the actual daily opening hours before adding them to the website or a business listing. Do not copy another business's hours or popular-time graph.
+
+Reference: https://support.google.com/business/answer/6263531
+
 1. Sign in to Google Search Console using the account that manages this business. Add or select the `joviqtechnologies.com` domain property. Keep the existing Google DNS verification TXT record; a different account may need its own verification token.
 2. Submit `https://joviqtechnologies.com/sitemap.xml` and inspect the homepage URL. Request indexing after the production deployment is verified.
 3. Monitor indexing, queries, clicks, Core Web Vitals and crawl errors. Google decides whether and when it indexes pages, uses structured data, and shows sitelinks or a business panel.
