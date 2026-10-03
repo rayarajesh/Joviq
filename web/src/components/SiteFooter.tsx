@@ -1,18 +1,6 @@
 import { socialLinks } from "./socialLinks";
 import type { ReactNode } from "react";
-import {
-  ArrowUpRight,
-  Building2,
-  Compass,
-  GraduationCap,
-  Mail,
-  MapPin,
-  PhoneCall,
-  Scale,
-  ShieldCheck,
-  Sparkles,
-  type LucideIcon
-} from "lucide-react";
+import { ArrowRight, Mail, MapPin, PhoneCall } from "lucide-react";
 import { Link } from "react-router-dom";
 import { BrandLogo } from "./BrandLogo";
 import { companyInformation } from "../data/companyInformation";
@@ -46,111 +34,55 @@ export function SiteFooter() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="public-footer public-footer--restored">
-      <div className="public-footer__inner">
-        <section className="public-footer__grid" aria-label="Footer navigation">
-          <section className="public-footer__brand">
-            <Link className="public-footer__logo" to="/" aria-label="Joviq Technologies home">
-              <BrandLogo />
-            </Link>
-            <p className="public-footer__brand-copy">
-              Turn curiosity into capability with practical, project-backed learning for the careers ahead.
-            </p>
-            <div className="public-footer__legal-details">
-              <strong>{companyInformation.legalName}</strong>
-            </div>
-            <div className="public-footer__promise">
-              <span aria-hidden="true"><Sparkles size={17} strokeWidth={2.2} /></span>
-              <div>
-                <strong>Learn. Build. Launch.</strong>
-                <small>Progress that feels personal.</small>
-              </div>
-            </div>
-          </section>
+    <footer className="jf">
+      <div className="jf-inner">
+        <div className="jf-top">
+          <Link className="jf-logo" to="/" aria-label="Joviq Technologies home"><BrandLogo /></Link>
+          <p>Turn curiosity into capability with practical, project-backed learning for the careers ahead.</p>
+          <Link className="jf-top-link" to="/request-callback">Talk to an advisor <ArrowRight size={15} /></Link>
+        </div>
 
-          <FooterColumn title="Explore Platform" Icon={Compass}>
-            {platformLinks.map((link) => (
-              <FooterLink key={link.href} to={link.href}>{link.label}</FooterLink>
-            ))}
+        <section className="jf-grid" aria-label="Footer navigation">
+          <FooterColumn title="Explore" tone="lilac">
+            {platformLinks.map((link) => <FooterLink key={link.href} to={link.href}>{link.label}</FooterLink>)}
           </FooterColumn>
-
-          <FooterColumn title="Legal" Icon={Scale}>
-            {legalLinks.map((link) => (
-              <FooterLink key={link.href} to={link.href}>{link.label}</FooterLink>
-            ))}
+          <FooterColumn title="Company" tone="peach">
+            {companyLinks.map((link) => <FooterLink key={link.href} to={link.href}>{link.label}</FooterLink>)}
           </FooterColumn>
-
-          <FooterColumn title="Company" Icon={Building2}>
-            {companyLinks.map((link) => (
-              <FooterLink key={link.href} to={link.href}>{link.label}</FooterLink>
-            ))}
+          <FooterColumn title="Legal" tone="mint">
+            {legalLinks.map((link) => <FooterLink key={link.href} to={link.href}>{link.label}</FooterLink>)}
           </FooterColumn>
-
-          <section className="public-footer__social">
-            <h3><span className="public-footer__heading-icon"><Sparkles size={15} /></span>Social Media</h3>
-            <div className="public-footer__social-list">
-              {socialLinks.map(({ href, label, Icon, tone }) => (
-                <a className="public-footer__social-link" key={label} href={href} aria-label={label} title={label} target="_blank" rel="noreferrer">
-                  <span className={`public-footer__social-icon public-footer__social-icon--${tone}`} aria-hidden="true">
-                    <Icon size={17} strokeWidth={2.1} />
-                  </span>
-                </a>
-              ))}
-            </div>
-            <p className="public-footer__social-copy">Small steps, shared wins, and useful ideas.</p>
-          </section>
-
-          <address className="public-footer__contact">
-            <div className="public-footer__contact-heading">
-              <span className="public-footer__contact-heading-icon" aria-hidden="true"><GraduationCap size={18} /></span>
-              <div>
-                <h3>Contact Info</h3>
-                <p className="public-footer__contact-copy">Have a question? We’re happy to help.</p>
-              </div>
-            </div>
-            <a className="public-footer__contact-item" href="tel:+919281977188">
-              <span className="public-footer__contact-icon" aria-hidden="true"><PhoneCall size={16} /></span>
-              <span className="public-footer__contact-text"><strong>Phone</strong><span>+91 9281977188</span></span>
-              <ArrowUpRight className="public-footer__contact-arrow" size={16} aria-hidden="true" />
-            </a>
-            <a className="public-footer__contact-item" href="mailto:info@joviqtechnologies.com">
-              <span className="public-footer__contact-icon" aria-hidden="true"><Mail size={16} /></span>
-              <span className="public-footer__contact-text"><strong>Email</strong><span>info@joviqtechnologies.com</span></span>
-              <ArrowUpRight className="public-footer__contact-arrow" size={16} aria-hidden="true" />
-            </a>
-            <div className="public-footer__contact-item public-footer__contact-item--address">
-              <span className="public-footer__contact-icon" aria-hidden="true"><MapPin size={16} /></span>
-              <span className="public-footer__contact-text">
-                <strong> Address</strong>
-                <span>CS COWORKING SPACE, 6TH FLOOR, MELKIORS PRIDE, HITEX ROAD, VINAYAKA NAGAR, IZZATHNAGAR, HITECH CITY, KHANAMMET, HYDERABAD, TELANGANA 500084</span>
-              </span>
-            </div>
+          <address className="jf-contact jf-tone--sky">
+            <h3>Contact</h3>
+            <a href="tel:+919281977188"><PhoneCall size={14} aria-hidden="true" />+91 92819 77188</a>
+            <a href="mailto:info@joviqtechnologies.com"><Mail size={14} aria-hidden="true" />info@joviqtechnologies.com</a>
+            <span><MapPin size={14} aria-hidden="true" />CS Coworking Space, 6th Floor, Melkiors Pride, Hitex Road, Vinayaka Nagar, Izzathnagar, Hitech City, Khanammet, Hyderabad, Telangana 500084</span>
           </address>
         </section>
 
-        <div className="public-footer__bottom">
-          <span>© {currentYear} {companyInformation.legalName}. All Rights Reserved.</span>
-          <span className="public-footer__bottom-note"><ShieldCheck size={15} aria-hidden="true" />Built for ambitious learners.</span>
+        <div className="jf-bottom">
+          <span>© {currentYear} {companyInformation.legalName}. All rights reserved.</span>
+          <div className="jf-social" aria-label="Social media">
+            <span className="jf-social-label">Follow us</span>
+            {socialLinks.map(({ href, label, Icon, tone }) => (
+              <a key={label} className={`jf-social--${tone}`} href={href} aria-label={label} title={label} target="_blank" rel="noreferrer"><Icon size={17} strokeWidth={2.1} /></a>
+            ))}
+          </div>
         </div>
       </div>
     </footer>
   );
 }
 
-function FooterColumn({ title, Icon, children }: { title: string; Icon: LucideIcon; children: ReactNode }) {
+function FooterColumn({ title, tone, children }: { title: string; tone: string; children: ReactNode }) {
   return (
-    <nav className="public-footer__column" aria-label={title}>
-      <h3><span className="public-footer__heading-icon"><Icon size={15} /></span>{title}</h3>
-      {children}
+    <nav className={`jf-column jf-tone--${tone}`} aria-label={title}>
+      <h3>{title}</h3>
+      <ul>{Array.isArray(children) ? children.map((child, index) => <li key={index}>{child}</li>) : <li>{children}</li>}</ul>
     </nav>
   );
 }
 
 function FooterLink({ children, to }: { children: ReactNode; to: string }) {
-  return (
-    <Link className="public-footer__link" to={to}>
-      <span>{children}</span>
-      <ArrowUpRight size={14} aria-hidden="true" />
-    </Link>
-  );
+  return <Link className="jf-link" to={to}>{children}</Link>;
 }

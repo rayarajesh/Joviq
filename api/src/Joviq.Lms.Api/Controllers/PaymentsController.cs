@@ -50,8 +50,8 @@ public sealed class PaymentsController(
 
         using var reader = new StreamReader(Request.Body);
         var payload = await reader.ReadToEndAsync(cancellationToken);
-        var signature = Request.Headers["X-Cashfree-Signature"].ToString();
-        var timestamp = Request.Headers["X-Cashfree-Timestamp"].ToString();
+        var signature = Request.Headers["x-webhook-signature"].ToString();
+        var timestamp = Request.Headers["x-webhook-timestamp"].ToString();
 
         if (!paymentGateway.VerifyWebhookSignature(payload, signature, timestamp))
         {

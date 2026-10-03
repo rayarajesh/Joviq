@@ -9,6 +9,11 @@ import {
 import {
   ArrowRight,
   ArrowUpRight,
+  Award,
+  Code2,
+  Flame,
+  LayoutDashboard,
+  Video,
   BarChart3,
   BookOpen,
   BadgeCheck,
@@ -55,6 +60,7 @@ import { normalizeOAuthReturnUrl } from "../features/auth/oauthPopup";
 import { ApiError, formatApiError, request } from "../lib/api/httpClient";
 import { PasswordRecovery } from "../components/PasswordRecovery";
 import "../styles/login-flow.css";
+import "../styles/auth-page.css";
 import { toIndiaMobileNumber } from "../lib/validation/indiaMobile";
 
 type ImmersiveRouteHeroProps = {
@@ -373,6 +379,7 @@ export function LoginPage() {
   const [oauthPhoneNumber, setOauthPhoneNumber] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -566,344 +573,210 @@ export function LoginPage() {
     );
   }
 
+  const isSignup = mode === "register" || mode === "verify-email";
+  const strength = passwordStrength(newPassword);
+  const copy = {
+    login: { eyebrow: "Welcome back", title: "Sign in to your dashboard", text: "Pick up right where you left off." },
+    register: { eyebrow: "Join Joviq", title: "Create your learning account", text: "Start building skills you can show." },
+    "verify-email": { eyebrow: "One last step", title: "Verify your email", text: "Enter the code we sent to your inbox." },
+    "forgot-password": { eyebrow: "Account recovery", title: "Reset your password", text: "We’ll help you get back in." },
+  }[mode];
+
   return (
-    <main className="site-page login-page-shell">
+    <main className="auth2 sc-page">
       <PublicNavbar />
-      <section className="login-page">
-        <div className="login-page__intro">
-          <span className="login-page__eyebrow">
-            <KeyRound size={15} /> LMS ACCESS
-          </span>
-          <h1>
-            {mode === "register" || mode === "verify-email" ? (
-              <>
-                Create your
-                <br />
-                <span>learning account.</span>
-              </>
-            ) : (
-              <>
-                Login to your
-                <br />
-                <span>LMS Dashboard</span>
-              </>
-            )}
-          </h1>
-          <p>
-            Secure access to your
-            <br className="login-page__desktop-break" /> project-driven learning
-            workflows.
-          </p>
-          <div className="login-page__benefits">
-            <div>
-              <span>
-                <BookOpen size={27} />
-              </span>
-              <strong>Learn</strong>
-              <small>
-                Access your
-                <br />
-                courses anytime
-              </small>
-            </div>
-            <div>
-              <span>
-                <BarChart3 size={25} />
-              </span>
-              <strong>Track</strong>
-              <small>
-                Monitor your
-                <br />
-                progress
-              </small>
-            </div>
-            <div>
-              <span>
-                <Star size={27} />
-              </span>
-              <strong>Achieve</strong>
-              <small>
-                Build a brighter
-                <br />
-                tomorrow
-              </small>
-            </div>
+      <section className="auth2-shell">
+        <aside className="auth2-art" aria-label="Why learners use Joviq">
+          <span className="auth2-orb auth2-orb--1" aria-hidden="true" />
+          <span className="auth2-orb auth2-orb--2" aria-hidden="true" />
+          <div className="auth2-art-copy">
+            <span className="sc-eyebrow"><KeyRound size={14} /> LMS access</span>
+            <h1>
+              {isSignup ? (<>Start learning.<br /><em>Build what’s next.</em></>) : (<>Your learning,<br /><em>all in one place.</em></>)}
+            </h1>
+            <p>Secure access to your project-driven learning workflows.</p>
           </div>
-          <div className="login-page__quote">
-            <b>&ldquo;</b>
-            <p>
-              &ldquo;Same learning platform.
-              <br />
-              <strong>A brighter you.</strong>&rdquo;
-            </p>
-          </div>
-        </div>
-
-        <div className="route-auth-card">
-          <div className="auth-card__tabs">
-            <button
-              className={mode === "login" ? "is-active" : undefined}
-              type="button"
-              onClick={() => setMode("login")}
-            >
-              <UserRound size={17} />
-              Login
-            </button>
-            <button
-              className={mode === "register" ? "is-active" : undefined}
-              type="button"
-              onClick={() => setMode("register")}
-            >
-              Register
-            </button>
-          </div>
-
-          {mode === "forgot-password" ? (
-            <PasswordRecovery onBack={() => setMode("login")} />
-          ) : mode === "login" ? (
-            <form className="auth-form" onSubmit={handleLogin}>
-              <button
-                className="auth-secondary-button auth-oauth-button"
-                type="button"
-                onClick={() => beginGoogleOAuth(false)}
-                disabled={isSubmitting}
-              >
-                <GoogleMark />
-                Sign in with Google
-              </button>
-              <div className="auth-divider">
-                <span>or</span>
+          <div className="auth2-preview" aria-hidden="true">
+            <div className="auth2-window">
+              <div className="auth2-window-bar"><i /><i /><i /><span>lms.joviq.com/dashboard</span></div>
+              <div className="auth2-window-body">
+                <nav className="auth2-side">
+                  <span className="auth2-side-logo">J</span>
+                  <b className="is-on"><LayoutDashboard size={14} /></b><b><BookOpen size={14} /></b><b><BarChart3 size={14} /></b><b><Award size={14} /></b>
+                </nav>
+                <div className="auth2-dash">
+                  <div className="auth2-dash-head"><div><small>Good morning,</small><strong>Rajesh Ahmad 👋</strong></div><span className="auth2-streak"><Flame size={13} /> 12-day streak</span></div>
+                  <div className="auth2-course">
+                    <img src="/assets/programs/full-stack.jpg" alt="" width={600} height={340} />
+                    <div><small>Continue learning</small><strong>Full Stack Web Development</strong><span>Module 3 · Backend APIs</span>
+                      <i className="auth2-bar"><b /></i></div>
+                    <svg className="auth2-ring" viewBox="0 0 44 44"><circle cx="22" cy="22" r="18" /><circle className="auth2-ring-fill" cx="22" cy="22" r="18" /><text x="22" y="26" textAnchor="middle">68%</text></svg>
+                  </div>
+                  <div className="auth2-dash-grid">
+                    <div className="auth2-chart"><small>This week</small><div>{[40, 65, 50, 85, 60, 95, 72].map((height, index) => <i key={index} style={{ height: `${height}%`, animationDelay: `${0.6 + index * 0.08}s` }} />)}</div></div>
+                    <div className="auth2-tasks"><small>Up next</small>
+                      <span className="tone-sky"><Video size={12} /> Live session · 6 PM</span>
+                      <span className="tone-peach"><Code2 size={12} /> Project review</span>
+                      <span className="tone-mint"><CheckCircle2 size={12} /> Quiz 3 done</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <label className="login-page__field">
-                Email
-                <span className="login-page__input-wrap">
-                  <Mail size={19} />
-                  <input
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    placeholder="you@example.com"
-                    maxLength={256}
-                    pattern={emailPattern}
-                    required
-                  />
-                </span>
-              </label>
-              <label className="login-page__field">
-                Password
-                <span className="login-page__input-wrap">
-                  <LockKeyhole size={19} />
-                  <input
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="current-password"
-                    placeholder="Enter your password"
-                    minLength={8}
-                    required
-                  />
-                  <button
-                    className="login-page__password-toggle"
-                    type="button"
-                    aria-label={
-                      showPassword ? "Hide password" : "Show password"
-                    }
-                    onClick={() => setShowPassword((value) => !value)}
-                  >
-                    {showPassword ? <EyeOff size={19} /> : <Eye size={19} />}
-                  </button>
-                </span>
-              </label>
-              <div className="login-page__form-options">
-                <label className="checkbox-row">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(event) =>
-                      setRememberMe(event.currentTarget.checked)
-                    }
-                  />
+            </div>
+            <div className="auth2-toast auth2-toast--cert"><span className="sc-icon sc-icon--tone-solid tone-butter"><Award size={16} /></span><span><strong>Certificate earned</strong>QR-verified · just now</span></div>
+            <div className="auth2-toast auth2-toast--mentor"><span className="sc-icon sc-icon--tone-solid tone-rose"><MessageCircle size={16} /></span><span><strong>Mentor feedback</strong>“Great API design!”</span></div>
+          </div>
+          <ul className="auth2-benefits">
+            <li className="tone-lilac"><span className="sc-icon sc-icon--tone-solid"><BookOpen size={16} /></span><span><strong>Learn</strong>Courses anytime</span></li>
+            <li className="tone-mint"><span className="sc-icon sc-icon--tone-solid"><BarChart3 size={16} /></span><span><strong>Track</strong>Your progress</span></li>
+            <li className="tone-peach"><span className="sc-icon sc-icon--tone-solid"><Star size={16} /></span><span><strong>Achieve</strong>Brighter tomorrow</span></li>
+          </ul>
+          <p className="auth2-quote">&ldquo;Same learning platform. <strong>A brighter you.</strong>&rdquo;</p>
+        </aside>
+
+        <div className="auth2-panel">
+          <div className={`auth2-card auth2-card--${mode}`}>
+            <div className="auth2-tabs" role="tablist" aria-label="Account access" data-active={isSignup ? "register" : "login"}>
+              <span className="auth2-tabs-pill" aria-hidden="true" />
+              <button role="tab" aria-selected={!isSignup} type="button" onClick={() => { setMode("login"); setMessage(null); }}><UserRound size={16} /> Login</button>
+              <button role="tab" aria-selected={isSignup} type="button" onClick={() => { setMode("register"); setMessage(null); }}><Sparkles size={16} /> Register</button>
+            </div>
+
+            <header className="auth2-head" key={mode}>
+              <span className="sc-pill tone-lilac">{copy.eyebrow}</span>
+              <h2>{copy.title}</h2>
+              <p>{copy.text}</p>
+            </header>
+
+            {mode === "forgot-password" ? (
+              <PasswordRecovery onBack={() => setMode("login")} />
+            ) : mode === "login" ? (
+              <form className="auth-form auth2-form" onSubmit={handleLogin}>
+                <button className="auth2-google" type="button" onClick={() => beginGoogleOAuth(false)} disabled={isSubmitting}>
+                  <GoogleMark /> Sign in with Google
+                </button>
+                <div className="auth2-divider"><span>or continue with email</span></div>
+                <label className="auth2-field">
+                  Email
+                  <span className="auth2-input"><Mail size={18} />
+                    <input name="email" type="email" autoComplete="email" placeholder="you@example.com" maxLength={256} pattern={emailPattern} required />
+                  </span>
+                </label>
+                <label className="auth2-field">
+                  <span className="auth2-label-row">Password
+                    <button className="auth2-link" type="button" onClick={() => { setMode("forgot-password"); setMessage(null); }}>Forgot password?</button>
+                  </span>
+                  <span className="auth2-input"><LockKeyhole size={18} />
+                    <input name="password" type={showPassword ? "text" : "password"} autoComplete="current-password" placeholder="Enter your password" minLength={8} required />
+                    <button className="auth2-eye" type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword((value) => !value)}>
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </span>
+                </label>
+                <label className="auth2-check">
+                  <input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.currentTarget.checked)} />
                   <span>Keep me signed in on this device</span>
                 </label>
-                <button
-                  className="auth-link-button login-page__forgot"
-                  type="button"
-                  onClick={() => {
-                    setMode("forgot-password");
-                    setMessage(null);
-                  }}
-                >
-                  Forgot password?
+                <button className="auth2-submit" type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Signing in…" : "Login to dashboard"} <ArrowRight size={18} />
                 </button>
-              </div>
-              <button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Signing in" : "Login to dashboard"}
-                <ArrowRight size={18} />
-              </button>
-              <p className="login-page__register-prompt">
-                Don&apos;t have an account?{" "}
-                <button type="button" onClick={() => setMode("register")}>
-                  Register now
+                <p className="auth2-switch">Don&apos;t have an account? <button className="auth2-link" type="button" onClick={() => setMode("register")}>Register now</button></p>
+                <button className="auth2-otp" type="button" onClick={() => { setMode("verify-email"); setMessage(null); }}>
+                  <MailCheck size={16} /> Verify email / enter OTP
                 </button>
-              </p>
-              <button
-                className="auth-link-button"
-                type="button"
-                onClick={() => {
-                  setMode("verify-email");
-                  setMessage(null);
-                }}
-              >
-                Verify email / enter OTP
-              </button>
-            </form>
-          ) : mode === "register" ? (
-            <form className="auth-form" onSubmit={handleRegister}>
-              <div className="auth-oauth-signup">
-                <IndiaMobileInput
-                  label="Phone number for Google sign-up"
-                  name="oauthPhoneNumber"
-                  value={oauthPhoneNumber}
-                  onChange={(event) =>
-                    setOauthPhoneNumber(event.currentTarget.value)
-                  }
-                />
-                <label className="checkbox-row">
-                  <input
-                    type="checkbox"
-                    checked={acceptedOAuthTerms}
-                    onChange={(event) =>
-                      setAcceptedOAuthTerms(event.currentTarget.checked)
-                    }
-                  />
+              </form>
+            ) : mode === "register" ? (
+              <form className="auth-form auth2-form" onSubmit={handleRegister}>
+                <details className="auth2-google-signup">
+                  <summary><GoogleMark /> Sign up with Google</summary>
+                  <div>
+                    <IndiaMobileInput label="Phone number for Google sign-up" name="oauthPhoneNumber" value={oauthPhoneNumber} onChange={(event) => setOauthPhoneNumber(event.currentTarget.value)} />
+                    <label className="auth2-check">
+                      <input type="checkbox" checked={acceptedOAuthTerms} onChange={(event) => setAcceptedOAuthTerms(event.currentTarget.checked)} />
+                      <span>I accept the terms and privacy policy.</span>
+                    </label>
+                    <button className="auth2-google" type="button" onClick={() => beginGoogleOAuth(true)} disabled={isSubmitting}>
+                      <GoogleMark /> Create account with Google
+                    </button>
+                  </div>
+                </details>
+                <div className="auth2-divider"><span>or register with email</span></div>
+                <div className="auth2-grid">
+                  <label className="auth2-field">
+                    Full name
+                    <span className="auth2-input"><UserRound size={18} /><input name="fullName" autoComplete="name" placeholder="Your full name" required /></span>
+                  </label>
+                  <label className="auth2-field">
+                    Email
+                    <span className="auth2-input"><Mail size={18} /><input name="email" type="email" autoComplete="email" placeholder="you@example.com" maxLength={256} pattern={emailPattern} required /></span>
+                  </label>
+                </div>
+                <IndiaMobileInput label="Phone number" name="phoneNumber" required />
+                <div className="auth2-grid">
+                  <label className="auth2-field">
+                    Password
+                    <span className="auth2-input"><LockKeyhole size={18} />
+                      <input name="password" type={showPassword ? "text" : "password"} autoComplete="new-password" placeholder="Create a password" minLength={8} required onChange={(event) => setNewPassword(event.currentTarget.value)} />
+                      <button className="auth2-eye" type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword((value) => !value)}>
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </span>
+                  </label>
+                  <label className="auth2-field">
+                    Confirm password
+                    <span className="auth2-input"><ShieldCheck size={18} /><input name="confirmPassword" type={showPassword ? "text" : "password"} autoComplete="new-password" placeholder="Repeat password" minLength={8} required /></span>
+                  </label>
+                </div>
+                <div className={`auth2-strength auth2-strength--${strength.level}`} aria-live="polite">
+                  <i><b /><b /><b /><b /></i>
+                  <small>{newPassword ? strength.label : "Use at least 8 characters, including uppercase, lowercase, a number, and a symbol."}</small>
+                </div>
+                <label className="auth2-check">
+                  <input name="acceptedTerms" type="checkbox" required />
                   <span>I accept the terms and privacy policy.</span>
                 </label>
-                <button
-                  className="auth-secondary-button auth-oauth-button"
-                  type="button"
-                  onClick={() => beginGoogleOAuth(true)}
-                  disabled={isSubmitting}
-                >
-                  <GoogleMark />
-                  Create account with Google
+                <button className="auth2-submit" type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Creating account…" : "Register as student"} <ArrowRight size={18} />
                 </button>
-              </div>
-              <div className="auth-divider">
-                <span>or</span>
-              </div>
-              <label>
-                Full name
-                <input name="fullName" required />
-              </label>
-              <label>
-                Email
-                <input
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  maxLength={256}
-                  pattern={emailPattern}
-                  required
-                />
-              </label>
-              <IndiaMobileInput
-                label="Phone number"
-                name="phoneNumber"
-                required
-              />
-              <label>
-                Password
-                <input
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
-                  minLength={8}
-                  required
-                />
-                <small>
-                  Use at least 8 characters, including uppercase, lowercase, a
-                  number, and a symbol.
-                </small>
-              </label>
-              <label>
-                Confirm password
-                <input
-                  name="confirmPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  minLength={8}
-                  required
-                />
-              </label>
-              <label className="checkbox-row">
-                <input name="acceptedTerms" type="checkbox" required />
-                <span>I accept the terms and privacy policy.</span>
-              </label>
-              <button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Creating" : "Register as student"}
-                <ArrowRight size={18} />
-              </button>
-            </form>
-          ) : (
-            <form className="auth-form" onSubmit={handleVerifyEmail}>
-              <h2>Verify email OTP</h2>
-              <p>
-                Enter your registered email and the verification code from your
-                inbox.
-              </p>
-              <label>
-                Email
-                <input
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={pendingEmail}
-                  onChange={(event) =>
-                    setPendingEmail(event.currentTarget.value)
-                  }
-                />
-              </label>
-              <label>
-                OTP
-                <input
-                  name="otp"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  maxLength={8}
-                  pattern="[0-9]{4,8}"
-                  required
-                />
-              </label>
-              <button type="submit" disabled={isSubmitting || !pendingEmail}>
-                {isSubmitting ? "Verifying" : "Verify and activate"}
-                <MailCheck size={18} />
-              </button>
-              <button
-                className="auth-secondary-button"
-                type="button"
-                disabled={isSubmitting}
-                onClick={resendVerification}
-              >
-                Send / resend OTP
-              </button>
-              <button
-                className="auth-secondary-button"
-                type="button"
-                onClick={() => setMode("register")}
-              >
-                <RefreshCw size={17} />
-                Back to registration
-              </button>
-            </form>
-          )}
+                <p className="auth2-switch">Already have an account? <button className="auth2-link" type="button" onClick={() => setMode("login")}>Login</button></p>
+              </form>
+            ) : (
+              <form className="auth-form auth2-form" onSubmit={handleVerifyEmail}>
+                <div className="auth2-otp-art" aria-hidden="true"><span className="sc-icon sc-icon--tone-solid tone-mint"><MailCheck size={26} /></span></div>
+                <label className="auth2-field">
+                  Email
+                  <span className="auth2-input"><Mail size={18} /><input name="email" type="email" autoComplete="email" required value={pendingEmail} onChange={(event) => setPendingEmail(event.currentTarget.value)} /></span>
+                </label>
+                <label className="auth2-field">
+                  Verification code
+                  <span className="auth2-input auth2-input--otp"><KeyRound size={18} /><input name="otp" inputMode="numeric" autoComplete="one-time-code" placeholder="••••••" maxLength={8} pattern="[0-9]{4,8}" required /></span>
+                </label>
+                <button className="auth2-submit" type="submit" disabled={isSubmitting || !pendingEmail}>
+                  {isSubmitting ? "Verifying…" : "Verify and activate"} <MailCheck size={18} />
+                </button>
+                <div className="auth2-row">
+                  <button className="auth2-ghost" type="button" disabled={isSubmitting} onClick={resendVerification}><Send size={15} /> Send / resend OTP</button>
+                  <button className="auth2-ghost" type="button" onClick={() => setMode("register")}><RefreshCw size={15} /> Back to registration</button>
+                </div>
+              </form>
+            )}
 
-          <ToastMessage message={message} onDismiss={() => setMessage(null)} />
+            <ToastMessage message={message} onDismiss={() => setMessage(null)} />
+            <p className="auth2-secure"><ShieldCheck size={14} /> Secured with encrypted sign-in</p>
+          </div>
         </div>
       </section>
       <SiteFooter />
     </main>
   );
 }
+
+function passwordStrength(value: string) {
+  const score = [value.length >= 8, /[A-Z]/.test(value) && /[a-z]/.test(value), /\d/.test(value), /[^A-Za-z0-9]/.test(value)].filter(Boolean).length;
+  if (value.length < 8) return { level: Math.min(score, 1), label: "Too short — use at least 8 characters" };
+  return { level: score, label: ["Too short", "Weak password", "Fair password", "Good password", "Strong password"][score] };
+}
+
 
 function ImmersiveRouteHero({
   accent,

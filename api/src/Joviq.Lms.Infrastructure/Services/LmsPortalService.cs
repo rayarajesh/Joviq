@@ -976,7 +976,9 @@ public sealed class LmsPortalService(
         }
 
         var orderId = order.TryGetProperty("order_id", out var orderIdElement) ? orderIdElement.GetString() : null;
-        var paymentId = paymentData.TryGetProperty("cf_payment_id", out var paymentIdElement) ? paymentIdElement.GetString() : null;
+        var paymentId = paymentData.TryGetProperty("cf_payment_id", out var paymentIdElement)
+            ? paymentIdElement.ValueKind == JsonValueKind.Number ? paymentIdElement.GetRawText() : paymentIdElement.GetString()
+            : null;
         var paymentStatus = paymentData.TryGetProperty("payment_status", out var paymentStatusElement) ? paymentStatusElement.GetString() : null;
         if (string.IsNullOrWhiteSpace(orderId) || string.IsNullOrWhiteSpace(paymentId) ||
             !string.Equals(paymentStatus, "SUCCESS", StringComparison.OrdinalIgnoreCase))
