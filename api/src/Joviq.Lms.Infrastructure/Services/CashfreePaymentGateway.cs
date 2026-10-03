@@ -54,7 +54,8 @@ public sealed class CashfreePaymentGateway(
                 : options.FrontendBaseUrl;
             body["order_meta"] = new
             {
-                return_url = $"{frontendBase.TrimEnd('/')}/checkout?cashfree=return&order_id={orderId}"
+                return_url = $"{frontendBase.TrimEnd('/')}/checkout?cashfree=return&order_id={orderId}",
+                notify_url = $"{options.PublicBaseUrl.TrimEnd('/')}/api/v1/payments/webhooks/cashfree"
             };
         }
 
@@ -132,9 +133,11 @@ public sealed class CashfreePaymentGateway(
             return new PaymentGatewayVerification(false);
         }
 
-        var resolvedPaymentId = string.IsNullOrWhiteSpace(paymentId)
-            ? await GetSuccessfulPaymentIdAsync(orderId, cancellationToken)
-            : paymentId.Trim();
+        var resolvedPaymentId = await GetSuccessfulPaymentIdAsync(orderId, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(paymentId) && paymentId.Trim() != resolvedPaymentId)
+        {
+            return new PaymentGatewayVerification(false);
+        }
         return new PaymentGatewayVerification(!string.IsNullOrWhiteSpace(resolvedPaymentId), resolvedPaymentId);
     }
 
@@ -174,7 +177,7 @@ public sealed class CashfreePaymentGateway(
                 string.Equals(paymentStatus.GetString(), "SUCCESS", StringComparison.OrdinalIgnoreCase);
             if (isSuccessful && payment.TryGetProperty("cf_payment_id", out var paymentId))
             {
-                return paymentId.GetString();
+                return paymentId.ValueKind == JsonValueKind.Number ? paymentId.GetRawText() : paymentId.GetString();
             }
         }
 

@@ -11,9 +11,9 @@ export function HomeHero() {
   <div className="learn-hero__inner">
    <div className="learn-hero__top">
     <div className="learn-hero__copy">
-     <h1 id="site-title">Learn Today.<br/><span>Lead Tomorrow.</span></h1>
+     <h1 id="site-title">Joviq <br/><span>Technologies</span></h1>
      <svg className="learn-hero__underline" viewBox="0 0 240 16" aria-hidden="true"><path d="M4 11 Q110 1 218 7 M227 8 L236 8"/></svg>
-     <p className="learn-hero__intro">Real projects, expert review, and practical guidance<br className="learn-hero__desktop-break"/> to go from learner to leader.</p>
+     <p className="learn-hero__intro">Learn today. Lead tomorrow. Joviq Technologies is a Hyderabad-based training company offering technology and business programs with practical projects, expert review, and career guidance.</p>
      <ul className="learn-hero__benefits">{["AI-Powered Learning","Skill-Based Training","Future-Ready Career Guidance"].map(text=><li key={text}><Check size={17}/>{text}</li>)}</ul>
      <div className="learn-hero__actions"><Link className="learn-hero__browse" to="/programs">Browse Our Courses</Link></div>
     </div>

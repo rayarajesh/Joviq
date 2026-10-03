@@ -4,8 +4,9 @@ import { socialProfileUrls } from './components/socialLinks';
 
 export const siteUrl = 'https://joviqtechnologies.com';
 export const siteName = 'Joviq Technologies';
+const alternateNames = ['Joviq', 'JoviQ Technologies'];
 export const publicPages = [
-  { path: '/', title: 'Joviq Technologies | Online Training and Career Skills', description: 'Explore Joviq Technologies training programs in technology and business, with practical projects, guided learning, and career preparation.' },
+  { path: '/', title: 'Joviq Technologies | Online Training and Career Skills', description: 'Joviq Technologies is a Hyderabad-based training company offering technology and business courses with hands-on projects, expert guidance, and career preparation.' },
   { path: '/programs', title: 'Training Programs', description: 'Explore technology and business training programs at Joviq Technologies. Compare skills, curriculum, projects, and learning options.' },
   { path: '/about', title: 'About Joviq Technologies', description: 'Learn about Joviq Technologies and our approach to practical learning, professional skills, and career-focused training.' },
   { path: '/features', title: 'Learning Experience', description: 'Discover the Joviq Technologies learning experience, including hands-on projects, guided training, and career preparation.' },
@@ -35,8 +36,8 @@ export function pageSeo(pathname: string, indexable = true) {
     structuredData: page ? {
       '@context': 'https://schema.org',
       '@graph': [
-        { '@type': 'Organization', '@id': `${siteUrl}/#organization`, name: siteName, legalName: companyInformation.legalName, alternateName: ['JoviQ Technologies', 'Joviq'], url: siteUrl, logo: `${siteUrl}/assets/joviq-brand.png`, sameAs: socialProfileUrls, telephone: '+919281977188', email: 'info@joviqtechnologies.com' },
-        ...(path === '/' ? [{ '@type': 'WebSite', '@id': `${siteUrl}/#website`, url: siteUrl, name: siteName, alternateName: ['Joviq', 'JoviQ Technologies'], publisher: { '@id': `${siteUrl}/#organization` } }] : [{ '@type': 'BreadcrumbList', itemListElement: [
+        { '@type': 'Organization', '@id': `${siteUrl}/#organization`, name: siteName, legalName: companyInformation.legalName, alternateName: alternateNames, description: publicPages[0].description, address: { '@type': 'PostalAddress', addressLocality: 'Hyderabad', addressRegion: 'Telangana', addressCountry: 'IN' }, url: `${siteUrl}/`, logo: `${siteUrl}/assets/joviq-brand.png`, sameAs: socialProfileUrls, telephone: '+919281977188', email: 'info@joviqtechnologies.com' },
+        ...(path === '/' ? [{ '@type': 'WebSite', '@id': `${siteUrl}/#website`, url: `${siteUrl}/`, name: siteName, alternateName: alternateNames, publisher: { '@id': `${siteUrl}/#organization` } }] : [{ '@type': 'BreadcrumbList', itemListElement: [
           { '@type': 'ListItem', position: 1, name: siteName, item: `${siteUrl}/` },
           ...(path.startsWith('/programs/') ? [{ '@type': 'ListItem', position: 2, name: 'Training Programs', item: `${siteUrl}/programs` }] : []),
           { '@type': 'ListItem', position: path.startsWith('/programs/') ? 3 : 2, name: page.title, item: `${siteUrl}${path}` }

@@ -19,6 +19,15 @@ try {
   const schema = JSON.parse(await page.locator('#seo-structured-data').textContent());
   assert.ok(schema['@graph'].some(item => item['@type'] === 'Organization'));
   const organization = schema['@graph'].find(item => item['@type'] === 'Organization');
+  const website = schema['@graph'].find(item => item['@type'] === 'WebSite');
+  assert.equal((await page.locator('h1').innerText()).replace(/\s+/g, ' ').trim(), 'Joviq Technologies');
+  assert.equal(website.name, 'Joviq Technologies');
+  assert.equal(website.name, organization.name);
+  assert.deepEqual(website.alternateName, organization.alternateName);
+  assert.equal(website.url, 'https://joviqtechnologies.com/');
+  assert.equal(organization.address.addressLocality, 'Hyderabad');
+  assert.equal(await page.locator('meta[property="og:site_name"]').getAttribute('content'), website.name);
+  assert.match(await page.locator('meta[name="description"]').getAttribute('content'), /Joviq Technologies.*Hyderabad/);
   assert.deepEqual(organization.sameAs, [
     'https://www.instagram.com/joviqtechnologies/',
     'https://www.linkedin.com/company/joviq-technologies-private-limited/',

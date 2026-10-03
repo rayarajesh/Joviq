@@ -27,7 +27,7 @@ public sealed class PaymentOptions
 
     public string CashfreeEnvironment { get; init; } = "sandbox";
 
-    public string CashfreeApiVersion { get; init; } = "2024-09-30";
+    public string CashfreeApiVersion { get; init; } = "2025-01-01";
 
     public string FrontendBaseUrl { get; init; } = string.Empty;
 }
