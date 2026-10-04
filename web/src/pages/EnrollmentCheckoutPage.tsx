@@ -6,7 +6,7 @@ import { ToastMessage } from "../components/ToastMessage";
 import { useAuth } from "../features/auth/context/useAuth";
 import { publicLmsApi, studentLmsApi } from "../features/lms/api/lmsApi";
 import type { CouponValidationResponse, EnrollmentResponse, PaymentCheckoutResponse, ProgramDetailsResponse } from "../features/lms/api/lmsTypes";
-import { clearPendingEnrollment, readPendingEnrollment } from "../features/lms/checkout";
+import { checkoutEmailsMatch, clearPendingEnrollment, readPendingEnrollment } from "../features/lms/checkout";
 import { formatApiError } from "../lib/api/httpClient";
 
 type PageMessage = { tone: "success" | "error"; text: string } | null;
@@ -118,7 +118,12 @@ export function EnrollmentCheckoutPage() {
     let mounted = true;
     void publicLmsApi.getProgram(pending.slug)
       .then((response) => {
-        if (mounted) setProgram(response.data);
+        if (mounted) {
+          setProgram(response.data);
+          if (!response.data.plans.some((plan) => plan.code === pending.planCode && plan.isActive)) {
+            setMessage({ tone: "error", text: "Your selected plan is no longer available. Return to the program to choose another plan." });
+          }
+        }
       })
       .catch((error) => {
         if (mounted) setMessage({ tone: "error", text: formatApiError(error) });
@@ -141,7 +146,7 @@ export function EnrollmentCheckoutPage() {
   }, [checkout]);
 
   const selectedPlan = useMemo(
-    () => program?.plans.find((plan) => plan.code === pending?.planCode) ?? program?.plans[0],
+    () => program?.plans.find((plan) => plan.code === pending?.planCode && plan.isActive),
     [pending?.planCode, program]
   );
   const paymentMode = pending?.paymentMode ?? 1;
@@ -203,6 +208,10 @@ export function EnrollmentCheckoutPage() {
 
   async function startPayment() {
     if (!pending || !program || !selectedPlan) return;
+    if (pending.applicant && auth.user && !checkoutEmailsMatch(pending.applicant.email, auth.user.email)) {
+      setMessage({ tone: "error", text: "Your enrollment email does not match your signed-in account. Return to the program and use your signed-in email." });
+      return;
+    }
     setIsPaying(true);
     setMessage(null);
 

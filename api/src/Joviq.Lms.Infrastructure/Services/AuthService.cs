@@ -124,7 +124,7 @@ public sealed class AuthService(
 
         if (await userManager.FindByEmailAsync(email) is not null)
         {
-            throw new AppException("This email already has an account. Sign out and use a new email for this enrollment.", 409, "email_exists");
+            throw new AppException("This email already has an account. Sign in to continue your enrollment.", 409, "email_exists");
         }
 
         if (await dbContext.Users.AnyAsync(x => x.PhoneNumber == phone, cancellationToken))

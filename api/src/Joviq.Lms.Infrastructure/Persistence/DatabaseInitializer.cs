@@ -16,7 +16,7 @@ public static class DatabaseInitializer
         await db.Database.MigrateAsync();
         await RoleSeeder.SeedRolesAsync(services);
         if (configuration.GetValue<bool>("Database:SeedCatalog"))
-            await LmsSeedData.SeedAsync(services);
+            await LmsSeedData.SeedAsync(services, configuration.GetValue<bool>("Database:SeedDemoContent"));
 
         var runtime = new NpgsqlConnectionStringBuilder(runtimeConnectionString);
         var migration = new NpgsqlConnectionStringBuilder(db.Database.GetConnectionString());

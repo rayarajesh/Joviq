@@ -255,7 +255,8 @@ var apiSettings = [
   { name: 'Payments__FrontendBaseUrl', value: origin }
   { name: 'Payments__PublicBaseUrl', value: 'https://${baseName}-api.azurewebsites.net' }
   { name: 'Payments__CashfreeEnvironment', value: production ? 'production' : 'sandbox' }
-  { name: 'Database__SeedCatalog', value: production ? 'false' : 'true' }
+  { name: 'Database__SeedCatalog', value: 'true' }
+  { name: 'Database__SeedDemoContent', value: production ? 'false' : 'true' }
   { name: 'SeedAdmin__Email', value: seedAdminEmail }
   { name: 'SeedAdmin__Password', value: empty(seedAdminEmail) ? '' : '@Microsoft.KeyVault(SecretUri=${vault.properties.vaultUri}secrets/seed-admin-password)' }
   { name: 'SeedAdmin__ResetPassword', value: 'false' }
