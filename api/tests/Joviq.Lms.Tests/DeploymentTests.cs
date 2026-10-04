@@ -56,6 +56,8 @@ public class DeploymentTests
         settings["ConnectionStrings:DefaultConnection"] = connectionString;
         settings.Remove("DataProtection:BlobUri");
         settings["Assets:Provider"] = "Local";
+        settings["Database:SeedCatalog"] = "true";
+        settings["Database:SeedDemoContent"] = "false";
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(settings).Build();
         using var services = new ServiceCollection().AddLogging().AddSingleton<IConfiguration>(configuration)
             .AddInfrastructure(configuration)
@@ -72,6 +74,24 @@ public class DeploymentTests
         Assert.True(Convert.ToInt64(await read.ExecuteScalarAsync()) > 0);
         using var scope = services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var science = await db.LearningPrograms.Include(program => program.Plans)
+            .SingleAsync(program => program.Slug == "data-science");
+        Assert.Equal(3, science.Plans.Count);
+        Assert.All(science.Plans, plan => Assert.True(plan.IsActive && plan.OfferPrice > 0 && plan.ReserveAmount > 0));
+        Assert.True(await db.LearningPrograms.AnyAsync(program => program.Slug == "ui-ux-design"));
+        Assert.True(await db.LearningPrograms.AnyAsync(program => program.Slug == "international-business-management"));
+        Assert.False(await db.Lessons.AnyAsync());
+        Assert.False(await db.Projects.AnyAsync());
+        Assert.False(await db.Coupons.AnyAsync());
+        var programCount = await db.LearningPrograms.CountAsync();
+        var planCount = await db.ProgramPlans.CountAsync();
+        science.Plans.First().OfferPrice = 8123m;
+        await db.SaveChangesAsync();
+        await LmsSeedData.SeedAsync(services, includeDemoContent: false);
+        Assert.Equal(programCount, await db.LearningPrograms.CountAsync());
+        Assert.Equal(planCount, await db.ProgramPlans.CountAsync());
+        await db.Entry(science.Plans.First()).ReloadAsync();
+        Assert.Equal(8123m, science.Plans.First().OfferPrice);
         var quoting = new NpgsqlCommandBuilder();
         foreach (var entity in db.Model.GetEntityTypes())
         {

@@ -40,7 +40,7 @@ import { getProgramImage } from "../data/programVisuals";
 import { authApi } from "../features/auth/api/authApi";
 import { useAuth } from "../features/auth/context/useAuth";
 import { publicLmsApi } from "../features/lms/api/lmsApi";
-import { savePendingEnrollment } from "../features/lms/checkout";
+import { checkoutEmailsMatch, savePendingEnrollment } from "../features/lms/checkout";
 import type { EnrollmentApplicant } from "../features/lms/checkout";
 import type { ProgramDetailsResponse } from "../features/lms/api/lmsTypes";
 import { ApiError, formatApiError } from "../lib/api/httpClient";
@@ -226,44 +226,53 @@ export function ProgramDetailsPage() {
     if (!registrationPlan) return;
 
     const email = submission.applicant.email.trim().toLowerCase();
-    const enteredPhone = submission.applicant.phoneNumber.replace(/\D/g, "").slice(-10);
-    const signedInPhone = auth.user?.phoneNumber?.replace(/\D/g, "").slice(-10);
-    const isCurrentAccount = Boolean(
-      auth.user &&
-      auth.user.email.trim().toLowerCase() === email &&
-      (!signedInPhone || signedInPhone === enteredPhone)
-    );
-
-    if (!isCurrentAccount) {
-      if (auth.user) {
-        await auth.logout();
-      }
-
-      const response = await authApi.createCheckoutAccount({
-        fullName: submission.applicant.fullName,
-        email,
-        phoneNumber: submission.applicant.phoneNumber,
-        collegeName: submission.applicant.collegeName,
-        acceptedTerms: submission.acceptedTerms,
-        termsVersion: checkoutPolicyVersion,
-        privacyPolicyVersion: checkoutPolicyVersion
-      });
-      auth.applyAuthResponse(response.data);
+    if (auth.user && !checkoutEmailsMatch(email, auth.user.email)) {
+      throw new Error("Use your signed-in email for enrollment, or sign in to the account you want to enroll.");
     }
 
-    savePendingEnrollment({
-      slug: currentProgram.slug,
-      programId: remoteProgram?.id,
-      planId: registrationPlan.id,
-      planCode: registrationPlan.code,
-      programTitle: currentProgram.title,
+    // Checkout must use a published database program and its authoritative pricing.
+    const availableProgram = (await publicLmsApi.getProgram(currentProgram.slug)).data;
+    const availablePlan = availableProgram.plans.find((plan) => plan.code === registrationPlan.code && plan.isActive);
+    if (!availablePlan) throw new Error("This plan is not available for enrollment. Please choose another plan.");
+    const checkoutPath = "/checkout?autostart=1";
+    const rememberEnrollment = () => savePendingEnrollment({
+      slug: availableProgram.slug,
+      programId: availableProgram.id,
+      planId: availablePlan.id,
+      planCode: availablePlan.code,
+      programTitle: availableProgram.title,
       paymentMode: submission.paymentChoice === "token" ? 1 : 2,
-      amount: submission.paymentChoice === "token" ? registrationPlan.reserveAmount : registrationPlan.offerPrice,
-      applicant: submission.applicant,
+      amount: submission.paymentChoice === "token" ? availablePlan.reserveAmount : availablePlan.offerPrice,
+      applicant: { ...submission.applicant, email },
       startDate: submission.paymentChoice === "token" ? submission.startDate : undefined
     });
+
+    if (!auth.user) {
+      try {
+        const response = await authApi.createCheckoutAccount({
+          fullName: submission.applicant.fullName,
+          email,
+          phoneNumber: submission.applicant.phoneNumber,
+          collegeName: submission.applicant.collegeName,
+          acceptedTerms: submission.acceptedTerms,
+          termsVersion: checkoutPolicyVersion,
+          privacyPolicyVersion: checkoutPolicyVersion
+        });
+        auth.applyAuthResponse(response.data);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 409 &&
+          ["email_exists", "phone_exists"].includes(error.problem?.errorCode ?? "")) {
+          rememberEnrollment();
+          setRegistrationPlan(null);
+          navigate(`/login?returnUrl=${encodeURIComponent(checkoutPath)}`);
+          return;
+        }
+        throw error;
+      }
+    }
+
+    rememberEnrollment();
     setRegistrationPlan(null);
-    const checkoutPath = "/checkout?autostart=1";
     navigate(checkoutPath);
   }
 
@@ -521,9 +530,10 @@ function RegistrationDialog({ onClose, onSubmit, plan, programTitle }: {
   plan: ProgramPlan;
   programTitle: string;
 }) {
-  const [fullName, setFullName] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [email, setEmail] = useState("");
+  const { user } = useAuth();
+  const [fullName, setFullName] = useState(user?.fullName ?? "");
+  const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber ?? "");
+  const [email, setEmail] = useState(user?.email ?? "");
   const [collegeName, setCollegeName] = useState("");
   const [paymentChoice, setPaymentChoice] = useState<"token" | "full">("token");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -619,7 +629,7 @@ function RegistrationDialog({ onClose, onSubmit, plan, programTitle }: {
               <label className={`enrollment-dialog__payment-option${paymentChoice === "token" ? " is-selected" : ""}`}>
                 <input checked={paymentChoice === "token"} name="paymentChoice" onChange={() => setPaymentChoice("token")} type="radio" value="token" />
                 <span className="enrollment-dialog__payment-icon"><WalletCards size={20} /></span>
-                <span><strong>Reserve my seat</strong><small>Pay INR 1,499 for pre-registration now.</small></span>
+                <span><strong>Reserve my seat</strong><small>Pay {formatInr(plan.reserveAmount)} for pre-registration now.</small></span>
                 <b>Pre-registration</b>
               </label>
               <label className={`enrollment-dialog__payment-option${paymentChoice === "full" ? " is-selected" : ""}`}>
@@ -636,8 +646,8 @@ function RegistrationDialog({ onClose, onSubmit, plan, programTitle }: {
             <span>I agree to the Joviq terms and privacy policy.</span>
           </label>
           {errorMessage ? <p className="enrollment-dialog__error" role="alert">{errorMessage}</p> : null}
-          <div className="enrollment-dialog__secure-note"><ShieldCheck size={18} /><span>Your details are saved securely. After you continue, you’ll be signed in to this new account and Cashfree checkout will open.</span></div>
-          <button className="enrollment-dialog__submit" disabled={isSubmitting || retrySeconds > 0} type="submit"><ArrowRight size={18} /> {retrySeconds > 0 ? `Try again in ${retrySeconds}s` : isSubmitting ? "Preparing your account…" : `Continue with ${paymentChoice === "token" ? "pre-registration · INR 1,499/-" : `full payment · ${formatInr(plan.offerPrice)}`}`}</button>
+          <div className="enrollment-dialog__secure-note"><ShieldCheck size={18} /><span>Existing learners sign in to continue. New learners receive a checkout account before secure payment opens.</span></div>
+          <button className="enrollment-dialog__submit" disabled={isSubmitting || retrySeconds > 0} type="submit"><ArrowRight size={18} /> {retrySeconds > 0 ? `Try again in ${retrySeconds}s` : isSubmitting ? "Preparing your account…" : `Continue with ${paymentChoice === "token" ? `pre-registration · ${formatInr(plan.reserveAmount)}` : `full payment · ${formatInr(plan.offerPrice)}`}`}</button>
         </form>
       </section>
     </div>
@@ -814,4 +824,3 @@ function createFallbackFaqs(title: string) {
 function formatInr(amount: number) {
   return `INR ${new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(amount)}`;
 }
-

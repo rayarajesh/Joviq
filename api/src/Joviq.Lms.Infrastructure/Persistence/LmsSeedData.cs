@@ -12,7 +12,7 @@ public static class LmsSeedData
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private const string SampleLessonVideoUrl = "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
 
-    public static async Task SeedAsync(IServiceProvider services)
+    public static async Task SeedAsync(IServiceProvider services, bool includeDemoContent = true)
     {
         using var scope = services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -25,6 +25,7 @@ public static class LmsSeedData
                 "computer-science-it",
                 "Software, cloud, data, cyber security, and AI programs built around live projects.",
                 [
+                    "UI/UX Design",
                     "Generative AI",
                     "Full Stack Web Development",
                     "Machine Learning",
@@ -61,7 +62,7 @@ public static class LmsSeedData
                     "Stock Market",
                     "Digital Marketing",
                     "Business Analytics",
-                    "IBM",
+                    "International Business Management",
                     "HRM"
                 ])
         };
@@ -99,15 +100,18 @@ public static class LmsSeedData
                 var program = CreateProgram(category, title, programOrder);
                 dbContext.LearningPrograms.Add(program);
                 AddPlans(dbContext, program);
-                AddCurriculum(dbContext, program, title);
-                AddProjects(dbContext, program, title);
+                if (includeDemoContent)
+                {
+                    AddCurriculum(dbContext, program, title);
+                    AddProjects(dbContext, program, title);
+                }
                 programOrder++;
             }
 
             sortOrder++;
         }
 
-        if (!await dbContext.Coupons.AnyAsync(x => x.Code == "JOVIQEARLY"))
+        if (includeDemoContent && !await dbContext.Coupons.AnyAsync(x => x.Code == "JOVIQEARLY"))
         {
             dbContext.Coupons.Add(new Coupon
             {
