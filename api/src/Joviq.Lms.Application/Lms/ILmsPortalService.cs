@@ -113,6 +113,7 @@ public interface ILmsPortalService
     Task<ProjectResponse> PublishProjectAsync(Guid projectId, PublishProjectRequest request, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<EnrollmentResponse>> GetAdminEnrollmentsAsync(CancellationToken cancellationToken);
+    Task<EnrollmentResponse> CreateAdminEnrollmentAsync(AdminEnrollmentRequest request, CancellationToken cancellationToken);
 
     Task<EnrollmentResponse> UpdateEnrollmentStatusAsync(Guid enrollmentId, UpdateEnrollmentStatusRequest request, CancellationToken cancellationToken);
 

@@ -20,7 +20,14 @@ public interface IPaymentGateway
         CancellationToken cancellationToken);
 
     bool VerifyWebhookSignature(string payload, string signature, string? timestamp = null);
+
+    Task<ExternalPaymentVerification?> VerifyExternalPaymentAsync(
+        string orderId, string? paymentId, string? linkId, CancellationToken cancellationToken)
+        => Task.FromResult<ExternalPaymentVerification?>(null);
 }
+
+public sealed record ExternalPaymentVerification(
+    string PaymentId, decimal Amount, string Currency, string? CustomerEmail, string? CustomerPhone);
 
 public sealed record PaymentGatewayOrder(
     string Provider,

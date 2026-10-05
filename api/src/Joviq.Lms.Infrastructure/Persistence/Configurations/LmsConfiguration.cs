@@ -176,6 +176,8 @@ public sealed class PaymentTransactionConfiguration : IEntityTypeConfiguration<P
         builder.Property(x => x.Currency).HasMaxLength(12).IsRequired();
         builder.Property(x => x.FailureReason).HasMaxLength(500);
         builder.Property(x => x.InvoiceNumber).HasMaxLength(80);
+        builder.Property(x => x.GatewaySessionId).HasMaxLength(500);
+        builder.HasIndex(x => new { x.EnrollmentId, x.Status });
         builder.HasIndex(x => x.GatewayPaymentId)
             .IsUnique()
             .HasFilter("\"GatewayPaymentId\" IS NOT NULL");
@@ -337,6 +339,21 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
         builder.Property(x => x.Body).HasMaxLength(1000).IsRequired();
         builder.Property(x => x.ActionUrl).HasMaxLength(500);
         builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(64);
+    }
+}
+
+public sealed class SupportMessageConfiguration : IEntityTypeConfiguration<SupportMessage>
+{
+    public void Configure(EntityTypeBuilder<SupportMessage> builder)
+    {
+        builder.ToTable("support_messages");
+        builder.HasKey(x => x.Id);
+        builder.HasIndex(x => new { x.StudentId, x.CreatedAt });
+        builder.HasIndex(x => new { x.FromStudent, x.ReadAt });
+        builder.HasIndex(x => x.AttachmentAssetId);
+        builder.Property(x => x.Body).HasMaxLength(2000).IsRequired();
+        builder.Property(x => x.AttachmentName).HasMaxLength(260);
+        builder.Property(x => x.AttachmentContentType).HasMaxLength(120);
     }
 }
 

@@ -189,3 +189,30 @@
   .pdx-enroll-form { padding: 20px 16px; }
 }
 .pdx-float--1 { max-width: 300px; }
+
+.enrollment-dialog__account {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+  font-size: 12px;
+}
+.enrollment-dialog__account span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.enrollment-dialog__account button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: #5148a8;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.enrollment-dialog__account button:disabled { opacity: .5; cursor: wait; }

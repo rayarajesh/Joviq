@@ -92,3 +92,26 @@ public sealed class Enquiry : AuditableEntity
 
     public LeadStatus Status { get; set; } = LeadStatus.New;
 }
+
+public sealed class SupportMessage : AuditableEntity
+{
+    public Guid Id { get; set; }
+
+    /// <summary>The student whose support chat this message belongs to.</summary>
+    public Guid StudentId { get; set; }
+
+    public Guid SenderId { get; set; }
+
+    public bool FromStudent { get; set; }
+
+    public string Body { get; set; } = string.Empty;
+
+    public Guid? AttachmentAssetId { get; set; }
+
+    public string? AttachmentName { get; set; }
+
+    public string? AttachmentContentType { get; set; }
+
+    /// <summary>When the other side (admin team or student) read the message.</summary>
+    public DateTimeOffset? ReadAt { get; set; }
+}

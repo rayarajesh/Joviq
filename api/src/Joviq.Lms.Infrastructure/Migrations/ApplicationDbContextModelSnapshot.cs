@@ -982,6 +982,10 @@ namespace Joviq.Lms.Infrastructure.Migrations
                         .HasMaxLength(160)
                         .HasColumnType("character varying(160)");
 
+                    b.Property<string>("GatewaySessionId")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<string>("InvoiceNumber")
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
@@ -1001,6 +1005,9 @@ namespace Joviq.Lms.Infrastructure.Migrations
                     b.Property<Guid?>("ProgramPlanId")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("RefundRequired")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -1019,14 +1026,14 @@ namespace Joviq.Lms.Infrastructure.Migrations
 
                     b.HasIndex("CouponId");
 
-                    b.HasIndex("EnrollmentId");
-
                     b.HasIndex("GatewayOrderId")
                         .IsUnique();
 
                     b.HasIndex("GatewayPaymentId")
                         .IsUnique()
                         .HasFilter("\"GatewayPaymentId\" IS NOT NULL");
+
+                    b.HasIndex("EnrollmentId", "Status");
 
                     b.HasIndex("StudentId", "Status");
 
@@ -1321,6 +1328,57 @@ namespace Joviq.Lms.Infrastructure.Migrations
                     b.HasKey("UserId");
 
                     b.ToTable("student_profiles", (string)null);
+                });
+
+            modelBuilder.Entity("Joviq.Lms.Domain.Entities.SupportMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AttachmentAssetId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AttachmentContentType")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("AttachmentName")
+                        .HasMaxLength(260)
+                        .HasColumnType("character varying(260)");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("FromStudent")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("ReadAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("SenderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AttachmentAssetId");
+
+                    b.HasIndex("FromStudent", "ReadAt");
+
+                    b.HasIndex("StudentId", "CreatedAt");
+
+                    b.ToTable("support_messages", (string)null);
                 });
 
             modelBuilder.Entity("Joviq.Lms.Domain.Entities.UserConsent", b =>

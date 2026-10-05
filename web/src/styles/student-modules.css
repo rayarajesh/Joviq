@@ -800,3 +800,80 @@
   outline: 3px solid #b3a0ff;
   outline-offset: 3px;
 }
+
+/* Issued certificates: a faithful preview plus View / Print. */
+.student-certificate-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr));
+  gap: 20px;
+}
+.student-certificate-item {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: #fff;
+  border: 1px solid #e8edf9;
+  border-radius: 13px;
+  overflow: hidden;
+  box-shadow: 0 8px 25px #7c75b20d;
+}
+.student-certificate-item__preview {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid #eef0f8;
+  background: #fff;
+  cursor: zoom-in;
+}
+.student-certificate-item__preview:focus-visible {
+  outline: 3px solid #b9a8ff;
+  outline-offset: -3px;
+}
+.student-certificate-item__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 16px;
+}
+.student-certificate-item__footer > div:first-child {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.student-certificate-item__footer strong {
+  color: #1f1d3a;
+  font-size: 14px;
+}
+.student-certificate-item__footer span {
+  color: #7a8099;
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+.student-certificate-item__actions {
+  display: flex;
+  gap: 8px;
+}
+.student-certificate-item__actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border: 1px solid #dcd1ff;
+  border-radius: 8px;
+  background: #fff;
+  color: #5b35d6;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.student-certificate-item__actions button:first-child {
+  background: #7a4cff;
+  border-color: #7a4cff;
+  color: #fff;
+}
+.student-certificate-item__actions button:hover {
+  filter: brightness(0.96);
+}

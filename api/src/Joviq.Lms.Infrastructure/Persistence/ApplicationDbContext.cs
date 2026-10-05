@@ -56,6 +56,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
     public DbSet<Enquiry> Enquiries => Set<Enquiry>();
 
+    public DbSet<SupportMessage> SupportMessages => Set<SupportMessage>();
+
     public DbSet<Asset> Assets => Set<Asset>();
 
     protected override void OnModelCreating(ModelBuilder builder)

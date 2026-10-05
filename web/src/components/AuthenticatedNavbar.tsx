@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Bell, Check, ChevronDown, LayoutDashboard, LifeBuoy, LogOut, UserRound } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { BrandLogo } from "./BrandLogo";
+import { useSupportUnread } from "./SupportChat";
 import { env } from "../config/env";
 import { useAuth } from "../features/auth/context/useAuth";
 import { studentLmsApi } from "../features/lms/api/lmsApi";
@@ -21,9 +22,13 @@ export function AuthenticatedNavbar() {
   const user = auth.user;
   const isStudent = user?.roles.includes("Student") ?? false;
   const profilePath = "/profile";
-  const supportPath = isStudent && user?.onboardingStatus !== "Completed"
-    ? "/request-callback"
-    : "/dashboard?section=Support";
+  const isAdmin = user?.roles.includes("Admin") ?? false;
+  const supportSection = isAdmin ? "Support Chat" : "Support";
+  const canUseSupportChat = isAdmin || (isStudent && user?.onboardingStatus === "Completed");
+  const supportPath = canUseSupportChat
+    ? `/dashboard?section=${encodeURIComponent(supportSection)}`
+    : "/request-callback";
+  const supportUnread = useSupportUnread(canUseSupportChat ? (isAdmin ? "Admin" : "Student") : null);
   const profilePhotoUrl = user?.profilePhotoUrl ? toApiFileUrl(user.profilePhotoUrl) : "";
   const initials = useMemo(() => getInitials(user?.fullName), [user?.fullName]);
   const unreadCount = notifications.filter((notification) => notification.status !== "Read").length;
@@ -123,13 +128,16 @@ export function AuthenticatedNavbar() {
         {user.roles.includes("Admin") ? <AdminWorkspaceSearch /> : null}
         <div className="auth-nav__actions" ref={actionsRef}>
           <Link
-            className={`auth-nav__support-link ${location.pathname === "/dashboard" && new URLSearchParams(location.search).get("section") === "Support" ? "is-active" : ""}`}
+            className={`auth-nav__support-link ${location.pathname === "/dashboard" && new URLSearchParams(location.search).get("section") === supportSection ? "is-active" : ""}`}
             to={supportPath}
             aria-label="Open support"
             title="Support"
           >
             <LifeBuoy size={18} />
             <span>Support</span>
+            {supportUnread > 0 ? (
+              <span className="support-unread-badge" aria-label={`${supportUnread} unread support messages`}>{supportUnread}</span>
+            ) : null}
           </Link>
 
           <div className="auth-nav__menu-wrap">

@@ -377,6 +377,25 @@ export type CreateEnrollmentRequest = {
   startDate?: string;
 };
 
+export type AdminEnrollmentRequest = {
+  enrollmentId?: string;
+  studentId?: string;
+  newStudent?: {
+    fullName: string; email: string; phoneNumber: string;
+    temporaryPassword: string; role: "Student";
+  };
+  programId: string;
+  programPlanId: string;
+  startDate?: string;
+  paymentEnvironment: string;
+  paymentKind?: "full" | "token" | "other";
+  amountPaid?: number;
+  cashfreeOrderId?: string;
+  cashfreePaymentId?: string;
+  cashfreeLinkId?: string;
+  notes?: string;
+};
+
 export type CreatePaymentCheckoutRequest = {
   programId: string;
   programPlanId?: string;

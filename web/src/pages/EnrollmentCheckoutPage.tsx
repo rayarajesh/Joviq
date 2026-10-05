@@ -7,9 +7,18 @@ import { useAuth } from "../features/auth/context/useAuth";
 import { publicLmsApi, studentLmsApi } from "../features/lms/api/lmsApi";
 import type { CouponValidationResponse, EnrollmentResponse, PaymentCheckoutResponse, ProgramDetailsResponse } from "../features/lms/api/lmsTypes";
 import { checkoutEmailsMatch, clearPendingEnrollment, readPendingEnrollment } from "../features/lms/checkout";
-import { formatApiError } from "../lib/api/httpClient";
+import { ApiError, formatApiError } from "../lib/api/httpClient";
 
 type PageMessage = { tone: "success" | "error"; text: string } | null;
+
+/** How long to keep asking the server while the bank confirms (UPI can take a little while). */
+const CONFIRM_ATTEMPTS = 20;
+const CONFIRM_INTERVAL_MS = 3000;
+const STILL_PROCESSING_MESSAGE =
+  "Your bank has not confirmed this payment yet. If money was deducted, your access unlocks automatically within a few minutes — you do not need to pay again.";
+
+const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+const errorCode = (error: unknown) => (error instanceof ApiError ? error.problem?.errorCode : undefined);
 
 type RazorpaySuccess = {
   razorpay_order_id: string;
@@ -96,6 +105,9 @@ export function EnrollmentCheckoutPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const autoStartRequested = searchParams.get("autostart") === "1";
+  // Cashfree sends students back here after bank / UPI-app redirects.
+  const returnedOrderId = searchParams.get("cashfree") === "return" ? searchParams.get("order_id") : null;
+  const [isConfirming, setIsConfirming] = useState(false);
   const autoStartRef = useRef(false);
   const [pending] = useState(readPendingEnrollment);
   const [program, setProgram] = useState<ProgramDetailsResponse | null>(null);
@@ -206,6 +218,53 @@ export function EnrollmentCheckoutPage() {
     }
   }
 
+  async function finishPaidCheckout() {
+    await auth.loadMe();
+    clearPendingEnrollment();
+    navigate("/dashboard?payment=success", { replace: true });
+  }
+
+  /**
+   * Asks the server (which asks the gateway) whether the order is paid, retrying while the bank
+   * is still confirming. Returns "paid", "pending" (still unconfirmed after retrying) or "failed".
+   */
+  async function confirmWithGateway(
+    target: { paymentTransactionId?: string; gatewayOrderId: string },
+    attempts = CONFIRM_ATTEMPTS
+  ): Promise<"paid" | "pending" | "failed"> {
+    setIsConfirming(true);
+    setMessage(null);
+    try {
+      for (let attempt = 1; attempt <= attempts; attempt += 1) {
+        try {
+          await studentLmsApi.verifyPayment(target);
+          await finishPaidCheckout();
+          return "paid";
+        } catch (error) {
+          if (errorCode(error) !== "payment_pending") {
+            setMessage({ tone: "error", text: formatApiError(error) });
+            return "failed";
+          }
+          if (attempt < attempts) await wait(CONFIRM_INTERVAL_MS);
+        }
+      }
+      return "pending";
+    } finally {
+      setIsConfirming(false);
+    }
+  }
+
+  // Confirm the order Cashfree returned with exactly once (React may run effects twice in development).
+  const confirmedReturnRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!returnedOrderId || !auth.user || confirmedReturnRef.current === returnedOrderId) return;
+    confirmedReturnRef.current = returnedOrderId;
+    void confirmWithGateway({ gatewayOrderId: returnedOrderId }).then((outcome) => {
+      if (outcome === "pending") setMessage({ tone: "success", text: STILL_PROCESSING_MESSAGE });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [returnedOrderId, auth.user?.id]);
+
   async function startPayment() {
     if (!pending || !program || !selectedPlan) return;
     if (pending.applicant && auth.user && !checkoutEmailsMatch(pending.applicant.email, auth.user.email)) {
@@ -305,6 +364,10 @@ export function EnrollmentCheckoutPage() {
       });
       payment.open();
     } catch (error) {
+      if (errorCode(error) === "payment_already_received") {
+        await finishPaidCheckout();
+        return;
+      }
       setMessage({ tone: "error", text: formatApiError(error) });
     } finally {
       setIsPaying(false);
@@ -330,31 +393,31 @@ export function EnrollmentCheckoutPage() {
     const cashfree = window.Cashfree({
       mode: currentCheckout.paymentEnvironment?.toLowerCase() === "production" ? "production" : "sandbox"
     });
-    const result = await cashfree.checkout({ paymentSessionId: currentCheckout.paymentSessionId, redirectTarget: "_modal" });
+    const result = (await cashfree.checkout({ paymentSessionId: currentCheckout.paymentSessionId, redirectTarget: "_modal" })) as
+      | { error?: { message?: string }; redirect?: boolean; paymentDetails?: unknown }
+      | undefined;
 
-    // Check if the user cancelled or if there was an error before verifying
-    if (result && typeof result === "object") {
-      if ("error" in result) {
-        const error = (result as { error?: { message?: string; code?: string } }).error;
-        if (error) {
-          // Mark the transaction as failed if user cancelled
-          void studentLmsApi.markPaymentFailed(currentCheckout.transaction.id, {
-            failureReason: error.message ?? "Payment was cancelled or not completed."
-          });
-          throw new Error(error.message ?? "Payment was not completed. Please try again.");
-        }
-      }
-      // If paymentDetails exists the payment was successful
-      if (!("paymentDetails" in result)) {
-        // Modal closed without clear success — verify with backend to confirm
-        void studentLmsApi.markPaymentFailed(currentCheckout.transaction.id, {
-          failureReason: "Checkout was closed without payment confirmation."
-        });
-        throw new Error("Payment was not completed. Please try again.");
-      }
+    // Some methods (UPI apps, net banking) leave the site; the return URL confirms those.
+    if (result?.redirect) return;
+
+    const target = { paymentTransactionId: currentCheckout.transaction.id, gatewayOrderId: currentCheckout.gatewayOrderId };
+    if (result?.paymentDetails) {
+      const outcome = await confirmWithGateway(target);
+      if (outcome === "pending") setMessage({ tone: "success", text: STILL_PROCESSING_MESSAGE });
+      return;
     }
 
-    await confirmCashfreePayment(currentCheckout);
+    // The pop-up closed without a success signal. A UPI payment can still be completing, so check
+    // briefly before treating it as cancelled. A late payment is still credited by the server.
+    const outcome = await confirmWithGateway(target, 3);
+    if (outcome !== "pending") return;
+    void studentLmsApi.markPaymentFailed(currentCheckout.transaction.id, {
+      failureReason: result?.error?.message ?? "Checkout was closed without payment confirmation."
+    });
+    setMessage({
+      tone: "error",
+      text: "Payment was not completed. You can try again. If money was deducted, it is credited automatically — you will not be charged twice."
+    });
   }
 
   async function confirmPayment(currentCheckout: PaymentCheckoutResponse, gatewayResponse: RazorpaySuccess) {
@@ -367,9 +430,7 @@ export function EnrollmentCheckoutPage() {
         gatewayPaymentId: gatewayResponse.razorpay_payment_id,
         gatewaySignature: gatewayResponse.razorpay_signature
       });
-      await auth.loadMe();
-      clearPendingEnrollment();
-      navigate("/dashboard?payment=success", { replace: true });
+      await finishPaidCheckout();
     } catch (error) {
       setMessage({ tone: "error", text: formatApiError(error) });
     } finally {
@@ -377,22 +438,30 @@ export function EnrollmentCheckoutPage() {
     }
   }
 
-  async function confirmCashfreePayment(currentCheckout: PaymentCheckoutResponse) {
-    setIsPaying(true);
-    setMessage(null);
-    try {
-      await studentLmsApi.verifyPayment({
-        paymentTransactionId: currentCheckout.transaction.id,
-        gatewayOrderId: currentCheckout.gatewayOrderId
-      });
-      await auth.loadMe();
-      clearPendingEnrollment();
-      navigate("/dashboard?payment=success", { replace: true });
-    } catch (error) {
-      setMessage({ tone: "error", text: formatApiError(error) });
-    } finally {
-      setIsPaying(false);
-    }
+  if (returnedOrderId) {
+    const waiting = isConfirming || !message;
+    return (
+      <section className="checkout-launcher" aria-live="polite">
+        <div className="checkout-launcher__card">
+          <div className="checkout-launcher__icon"><LockKeyhole size={25} /></div>
+          <span className="checkout-launcher__eyebrow">Secure enrollment</span>
+          <h1>{waiting ? "Confirming your payment" : message?.tone === "error" ? "We could not confirm this payment" : "Payment is being processed"}</h1>
+          <p>{waiting ? "Checking with your bank. Please keep this page open — this usually takes a few seconds." : message?.text}</p>
+          {!waiting ? (
+            <button
+              className="secondary-action checkout-launcher__retry"
+              type="button"
+              onClick={() => void confirmWithGateway({ gatewayOrderId: returnedOrderId }).then((outcome) => {
+                if (outcome === "pending") setMessage({ tone: "success", text: STILL_PROCESSING_MESSAGE });
+              })}
+            >
+              Check again
+            </button>
+          ) : null}
+          <Link className="checkout-launcher__back" to="/dashboard"><ArrowLeft size={17} /> Go to dashboard</Link>
+        </div>
+      </section>
+    );
   }
 
   if (!pending) {
@@ -409,14 +478,18 @@ export function EnrollmentCheckoutPage() {
   if (autoStartRequested && paymentMode !== 3) {
     const launcherTitle = isLoading
       ? "Preparing your secure checkout"
-      : isPaying
+      : isConfirming
+        ? "Confirming your payment"
+        : isPaying
         ? "Opening Cashfree checkout"
         : checkout?.provider === "Development"
           ? "Test checkout is ready"
           : message?.tone === "error"
             ? "We could not open checkout"
             : "Preparing your secure checkout";
-    const launcherMessage = message?.text
+    const launcherMessage = isConfirming
+      ? "Checking with your bank. Please keep this page open — this usually takes a few seconds."
+      : message?.text
       ?? (checkout?.provider === "Development"
         ? "Local test mode is active. Complete the test payment to continue."
         : "Your payment dialog will open here. Please keep this window open.");
@@ -442,7 +515,7 @@ export function EnrollmentCheckoutPage() {
               <CreditCard size={18} /> Complete test payment
             </button>
           ) : null}
-          {message?.tone === "error" ? (
+          {message?.tone === "error" && !isConfirming ? (
             <button className="secondary-action checkout-launcher__retry" type="button" disabled={isLoading || isPaying} onClick={() => void retryCheckout()}>
               Try again
             </button>
@@ -504,8 +577,8 @@ export function EnrollmentCheckoutPage() {
           {checkout && secondsLeft !== null ? (
             <div className={`checkout-timer${isExpired ? " is-expired" : ""}`}><Clock3 size={17} /> {isExpired ? "Payment session expired" : `Payment session valid for ${formatCountdown(secondsLeft)}`}</div>
           ) : null}
-          <button className="primary-action checkout-pay-button" type="button" disabled={isLoading || !program || !selectedPlan || isPaying || isExpired} onClick={() => void startPayment()}>
-            <CreditCard size={18} /> {isPaying ? "Preparing secure checkout..." : `Pay ${expectedAmount ? formatCurrency(expectedAmount) : paymentMode === 1 ? "initial amount" : "balance"}`}
+          <button className="primary-action checkout-pay-button" type="button" disabled={isLoading || !program || !selectedPlan || isPaying || isConfirming} onClick={() => void startPayment()}>
+            <CreditCard size={18} /> {isConfirming ? "Confirming your payment..." : isPaying ? "Preparing secure checkout..." : isExpired ? "Start a new payment" : `Pay ${expectedAmount ? formatCurrency(expectedAmount) : paymentMode === 1 ? "initial amount" : "balance"}`}
           </button>
           {checkout?.provider === "Development" ? (
             <button

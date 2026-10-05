@@ -341,6 +341,13 @@ internal sealed class AssetService(
             return;
         }
 
+        // Students can open files the support team sent in their own chat.
+        if (asset.Purpose == AssetPurpose.SupportAttachment &&
+            await dbContext.SupportMessages.AnyAsync(x => x.AttachmentAssetId == asset.Id && x.StudentId == userId, cancellationToken))
+        {
+            return;
+        }
+
         if (IsStudent() && asset.LessonId.HasValue)
         {
             if (await CanStudentReadLessonAssetAsync(userId, asset.LessonId.Value, cancellationToken))
@@ -424,6 +431,11 @@ internal sealed class AssetService(
         if (purpose == AssetPurpose.LessonVideo && type != AssetType.Video)
         {
             throw Validation(nameof(type), "Lesson videos must be video assets.");
+        }
+
+        if (purpose == AssetPurpose.SupportAttachment && type is not (AssetType.Image or AssetType.Document))
+        {
+            throw Validation(nameof(type), "Support chat attachments must be images or documents.");
         }
     }
 

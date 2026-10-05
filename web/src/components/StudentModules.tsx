@@ -8,14 +8,18 @@ import {
   CreditCard,
   Crown,
   Download,
+  Eye,
   FileText,
   FolderKanban,
   Headphones,
   Laptop,
   Lightbulb,
+  Printer,
 } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { CertificateArtwork } from "./CertificateArtwork";
+import { CertificateArtwork, CertificateViewer, useCertificatePrinter } from "./CertificateArtwork";
+import type { CertificateArtworkProps } from "./CertificateArtwork";
 import type {
   CertificateResponse,
   EnrollmentResponse,
@@ -201,14 +205,18 @@ export function StudentModuleEmpty({
   );
 }
 
-function certificateDate(value?: string) {
-  return value
-    ? new Date(value).toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      })
-    : "-";
+function certificateProps(certificate: CertificateResponse): CertificateArtworkProps {
+  return {
+    type: certificate.type,
+    studentName: certificate.studentName,
+    programTitle: certificate.programTitle,
+    fromDate: certificate.fromDate,
+    toDate: certificate.toDate,
+    certificateId: certificate.certificateId,
+    qrCodeUrl: certificate.qrCodeUrl,
+    authorizedSignatory: certificate.authorizedSignatory,
+    signatureText: certificate.signatureText,
+  };
 }
 
 export function StudentCertificates({
@@ -218,45 +226,44 @@ export function StudentCertificates({
   certificates: CertificateResponse[];
   onProgram: () => void;
 }) {
+  const [viewing, setViewing] = useState<CertificateArtworkProps | null>(null);
+  const printer = useCertificatePrinter();
   if (!certificates.length)
     return <StudentModuleEmpty kind="Certificates" onProgram={onProgram} />;
-  function printCertificate() {
-    window.print();
-  }
 
   return (
-    <div className="student-certificate-grid">
-      {certificates.map((certificate) => (
-        <article className="student-certificate-card" key={certificate.id}>
-          <CertificateArtwork
-            type={certificate.type}
-            studentName={certificate.studentName}
-            programTitle={certificate.programTitle}
-            fromDate={certificateDate(certificate.fromDate)}
-            toDate={certificateDate(certificate.toDate)}
-            certificateId={certificate.certificateId}
-            qrCodeUrl={certificate.qrCodeUrl}
-            authorizedSignatory={certificate.authorizedSignatory}
-            signatureText={certificate.signatureText}
-          />
-          <div className="student-certificate-actions">
-            <button type="button" onClick={printCertificate}>
-              <Download size={15} /> Download / Print
-            </button>
-          </div>
-          {certificate.verificationUrl &&
-          /^https?:\/\//i.test(certificate.verificationUrl) ? (
-            <a
-              className="student-module-text"
-              href={certificate.verificationUrl}
-              target="_blank"
-              rel="noreferrer"
+    <div className="student-certificate-list">
+      {certificates.map((certificate) => {
+        const props = certificateProps(certificate);
+        return (
+          <article className="student-certificate-item" key={certificate.id}>
+            <button
+              type="button"
+              className="student-certificate-item__preview"
+              aria-label={`View ${certificate.type} certificate`}
+              onClick={() => setViewing(props)}
             >
-              Verify certificate <ArrowRight size={16} />
-            </a>
-          ) : null}
-        </article>
-      ))}
+              <CertificateArtwork {...props} />
+            </button>
+            <div className="student-certificate-item__footer">
+              <div>
+                <strong>{certificate.type} Certificate</strong>
+                <span>{certificate.programTitle}</span>
+              </div>
+              <div className="student-certificate-item__actions">
+                <button type="button" onClick={() => setViewing(props)}>
+                  <Eye size={15} /> View
+                </button>
+                <button type="button" onClick={() => printer.print(props)}>
+                  <Printer size={15} /> Print
+                </button>
+              </div>
+            </div>
+          </article>
+        );
+      })}
+      {viewing ? <CertificateViewer certificate={viewing} onClose={() => setViewing(null)} /> : null}
+      {printer.host}
     </div>
   );
 }
@@ -364,7 +371,7 @@ export function StudentPayments({
               <br />
               We're here to help.
             </p>
-            <Link to="/request-callback" className="student-module-outline">
+            <Link to="/dashboard?section=Support" className="student-module-outline">
               Contact Support <ArrowRight size={16} />
             </Link>
           </div>

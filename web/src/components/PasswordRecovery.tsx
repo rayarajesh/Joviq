@@ -3,12 +3,19 @@ import { authApi } from "../features/auth/api/authApi";
 import type { PasswordResetVerificationResponse } from "../features/auth/api/authTypes";
 import { formatApiError } from "../lib/api/httpClient";
 
-export function PasswordRecovery({ onBack }: { onBack: () => void }) {
-  const [email, setEmail] = useState("");
-  const [step, setStep] = useState<"send" | "verify" | "reset" | "done">("send");
+type PasswordRecoveryProps = {
+  onBack: () => void;
+  /** Email whose reset OTP was already sent; starts the flow at the OTP step. */
+  otpSentTo?: string;
+  intro?: string;
+};
+
+export function PasswordRecovery({ onBack, otpSentTo, intro }: PasswordRecoveryProps) {
+  const [email, setEmail] = useState(otpSentTo ?? "");
+  const [step, setStep] = useState<"send" | "verify" | "reset" | "done">(otpSentTo ? "verify" : "send");
   const [verification, setVerification] = useState<PasswordResetVerificationResponse | null>(null);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(intro ?? "");
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -29,7 +36,7 @@ export function PasswordRecovery({ onBack }: { onBack: () => void }) {
     finally { setBusy(false); }
   }
   return <form className="auth-form" onSubmit={submit}>
-    <h2>Reset your password</h2>
+    <h2>{otpSentTo ? "Set your password" : "Reset your password"}</h2>
     {step === "send" && <label>Account email<input type="email" autoComplete="email" required value={email} onChange={event => setEmail(event.target.value)} /></label>}
     {step === "verify" && <label>Email OTP<input name="otp" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{4,8}" required /></label>}
     {step === "reset" && <><label>New password<input name="password" type="password" minLength={8} autoComplete="new-password" required /></label><small>Use uppercase, lowercase, a number, and a symbol.</small><label>Confirm password<input name="confirmPassword" type="password" minLength={8} autoComplete="new-password" required /></label></>}

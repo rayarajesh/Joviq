@@ -22,10 +22,13 @@ curl --fail --silent --show-error --retry 30 --retry-all-errors --retry-delay 10
   --connect-timeout 10 --max-time 30 "https://$host/health/live" --output /dev/null
 
 # Run inside App Service so PostgreSQL stays private. Compare run IDs to avoid accepting an older success.
+# Read raw ARM JSON because some CLI SDK versions omit WebJob run properties.
+job_resource=$(az webapp show --resource-group "$AZURE_RESOURCE_GROUP" --name "$AZURE_API_NAME" \
+  "${slot_args[@]}" --query id --output tsv)
+jobs_url="https://management.azure.com${job_resource}/triggeredwebjobs?api-version=2024-11-01"
 job_found=false
 for _attempt in $(seq 1 30); do
-  if ! jobs=$(az webapp webjob triggered list --resource-group "$AZURE_RESOURCE_GROUP" --name "$AZURE_API_NAME" \
-    "${slot_args[@]}" --output json); then
+  if ! jobs=$(az rest --method get --url "$jobs_url" --output json); then
     echo 'WebJob discovery is temporarily unavailable; retrying.' >&2
     sleep 5
     continue
@@ -39,8 +42,7 @@ az webapp webjob triggered run --resource-group "$AZURE_RESOURCE_GROUP" --name "
   "${slot_args[@]}" --webjob-name initialize --output none
 initialized=false
 for _attempt in $(seq 1 90); do
-  if ! jobs=$(az webapp webjob triggered list --resource-group "$AZURE_RESOURCE_GROUP" --name "$AZURE_API_NAME" \
-    "${slot_args[@]}" --output json); then
+  if ! jobs=$(az rest --method get --url "$jobs_url" --output json); then
     echo 'WebJob status is temporarily unavailable; retrying.' >&2
     sleep 10
     continue
