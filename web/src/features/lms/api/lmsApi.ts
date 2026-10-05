@@ -9,6 +9,7 @@ import type {
   CreateCategoryRequest,
   CreateCouponRequest,
   CreateEnrollmentRequest,
+  AdminEnrollmentRequest,
   CreateLessonRequest,
   CreateModuleRequest,
   CreatePaymentCheckoutRequest,
@@ -366,6 +367,15 @@ export const adminLmsApi = {
 
   getEnrollments() {
     return request<EnrollmentResponse[]>("/api/v1/admin/lms/enrollments");
+  },
+
+  getEnrollmentSettings() {
+    return request<{ environment: string; paymentEnvironment: string; paymentsConfigured: boolean }>(
+      "/api/v1/admin/lms/enrollments/settings");
+  },
+
+  createEnrollment(body: AdminEnrollmentRequest) {
+    return request<EnrollmentResponse>("/api/v1/admin/lms/enrollments", { method: "POST", body });
   },
 
   updateEnrollmentStatus(

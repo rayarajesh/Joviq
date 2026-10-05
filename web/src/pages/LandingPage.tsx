@@ -3,8 +3,8 @@ import { StudentSuccessSection } from "../components/StudentSuccessSection";
 import { AlumniSection } from "../components/AlumniSection";
 import { KeyStatisticsSection, ProgramCategoriesSection, RecognitionsSection, HiringPartnersSection, TechnologySection } from "../components/HomeSections";
 import { JourneySection } from "../components/JourneySection";
-import { CertificateSection } from "../components/CertificateSection";
 import { ExpertsSection } from "../components/ExpertsSection";
+import { CertificateSection } from "../components/CertificateSection";
 import { HomeHero } from "../components/HomeHero";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, FormEvent, MouseEvent, ReactNode } from "react";
@@ -58,7 +58,7 @@ import {
 import { getProgramImage } from "../data/programVisuals";
 import { authApi } from "../features/auth/api/authApi";
 import { useAuth } from "../features/auth/context/useAuth";
-import { formatApiError } from "../lib/api/httpClient";
+import { ApiError, formatApiError } from "../lib/api/httpClient";
 import { toIndiaMobileNumber } from "../lib/validation/indiaMobile";
 
 const policyVersion = "2026-08-20";
@@ -193,6 +193,8 @@ export function LandingPage() {
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(authModeFromHash(location.hash) !== null);
   const [isCallbackDialogOpen, setIsCallbackDialogOpen] = useState(false);
   const reviewsRef = useRef<HTMLDivElement>(null);
+  // Kept only in memory so the student is signed in right after verifying their email.
+  const pendingPasswordRef = useRef("");
   function scrollReviews(direction: number) {
     const el = reviewsRef.current;
     if (!el) return;
@@ -414,11 +416,12 @@ export function LandingPage() {
 
     const form = new FormData(event.currentTarget);
     const email = String(form.get("email") ?? "").trim().toLowerCase();
+    const password = String(form.get("password") ?? "");
 
     try {
       const response = await authApi.login({
         email,
-        password: String(form.get("password") ?? ""),
+        password,
         rememberMe: form.get("rememberMe") === "on",
         deviceName: "Joviq Web"
       });
@@ -426,6 +429,24 @@ export function LandingPage() {
       auth.applyAuthResponse(response.data);
       navigate("/dashboard");
     } catch (error) {
+      const errorCode = error instanceof ApiError ? error.problem?.errorCode : undefined;
+      if (errorCode === "password_not_set") {
+        // Accounts created during enrollment checkout set their password through the reset OTP.
+        try {
+          await authApi.forgotPassword(email);
+          setPendingResetEmail(email);
+          setMode("reset-password");
+          setMessage({ tone: "success", text: `Your account was created during enrollment. Enter the OTP sent to ${email} and choose a password.` });
+        } catch (sendError) {
+          setMessage({ tone: "error", text: formatApiError(sendError) });
+        }
+        return;
+      }
+      if (errorCode === "email_not_verified") {
+        setPendingEmail(email);
+        pendingPasswordRef.current = password;
+        setMode("verify-email");
+      }
       setMessage({ tone: "error", text: formatApiError(error) });
     } finally {
       setIsSubmitting(false);
@@ -477,7 +498,7 @@ export function LandingPage() {
     }
 
     try {
-      await authApi.register({
+      const response = await authApi.register({
         fullName: String(form.get("fullName") ?? ""),
         email,
         phoneNumber: toIndiaMobileNumber(form.get("phoneNumber")),
@@ -489,8 +510,11 @@ export function LandingPage() {
       });
 
       setPendingEmail(email);
+      pendingPasswordRef.current = password;
       setMode("verify-email");
-      setMessage({ tone: "success", text: `OTP sent to ${email}. Verify it to activate your account.` });
+      setMessage(response.data.verificationEmailSent === false
+        ? { tone: "error", text: "Your account was created, but the OTP email could not be delivered. Use resend OTP to try again." }
+        : { tone: "success", text: `OTP sent to ${email}. Verify it to activate your account.` });
     } catch (error) {
       setMessage({ tone: "error", text: formatApiError(error) });
     } finally {
@@ -580,6 +604,14 @@ export function LandingPage() {
 
     try {
       await authApi.verifyEmail(pendingEmail, String(form.get("otp") ?? ""));
+      const password = pendingPasswordRef.current;
+      pendingPasswordRef.current = "";
+      if (password) {
+        const response = await authApi.login({ email: pendingEmail, password, rememberMe, deviceName: "Joviq Web" });
+        auth.applyAuthResponse(response.data);
+        navigate("/dashboard");
+        return;
+      }
       setMode("login");
       setMessage({ tone: "success", text: "Email verified successfully. You can login now." });
     } catch (error) {
@@ -627,8 +659,6 @@ export function LandingPage() {
       <StudentSuccessSection />
 
       <CertificateSection />
-
-
 
       <section id="pricing" className="site-section apt-section apt-centered">
         <span className="apt-pill">

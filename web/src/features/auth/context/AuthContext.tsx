@@ -116,13 +116,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     let mounted = true;
 
-    if (window.location.pathname === "/login") {
-      setIsBooting(false);
-      return () => {
-        mounted = false;
-      };
-    }
-
     refresh()
       .catch(() => {
         if (mounted) {

@@ -14,7 +14,8 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.OpenApi;
 
 var initializeDatabase = args.Contains("--initialize", StringComparer.Ordinal);
-var builder = WebApplication.CreateBuilder(args.Where(arg => arg != "--initialize").ToArray());
+var seedTestAccounts = args.Contains("--seed-test-accounts", StringComparer.Ordinal);
+var builder = WebApplication.CreateBuilder(args.Where(arg => arg is not ("--initialize" or "--seed-test-accounts")).ToArray());
 DeploymentConfiguration.Validate(builder.Configuration, builder.Environment);
 var runtimeConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")!;
 if (initializeDatabase)
@@ -179,6 +180,12 @@ builder.Services.AddRateLimiter(options =>
 
 var app = builder.Build();
 
+if (seedTestAccounts)
+{
+    await TestAccountSeeder.SeedAsync(app.Services);
+    return;
+}
+
 if (initializeDatabase)
 {
     await DatabaseInitializer.InitializeAsync(app.Services, runtimeConnectionString);
@@ -189,6 +196,7 @@ if (app.Environment.IsDevelopment())
 {
     await RoleSeeder.SeedRolesAsync(app.Services);
     await LmsSeedData.SeedAsync(app.Services);
+    await TestAccountSeeder.SeedAsync(app.Services);
 }
 
 if (builder.Configuration.GetValue<bool>("Hosting:AzureAppService")) app.UseForwardedHeaders();

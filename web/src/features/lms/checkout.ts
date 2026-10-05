@@ -1,5 +1,9 @@
 export const pendingEnrollmentStorageKey = "joviq-pending-enrollment";
 
+export function resolveCheckoutEmail(applicantEmail: string, accountEmail?: string) {
+  return (accountEmail?.trim() || applicantEmail.trim()).toLowerCase();
+}
+
 export function checkoutEmailsMatch(applicantEmail: string, accountEmail: string) {
   const normalized = applicantEmail.trim().toLowerCase();
   return normalized.length > 0 && normalized === accountEmail.trim().toLowerCase();

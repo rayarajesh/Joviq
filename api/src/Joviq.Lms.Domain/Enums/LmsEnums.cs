@@ -106,7 +106,8 @@ public enum AssetPurpose
     LessonResource = 4,
     ProjectReference = 5,
     ProjectSubmission = 6,
-    UserProfile = 8
+    UserProfile = 8,
+    SupportAttachment = 9
 }
 
 public enum AssetVisibility

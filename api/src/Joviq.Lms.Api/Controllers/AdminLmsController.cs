@@ -282,6 +282,26 @@ public sealed class AdminLmsController(
         return Ok(ApiResponse<IReadOnlyList<EnrollmentResponse>>.Ok(result, "Enrollments loaded.", CorrelationId));
     }
 
+    [HttpGet("enrollments/settings")]
+    public ActionResult GetEnrollmentSettings(
+        [FromServices] Microsoft.Extensions.Options.IOptions<Joviq.Lms.Application.Common.Options.PaymentOptions> options,
+        [FromServices] IHostEnvironment environment)
+        => Ok(ApiResponse<object>.Ok(new
+        {
+            Environment = environment.EnvironmentName,
+            PaymentEnvironment = options.Value.CashfreeEnvironment,
+            PaymentsConfigured = options.Value.Provider.Equals("Cashfree", StringComparison.OrdinalIgnoreCase) &&
+                !string.IsNullOrWhiteSpace(options.Value.KeyId) && !string.IsNullOrWhiteSpace(options.Value.KeySecret)
+        }, "Enrollment settings loaded.", CorrelationId));
+
+    [HttpPost("enrollments")]
+    public async Task<ActionResult<ApiResponse<EnrollmentResponse>>> CreateEnrollment(
+        AdminEnrollmentRequest request, CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.CreateAdminEnrollmentAsync(request, cancellationToken);
+        return Ok(ApiResponse<EnrollmentResponse>.Ok(result, "Enrollment saved.", CorrelationId));
+    }
+
     [HttpPatch("enrollments/{enrollmentId:guid}/status")]
     public async Task<ActionResult<ApiResponse<EnrollmentResponse>>> UpdateEnrollmentStatus(
         Guid enrollmentId,

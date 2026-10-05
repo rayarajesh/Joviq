@@ -1,8 +1,11 @@
 import "../styles/admin-modules.css";
 import { AcademyOverview } from "../components/AcademyOverview";
 import { AdminCallbackRequests } from "../components/AdminCallbackRequests";
-import { CertificateArtwork } from "../components/CertificateArtwork";
+import { AdminEnrollmentDialog } from "../components/AdminEnrollmentDialog";
+import { CertificateArtwork, CertificateViewer } from "../components/CertificateArtwork";
+import type { CertificateArtworkProps } from "../components/CertificateArtwork";
 import { StudentOverview } from "../components/StudentOverview";
+import { AdminSupportInbox, StudentSupportChat, useSupportUnread } from "../components/SupportChat";
 import {
   StudentModuleHeader,
   StudentModuleEmpty,
@@ -69,6 +72,7 @@ import {
   ListChecks,
   UsersRound,
   PhoneCall,
+  MessageCircle,
 } from "lucide-react";
 import { IndiaMobileInput } from "../components/IndiaMobileInput";
 import { CurriculumAdminPanel } from "../components/CurriculumAdminPanel";
@@ -201,6 +205,7 @@ const dashboardNavItems: Record<PrimaryRole, string[]> = {
     "Certificates",
     "Students",
     "Enrollments",
+    "Support Chat",
     "Callback Requests",
     "Payments",
     "Coupons",
@@ -213,6 +218,7 @@ const dashboardNavItems: Record<PrimaryRole, string[]> = {
     "Projects",
     "Payments",
     "Certificates",
+    "Support",
   ],
 };
 
@@ -228,7 +234,7 @@ const adminNavGroups: DashboardNavGroup[] = [
   },
   { label: "People", items: ["Students", "Enrollments"] },
   { label: "Billing", items: ["Payments", "Coupons"] },
-  { label: "Inquiries", items: ["Callback Requests"] },
+  { label: "Inquiries", items: ["Support Chat", "Callback Requests"] },
   { label: "System", items: ["Audit Logs"] },
 ];
 
@@ -245,6 +251,8 @@ const moduleIconMap: Record<string, ComponentType<{ size?: number }>> = {
   Coupons: BadgePercent,
   Certificates: Award,
   "Callback Requests": PhoneCall,
+  "Support Chat": MessageCircle,
+  Support: MessageCircle,
   Notifications: Bell,
   Profile: UserRoundCheck,
   "Audit Logs": ShieldCheck,
@@ -274,10 +282,20 @@ export function DashboardPage({
     ? normalizedRequestedModule
     : "Overview";
   const [activeModule, setActiveModule] = useState(initialModule);
+  const [paymentNotice, setPaymentNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
     setActiveModule(initialModule);
   }, [initialModule, primaryRole]);
+
+  // Checkout lands here with ?payment=success once the payment is verified.
+  useEffect(() => {
+    if (searchParams.get("payment") !== "success") return;
+    setPaymentNotice({ tone: "success", text: "Payment received and verified. Your course access is updated." });
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.delete("payment");
+    setSearchParams(nextSearchParams, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   function selectModule(module: string) {
     setActiveModule(module);
@@ -299,7 +317,7 @@ export function DashboardPage({
   const hideDashboardHeader =
     usesAdminModuleHero ||
     (primaryRole === "Admin" &&
-      ["Overview", "Enrollments", "Payments", "Callback Requests"].includes(activeModule)) ||
+      ["Overview", "Enrollments", "Payments", "Callback Requests", "Support Chat"].includes(activeModule)) ||
     (primaryRole === "Student" &&
       [
         "My Program",
@@ -307,6 +325,7 @@ export function DashboardPage({
         "Projects",
         "Certificates",
         "Payments",
+        "Support",
       ].includes(activeModule));
 
   return (
@@ -319,6 +338,7 @@ export function DashboardPage({
         role={primaryRole}
       />
       <section className="dashboard-main">
+        <ToastMessage message={paymentNotice} onDismiss={() => setPaymentNotice(null)} />
         {!hideDashboardHeader ? (
           <header className="dashboard-header">
             <div>
@@ -361,6 +381,7 @@ export function DashboardSidebar({
   role: PrimaryRole;
 }) {
   const navGroups = role === "Student" ? studentNavGroups : adminNavGroups;
+  const supportUnread = useSupportUnread(role);
   return (
     <aside
       className={`dashboard-sidebar dashboard-sidebar--${role.toLowerCase()}`}
@@ -389,6 +410,9 @@ export function DashboardSidebar({
                 >
                   <Icon size={17} />
                   <span>{label}</span>
+                  {item === "Support Chat" && supportUnread > 0 ? (
+                    <span className="support-unread-badge" aria-label={`${supportUnread} unread`}>{supportUnread}</span>
+                  ) : null}
                 </button>
               );
             })}
@@ -397,10 +421,18 @@ export function DashboardSidebar({
       </nav>
       {role === "Student" && (
         <>
-          <Link className="student-sidebar-support" to="/request-callback">
-            <UserRoundCheck size={17} />
+          <button
+            aria-current={activeModule === "Support" ? "page" : undefined}
+            className={`student-sidebar-support ${activeModule === "Support" ? "is-active" : ""}`}
+            type="button"
+            onClick={() => onModuleChange("Support")}
+          >
+            <MessageCircle size={17} />
             Help &amp; Support
-          </Link>
+            {supportUnread > 0 ? (
+              <span className="support-unread-badge" aria-label={`${supportUnread} unread`}>{supportUnread}</span>
+            ) : null}
+          </button>
           <div className="student-sidebar-promo">
             <GraduationCap size={46} />
             <strong>
@@ -754,7 +786,9 @@ function AdminDashboard({
         <AdminCallbackRequests onMessage={handleCallbackMessage} />
       ) : null}
 
-      {!showOverview && !showPeopleModule && activeModule !== "Callback Requests" ? (
+      {activeModule === "Support Chat" ? <AdminSupportInbox /> : null}
+
+      {!showOverview && !showPeopleModule && activeModule !== "Callback Requests" && activeModule !== "Support Chat" ? (
         <AdminLmsPanel
           activeModule={activeModule}
           adminCertificates={adminCertificates}
@@ -1001,6 +1035,7 @@ function AdminLmsPanel({
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [isCreatingProgram, setIsCreatingProgram] = useState(false);
+  const [enrollmentDialog, setEnrollmentDialog] = useState<EnrollmentResponse | "new" | null>(null);
   const [isPlanEditorLoading, setIsPlanEditorLoading] = useState(false);
   const [planEditorProgram, setPlanEditorProgram] =
     useState<ProgramDetailsResponse | null>(null);
@@ -1023,6 +1058,8 @@ function AdminLmsPanel({
   );
   const [programThumbnailPreviewUrl, setProgramThumbnailPreviewUrl] =
     useState("");
+  const [viewingCertificate, setViewingCertificate] =
+    useState<CertificateArtworkProps | null>(null);
   const [certificateDraft, setCertificateDraft] =
     useState<IssueCertificateRequest>(() => ({
       studentId: "",
@@ -1084,7 +1121,7 @@ function AdminLmsPanel({
     null,
   );
   const [workflowInfo, setWorkflowInfo] = useState<
-    "enrollment" | "payment" | null
+    "payment" | null
   >(null);
   const [paymentPeriod, setPaymentPeriod] = useState("all");
   const [enrollmentSearch, setEnrollmentSearch] = useState("");
@@ -2409,6 +2446,15 @@ function AdminLmsPanel({
         </div>
       ) : null}
 
+      {enrollmentDialog && <AdminEnrollmentDialog
+        students={students} programs={programs}
+        enrollment={enrollmentDialog === "new" ? undefined : enrollmentDialog}
+        onClose={() => setEnrollmentDialog(null)}
+        onSaved={async enrollment => {
+          onMessage({ tone: "success", text: `Enrollment saved. Paid ${formatCurrency(enrollment.paidAmount)}; balance ${formatCurrency(enrollment.balanceAmount)}.` });
+          await onRefresh();
+        }}
+      />}
       {workflowInfo && (
         <div className="admin-workflow-backdrop">
           <dialog
@@ -2427,14 +2473,10 @@ function AdminLmsPanel({
               <X size={20} />
             </button>
             <h2 id="workflow-title">
-              {workflowInfo === "enrollment"
-                ? "Add an enrollment"
-                : "Payment settings"}
+              Payment settings
             </h2>
             <p>
-              {workflowInfo === "enrollment"
-                ? "Students enroll by choosing a program and completing checkout from their student account. Admins can review and manage the enrollment here afterward. Direct admin enrollment creation is not available in the current backend."
-                : "Payments are configured on the server. This workspace supports reviewing transactions, verifying pending payments, marking failed payments, and viewing receipts. Payment gateway settings are not editable from this account."}
+              Payments are configured on the server. This workspace supports reviewing transactions, verifying pending payments, marking failed payments, and viewing receipts. Payment gateway settings are not editable from this account.
             </p>
             <button
               className="primary-action"
@@ -4249,7 +4291,7 @@ function AdminLmsPanel({
               </div>
               <button
                 className="primary-action"
-                onClick={() => setWorkflowInfo("enrollment")}
+                onClick={() => setEnrollmentDialog("new")}
               >
                 <Plus size={18} />
                 Add Enrollment
@@ -4414,7 +4456,7 @@ function AdminLmsPanel({
                     </p>
                     <button
                       className="primary-action"
-                      onClick={() => setWorkflowInfo("enrollment")}
+                      onClick={() => setEnrollmentDialog("new")}
                     >
                       <Plus size={18} />
                       Add Enrollment
@@ -4478,6 +4520,11 @@ function AdminLmsPanel({
                           </span>
                         </div>
                         <div className="enrollment-admin-card__actions">
+                          {enrollment.balanceAmount > 0 && enrollment.status !== "Cancelled" && !enrollment.isAccessExpired && (
+                            <button className="enrollment-admin-button" type="button" onClick={() => setEnrollmentDialog(enrollment)}>
+                              <CreditCard size={16} /> Record payment
+                            </button>
+                          )}
                           {enrollment.status !== "Active" ? (
                             <button
                               className="enrollment-admin-button enrollment-admin-button--primary"
@@ -5286,6 +5333,24 @@ function AdminLmsPanel({
                   </div>
                   <div className="lms-row-actions">
                     <small>{certificate.status}</small>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setViewingCertificate({
+                          type: certificate.type,
+                          studentName: certificate.studentName,
+                          programTitle: certificate.programTitle,
+                          fromDate: certificate.fromDate,
+                          toDate: certificate.toDate,
+                          certificateId: certificate.certificateId,
+                          qrCodeUrl: certificate.qrCodeUrl,
+                          authorizedSignatory: certificate.authorizedSignatory,
+                          signatureText: certificate.signatureText,
+                        })
+                      }
+                    >
+                      View
+                    </button>
                     {certificate.status !== "Revoked" ? (
                       <button
                         type="button"
@@ -5298,6 +5363,12 @@ function AdminLmsPanel({
                 </article>
               ))}
             </div>
+            {viewingCertificate ? (
+              <CertificateViewer
+                certificate={viewingCertificate}
+                onClose={() => setViewingCertificate(null)}
+              />
+            ) : null}
           </section>
         ) : null}
 
@@ -6562,6 +6633,8 @@ function StudentDashboard({
   const showOverview = activeModule === "Overview";
   const showStudentModule = (...modules: string[]) =>
     activeModule === "Overview" || modules.includes(activeModule);
+
+  if (activeModule === "Support") return <StudentSupportChat preview={preview} />;
 
   if (showOverview)
     return (

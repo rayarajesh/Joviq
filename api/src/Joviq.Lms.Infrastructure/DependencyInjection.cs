@@ -8,6 +8,7 @@ using Joviq.Lms.Application.Common.Options;
 using Joviq.Lms.Application.Common.Security;
 using Joviq.Lms.Application.Lms;
 using Joviq.Lms.Application.Students;
+using Joviq.Lms.Application.Support;
 using Joviq.Lms.Application.Users;
 using Joviq.Lms.Infrastructure.Authentication;
 using Joviq.Lms.Infrastructure.Identity;
@@ -199,6 +200,7 @@ public static class DependencyInjection
         services.AddScoped<IAssetService, AssetService>();
         services.AddScoped<IAdminUserService, AdminUserService>();
         services.AddScoped<ILmsPortalService, LmsPortalService>();
+        services.AddScoped<ISupportChatService, SupportChatService>();
         
         // Register HTTP client for payment gateway
         services.AddHttpClient<RazorpayPaymentGateway>(client =>

@@ -99,6 +99,31 @@ Omit unused integrations and configure sandbox keys in dev. Set the Google autho
 
 The script also persists nonsecret settings/Key Vault references in `AZURE_INTEGRATION_SETTINGS` so infrastructure reapplication and local bootstrap preserve them.
 
+### Production Cashfree
+
+Keep `Payments:KeyId` and `Payments:KeySecret` empty in tracked `appsettings.json`.
+Local defaults use sandbox mode. Production App Service uses these settings:
+
+- `Payments__KeyId`: Key Vault reference to `cashfree-app-id`.
+- `Payments__KeySecret`: Key Vault reference to `cashfree-secret-key`.
+- `Payments__CashfreeEnvironment`: `production`.
+- `Payments__PublicBaseUrl`: `https://joviq-production-att374savogto-api.azurewebsites.net`.
+- `Payments__FrontendBaseUrl`: `https://joviqtechnologies.com`.
+
+The production vault is `kv-joviq-production-att3`. Register the Cashfree webhook
+at `<Payments__PublicBaseUrl>/api/v1/payments/webhooks/cashfree`; the checkout return goes
+to `<Payments__FrontendBaseUrl>/checkout`.
+
+Moving an exposed key to Key Vault does not revoke it. Issue replacement credentials
+in the Cashfree dashboard, save new versions of the two vault secrets, refresh App
+Service's Key Vault references, verify authentication, and revoke the exposed key.
+Do not paste replacement credentials into source control or chat.
+
+Normal API deployment runs the `initialize` WebJob and waits for its new successful
+run. This applies `AddSupportChat` and `AddPaymentSessionAndRefundFlag`; the latter
+adds `GatewaySessionId` and `RefundRequired` and updates the enrollment/status index.
+Never accept an older successful run as evidence that the new migrations applied.
+
 ## Domains, Storage, and Launch Checks
 
 The owned production frontend domain is `joviqtechnologies.com`, with `www.joviqtechnologies.com` as an additional origin. GoDaddy DNS uses Azure's stable inbound IP `20.239.34.78` for `A @`, an Azure ownership-verification TXT at `@`, and a `www` CNAME to `icy-dune-05c1e1d00.4.azurestaticapps.net`. All three records were saved on October 1, 2026. Both hostnames are registered in Azure; domain validation/TLS must complete before either hostname is considered live. Preserve the Google MX, SPF, DKIM, verification and DMARC records.

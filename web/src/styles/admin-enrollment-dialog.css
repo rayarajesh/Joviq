@@ -1,0 +1,35 @@
+.offline-enrollment-dialog {
+  width: min(680px, calc(100vw - 32px));
+  max-height: calc(100dvh - 40px);
+  overflow: auto;
+  border: 1px solid #d9dde4;
+  border-radius: 8px;
+  padding: 24px;
+  color: #242833;
+  background: #fff;
+}
+.offline-enrollment-dialog::backdrop { background: rgb(20 24 32 / 50%); }
+.offline-enrollment-dialog header, .offline-enrollment-dialog footer,
+.offline-enrollment-environment { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.offline-enrollment-dialog h2 { font-size: 22px; margin: 0; }
+.offline-enrollment-dialog form { display: grid; gap: 18px; margin-top: 16px; }
+.offline-enrollment-dialog fieldset { border: 0; border-top: 1px solid #e1e4e9; margin: 0; padding: 14px 0 0; min-width: 0; }
+.offline-enrollment-dialog legend { font-weight: 600; padding-right: 10px; }
+.offline-enrollment-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.offline-enrollment-dialog label { display: grid; gap: 6px; font-size: 14px; margin-bottom: 10px; min-width: 0; }
+.offline-enrollment-dialog input:not([type="checkbox"]):not([type="radio"]),
+.offline-enrollment-dialog select, .offline-enrollment-dialog textarea { width: 100%; min-width: 0; box-sizing: border-box; border: 1px solid #c9ced8; border-radius: 4px; padding: 10px; font: inherit; background: #fff; color: inherit; }
+.offline-enrollment-dialog .offline-enrollment-checkbox,
+.offline-enrollment-modes label { display: flex; align-items: center; gap: 8px; }
+.offline-enrollment-modes { display: flex; gap: 20px; flex-wrap: wrap; }
+.offline-enrollment-environment { font-size: 13px; color: #4b5563; }
+.offline-enrollment-environment strong { color: #16734a; }
+.offline-enrollment-student { font-size: 13px; color: #596273; overflow-wrap: anywhere; }
+.offline-enrollment-amount { display: grid; align-content: center; gap: 6px; font-size: 14px; }
+.offline-enrollment-error { color: #aa2533; margin: 0; overflow-wrap: anywhere; }
+.offline-enrollment-dialog footer { justify-content: flex-end; }
+.offline-enrollment-dialog button { white-space: normal; }
+@media (max-width: 540px) {
+  .offline-enrollment-dialog { padding: 16px; }
+  .offline-enrollment-fields { grid-template-columns: minmax(0, 1fr); }
+}

@@ -563,6 +563,23 @@ public sealed class UpdateEnrollmentStatusRequest
     public string? LockedReason { get; init; }
 }
 
+public sealed class AdminEnrollmentRequest
+{
+    public Guid? EnrollmentId { get; init; }
+    public Guid? StudentId { get; init; }
+    public Joviq.Lms.Application.Users.CreateAdminUserRequest? NewStudent { get; init; }
+    public Guid ProgramId { get; init; }
+    public Guid ProgramPlanId { get; init; }
+    public DateOnly? StartDate { get; init; }
+    public string PaymentEnvironment { get; init; } = string.Empty;
+    public string? PaymentKind { get; init; }
+    public decimal? AmountPaid { get; init; }
+    public string? CashfreeOrderId { get; init; }
+    public string? CashfreePaymentId { get; init; }
+    public string? CashfreeLinkId { get; init; }
+    public string? Notes { get; init; }
+}
+
 public sealed class CreatePaymentCheckoutRequest
 {
     public Guid ProgramId { get; init; }

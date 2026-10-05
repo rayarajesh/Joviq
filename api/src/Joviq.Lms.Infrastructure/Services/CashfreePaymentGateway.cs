@@ -52,6 +52,15 @@ public sealed class CashfreePaymentGateway(
             var frontendBase = string.IsNullOrWhiteSpace(options.FrontendBaseUrl)
                 ? options.PublicBaseUrl
                 : options.FrontendBaseUrl;
+            if (string.Equals(options.CashfreeEnvironment, "production", StringComparison.OrdinalIgnoreCase) &&
+                (IsLocalUrl(options.PublicBaseUrl) || IsLocalUrl(frontendBase)))
+            {
+                // Cashfree cannot reach localhost: webhooks never arrive and students are not returned to the site.
+                logger.LogWarning(
+                    "Cashfree production order uses local URLs (PublicBaseUrl {PublicBaseUrl}, FrontendBaseUrl {FrontendBaseUrl}). Set Payments__PublicBaseUrl and Payments__FrontendBaseUrl to the public HTTPS addresses.",
+                    options.PublicBaseUrl,
+                    frontendBase);
+            }
             body["order_meta"] = new
             {
                 return_url = $"{frontendBase.TrimEnd('/')}/checkout?cashfree=return&order_id={orderId}",
@@ -141,6 +150,36 @@ public sealed class CashfreePaymentGateway(
         return new PaymentGatewayVerification(!string.IsNullOrWhiteSpace(resolvedPaymentId), resolvedPaymentId);
     }
 
+    public async Task<ExternalPaymentVerification?> VerifyExternalPaymentAsync(
+        string orderId, string? paymentId, string? linkId, CancellationToken cancellationToken)
+    {
+        var verification = await VerifyPaymentAsync(orderId, paymentId, null, cancellationToken);
+        if (!verification.IsValid || string.IsNullOrWhiteSpace(verification.PaymentId)) return null;
+
+        if (!string.IsNullOrWhiteSpace(linkId))
+        {
+            using var linkRequest = CreateAuthorizedRequest(HttpMethod.Get, $"links/{Uri.EscapeDataString(linkId)}/orders");
+            using var linkResponse = await httpClient.SendAsync(linkRequest, cancellationToken);
+            if (!linkResponse.IsSuccessStatusCode) return null;
+            using var links = JsonDocument.Parse(await linkResponse.Content.ReadAsStringAsync(cancellationToken));
+            if (links.RootElement.ValueKind != JsonValueKind.Array ||
+                !links.RootElement.EnumerateArray().Any(order =>
+                    order.TryGetProperty("order_id", out var id) && id.GetString() == orderId)) return null;
+        }
+
+        using var request = CreateAuthorizedRequest(HttpMethod.Get, $"orders/{Uri.EscapeDataString(orderId)}");
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode) return null;
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        var root = document.RootElement;
+        if (!root.TryGetProperty("order_amount", out var amount) || !amount.TryGetDecimal(out var paid) || paid <= 0 ||
+            !root.TryGetProperty("order_currency", out var currency) ||
+            !root.TryGetProperty("customer_details", out var customer)) return null;
+        return new ExternalPaymentVerification(verification.PaymentId, paid, currency.GetString() ?? string.Empty,
+            customer.TryGetProperty("customer_email", out var email) ? email.GetString() : null,
+            customer.TryGetProperty("customer_phone", out var phone) ? phone.GetString() : null);
+    }
+
     public bool VerifyWebhookSignature(string payload, string signature, string? timestamp = null)
     {
         var secret = string.IsNullOrWhiteSpace(options.WebhookSecret) ? options.KeySecret : options.WebhookSecret;
@@ -203,6 +242,9 @@ public sealed class CashfreePaymentGateway(
             throw new AppException("Online payments are not configured yet. Add the Cashfree client ID and client secret in the API environment.", 503, "payment_gateway_not_configured");
         }
     }
+
+    private static bool IsLocalUrl(string url) =>
+        Uri.TryCreate(url, UriKind.Absolute, out var uri) && (uri.IsLoopback || uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase));
 
     private static string NormalizePhone(string? phone)
     {

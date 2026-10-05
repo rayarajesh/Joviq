@@ -13,6 +13,8 @@ using Joviq.Lms.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using Joviq.Lms.Application.Users;
+using Joviq.Lms.Application.Common.Security;
 
 namespace Joviq.Lms.Infrastructure.Services;
 
@@ -23,7 +25,8 @@ public sealed class LmsPortalService(
     ICurrentUserService currentUser,
     IPaymentGateway paymentGateway,
     IOptions<PaymentOptions> paymentOptions,
-    IConfiguration configuration) : ILmsPortalService
+    IConfiguration configuration,
+    IAdminUserService adminUserService) : ILmsPortalService
 {
     private const string DefaultThumbnailUrl = "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=82";
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
@@ -458,9 +461,14 @@ public sealed class LmsPortalService(
 
         if (existing is not null)
         {
+            var changed = SwitchUnpaidPlan(existing, program, request.ProgramPlanId);
             if (requestedStartDate.HasValue && existing.PaidAmount <= 0 && existing.StartDate != requestedStartDate)
             {
                 existing.StartDate = requestedStartDate;
+                changed = true;
+            }
+            if (changed)
+            {
                 await dbContext.SaveChangesAsync(cancellationToken);
             }
             return MapEnrollment(existing);
@@ -510,6 +518,25 @@ public sealed class LmsPortalService(
         {
             enrollment = await CreateEnrollmentEntityAsync(studentId, request.ProgramId, request.ProgramPlanId, cancellationToken);
         }
+        else
+        {
+            if (enrollment.Program is not null && request.ProgramPlanId.HasValue && enrollment.PaidAmount <= 0)
+            {
+                await dbContext.Entry(enrollment.Program).Collection(x => x.Plans).LoadAsync(cancellationToken);
+                SwitchUnpaidPlan(enrollment, enrollment.Program, request.ProgramPlanId);
+            }
+
+            // An earlier attempt may have been paid (UPI app, closed pop-up, other tab). Credit it
+            // instead of charging the student a second time.
+            if (await ReconcileEarlierAttemptsAsync(enrollment, cancellationToken))
+            {
+                await dbContext.SaveChangesAsync(cancellationToken);
+                throw new AppException(
+                    "We have already received your earlier payment, so nothing was charged again. Your dashboard is updated.",
+                    409,
+                    "payment_already_received");
+            }
+        }
 
         var plan = enrollment.ProgramPlan;
         if (plan is null && request.ProgramPlanId.HasValue)
@@ -547,6 +574,24 @@ public sealed class LmsPortalService(
         }
 
         var amount = couponEvaluation?.PayableAmount ?? originalAmount;
+
+        // Retrying (double click, reload, second tab) reopens the same gateway order, so it can only be paid once.
+        var openCheckout = await FindReusableCheckoutAsync(enrollment.Id, request.Mode, amount, coupon?.Code, cancellationToken);
+        if (openCheckout is not null)
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return new PaymentCheckoutResponse(
+                MapPayment(openCheckout),
+                openCheckout.Gateway,
+                Payments.KeyId,
+                openCheckout.GatewayOrderId,
+                checked((long)Math.Round(openCheckout.Amount * 100m, MidpointRounding.AwayFromZero)),
+                openCheckout.Currency,
+                openCheckout.CheckoutExpiresAt!.Value,
+                openCheckout.GatewaySessionId,
+                Payments.CashfreeEnvironment);
+        }
+
         var checkoutExpiresAt = clock.UtcNow.AddMinutes(Math.Clamp(Payments.CheckoutExpiryMinutes, 15, 30));
         var transaction = new PaymentTransaction
         {
@@ -619,6 +664,7 @@ public sealed class LmsPortalService(
                 cancellationToken);
             transaction.Gateway = gatewayOrder.Provider;
             transaction.GatewayOrderId = gatewayOrder.OrderId;
+            transaction.GatewaySessionId = gatewayOrder.PaymentSessionId;
             transaction.CheckoutExpiresAt = gatewayOrder.ExpiresAt;
             await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -732,20 +778,8 @@ public sealed class LmsPortalService(
             throw new AppException("The payment order does not match this checkout.", 400, "payment_order_mismatch");
         }
 
-        if (transaction.CheckoutExpiresAt.HasValue && transaction.CheckoutExpiresAt <= clock.UtcNow)
-        {
-            transaction.Status = PaymentStatus.Failed;
-            transaction.FailureReason = "Checkout expired.";
-            var expiredRedemption = await dbContext.CouponRedemptions
-                .FirstOrDefaultAsync(x => x.PaymentTransactionId == transaction.Id && x.Status == CouponRedemptionStatus.Reserved, cancellationToken);
-            if (expiredRedemption is not null)
-            {
-                expiredRedemption.Status = CouponRedemptionStatus.Released;
-            }
-            await dbContext.SaveChangesAsync(cancellationToken);
-            throw new AppException("This payment session expired. Start a new payment attempt.", 400, "payment_expired");
-        }
-
+        // Ask the gateway first: money captured inside the checkout window must be credited even
+        // when the confirmation reaches us later (slow UPI, bank redirects, closed tabs).
         var paymentVerification = isFreePayment
             ? new PaymentGatewayVerification(true, $"free_{transaction.Id:N}")
             : await paymentGateway.VerifyPaymentAsync(
@@ -755,7 +789,21 @@ public sealed class LmsPortalService(
                 cancellationToken);
         if (!paymentVerification.IsValid)
         {
-            throw new AppException("Payment verification failed. No access was granted.", 400, "payment_signature_invalid");
+            if (transaction.CheckoutExpiresAt.HasValue && transaction.CheckoutExpiresAt <= clock.UtcNow)
+            {
+                await FailTransactionAsync(transaction, "Checkout expired before the payment was completed.", cancellationToken);
+                throw new AppException("This payment session expired before the payment was completed. Start a new payment attempt.", 400, "payment_expired");
+            }
+
+            if (transaction.Status == PaymentStatus.Failed)
+            {
+                throw new AppException("This payment was not completed. You can start a new payment attempt.", 400, "payment_not_completed");
+            }
+
+            throw new AppException(
+                "We are waiting for your bank to confirm this payment. This usually takes a few seconds.",
+                409,
+                "payment_pending");
         }
 
         var paymentId = RequiredText(
@@ -771,35 +819,7 @@ public sealed class LmsPortalService(
             throw new AppException("This gateway payment was already processed.", 409, "payment_already_processed");
         }
 
-        transaction.Status = PaymentStatus.Verified;
-        transaction.GatewayPaymentId = paymentId;
-        transaction.VerifiedAt = clock.UtcNow;
-        var redemption = await dbContext.CouponRedemptions
-            .FirstOrDefaultAsync(x => x.PaymentTransactionId == transaction.Id, cancellationToken);
-        if (redemption is not null)
-        {
-            if (redemption.Status == CouponRedemptionStatus.Released || redemption.ExpiresAt <= clock.UtcNow)
-            {
-                throw new AppException("This coupon reservation expired. Start a new payment attempt.", 400, "coupon_reservation_expired");
-            }
-
-            redemption.Status = CouponRedemptionStatus.Redeemed;
-        }
-        ApplyVerifiedPayment(transaction, clock.UtcNow);
-        await ActivateCheckoutAccountAsync(studentId, cancellationToken);
-        if (transaction.Enrollment is not null)
-        {
-            dbContext.Notifications.Add(new Notification
-            {
-                Id = Guid.NewGuid(),
-                UserId = studentId,
-                Title = "Payment verified",
-                Body = $"INR {transaction.Amount:n0} payment for {transaction.Enrollment.Program?.Title ?? "your program"} is verified.",
-                ActionUrl = "/dashboard"
-            });
-        }
-
-        Audit("Student.PaymentVerified", new { studentId, transaction.Id, transaction.EnrollmentId, transaction.Amount, transaction.GatewayPaymentId });
+        await CompleteGatewayPaymentAsync(transaction, paymentId, "Student.PaymentVerified", cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapPayment(transaction);
     }
@@ -814,17 +834,11 @@ public sealed class LmsPortalService(
             .FirstOrDefaultAsync(x => x.Id == paymentId && x.StudentId == studentId, cancellationToken)
             ?? throw new AppException("Payment transaction was not found.", 404, "payment_not_found");
 
+        // A failed attempt is still checked with the gateway at the next checkout, so a payment that
+        // completes after the student closed the pop-up is credited rather than charged again.
         if (payment.Status == PaymentStatus.Pending)
         {
-            payment.Status = PaymentStatus.Failed;
-            payment.FailureReason = OptionalText(failureReason, 500) ?? "Payment was cancelled or declined.";
-            var redemption = await dbContext.CouponRedemptions
-                .FirstOrDefaultAsync(x => x.PaymentTransactionId == payment.Id, cancellationToken);
-            if (redemption is not null && redemption.Status == CouponRedemptionStatus.Reserved)
-            {
-                redemption.Status = CouponRedemptionStatus.Released;
-            }
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await FailTransactionAsync(payment, failureReason ?? "Payment was cancelled or declined.", cancellationToken);
         }
 
         return MapPayment(payment);
@@ -939,26 +953,7 @@ public sealed class LmsPortalService(
             return;
         }
 
-        transaction.Status = PaymentStatus.Verified;
-        transaction.GatewayPaymentId = paymentId;
-        transaction.VerifiedAt = clock.UtcNow;
-        var redemption = await dbContext.CouponRedemptions
-            .FirstOrDefaultAsync(x => x.PaymentTransactionId == transaction.Id, cancellationToken);
-        if (redemption is not null)
-        {
-            redemption.Status = CouponRedemptionStatus.Redeemed;
-        }
-        ApplyVerifiedPayment(transaction, clock.UtcNow);
-        await ActivateCheckoutAccountAsync(transaction.StudentId, cancellationToken);
-        dbContext.Notifications.Add(new Notification
-        {
-            Id = Guid.NewGuid(),
-            UserId = transaction.StudentId,
-            Title = "Payment verified",
-            Body = $"INR {transaction.Amount:n0} payment for {transaction.Enrollment?.Program?.Title ?? "your program"} is verified.",
-            ActionUrl = "/dashboard"
-        });
-        Audit("Student.PaymentVerifiedByWebhook", new { transaction.Id, transaction.StudentId, transaction.EnrollmentId, transaction.GatewayPaymentId });
+        await CompleteGatewayPaymentAsync(transaction, paymentId, "Student.PaymentVerifiedByWebhook", cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
@@ -999,26 +994,7 @@ public sealed class LmsPortalService(
             return;
         }
 
-        transaction.Status = PaymentStatus.Verified;
-        transaction.GatewayPaymentId = paymentId;
-        transaction.VerifiedAt = clock.UtcNow;
-        var redemption = await dbContext.CouponRedemptions
-            .FirstOrDefaultAsync(x => x.PaymentTransactionId == transaction.Id, cancellationToken);
-        if (redemption is not null)
-        {
-            redemption.Status = CouponRedemptionStatus.Redeemed;
-        }
-        ApplyVerifiedPayment(transaction, clock.UtcNow);
-        await ActivateCheckoutAccountAsync(transaction.StudentId, cancellationToken);
-        dbContext.Notifications.Add(new Notification
-        {
-            Id = Guid.NewGuid(),
-            UserId = transaction.StudentId,
-            Title = "Payment verified",
-            Body = $"INR {transaction.Amount:n0} payment for {transaction.Enrollment?.Program?.Title ?? "your program"} is verified.",
-            ActionUrl = "/dashboard"
-        });
-        Audit("Student.PaymentVerifiedByCashfreeWebhook", new { transaction.Id, transaction.StudentId, transaction.EnrollmentId, transaction.GatewayPaymentId });
+        await CompleteGatewayPaymentAsync(transaction, paymentId, "Student.PaymentVerifiedByCashfreeWebhook", cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
@@ -1123,7 +1099,8 @@ public sealed class LmsPortalService(
         var certificates = await dbContext.Certificates
             .AsNoTracking()
             .Include(x => x.Program)
-            .Where(x => x.StudentId == studentId)
+            // Students only see certificates once an admin has issued them.
+            .Where(x => x.StudentId == studentId && x.Status == CertificateStatus.Issued)
             .OrderByDescending(x => x.IssuedAt ?? x.CreatedAt)
             .ToListAsync(cancellationToken);
 
@@ -1861,6 +1838,116 @@ public sealed class LmsPortalService(
         Audit("Admin.ProjectPublished", new { project.Id, project.ProgramId, project.Title, StudentIds = requestedStudentIds });
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapProject(project, null, requestedStudentIds.Count);
+    }
+
+    public async Task<EnrollmentResponse> CreateAdminEnrollmentAsync(
+        AdminEnrollmentRequest request, CancellationToken cancellationToken)
+    {
+        if (!string.Equals(request.PaymentEnvironment, Payments.CashfreeEnvironment, StringComparison.OrdinalIgnoreCase))
+            throw Validation(nameof(request.PaymentEnvironment), "Payment environment does not match this server.");
+        if (request.StudentId.HasValue == (request.NewStudent is not null))
+            throw Validation(nameof(request.StudentId), "Select an existing student or enter a new student.");
+        var today = DateOnly.FromDateTime(clock.UtcNow.UtcDateTime);
+        if (request.StartDate is { } startDate && (startDate < today.AddYears(-5) || startDate > today.AddYears(5)))
+            throw Validation(nameof(request.StartDate), "Start date must be within five years of today.");
+        if ((request.Notes?.Length ?? 0) > 500 || (request.CashfreeOrderId?.Length ?? 0) > 160 ||
+            (request.CashfreePaymentId?.Length ?? 0) > 160 || (request.CashfreeLinkId?.Length ?? 0) > 160)
+            throw Validation(nameof(request.Notes), "Notes or payment references are too long.");
+
+        var orderId = request.CashfreeOrderId?.Trim();
+        if (request.PaymentKind is not null && request.PaymentKind is not ("full" or "token" or "other"))
+            throw Validation(nameof(request.PaymentKind), "Select full payment, token payment, or other amount.");
+        if (request.AmountPaid is { } enteredAmount && (enteredAmount <= 0 || decimal.Round(enteredAmount, 2) != enteredAmount))
+            throw Validation(nameof(request.AmountPaid), "Enter a positive amount with at most two decimal places.");
+        if (request.PaymentKind is not null && request.AmountPaid is null)
+            throw Validation(nameof(request.AmountPaid), "Enter the amount paid.");
+        ExternalPaymentVerification? verified = null;
+        if (!string.IsNullOrWhiteSpace(orderId))
+        {
+            verified = await paymentGateway.VerifyExternalPaymentAsync(orderId,
+                request.CashfreePaymentId?.Trim(), request.CashfreeLinkId?.Trim(), cancellationToken)
+                ?? throw new AppException("Cashfree has not confirmed a successful payment for these references.", 400, "payment_not_verified");
+            if (verified.Amount <= 0 || verified.Currency != "INR" || decimal.Round(verified.Amount, 2) != verified.Amount)
+                throw Validation(nameof(request.CashfreeOrderId), "Payment must be in INR with a valid amount.");
+            if (request.AmountPaid.HasValue && request.AmountPaid.Value != verified.Amount)
+                throw Validation(nameof(request.AmountPaid), "Entered amount does not match the payment confirmed by Cashfree.");
+        }
+        else if (request.EnrollmentId.HasValue || !string.IsNullOrWhiteSpace(request.CashfreePaymentId) ||
+                 !string.IsNullOrWhiteSpace(request.CashfreeLinkId) || request.AmountPaid.HasValue || request.PaymentKind is not null)
+            throw Validation(nameof(request.CashfreeOrderId), "Enter the Cashfree order ID to record a payment.");
+
+        // Keep student creation, payment attribution, and access changes in one transaction.
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(
+            System.Data.IsolationLevel.Serializable, cancellationToken);
+        var studentId = request.StudentId ?? (await adminUserService.CreateUserAsync(
+            request.NewStudent! with { Role = RoleNames.Student }, cancellationToken)).Id;
+        var student = await dbContext.Users.FirstOrDefaultAsync(x => x.Id == studentId, cancellationToken)
+            ?? throw new AppException("Student was not found.", 404, "student_not_found");
+        var isStudent = await (from ur in dbContext.UserRoles
+                               join role in dbContext.Roles on ur.RoleId equals role.Id
+                               where ur.UserId == studentId && role.Name == RoleNames.Student
+                               select ur).AnyAsync(cancellationToken);
+        if (!isStudent || student.AccountStatus != AccountStatus.Active)
+            throw Validation(nameof(request.StudentId), "Select an active student account.");
+
+        Enrollment enrollment;
+        if (request.EnrollmentId.HasValue)
+        {
+            enrollment = await dbContext.Enrollments.Include(x => x.Program).Include(x => x.ProgramPlan)
+                .FirstOrDefaultAsync(x => x.Id == request.EnrollmentId, cancellationToken)
+                ?? throw new AppException("Enrollment was not found.", 404, "enrollment_not_found");
+            if (enrollment.StudentId != studentId || enrollment.ProgramId != request.ProgramId ||
+                enrollment.ProgramPlanId != request.ProgramPlanId || enrollment.Status == EnrollmentStatus.Cancelled ||
+                IsAccessExpired(enrollment, clock.UtcNow))
+                throw Validation(nameof(request.EnrollmentId), "The selected enrollment cannot receive this payment.");
+        }
+        else
+        {
+            if (await dbContext.Enrollments.AnyAsync(x => x.StudentId == studentId &&
+                x.ProgramId == request.ProgramId && x.Status != EnrollmentStatus.Cancelled, cancellationToken))
+                throw new AppException("This student already has an enrollment. Record payment on that enrollment instead.", 409, "enrollment_exists");
+            enrollment = await CreateEnrollmentEntityAsync(studentId, request.ProgramId, request.ProgramPlanId, cancellationToken);
+            if (enrollment.Program!.Status != ProgramStatus.Published || !enrollment.ProgramPlan!.IsActive)
+                throw Validation(nameof(request.ProgramId), "Select a published program and active plan.");
+            enrollment.StartDate = request.StartDate ?? DateOnly.FromDateTime(clock.UtcNow.UtcDateTime);
+        }
+
+        if (verified is not null)
+        {
+            var phone = new string((student.PhoneNumber ?? "").Where(char.IsDigit).ToArray());
+            var payerPhone = new string((verified.CustomerPhone ?? "").Where(char.IsDigit).ToArray());
+            if (!string.Equals(student.Email, verified.CustomerEmail, StringComparison.OrdinalIgnoreCase) &&
+                !(phone.Length >= 10 && payerPhone.Length >= 10 && phone[^10..] == payerPhone[^10..]))
+                throw Validation(nameof(request.CashfreeOrderId), "Cashfree customer email or phone must match the student.");
+            var outstanding = enrollment.TotalAmount - enrollment.DiscountAmount - enrollment.PaidAmount;
+            if (verified.Amount > outstanding)
+                throw Validation(nameof(request.CashfreeOrderId), "Payment exceeds this enrollment's outstanding balance.");
+            if (request.PaymentKind == "full" && verified.Amount != outstanding)
+                throw Validation(nameof(request.AmountPaid), "Full payment must cover the outstanding balance.");
+            if (request.PaymentKind == "token" && (enrollment.PaidAmount > 0 || enrollment.ProgramPlan is null ||
+                verified.Amount != GetFixedPricing(enrollment.ProgramPlan).ReserveAmount || verified.Amount >= outstanding))
+                throw Validation(nameof(request.AmountPaid), "Token payment must match the plan's initial reservation amount.");
+            if (await dbContext.PaymentTransactions.AnyAsync(x => x.GatewayOrderId == orderId ||
+                x.GatewayPaymentId == verified.PaymentId, cancellationToken))
+                throw new AppException("This payment has already been recorded.", 409, "payment_already_recorded");
+            var payment = new PaymentTransaction
+            {
+                Id = Guid.NewGuid(), StudentId = studentId, ProgramId = enrollment.ProgramId,
+                ProgramPlanId = enrollment.ProgramPlanId, EnrollmentId = enrollment.Id, Enrollment = enrollment,
+                Gateway = "Cashfree", GatewayOrderId = orderId!, GatewayPaymentId = verified.PaymentId,
+                Amount = verified.Amount, OriginalAmount = verified.Amount, Currency = verified.Currency,
+                Mode = enrollment.PaidAmount > 0 ? PaymentMode.RemainingBalance :
+                    verified.Amount == outstanding ? PaymentMode.PayInFull : PaymentMode.ReserveSeat,
+                Status = PaymentStatus.Verified, VerifiedAt = clock.UtcNow
+            };
+            ApplyVerifiedPayment(payment, clock.UtcNow);
+            dbContext.PaymentTransactions.Add(payment);
+        }
+        Audit("Admin.OfflineEnrollmentRecorded", new { enrollment.Id, studentId, enrollment.ProgramId,
+            request.PaymentEnvironment, request.PaymentKind, request.AmountPaid, OrderId = orderId, request.CashfreeLinkId, request.Notes });
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return MapEnrollment(enrollment, student.FullName, student.Email, student.PhoneNumber);
     }
 
     public async Task<IReadOnlyList<EnrollmentResponse>> GetAdminEnrollmentsAsync(CancellationToken cancellationToken)
@@ -2633,6 +2720,203 @@ public sealed class LmsPortalService(
         }
 
         Audit("Student.AccountActivatedAfterPayment", new { studentId });
+    }
+
+    /// <summary>Moves an enrollment to the plan the student just chose, as long as nothing has been paid yet.</summary>
+    private static bool SwitchUnpaidPlan(Enrollment enrollment, LearningProgram program, Guid? planId)
+    {
+        if (!planId.HasValue || planId == enrollment.ProgramPlanId || enrollment.PaidAmount > 0)
+        {
+            return false;
+        }
+
+        var plan = program.Plans.FirstOrDefault(x => x.Id == planId && x.IsActive);
+        if (plan is null)
+        {
+            return false;
+        }
+
+        enrollment.ProgramPlanId = plan.Id;
+        enrollment.ProgramPlan = plan;
+        enrollment.TotalAmount = GetFixedPricing(plan).TotalAmount;
+        return true;
+    }
+
+    /// <summary>
+    /// Checks this enrollment's recent unconfirmed Cashfree attempts with the gateway and credits any that were
+    /// actually paid. Returns true when at least one payment was recovered.
+    /// </summary>
+    private async Task<bool> ReconcileEarlierAttemptsAsync(Enrollment enrollment, CancellationToken cancellationToken)
+    {
+        var since = clock.UtcNow.AddDays(-1);
+        var attempts = await dbContext.PaymentTransactions
+            .Where(x => x.EnrollmentId == enrollment.Id &&
+                        x.StudentId == enrollment.StudentId &&
+                        (x.Status == PaymentStatus.Pending || x.Status == PaymentStatus.Failed) &&
+                        x.Gateway == "Cashfree" &&
+                        x.CreatedAt >= since)
+            .OrderByDescending(x => x.CreatedAt)
+            .Take(5)
+            .ToListAsync(cancellationToken);
+
+        var recovered = false;
+        foreach (var attempt in attempts)
+        {
+            PaymentGatewayVerification verification;
+            try
+            {
+                verification = await paymentGateway.VerifyPaymentAsync(attempt.GatewayOrderId, null, null, cancellationToken);
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                // The gateway being briefly unreachable must not block a new checkout.
+                continue;
+            }
+
+            if (!verification.IsValid || string.IsNullOrWhiteSpace(verification.PaymentId) ||
+                await dbContext.PaymentTransactions.AnyAsync(
+                    x => x.GatewayPaymentId == verification.PaymentId && x.Id != attempt.Id,
+                    cancellationToken))
+            {
+                continue;
+            }
+
+            attempt.Enrollment = enrollment;
+            await CompleteGatewayPaymentAsync(attempt, verification.PaymentId, "Student.PaymentRecoveredAtCheckout", cancellationToken);
+            recovered = true;
+        }
+
+        return recovered;
+    }
+
+    /// <summary>An open gateway checkout for the same payment that can simply be reopened.</summary>
+    private Task<PaymentTransaction?> FindReusableCheckoutAsync(
+        Guid enrollmentId,
+        PaymentMode mode,
+        decimal amount,
+        string? couponCode,
+        CancellationToken cancellationToken)
+    {
+        // Leave the student enough time to finish paying in the reopened session.
+        var usableUntil = clock.UtcNow.AddMinutes(3);
+        return dbContext.PaymentTransactions
+            .Where(x => x.EnrollmentId == enrollmentId &&
+                        x.Status == PaymentStatus.Pending &&
+                        x.Mode == mode &&
+                        x.Amount == amount &&
+                        x.CouponCode == couponCode &&
+                        x.Gateway == Payments.Provider &&
+                        x.GatewaySessionId != null &&
+                        x.CheckoutExpiresAt > usableUntil)
+            .OrderByDescending(x => x.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private async Task FailTransactionAsync(PaymentTransaction transaction, string reason, CancellationToken cancellationToken)
+    {
+        transaction.Status = PaymentStatus.Failed;
+        transaction.FailureReason = OptionalText(reason, 500);
+        var redemption = await dbContext.CouponRedemptions
+            .FirstOrDefaultAsync(x => x.PaymentTransactionId == transaction.Id && x.Status == CouponRedemptionStatus.Reserved, cancellationToken);
+        if (redemption is not null)
+        {
+            redemption.Status = CouponRedemptionStatus.Released;
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// The single place a gateway-confirmed payment is recorded, whether it arrives through the student's
+    /// verify call, a webhook, or recovery at the next checkout. Money the enrollment no longer owed is
+    /// flagged for refund instead of disappearing.
+    /// </summary>
+    private async Task CompleteGatewayPaymentAsync(
+        PaymentTransaction transaction,
+        string paymentId,
+        string auditEvent,
+        CancellationToken cancellationToken)
+    {
+        var now = clock.UtcNow;
+        transaction.Status = PaymentStatus.Verified;
+        transaction.GatewayPaymentId = paymentId;
+        transaction.VerifiedAt = now;
+        transaction.FailureReason = null;
+
+        // The gateway charged the discounted amount, so the coupon counts as used even if its reservation lapsed.
+        var redemption = await dbContext.CouponRedemptions
+            .FirstOrDefaultAsync(x => x.PaymentTransactionId == transaction.Id, cancellationToken);
+        if (redemption is not null)
+        {
+            redemption.Status = CouponRedemptionStatus.Redeemed;
+        }
+
+        var excess = CalculateExcessPayment(transaction, now);
+        ApplyVerifiedPayment(transaction, now);
+        await ActivateCheckoutAccountAsync(transaction.StudentId, cancellationToken);
+
+        var programTitle = transaction.Enrollment?.Program?.Title ?? "your program";
+        if (excess > 0)
+        {
+            transaction.RefundRequired = true;
+            await NotifyAdminsOfRefundAsync(transaction, excess, programTitle, cancellationToken);
+            Audit("Payments.RefundRequired", new { transaction.Id, transaction.StudentId, transaction.EnrollmentId, excess, transaction.GatewayPaymentId });
+        }
+
+        dbContext.Notifications.Add(new Notification
+        {
+            Id = Guid.NewGuid(),
+            UserId = transaction.StudentId,
+            Title = excess > 0 ? "Extra payment received" : "Payment verified",
+            Body = excess > 0
+                ? $"We received INR {transaction.Amount:n0} for {programTitle}, which is INR {excess:n0} more than was due. The extra INR {excess:n0} will be refunded to your original payment method."
+                : $"INR {transaction.Amount:n0} payment for {programTitle} is verified.",
+            ActionUrl = "/dashboard"
+        });
+        Audit(auditEvent, new { transaction.Id, transaction.StudentId, transaction.EnrollmentId, transaction.Amount, transaction.GatewayPaymentId });
+    }
+
+    /// <summary>How much of this payment exceeds what the enrollment still owed before it was applied.</summary>
+    private static decimal CalculateExcessPayment(PaymentTransaction transaction, DateTimeOffset now)
+    {
+        var enrollment = transaction.Enrollment;
+        if (enrollment is null || IsAccessExpired(enrollment, now))
+        {
+            return 0; // A renewal starts a new access period, so the full plan is owed again.
+        }
+
+        var total = enrollment.ProgramPlan is null ? enrollment.TotalAmount : GetFixedPricing(enrollment.ProgramPlan).TotalAmount;
+        var outstanding = Math.Max(total - enrollment.PaidAmount - enrollment.DiscountAmount - transaction.DiscountAmount, 0);
+        return Math.Max(transaction.Amount - outstanding, 0);
+    }
+
+    private async Task NotifyAdminsOfRefundAsync(
+        PaymentTransaction transaction,
+        decimal excess,
+        string programTitle,
+        CancellationToken cancellationToken)
+    {
+        var adminIds = await (
+            from userRole in dbContext.UserRoles
+            join role in dbContext.Roles on userRole.RoleId equals role.Id
+            where role.Name == RoleNames.Admin
+            select userRole.UserId).Distinct().ToListAsync(cancellationToken);
+        var student = await dbContext.Users
+            .Where(x => x.Id == transaction.StudentId)
+            .Select(x => x.Email)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        foreach (var adminId in adminIds)
+        {
+            dbContext.Notifications.Add(new Notification
+            {
+                Id = Guid.NewGuid(),
+                UserId = adminId,
+                Title = "Refund needed",
+                Body = $"{student ?? "A student"} paid INR {excess:n0} more than owed for {programTitle} (order {transaction.GatewayOrderId}, payment {transaction.GatewayPaymentId}). Refund it from the gateway dashboard.",
+                ActionUrl = "/dashboard?section=Payments"
+            });
+        }
     }
 
     private void ApplyVerifiedPayment(PaymentTransaction payment, DateTimeOffset now)

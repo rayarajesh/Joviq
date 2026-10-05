@@ -176,31 +176,34 @@ public sealed class AuthService(
     public async Task<AuthTokenResponse> LoginAsync(LoginRequest request, RequestMetadata metadata, CancellationToken cancellationToken)
     {
         var email = NormalizeEmail(request.Email);
-        
+
         var user = await userManager.FindByEmailAsync(email);
         if (user is null)
         {
-            logger.LogError("User not found for email: {Email}", email);
             AddAudit(null, "LoginFailed", email, null, metadata, new { reason = "user_not_found" });
             await dbContext.SaveChangesAsync(cancellationToken);
             throw new AppException("Invalid email or password.", 401, "invalid_credentials");
         }
 
-        logger.LogInformation("User found: {UserId}, Email: {Email}", user.Id, user.Email);
-
         if (await userManager.IsLockedOutAsync(user))
         {
-            logger.LogError("User is locked out: {Email}", email);
             AddAudit(user.Id, "LoginFailed", user.Email, user.PhoneNumber, metadata, new { reason = "locked_out" });
             await dbContext.SaveChangesAsync(cancellationToken);
             throw new AppException("Invalid email or password.", 401, "invalid_credentials");
         }
 
+        // Accounts created during enrollment checkout have no password until the student sets one.
+        if (!await userManager.HasPasswordAsync(user))
+        {
+            AddAudit(user.Id, "LoginFailed", user.Email, user.PhoneNumber, metadata, new { reason = "password_not_set" });
+            await dbContext.SaveChangesAsync(cancellationToken);
+            throw new AppException("Your account was created during enrollment. Set a password with the OTP sent to your email.", 403, "password_not_set");
+        }
+
         var passwordOk = await userManager.CheckPasswordAsync(user, request.Password);
-        
+
         if (!passwordOk)
         {
-            logger.LogError("Password check failed for email: {Email}", email);
             EnsureIdentitySucceeded(await userManager.AccessFailedAsync(user));
             AddAudit(user.Id, "LoginFailed", user.Email, user.PhoneNumber, metadata, new { reason = "bad_password" });
             await dbContext.SaveChangesAsync(cancellationToken);
@@ -287,6 +290,16 @@ public sealed class AuthService(
             }
             else if (!user.EmailConfirmed)
             {
+                // Nobody proved ownership of this email before, so whoever set the existing password or
+                // holds an existing session may not be the Google account owner. Drop both before linking.
+                if (await userManager.HasPasswordAsync(user))
+                {
+                    EnsureIdentitySucceeded(await userManager.RemovePasswordAsync(user));
+                }
+
+                EnsureIdentitySucceeded(await userManager.UpdateSecurityStampAsync(user));
+                await refreshTokenService.RevokeAllAsync(user.Id, metadata.IpAddress, "Unverified account linked to Google.", cancellationToken);
+
                 user.EmailConfirmed = true;
                 if (user.AccountStatus == AccountStatus.PendingEmailVerification)
                 {
@@ -488,6 +501,20 @@ public sealed class AuthService(
         }
 
         EnsureIdentitySucceeded(await userManager.ResetPasswordAsync(user, payload.IdentityToken, request.NewPassword));
+
+        // The reset OTP was delivered to this email, which proves ownership.
+        if (!user.EmailConfirmed)
+        {
+            user.EmailConfirmed = true;
+            if (user.AccountStatus == AccountStatus.PendingEmailVerification)
+            {
+                user.AccountStatus = AccountStatus.Active;
+            }
+
+            EnsureIdentitySucceeded(await userManager.UpdateAsync(user));
+            AddAudit(user.Id, "EmailVerified", user.Email, user.PhoneNumber, metadata, new { method = "password_reset" });
+        }
+
         await userManager.UpdateSecurityStampAsync(user);
         await refreshTokenService.RevokeAllAsync(user.Id, metadata.IpAddress, "Password reset.", cancellationToken);
         AddAudit(user.Id, "PasswordResetSucceeded", user.Email, user.PhoneNumber, metadata);

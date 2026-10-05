@@ -1,4 +1,4 @@
-import { FormEvent, lazy, Suspense, useEffect, useState } from "react";
+import { FormEvent, lazy, Suspense, useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import {
   Link,
@@ -380,6 +380,13 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newPassword, setNewPassword] = useState("");
+  const [passwordSetupEmail, setPasswordSetupEmail] = useState("");
+  // Kept only in memory so the student is signed in right after verifying their email.
+  const pendingPasswordRef = useRef("");
+
+  useEffect(() => {
+    if (!auth.isBooting && auth.user) navigate(returnUrl, { replace: true });
+  }, [auth.isBooting, auth.user, navigate, returnUrl]);
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -387,28 +394,32 @@ export function LoginPage() {
     setMessage(null);
 
     const form = new FormData(event.currentTarget);
+    const email = String(form.get("email") ?? "")
+      .trim()
+      .toLowerCase();
+    const password = String(form.get("password") ?? "");
 
     try {
-      const response = await authApi.login({
-        email: String(form.get("email") ?? "")
-          .trim()
-          .toLowerCase(),
-        password: String(form.get("password") ?? ""),
-        rememberMe,
-      });
+      const response = await authApi.login({ email, password, rememberMe });
 
       auth.applyAuthResponse(response.data);
       navigate(returnUrl);
     } catch (error) {
-      if (
-        error instanceof ApiError &&
-        error.problem?.errorCode === "email_not_verified"
-      ) {
-        setPendingEmail(
-          String(form.get("email") ?? "")
-            .trim()
-            .toLowerCase(),
-        );
+      const errorCode = error instanceof ApiError ? error.problem?.errorCode : undefined;
+      if (errorCode === "password_not_set") {
+        // Accounts created during enrollment checkout set their password through the reset OTP.
+        try {
+          await authApi.forgotPassword(email);
+          setPasswordSetupEmail(email);
+          setMode("forgot-password");
+        } catch (sendError) {
+          setMessage({ tone: "error", text: formatApiError(sendError) });
+        }
+        return;
+      }
+      if (errorCode === "email_not_verified") {
+        setPendingEmail(email);
+        pendingPasswordRef.current = password;
         setMode("verify-email");
       }
       setMessage({ tone: "error", text: formatApiError(error) });
@@ -461,6 +472,7 @@ export function LoginPage() {
       });
 
       setPendingEmail(email);
+      pendingPasswordRef.current = password;
       setMode("verify-email");
       setMessage(
         response.data.verificationEmailSent === false
@@ -490,6 +502,14 @@ export function LoginPage() {
         pendingEmail,
         String(new FormData(event.currentTarget).get("otp") ?? ""),
       );
+      const password = pendingPasswordRef.current;
+      pendingPasswordRef.current = "";
+      if (password) {
+        const response = await authApi.login({ email: pendingEmail, password, rememberMe });
+        auth.applyAuthResponse(response.data);
+        navigate(returnUrl);
+        return;
+      }
       setMode("login");
       setMessage({
         tone: "success",
@@ -649,7 +669,12 @@ export function LoginPage() {
             </header>
 
             {mode === "forgot-password" ? (
-              <PasswordRecovery onBack={() => setMode("login")} />
+              <PasswordRecovery
+                key={passwordSetupEmail || "reset"}
+                onBack={() => { setPasswordSetupEmail(""); setMode("login"); }}
+                otpSentTo={passwordSetupEmail || undefined}
+                intro={passwordSetupEmail ? `Your account was created during enrollment. Enter the OTP sent to ${passwordSetupEmail} and choose a password.` : undefined}
+              />
             ) : mode === "login" ? (
               <form className="auth-form auth2-form" onSubmit={handleLogin}>
                 <button className="auth2-google" type="button" onClick={() => beginGoogleOAuth(false)} disabled={isSubmitting}>
@@ -664,7 +689,7 @@ export function LoginPage() {
                 </label>
                 <label className="auth2-field">
                   <span className="auth2-label-row">Password
-                    <button className="auth2-link" type="button" onClick={() => { setMode("forgot-password"); setMessage(null); }}>Forgot password?</button>
+                    <button className="auth2-link" type="button" onClick={() => { setPasswordSetupEmail(""); setMode("forgot-password"); setMessage(null); }}>Forgot password?</button>
                   </span>
                   <span className="auth2-input"><LockKeyhole size={18} />
                     <input name="password" type={showPassword ? "text" : "password"} autoComplete="current-password" placeholder="Enter your password" minLength={8} required />

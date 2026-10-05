@@ -141,13 +141,27 @@ public class PaymentService : IPaymentService
 
     public async Task<PaymentVerificationResponseDto> VerifyPaymentAsync(VerifyPaymentRequest request)
     {
+        var orderId = request.OrderId;
+        var paymentId = request.PaymentId;
+        var signature = request.Signature;
+        if (string.IsNullOrWhiteSpace(orderId) ||
+            string.IsNullOrWhiteSpace(paymentId) ||
+            string.IsNullOrWhiteSpace(signature))
+        {
+            return new PaymentVerificationResponseDto
+            {
+                IsSuccessful = false,
+                Message = "Payment verification requires an order ID, payment ID, and signature"
+            };
+        }
+
         try
         {
             // Verify the signature
             var isSignatureValid = await _razorpayService.VerifyPaymentSignatureAsync(
-                request.OrderId,
-                request.PaymentId,
-                request.Signature);
+                orderId,
+                paymentId,
+                signature);
 
             if (!isSignatureValid)
             {
@@ -159,7 +173,7 @@ public class PaymentService : IPaymentService
             }
 
             // Get payment details from Razorpay
-            var paymentDetails = await _razorpayService.GetPaymentAsync(request.PaymentId);
+            var paymentDetails = await _razorpayService.GetPaymentAsync(paymentId);
 
             // TODO: Fetch PaymentTransaction from database using request.OrderId
             // TODO: Update payment status and enrollment if payment is successful

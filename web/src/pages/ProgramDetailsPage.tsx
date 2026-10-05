@@ -16,6 +16,7 @@ import {
   GraduationCap,
   Headphones,
   Laptop,
+  LogOut,
   PhoneCall,
   PlayCircle,
   Plus,
@@ -40,7 +41,7 @@ import { getProgramImage } from "../data/programVisuals";
 import { authApi } from "../features/auth/api/authApi";
 import { useAuth } from "../features/auth/context/useAuth";
 import { publicLmsApi } from "../features/lms/api/lmsApi";
-import { checkoutEmailsMatch, savePendingEnrollment } from "../features/lms/checkout";
+import { resolveCheckoutEmail, savePendingEnrollment } from "../features/lms/checkout";
 import type { EnrollmentApplicant } from "../features/lms/checkout";
 import type { ProgramDetailsResponse } from "../features/lms/api/lmsTypes";
 import { ApiError, formatApiError } from "../lib/api/httpClient";
@@ -116,16 +117,8 @@ const domainFeatures: DomainFeatureItem[] = [
 ];
 
 const credentialCertificates = [
-  {
-    title: "Training Certificate",
-    image: "/assets/training-certificate.png",
-    alt: "Joviq Technologies training certificate"
-  },
-  {
-    title: "Internship Certificate",
-    image: "/assets/internship-certificate.jpg",
-    alt: "Joviq Technologies internship certificate"
-  }
+  { title: "Training Certificate", image: "/assets/training-certificate.png", alt: "Joviq Technologies training certificate" },
+  { title: "Internship Certificate", image: "/assets/internship-certificate.jpg", alt: "Joviq Technologies internship certificate" }
 ];
 
 export function ProgramDetailsPage() {
@@ -145,7 +138,6 @@ export function ProgramDetailsPage() {
     const timer = window.setInterval(() => {
       setActiveCertificateIndex((current) => (current + 1) % credentialCertificates.length);
     }, 2000);
-
     return () => window.clearInterval(timer);
   }, []);
 
@@ -225,10 +217,7 @@ export function ProgramDetailsPage() {
   async function continueToCheckout(submission: RegistrationSubmission) {
     if (!registrationPlan) return;
 
-    const email = submission.applicant.email.trim().toLowerCase();
-    if (auth.user && !checkoutEmailsMatch(email, auth.user.email)) {
-      throw new Error("Use your signed-in email for enrollment, or sign in to the account you want to enroll.");
-    }
+    const email = resolveCheckoutEmail(submission.applicant.email, auth.user?.email);
 
     // Checkout must use a published database program and its authoritative pricing.
     const availableProgram = (await publicLmsApi.getProgram(currentProgram.slug)).data;
@@ -399,11 +388,11 @@ export function ProgramDetailsPage() {
               <li className="tone-mint"><span className="sc-icon sc-icon--tone-solid"><ShieldCheck size={17} /></span>{program.certification}</li>
             </ul>
           </div>
-          <a className="pdx-certificate" data-reveal style={order(1)} href={credentialCertificates[activeCertificateIndex].image} target="_blank" rel="noopener noreferrer" aria-label={`View ${credentialCertificates[activeCertificateIndex].title} for ${program.title} in full size`}>
+          <div className="pdx-certificate" data-reveal style={order(1)}>
             <span className="sc-pill tone-butter"><Award size={14} /> {credentialCertificates[activeCertificateIndex].title}</span>
-            <img key={activeCertificateIndex} src={credentialCertificates[activeCertificateIndex].image} alt={credentialCertificates[activeCertificateIndex].alt} width="1600" height="1131" loading="lazy" />
+            <img key={activeCertificateIndex} src={credentialCertificates[activeCertificateIndex].image} alt={credentialCertificates[activeCertificateIndex].alt} width="1600" height="1131" loading="lazy" draggable={false} />
             <span className="pdx-certificate-dots" aria-hidden="true">{credentialCertificates.map((certificate, index) => <i className={index === activeCertificateIndex ? "is-active" : ""} key={certificate.title} />)}</span>
-          </a>
+          </div>
         </section>
 
         <section className="sc-section pdx-career">
@@ -530,7 +519,8 @@ function RegistrationDialog({ onClose, onSubmit, plan, programTitle }: {
   plan: ProgramPlan;
   programTitle: string;
 }) {
-  const { user } = useAuth();
+  const auth = useAuth();
+  const { user } = auth;
   const [fullName, setFullName] = useState(user?.fullName ?? "");
   const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
@@ -542,6 +532,10 @@ function RegistrationDialog({ onClose, onSubmit, plan, programTitle }: {
   const submittingRef = useRef(false);
   const [retryAt, setRetryAt] = useState(0);
   const [retrySeconds, setRetrySeconds] = useState(0);
+  const enrollmentEmail = resolveCheckoutEmail(email, user?.email);
+  // Signed-in students already registered their details; only ask for a phone if the account lacks one.
+  const needsPhone = !user?.phoneNumber;
+  const paymentStep = user && !needsPhone ? "01" : "02";
   useDialogAccessibility(true, ".enrollment-dialog", onClose);
 
   useEffect(() => {
@@ -552,16 +546,35 @@ function RegistrationDialog({ onClose, onSubmit, plan, programTitle }: {
     return () => window.clearInterval(timer);
   }, [retryAt]);
 
+  async function useAnotherAccount() {
+    if (submittingRef.current || isSubmitting) return;
+    setIsSubmitting(true);
+    setErrorMessage("");
+    try {
+      await auth.logout();
+      setEmail("");
+      setFullName("");
+      setPhoneNumber("");
+      setAcceptedTerms(false);
+    } catch (error) {
+      setErrorMessage(formatApiError(error));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submittingRef.current || Date.now() < retryAt) return;
+    if (isSubmitting || submittingRef.current || Date.now() < retryAt) return;
     submittingRef.current = true;
     setIsSubmitting(true);
     setErrorMessage("");
 
     try {
       await onSubmit({
-        applicant: { fullName: fullName.trim(), phoneNumber, email: email.trim(), collegeName: collegeName.trim() },
+        applicant: user
+          ? { fullName: user.fullName, phoneNumber: user.phoneNumber || phoneNumber, email: enrollmentEmail, collegeName: "" }
+          : { fullName: fullName.trim(), phoneNumber, email: enrollmentEmail, collegeName: collegeName.trim() },
         paymentChoice,
         acceptedTerms
       });
@@ -593,7 +606,7 @@ function RegistrationDialog({ onClose, onSubmit, plan, programTitle }: {
           <div className="enrollment-dialog__header-copy">
             <span className="enrollment-dialog__eyebrow">Registration before payment</span>
             <h2 id="enrollment-dialog-title">Secure your place in {programTitle}</h2>
-            <p>Share these details once, then choose how you want to start your learning journey.</p>
+            <p>{user ? "Choose how you want to start your learning journey." : "Share these details once, then choose how you want to start your learning journey."}</p>
           </div>
           <div className="enrollment-dialog__plan-summary">
             <div><WalletCards size={20} /><span><small>Selected level</small><strong>{plan.name}</strong></span></div>
@@ -604,27 +617,41 @@ function RegistrationDialog({ onClose, onSubmit, plan, programTitle }: {
         </header>
 
         <form className="enrollment-dialog__form" onSubmit={handleSubmit}>
-          <fieldset>
-            <legend><span>01</span><strong>Your details</strong><small>We use these details for your enrollment and payment receipt.</small></legend>
-            <div className="enrollment-dialog__fields">
-              <label>
-                <span className="enrollment-dialog__label-text">Name <b>*</b></span>
-                <input autoComplete="name" onChange={(event) => setFullName(event.target.value)} placeholder="Enter your full name" required value={fullName} />
-              </label>
-              <IndiaMobileInput label="Phone number *" name="phoneNumber" onChange={(event) => setPhoneNumber(event.target.value)} required value={phoneNumber} />
-              <label>
-                <span className="enrollment-dialog__label-text">Email ID <b>*</b></span>
-                <input autoComplete="email" onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" required type="email" value={email} />
-              </label>
-              <label>
-                <span className="enrollment-dialog__label-text">College name <b>*</b></span>
-                <input autoComplete="organization" onChange={(event) => setCollegeName(event.target.value)} placeholder="Your college or organization" required value={collegeName} />
-              </label>
+          {user ? (
+            <div className="enrollment-dialog__account">
+              <span>Enrolling as <strong>{user.fullName}</strong> · {user.email}</span>
+              <button disabled={isSubmitting} onClick={() => void useAnotherAccount()} type="button"><LogOut size={16} /> Use another account</button>
             </div>
-          </fieldset>
+          ) : null}
+          {user && !needsPhone ? null : (
+            <fieldset>
+              <legend><span>01</span><strong>{user ? "Add your phone number" : "Your details"}</strong><small>We use these details for your enrollment and payment receipt.</small></legend>
+              <div className="enrollment-dialog__fields">
+                {user ? null : (
+                  <label>
+                    <span className="enrollment-dialog__label-text">Name <b>*</b></span>
+                    <input autoComplete="name" onChange={(event) => setFullName(event.target.value)} placeholder="Enter your full name" required value={fullName} />
+                  </label>
+                )}
+                <IndiaMobileInput label="Phone number *" name="phoneNumber" onChange={(event) => setPhoneNumber(event.target.value)} required value={phoneNumber} />
+                {user ? null : (
+                  <>
+                    <label>
+                      <span className="enrollment-dialog__label-text">Email ID <b>*</b></span>
+                      <input autoComplete="email" onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" required type="email" value={email} />
+                    </label>
+                    <label>
+                      <span className="enrollment-dialog__label-text">College name <b>*</b></span>
+                      <input autoComplete="organization" onChange={(event) => setCollegeName(event.target.value)} placeholder="Your college or organization" required value={collegeName} />
+                    </label>
+                  </>
+                )}
+              </div>
+            </fieldset>
+          )}
 
           <fieldset>
-            <legend><span>02</span><strong>Choose your payment option</strong><small>Your account and course access are updated only after payment verification.</small></legend>
+            <legend><span>{paymentStep}</span><strong>Choose your payment option</strong><small>Your account and course access are updated only after payment verification.</small></legend>
             <div className="enrollment-dialog__payment-options">
               <label className={`enrollment-dialog__payment-option${paymentChoice === "token" ? " is-selected" : ""}`}>
                 <input checked={paymentChoice === "token"} name="paymentChoice" onChange={() => setPaymentChoice("token")} type="radio" value="token" />
@@ -717,7 +744,7 @@ function buildProgramViewModel(local: Program | undefined, remote: ProgramDetail
     audience: local?.audience ?? ["Students building career skills", "Fresh graduates preparing for roles", "Working professionals changing domains"],
     skills: remote?.skills.length ? remote.skills : local?.skills.length ? local.skills : ["Core foundations", "Industry tools", "Applied problem solving", "Project delivery", "Quality review", "Interview communication"],
     curriculum: local?.curriculumDetails ?? curriculum,
-    duration: remote?.duration ?? local?.duration ?? "8 to 16 weeks",
+    duration: local?.duration ?? remote?.duration ?? "2 months",
     mode: remote?.learningMode ?? local?.mode ?? "Live and recorded online learning",
     guidance: local?.expert ?? "Experienced domain experts provide project and interview review support.",
     projects,
