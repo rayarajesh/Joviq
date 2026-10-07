@@ -15,7 +15,7 @@ type PageMessage = { tone: "success" | "error"; text: string } | null;
 const CONFIRM_ATTEMPTS = 20;
 const CONFIRM_INTERVAL_MS = 3000;
 const STILL_PROCESSING_MESSAGE =
-  "Your bank has not confirmed this payment yet. If money was deducted, your access unlocks automatically within a few minutes — you do not need to pay again.";
+  "Your bank has not confirmed this payment yet. Do not pay again if money was deducted. Check payment status while confirmation is pending.";
 
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 const errorCode = (error: unknown) => (error instanceof ApiError ? error.problem?.errorCode : undefined);
@@ -80,24 +80,39 @@ function loadRazorpayScript() {
   });
 }
 
+let cashfreeScriptPromise: Promise<void> | null = null;
+
 function loadCashfreeScript() {
   if (window.Cashfree) return Promise.resolve();
+  if (cashfreeScriptPromise) return cashfreeScriptPromise;
 
-  return new Promise<void>((resolve, reject) => {
-    const existing = document.querySelector<HTMLScriptElement>('script[src="https://sdk.cashfree.com/js/v3/cashfree.js"]');
-    if (existing) {
-      existing.addEventListener("load", () => resolve(), { once: true });
-      existing.addEventListener("error", () => reject(new Error("Cashfree checkout could not load.")), { once: true });
-      return;
-    }
-
+  cashfreeScriptPromise = new Promise<void>((resolve, reject) => {
     const script = document.createElement("script");
+    const timer = window.setTimeout(() => fail(), 15000);
+    const cleanup = () => {
+      window.clearTimeout(timer);
+      script.onload = null;
+      script.onerror = null;
+    };
+    const fail = () => {
+      cleanup();
+      script.remove();
+      reject(new Error("Cashfree checkout could not load. Please try again."));
+    };
     script.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
     script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Cashfree checkout could not load."));
+    script.onload = () => {
+      if (!window.Cashfree) return fail();
+      cleanup();
+      resolve();
+    };
+    script.onerror = fail;
     document.body.appendChild(script);
+  }).catch((error) => {
+    cashfreeScriptPromise = null;
+    throw error;
   });
+  return cashfreeScriptPromise;
 }
 
 export function EnrollmentCheckoutPage() {
@@ -108,6 +123,7 @@ export function EnrollmentCheckoutPage() {
   // Cashfree sends students back here after bank / UPI-app redirects.
   const returnedOrderId = searchParams.get("cashfree") === "return" ? searchParams.get("order_id") : null;
   const [isConfirming, setIsConfirming] = useState(false);
+  const [cashfreeStatus, setCashfreeStatus] = useState<"closed" | "pending" | null>(null);
   const autoStartRef = useRef(false);
   const [pending] = useState(readPendingEnrollment);
   const [program, setProgram] = useState<ProgramDetailsResponse | null>(null);
@@ -120,6 +136,10 @@ export function EnrollmentCheckoutPage() {
   const [couponValidation, setCouponValidation] = useState<CouponValidationResponse | null>(null);
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (pending && !returnedOrderId) void loadCashfreeScript().catch(() => undefined);
+  }, [pending, returnedOrderId]);
 
   useEffect(() => {
     if (!pending) {
@@ -273,6 +293,7 @@ export function EnrollmentCheckoutPage() {
     }
     setIsPaying(true);
     setMessage(null);
+    setCashfreeStatus(null);
 
     try {
       const currentEnrollment = enrollment ?? (await studentLmsApi.createEnrollment({
@@ -403,21 +424,32 @@ export function EnrollmentCheckoutPage() {
     const target = { paymentTransactionId: currentCheckout.transaction.id, gatewayOrderId: currentCheckout.gatewayOrderId };
     if (result?.paymentDetails) {
       const outcome = await confirmWithGateway(target);
-      if (outcome === "pending") setMessage({ tone: "success", text: STILL_PROCESSING_MESSAGE });
+      if (outcome === "pending") {
+        setCashfreeStatus("pending");
+        setMessage({ tone: "success", text: STILL_PROCESSING_MESSAGE });
+      }
       return;
     }
 
-    // The pop-up closed without a success signal. A UPI payment can still be completing, so check
-    // briefly before treating it as cancelled. A late payment is still credited by the server.
+    // Closing the modal does not prove failure: the bank may still confirm this order.
     const outcome = await confirmWithGateway(target, 3);
     if (outcome !== "pending") return;
-    void studentLmsApi.markPaymentFailed(currentCheckout.transaction.id, {
-      failureReason: result?.error?.message ?? "Checkout was closed without payment confirmation."
-    });
+    setCashfreeStatus("closed");
     setMessage({
-      tone: "error",
-      text: "Payment was not completed. You can try again. If money was deducted, it is credited automatically — you will not be charged twice."
+      tone: "success",
+      text: result?.error?.message
+        ? `${result.error.message} No payment has been confirmed. If money was deducted, check payment status before trying again.`
+        : "Checkout was closed. No payment has been confirmed. If you already paid, check payment status before trying again."
     });
+  }
+
+  async function checkCashfreePayment() {
+    if (!checkout || isConfirming || isPaying) return;
+    const outcome = await confirmWithGateway({ paymentTransactionId: checkout.transaction.id, gatewayOrderId: checkout.gatewayOrderId });
+    if (outcome === "pending") {
+      setCashfreeStatus("pending");
+      setMessage({ tone: "success", text: STILL_PROCESSING_MESSAGE });
+    }
   }
 
   async function confirmPayment(currentCheckout: PaymentCheckoutResponse, gatewayResponse: RazorpaySuccess) {
@@ -482,6 +514,10 @@ export function EnrollmentCheckoutPage() {
         ? "Confirming your payment"
         : isPaying
         ? "Opening Cashfree checkout"
+        : cashfreeStatus === "pending"
+          ? "Payment is being processed"
+          : cashfreeStatus === "closed"
+            ? "Checkout closed"
         : checkout?.provider === "Development"
           ? "Test checkout is ready"
           : message?.tone === "error"
@@ -515,7 +551,12 @@ export function EnrollmentCheckoutPage() {
               <CreditCard size={18} /> Complete test payment
             </button>
           ) : null}
-          {message?.tone === "error" && !isConfirming ? (
+          {cashfreeStatus && !isConfirming ? (
+            <button className="secondary-action checkout-launcher__retry" type="button" disabled={isPaying} onClick={() => void checkCashfreePayment()}>
+              Check payment status
+            </button>
+          ) : null}
+          {(message?.tone === "error" || cashfreeStatus === "closed") && !isConfirming ? (
             <button className="secondary-action checkout-launcher__retry" type="button" disabled={isLoading || isPaying} onClick={() => void retryCheckout()}>
               Try again
             </button>
@@ -580,6 +621,7 @@ export function EnrollmentCheckoutPage() {
           <button className="primary-action checkout-pay-button" type="button" disabled={isLoading || !program || !selectedPlan || isPaying || isConfirming} onClick={() => void startPayment()}>
             <CreditCard size={18} /> {isConfirming ? "Confirming your payment..." : isPaying ? "Preparing secure checkout..." : isExpired ? "Start a new payment" : `Pay ${expectedAmount ? formatCurrency(expectedAmount) : paymentMode === 1 ? "initial amount" : "balance"}`}
           </button>
+          {cashfreeStatus ? <button className="secondary-action" type="button" disabled={isPaying || isConfirming} onClick={() => void checkCashfreePayment()}>Check payment status</button> : null}
           {checkout?.provider === "Development" ? (
             <button
               className="secondary-action checkout-test-button"

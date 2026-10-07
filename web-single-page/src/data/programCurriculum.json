@@ -1,0 +1,1309 @@
+{
+  "generative-ai": [
+    {
+      "title": "Generative AI fundamentals and large language models",
+      "text": "Explore tokens and context windows, transformer attention, and their practical applications.",
+      "lessons": [
+        "Tokens and context windows",
+        "Transformer attention",
+        "Pretraining versus fine-tuning",
+        "Text generation parameters",
+        "Model capabilities and limitations"
+      ]
+    },
+    {
+      "title": "Prompt engineering and structured prompting",
+      "text": "Explore system and user instructions, few-shot examples, and their practical applications.",
+      "lessons": [
+        "System and user instructions",
+        "Few-shot examples",
+        "Structured JSON outputs",
+        "Prompt injection awareness",
+        "Comparing prompt variants"
+      ]
+    },
+    {
+      "title": "Retrieval-Augmented Generation (RAG) workflows",
+      "text": "Explore document chunking, embedding similarity, and their practical applications.",
+      "lessons": [
+        "Document chunking",
+        "Embedding similarity",
+        "Vector indexing",
+        "Retrieval ranking",
+        "Grounded answers with citations"
+      ]
+    },
+    {
+      "title": "AI agents, tools, and automation",
+      "text": "Explore tool schemas, agent execution loops, and their practical applications.",
+      "lessons": [
+        "Tool schemas",
+        "Agent execution loops",
+        "Task routing",
+        "Workflow state",
+        "Human approval checkpoints"
+      ]
+    },
+    {
+      "title": "Building and evaluating AI-powered applications",
+      "text": "Explore model api integration, evaluation datasets, and their practical applications.",
+      "lessons": [
+        "Model API integration",
+        "Evaluation datasets",
+        "Hallucination checks",
+        "Latency and token costs",
+        "Application error handling"
+      ]
+    }
+  ],
+  "full-stack-web-development": [
+    {
+      "title": "HTML, CSS, JavaScript, and responsive web development",
+      "text": "Explore semantic html, css box model, and their practical applications.",
+      "lessons": [
+        "Semantic HTML",
+        "CSS box model",
+        "Flexbox and Grid",
+        "JavaScript events",
+        "Responsive breakpoints"
+      ]
+    },
+    {
+      "title": "Frontend development with modern frameworks",
+      "text": "Explore component composition, props and state, and their practical applications.",
+      "lessons": [
+        "Component composition",
+        "Props and state",
+        "Client-side routing",
+        "Form validation",
+        "Accessible UI interactions"
+      ]
+    },
+    {
+      "title": "Backend APIs, authentication, and server-side development",
+      "text": "Explore rest resource design, request validation, and their practical applications.",
+      "lessons": [
+        "REST resource design",
+        "Request validation",
+        "Password hashing",
+        "Session and token authentication",
+        "Role-based authorization"
+      ]
+    },
+    {
+      "title": "Databases, data modeling, and application integration",
+      "text": "Explore relational schema design, primary and foreign keys, and their practical applications.",
+      "lessons": [
+        "Relational schema design",
+        "Primary and foreign keys",
+        "SQL joins",
+        "Database migrations",
+        "API persistence integration"
+      ]
+    },
+    {
+      "title": "Deployment, version control, and production-ready applications",
+      "text": "Explore git branching, environment configuration, and their practical applications.",
+      "lessons": [
+        "Git branching",
+        "Environment configuration",
+        "Production builds",
+        "Deployment pipelines",
+        "Application logs and health checks"
+      ]
+    }
+  ],
+  "machine-learning": [
+    {
+      "title": "Machine learning fundamentals and data preparation",
+      "text": "Explore learning problem types, dataset splits, and their practical applications.",
+      "lessons": [
+        "Learning problem types",
+        "Dataset splits",
+        "Missing-value treatment",
+        "Encoding categorical data",
+        "Preventing data leakage"
+      ]
+    },
+    {
+      "title": "Supervised and unsupervised learning algorithms",
+      "text": "Explore linear and logistic regression, decision trees, and their practical applications.",
+      "lessons": [
+        "Linear and logistic regression",
+        "Decision trees",
+        "Ensemble methods",
+        "Clustering with k-means",
+        "Dimensionality reduction"
+      ]
+    },
+    {
+      "title": "Feature engineering and model evaluation",
+      "text": "Explore feature scaling, interaction features, and their practical applications.",
+      "lessons": [
+        "Feature scaling",
+        "Interaction features",
+        "Feature selection",
+        "Classification metrics",
+        "Regression error metrics"
+      ]
+    },
+    {
+      "title": "Model training, validation, and optimization",
+      "text": "Explore cross-validation, hyperparameter search, and their practical applications.",
+      "lessons": [
+        "Cross-validation",
+        "Hyperparameter search",
+        "Regularization",
+        "Learning curves",
+        "Class imbalance handling"
+      ]
+    },
+    {
+      "title": "Building and deploying practical ML solutions",
+      "text": "Explore model serialization, inference endpoints, and their practical applications.",
+      "lessons": [
+        "Model serialization",
+        "Inference endpoints",
+        "Input schema validation",
+        "Prediction monitoring",
+        "Model versioning"
+      ]
+    }
+  ],
+  "cyber-security-ethical-hacking": [
+    {
+      "title": "Cyber security fundamentals and threat awareness",
+      "text": "Explore confidentiality and integrity, threat actors, and their practical applications.",
+      "lessons": [
+        "Confidentiality and integrity",
+        "Threat actors",
+        "Attack surfaces",
+        "Security controls",
+        "Threat modelling"
+      ]
+    },
+    {
+      "title": "Network security and vulnerability identification",
+      "text": "Explore tcp/ip traffic, network segmentation, and their practical applications.",
+      "lessons": [
+        "TCP/IP traffic",
+        "Network segmentation",
+        "Firewall rules",
+        "Authorized vulnerability scans",
+        "Interpreting scan results"
+      ]
+    },
+    {
+      "title": "Web application security and common attacks",
+      "text": "Explore sql injection prevention, cross-site scripting defenses, and their practical applications.",
+      "lessons": [
+        "SQL injection prevention",
+        "Cross-site scripting defenses",
+        "Access-control failures",
+        "Session security",
+        "Secure input handling"
+      ]
+    },
+    {
+      "title": "Ethical hacking methodology and security testing",
+      "text": "Explore written testing scope, lab reconnaissance, and their practical applications.",
+      "lessons": [
+        "Written testing scope",
+        "Lab reconnaissance",
+        "Controlled exploit validation",
+        "Evidence collection",
+        "Responsible disclosure"
+      ]
+    },
+    {
+      "title": "Security reporting, mitigation, and best practices",
+      "text": "Explore severity prioritization, reproduction steps, and their practical applications.",
+      "lessons": [
+        "Severity prioritization",
+        "Reproduction steps",
+        "Remediation recommendations",
+        "Retesting fixes",
+        "Executive security summaries"
+      ]
+    }
+  ],
+  "data-analytics": [
+    {
+      "title": "Data collection, cleaning, and preparation",
+      "text": "Explore data source selection, importing spreadsheets, and their practical applications.",
+      "lessons": [
+        "Data source selection",
+        "Importing spreadsheets",
+        "Removing duplicates",
+        "Standardizing formats",
+        "Validating missing values"
+      ]
+    },
+    {
+      "title": "Exploratory data analysis and descriptive statistics",
+      "text": "Explore summary statistics, frequency distributions, and their practical applications.",
+      "lessons": [
+        "Summary statistics",
+        "Frequency distributions",
+        "Outlier inspection",
+        "Grouped comparisons",
+        "Correlation interpretation"
+      ]
+    },
+    {
+      "title": "Data visualization and dashboard development",
+      "text": "Explore chart selection, visual hierarchy, and their practical applications.",
+      "lessons": [
+        "Chart selection",
+        "Visual hierarchy",
+        "Dashboard filters",
+        "Accessible chart labels",
+        "Interactive drill-downs"
+      ]
+    },
+    {
+      "title": "Business-focused analysis and insight generation",
+      "text": "Explore defining business questions, customer segmentation, and their practical applications.",
+      "lessons": [
+        "Defining business questions",
+        "Customer segmentation",
+        "Sales trend analysis",
+        "Funnel drop-off analysis",
+        "Distinguishing correlation from causation"
+      ]
+    },
+    {
+      "title": "Reporting and data-driven decision making",
+      "text": "Explore writing insight summaries, comparing decision options, and their practical applications.",
+      "lessons": [
+        "Writing insight summaries",
+        "Comparing decision options",
+        "Explaining uncertainty",
+        "Reporting stakeholder KPIs",
+        "Scheduling recurring reports"
+      ]
+    }
+  ],
+  "data-science": [
+    {
+      "title": "Python for data science and data manipulation",
+      "text": "Explore python collections, numpy arrays, and their practical applications.",
+      "lessons": [
+        "Python collections",
+        "NumPy arrays",
+        "Pandas DataFrames",
+        "Merging datasets",
+        "Vectorized transformations"
+      ]
+    },
+    {
+      "title": "Statistics and exploratory data analysis",
+      "text": "Explore sampling distributions, hypothesis testing, and their practical applications.",
+      "lessons": [
+        "Sampling distributions",
+        "Hypothesis testing",
+        "Confidence intervals",
+        "Exploratory plots",
+        "Data quality profiling"
+      ]
+    },
+    {
+      "title": "Data visualization and storytelling",
+      "text": "Explore distribution charts, multivariate visualizations, and their practical applications.",
+      "lessons": [
+        "Distribution charts",
+        "Multivariate visualizations",
+        "Color and scale choices",
+        "Annotating findings",
+        "Building a visual narrative"
+      ]
+    },
+    {
+      "title": "Predictive modeling and machine learning foundations",
+      "text": "Explore baseline models, classification and regression, and their practical applications.",
+      "lessons": [
+        "Baseline models",
+        "Classification and regression",
+        "Training and test sets",
+        "Model performance measures",
+        "Overfitting prevention"
+      ]
+    },
+    {
+      "title": "End-to-end data science workflows",
+      "text": "Explore problem definition, reproducible notebooks, and their practical applications.",
+      "lessons": [
+        "Problem definition",
+        "Reproducible notebooks",
+        "Feature pipelines",
+        "Experiment tracking",
+        "Communicating model results"
+      ]
+    }
+  ],
+  "cloud-computing": [
+    {
+      "title": "Cloud computing concepts and service models",
+      "text": "Explore public and private clouds, iaas versus paas, and their practical applications.",
+      "lessons": [
+        "Public and private clouds",
+        "IaaS versus PaaS",
+        "SaaS delivery",
+        "Shared responsibility",
+        "Cloud pricing models"
+      ]
+    },
+    {
+      "title": "Cloud infrastructure, compute, storage, and networking",
+      "text": "Explore virtual machines, object and block storage, and their practical applications.",
+      "lessons": [
+        "Virtual machines",
+        "Object and block storage",
+        "Virtual networks",
+        "Subnets and routing",
+        "Load balancers"
+      ]
+    },
+    {
+      "title": "Cloud databases and application services",
+      "text": "Explore managed relational databases, nosql services, and their practical applications.",
+      "lessons": [
+        "Managed relational databases",
+        "NoSQL services",
+        "Serverless functions",
+        "Message queues",
+        "Application service configuration"
+      ]
+    },
+    {
+      "title": "Security, scalability, and monitoring in the cloud",
+      "text": "Explore identity permissions, secrets management, and their practical applications.",
+      "lessons": [
+        "Identity permissions",
+        "Secrets management",
+        "Autoscaling policies",
+        "Metrics and alerts",
+        "Backup and recovery"
+      ]
+    },
+    {
+      "title": "Deploying and managing cloud-based applications",
+      "text": "Explore infrastructure provisioning, application packaging, and their practical applications.",
+      "lessons": [
+        "Infrastructure provisioning",
+        "Application packaging",
+        "Environment separation",
+        "Deployment validation",
+        "Resource cleanup and cost control"
+      ]
+    }
+  ],
+  "devops": [
+    {
+      "title": "DevOps culture, practices, and development workflows",
+      "text": "Explore development and operations collaboration, continuous integration practices, and their practical applications.",
+      "lessons": [
+        "Development and operations collaboration",
+        "Continuous integration practices",
+        "Small-batch releases",
+        "Feedback loops",
+        "Delivery performance measures"
+      ]
+    },
+    {
+      "title": "Git and collaborative version control",
+      "text": "Explore commits and history, feature branches, and their practical applications.",
+      "lessons": [
+        "Commits and history",
+        "Feature branches",
+        "Pull requests",
+        "Merge conflict resolution",
+        "Release tags"
+      ]
+    },
+    {
+      "title": "CI/CD pipelines and automated delivery",
+      "text": "Explore pipeline stages, automated test gates, and their practical applications.",
+      "lessons": [
+        "Pipeline stages",
+        "Automated test gates",
+        "Build artifacts",
+        "Deployment approvals",
+        "Rollback workflows"
+      ]
+    },
+    {
+      "title": "Containers and application deployment",
+      "text": "Explore container images, dockerfiles, and their practical applications.",
+      "lessons": [
+        "Container images",
+        "Dockerfiles",
+        "Container networking",
+        "Persistent volumes",
+        "Service orchestration"
+      ]
+    },
+    {
+      "title": "Monitoring, automation, and release management",
+      "text": "Explore service metrics, centralized logging, and their practical applications.",
+      "lessons": [
+        "Service metrics",
+        "Centralized logging",
+        "Alert routing",
+        "Configuration automation",
+        "Release incident reviews"
+      ]
+    }
+  ],
+  "embedded-systems": [
+    {
+      "title": "Embedded systems architecture and fundamentals",
+      "text": "Explore embedded hardware blocks, memory maps, and their practical applications.",
+      "lessons": [
+        "Embedded hardware blocks",
+        "Memory maps",
+        "Processor execution",
+        "Power constraints",
+        "Hardware-software boundaries"
+      ]
+    },
+    {
+      "title": "Microcontrollers, sensors, and peripheral interfaces",
+      "text": "Explore gpio configuration, adc sensor readings, and their practical applications.",
+      "lessons": [
+        "GPIO configuration",
+        "ADC sensor readings",
+        "PWM output",
+        "Timer peripherals",
+        "Interrupt handling"
+      ]
+    },
+    {
+      "title": "Embedded C programming and hardware interaction",
+      "text": "Explore c pointers and registers, bitwise operations, and their practical applications.",
+      "lessons": [
+        "C pointers and registers",
+        "Bitwise operations",
+        "Volatile variables",
+        "Memory allocation constraints",
+        "Hardware abstraction layers"
+      ]
+    },
+    {
+      "title": "Communication protocols and device integration",
+      "text": "Explore uart communication, spi bus transfers, and their practical applications.",
+      "lessons": [
+        "UART communication",
+        "SPI bus transfers",
+        "I2C addressing",
+        "CAN message structure",
+        "Protocol debugging"
+      ]
+    },
+    {
+      "title": "Real-time embedded application development",
+      "text": "Explore task scheduling, real-time deadlines, and their practical applications.",
+      "lessons": [
+        "Task scheduling",
+        "Real-time deadlines",
+        "Inter-task synchronization",
+        "Watchdog recovery",
+        "Timing measurements"
+      ]
+    }
+  ],
+  "vlsi": [
+    {
+      "title": "Digital electronics and VLSI fundamentals",
+      "text": "Explore boolean algebra, logic gates, and their practical applications.",
+      "lessons": [
+        "Boolean algebra",
+        "Logic gates",
+        "CMOS basics",
+        "Timing constraints",
+        "Chip design hierarchy"
+      ]
+    },
+    {
+      "title": "HDL-based digital design",
+      "text": "Explore verilog module syntax, ports and signals, and their practical applications.",
+      "lessons": [
+        "Verilog module syntax",
+        "Ports and signals",
+        "Behavioral modelling",
+        "Structural modelling",
+        "Synthesizable HDL"
+      ]
+    },
+    {
+      "title": "Combinational and sequential circuit design",
+      "text": "Explore multiplexers and decoders, arithmetic circuits, and their practical applications.",
+      "lessons": [
+        "Multiplexers and decoders",
+        "Arithmetic circuits",
+        "Flip-flops",
+        "Counters and registers",
+        "Finite-state machines"
+      ]
+    },
+    {
+      "title": "Simulation, verification, and synthesis concepts",
+      "text": "Explore hdl testbenches, waveform inspection, and their practical applications.",
+      "lessons": [
+        "HDL testbenches",
+        "Waveform inspection",
+        "Functional coverage concepts",
+        "Logic synthesis",
+        "Timing report interpretation"
+      ]
+    },
+    {
+      "title": "VLSI design flow and implementation fundamentals",
+      "text": "Explore rtl-to-gates flow, floorplanning, and their practical applications.",
+      "lessons": [
+        "RTL-to-gates flow",
+        "Floorplanning",
+        "Placement and routing",
+        "Clock tree concepts",
+        "Physical verification checks"
+      ]
+    }
+  ],
+  "solidworks": [
+    {
+      "title": "3D part modelling and sketching",
+      "text": "Explore sketch constraints, reference planes, and their practical applications.",
+      "lessons": [
+        "Sketch constraints",
+        "Reference planes",
+        "Extrudes and revolves",
+        "Fillets and chamfers",
+        "Parametric dimensions"
+      ]
+    },
+    {
+      "title": "Assemblies, mates, and mechanical relationships",
+      "text": "Explore component insertion, assembly mates, and their practical applications.",
+      "lessons": [
+        "Component insertion",
+        "Assembly mates",
+        "Degrees of freedom",
+        "Interference detection",
+        "Exploded assembly views"
+      ]
+    },
+    {
+      "title": "Engineering drawings and detailing",
+      "text": "Explore orthographic projections, section views, and their practical applications.",
+      "lessons": [
+        "Orthographic projections",
+        "Section views",
+        "Dimension placement",
+        "Geometric tolerances",
+        "Bills of materials"
+      ]
+    },
+    {
+      "title": "Surface and advanced modelling techniques",
+      "text": "Explore sweeps and lofts, surface trimming, and their practical applications.",
+      "lessons": [
+        "Sweeps and lofts",
+        "Surface trimming",
+        "Boundary surfaces",
+        "Shell features",
+        "Multibody modelling"
+      ]
+    },
+    {
+      "title": "Design documentation and practical CAD workflows",
+      "text": "Explore design configurations, drawing revision control, and their practical applications.",
+      "lessons": [
+        "Design configurations",
+        "Drawing revision control",
+        "Material assignment",
+        "Mass properties",
+        "Manufacturing file exports"
+      ]
+    },
+    {
+      "title": "Creo interface, sketches, and parametric modelling",
+      "text": "Explore creo workspace navigation, sketch constraints, and their practical applications.",
+      "lessons": [
+        "Creo workspace navigation",
+        "Sketch constraints",
+        "Datum planes",
+        "Parametric dimensions",
+        "Model tree organization"
+      ]
+    },
+    {
+      "title": "Part design and feature-based modelling",
+      "text": "Explore extrude features, revolve features, and their practical applications.",
+      "lessons": [
+        "Extrude features",
+        "Revolve features",
+        "Hole creation",
+        "Feature patterns",
+        "Parent-child dependencies"
+      ]
+    },
+    {
+      "title": "Assemblies and component relationships",
+      "text": "Explore component placement, assembly constraints, and their practical applications.",
+      "lessons": [
+        "Component placement",
+        "Assembly constraints",
+        "Subassemblies",
+        "Clearance checks",
+        "Exploded states"
+      ]
+    },
+    {
+      "title": "Engineering drawings and design documentation",
+      "text": "Explore drawing views, cross sections, and their practical applications.",
+      "lessons": [
+        "Drawing views",
+        "Cross sections",
+        "Dimension annotations",
+        "Drawing formats",
+        "Parts lists"
+      ]
+    },
+    {
+      "title": "Practical mechanical design workflows in Creo",
+      "text": "Explore design intent, family tables, and their practical applications.",
+      "lessons": [
+        "Design intent",
+        "Family tables",
+        "Model regeneration",
+        "Engineering change updates",
+        "STEP export validation"
+      ]
+    }
+  ],
+  "solidworks-creo": [
+    {
+      "title": "3D part modelling and sketching",
+      "text": "Explore sketch constraints, reference planes, and their practical applications.",
+      "lessons": [
+        "Sketch constraints",
+        "Reference planes",
+        "Extrudes and revolves",
+        "Fillets and chamfers",
+        "Parametric dimensions"
+      ]
+    },
+    {
+      "title": "Assemblies, mates, and mechanical relationships",
+      "text": "Explore component insertion, assembly mates, and their practical applications.",
+      "lessons": [
+        "Component insertion",
+        "Assembly mates",
+        "Degrees of freedom",
+        "Interference detection",
+        "Exploded assembly views"
+      ]
+    },
+    {
+      "title": "Engineering drawings and detailing",
+      "text": "Explore orthographic projections, section views, and their practical applications.",
+      "lessons": [
+        "Orthographic projections",
+        "Section views",
+        "Dimension placement",
+        "Geometric tolerances",
+        "Bills of materials"
+      ]
+    },
+    {
+      "title": "Surface and advanced modelling techniques",
+      "text": "Explore sweeps and lofts, surface trimming, and their practical applications.",
+      "lessons": [
+        "Sweeps and lofts",
+        "Surface trimming",
+        "Boundary surfaces",
+        "Shell features",
+        "Multibody modelling"
+      ]
+    },
+    {
+      "title": "Design documentation and practical CAD workflows",
+      "text": "Explore design configurations, drawing revision control, and their practical applications.",
+      "lessons": [
+        "Design configurations",
+        "Drawing revision control",
+        "Material assignment",
+        "Mass properties",
+        "Manufacturing file exports"
+      ]
+    },
+    {
+      "title": "Creo interface, sketches, and parametric modelling",
+      "text": "Explore creo workspace navigation, sketch constraints, and their practical applications.",
+      "lessons": [
+        "Creo workspace navigation",
+        "Sketch constraints",
+        "Datum planes",
+        "Parametric dimensions",
+        "Model tree organization"
+      ]
+    },
+    {
+      "title": "Part design and feature-based modelling",
+      "text": "Explore extrude features, revolve features, and their practical applications.",
+      "lessons": [
+        "Extrude features",
+        "Revolve features",
+        "Hole creation",
+        "Feature patterns",
+        "Parent-child dependencies"
+      ]
+    },
+    {
+      "title": "Assemblies and component relationships",
+      "text": "Explore component placement, assembly constraints, and their practical applications.",
+      "lessons": [
+        "Component placement",
+        "Assembly constraints",
+        "Subassemblies",
+        "Clearance checks",
+        "Exploded states"
+      ]
+    },
+    {
+      "title": "Engineering drawings and design documentation",
+      "text": "Explore drawing views, cross sections, and their practical applications.",
+      "lessons": [
+        "Drawing views",
+        "Cross sections",
+        "Dimension annotations",
+        "Drawing formats",
+        "Parts lists"
+      ]
+    },
+    {
+      "title": "Practical mechanical design workflows in Creo",
+      "text": "Explore design intent, family tables, and their practical applications.",
+      "lessons": [
+        "Design intent",
+        "Family tables",
+        "Model regeneration",
+        "Engineering change updates",
+        "STEP export validation"
+      ]
+    }
+  ],
+  "autocad": [
+    {
+      "title": "AutoCAD interface, drawing setup, and drafting basics",
+      "text": "Explore workspace navigation, drawing units, and their practical applications.",
+      "lessons": [
+        "Workspace navigation",
+        "Drawing units",
+        "Coordinate entry",
+        "Object snaps",
+        "Basic line and shape commands"
+      ]
+    },
+    {
+      "title": "2D drawing, dimensions, and annotations",
+      "text": "Explore polyline editing, trim and extend, and their practical applications.",
+      "lessons": [
+        "Polyline editing",
+        "Trim and extend",
+        "Dimension styles",
+        "Text annotations",
+        "Hatch patterns"
+      ]
+    },
+    {
+      "title": "Layers, blocks, and drawing standards",
+      "text": "Explore layer properties, reusable blocks, and their practical applications.",
+      "lessons": [
+        "Layer properties",
+        "Reusable blocks",
+        "Block attributes",
+        "Lineweight standards",
+        "External references"
+      ]
+    },
+    {
+      "title": "Layouts, plotting, and documentation",
+      "text": "Explore paper space layouts, viewport scales, and their practical applications.",
+      "lessons": [
+        "Paper space layouts",
+        "Viewport scales",
+        "Page setup",
+        "Plot styles",
+        "PDF sheet export"
+      ]
+    },
+    {
+      "title": "Practical engineering and architectural drafting workflows",
+      "text": "Explore floor plan drafting, mechanical detail drawings, and their practical applications.",
+      "lessons": [
+        "Floor plan drafting",
+        "Mechanical detail drawings",
+        "Section and elevation drafting",
+        "Drawing coordination",
+        "Drafting quality checks"
+      ]
+    }
+  ],
+  "hev-management": [
+    {
+      "title": "Hybrid electric vehicle fundamentals and architecture",
+      "text": "Explore series hybrid layouts, parallel hybrid layouts, and their practical applications.",
+      "lessons": [
+        "Series hybrid layouts",
+        "Parallel hybrid layouts",
+        "Power-split architecture",
+        "Vehicle operating modes",
+        "Hybrid component roles"
+      ]
+    },
+    {
+      "title": "Electric motors, batteries, and energy storage",
+      "text": "Explore motor torque-speed curves, battery cell chemistry, and their practical applications.",
+      "lessons": [
+        "Motor torque-speed curves",
+        "Battery cell chemistry",
+        "Battery pack configuration",
+        "State of charge",
+        "Thermal management"
+      ]
+    },
+    {
+      "title": "Power electronics and vehicle energy management",
+      "text": "Explore inverters, dc-dc converters, and their practical applications.",
+      "lessons": [
+        "Inverters",
+        "DC-DC converters",
+        "Regenerative braking",
+        "Power flow allocation",
+        "Energy conversion losses"
+      ]
+    },
+    {
+      "title": "Hybrid powertrain components and control concepts",
+      "text": "Explore engine-motor coordination, transmission coupling, and their practical applications.",
+      "lessons": [
+        "Engine-motor coordination",
+        "Transmission coupling",
+        "Control sensor inputs",
+        "Supervisory control logic",
+        "Drive-cycle response"
+      ]
+    },
+    {
+      "title": "Vehicle efficiency, charging, and system integration",
+      "text": "Explore energy consumption metrics, charging interfaces, and their practical applications.",
+      "lessons": [
+        "Energy consumption metrics",
+        "Charging interfaces",
+        "Battery charging stages",
+        "System integration constraints",
+        "Efficiency trade-offs"
+      ]
+    }
+  ],
+  "finance": [
+    {
+      "title": "Financial management fundamentals",
+      "text": "Explore time value of money, revenue and costs, and their practical applications.",
+      "lessons": [
+        "Time value of money",
+        "Revenue and costs",
+        "Profitability measures",
+        "Working capital",
+        "Financing sources"
+      ]
+    },
+    {
+      "title": "Financial statements and financial analysis",
+      "text": "Explore income statements, balance sheets, and their practical applications.",
+      "lessons": [
+        "Income statements",
+        "Balance sheets",
+        "Cash flow statements",
+        "Liquidity ratios",
+        "Financial trend comparisons"
+      ]
+    },
+    {
+      "title": "Budgeting, forecasting, and cash-flow management",
+      "text": "Explore budget assumptions, revenue forecasts, and their practical applications.",
+      "lessons": [
+        "Budget assumptions",
+        "Revenue forecasts",
+        "Expense forecasts",
+        "Cash flow scenarios",
+        "Budget variance analysis"
+      ]
+    },
+    {
+      "title": "Investment and risk fundamentals",
+      "text": "Explore risk-return relationships, asset classes, and their practical applications.",
+      "lessons": [
+        "Risk-return relationships",
+        "Asset classes",
+        "Diversification",
+        "Investment appraisal",
+        "Sensitivity analysis"
+      ]
+    },
+    {
+      "title": "Business finance decision-making and reporting",
+      "text": "Explore capital allocation, cost-volume-profit analysis, and their practical applications.",
+      "lessons": [
+        "Capital allocation",
+        "Cost-volume-profit analysis",
+        "Scenario comparisons",
+        "Management finance dashboards",
+        "Documenting financial assumptions"
+      ]
+    }
+  ],
+  "stock-market": [
+    {
+      "title": "Stock market fundamentals and market structure",
+      "text": "Explore exchange functions, market participants, and their practical applications.",
+      "lessons": [
+        "Exchange functions",
+        "Market participants",
+        "Primary and secondary markets",
+        "Order types",
+        "Settlement concepts"
+      ]
+    },
+    {
+      "title": "Equity analysis and financial indicators",
+      "text": "Explore earnings per share, price-to-earnings ratios, and their practical applications.",
+      "lessons": [
+        "Earnings per share",
+        "Price-to-earnings ratios",
+        "Revenue growth",
+        "Debt and cash flows",
+        "Sector comparisons"
+      ]
+    },
+    {
+      "title": "Technical analysis and chart interpretation",
+      "text": "Explore candlestick interpretation, support and resistance, and their practical applications.",
+      "lessons": [
+        "Candlestick interpretation",
+        "Support and resistance",
+        "Trendlines",
+        "Moving averages",
+        "Volume confirmation"
+      ]
+    },
+    {
+      "title": "Risk management and portfolio basics",
+      "text": "Explore position sizing, stop-loss planning, and their practical applications.",
+      "lessons": [
+        "Position sizing",
+        "Stop-loss planning",
+        "Portfolio diversification",
+        "Drawdown measures",
+        "Risk-reward assessment"
+      ]
+    },
+    {
+      "title": "Trading and investment decision frameworks",
+      "text": "Explore investment thesis development, trading rule definition, and their practical applications.",
+      "lessons": [
+        "Investment thesis development",
+        "Trading rule definition",
+        "Historical backtesting",
+        "Transaction cost assumptions",
+        "Trade journal review"
+      ]
+    }
+  ],
+  "digital-marketing": [
+    {
+      "title": "Digital marketing strategy and customer journeys",
+      "text": "Explore buyer personas, funnel stages, and their practical applications.",
+      "lessons": [
+        "Buyer personas",
+        "Funnel stages",
+        "Channel selection",
+        "Campaign objectives",
+        "Customer touchpoint mapping"
+      ]
+    },
+    {
+      "title": "Search engine optimization and content marketing",
+      "text": "Explore keyword intent, on-page seo, and their practical applications.",
+      "lessons": [
+        "Keyword intent",
+        "On-page SEO",
+        "Technical website checks",
+        "Editorial calendars",
+        "Content distribution"
+      ]
+    },
+    {
+      "title": "Social media marketing and campaign planning",
+      "text": "Explore platform audience research, social content formats, and their practical applications.",
+      "lessons": [
+        "Platform audience research",
+        "Social content formats",
+        "Campaign calendars",
+        "Community engagement",
+        "Social performance reporting"
+      ]
+    },
+    {
+      "title": "Paid advertising and performance metrics",
+      "text": "Explore ad audience targeting, ad creative variants, and their practical applications.",
+      "lessons": [
+        "Ad audience targeting",
+        "Ad creative variants",
+        "Bidding concepts",
+        "Cost per acquisition",
+        "Return on ad spend"
+      ]
+    },
+    {
+      "title": "Analytics, conversion tracking, and campaign optimization",
+      "text": "Explore analytics events, conversion goals, and their practical applications.",
+      "lessons": [
+        "Analytics events",
+        "Conversion goals",
+        "UTM campaign tags",
+        "A/B testing",
+        "Funnel optimization"
+      ]
+    }
+  ],
+  "business-analytics": [
+    {
+      "title": "Business analytics fundamentals and problem framing",
+      "text": "Explore stakeholder objectives, measurable problem statements, and their practical applications.",
+      "lessons": [
+        "Stakeholder objectives",
+        "Measurable problem statements",
+        "Analytics scope",
+        "Decision criteria",
+        "Success metrics"
+      ]
+    },
+    {
+      "title": "Data preparation and exploratory analysis",
+      "text": "Explore data source profiling, joining business datasets, and their practical applications.",
+      "lessons": [
+        "Data source profiling",
+        "Joining business datasets",
+        "Missing-data strategies",
+        "Outlier review",
+        "Segment-level exploration"
+      ]
+    },
+    {
+      "title": "Business dashboards and KPI tracking",
+      "text": "Explore kpi definitions, dimensional data models, and their practical applications.",
+      "lessons": [
+        "KPI definitions",
+        "Dimensional data models",
+        "Dashboard layout",
+        "Target-versus-actual tracking",
+        "Data refresh checks"
+      ]
+    },
+    {
+      "title": "Predictive and decision-oriented analytics",
+      "text": "Explore demand forecasting, customer churn modelling, and their practical applications.",
+      "lessons": [
+        "Demand forecasting",
+        "Customer churn modelling",
+        "Scenario analysis",
+        "Optimization constraints",
+        "Model evaluation for decisions"
+      ]
+    },
+    {
+      "title": "Communicating insights for business decisions",
+      "text": "Explore executive summaries, evidence-based recommendations, and their practical applications.",
+      "lessons": [
+        "Executive summaries",
+        "Evidence-based recommendations",
+        "Visualization narratives",
+        "Explaining analytical limitations",
+        "Action ownership and follow-up"
+      ]
+    }
+  ],
+  "international-business-management": [
+    {
+      "title": "IBM ecosystem and enterprise technology fundamentals",
+      "text": "Explore ibm enterprise product landscape, enterprise architecture layers, and their practical applications.",
+      "lessons": [
+        "IBM enterprise product landscape",
+        "Enterprise architecture layers",
+        "Platform integration concepts",
+        "Technology selection criteria",
+        "Business technology requirements"
+      ]
+    },
+    {
+      "title": "Enterprise data and analytics concepts",
+      "text": "Explore enterprise data sources, data quality rules, and their practical applications.",
+      "lessons": [
+        "Enterprise data sources",
+        "Data quality rules",
+        "SQL-based analysis",
+        "Cognos report concepts",
+        "Analytics governance"
+      ]
+    },
+    {
+      "title": "Cloud and AI solutions in business environments",
+      "text": "Explore ibm cloud service concepts, cloud access controls, and their practical applications.",
+      "lessons": [
+        "IBM Cloud service concepts",
+        "Cloud access controls",
+        "Watsonx model workflows",
+        "Business AI use cases",
+        "Responsible AI evaluation"
+      ]
+    },
+    {
+      "title": "Enterprise workflows and technology use cases",
+      "text": "Explore process mapping, automation opportunities, and their practical applications.",
+      "lessons": [
+        "Process mapping",
+        "Automation opportunities",
+        "System integration points",
+        "Workflow exception handling",
+        "Business impact measures"
+      ]
+    },
+    {
+      "title": "Practical application of IBM-oriented technologies",
+      "text": "Explore cloud application setup, cognos dashboard prototyping, and their practical applications.",
+      "lessons": [
+        "Cloud application setup",
+        "Cognos dashboard prototyping",
+        "Watsonx prompt experiments",
+        "API integration exercises",
+        "Enterprise solution demonstration"
+      ]
+    }
+  ],
+  "hrm": [
+    {
+      "title": "Human resource management fundamentals",
+      "text": "Explore employee lifecycle, hr responsibilities, and their practical applications.",
+      "lessons": [
+        "Employee lifecycle",
+        "HR responsibilities",
+        "Organizational structures",
+        "Workplace ethics",
+        "People policy foundations"
+      ]
+    },
+    {
+      "title": "Recruitment, selection, and onboarding",
+      "text": "Explore job descriptions, candidate sourcing, and their practical applications.",
+      "lessons": [
+        "Job descriptions",
+        "Candidate sourcing",
+        "Structured screening",
+        "Interview scorecards",
+        "New-hire onboarding plans"
+      ]
+    },
+    {
+      "title": "Performance management and employee development",
+      "text": "Explore goals and kras, performance review cycles, and their practical applications.",
+      "lessons": [
+        "Goals and KRAs",
+        "Performance review cycles",
+        "Constructive feedback",
+        "Training needs analysis",
+        "Individual development plans"
+      ]
+    },
+    {
+      "title": "Compensation, engagement, and retention",
+      "text": "Explore salary structure components, employee benefits, and their practical applications.",
+      "lessons": [
+        "Salary structure components",
+        "Employee benefits",
+        "Engagement surveys",
+        "Retention drivers",
+        "Recognition practices"
+      ]
+    },
+    {
+      "title": "HR operations, policies, and people analytics",
+      "text": "Explore employee records, attendance and leave workflows, and their practical applications.",
+      "lessons": [
+        "Employee records",
+        "Attendance and leave workflows",
+        "Policy documentation",
+        "Attrition metrics",
+        "Workforce dashboards"
+      ]
+    }
+  ],
+  "ui-ux-design": [
+    {
+      "title": "User research and problem definition",
+      "text": "Understand users and turn research into a clear design problem.",
+      "lessons": [
+        "Research objectives",
+        "Interview guides",
+        "Usability observations",
+        "Affinity mapping",
+        "Problem statements"
+      ]
+    },
+    {
+      "title": "Information architecture and user journeys",
+      "text": "Organize content and map how users complete key tasks.",
+      "lessons": [
+        "Content inventories",
+        "Card sorting",
+        "Navigation hierarchy",
+        "Task flows",
+        "Journey maps"
+      ]
+    },
+    {
+      "title": "Wireframing and interaction design",
+      "text": "Translate user flows into screens and meaningful interactions.",
+      "lessons": [
+        "Low-fidelity wireframes",
+        "Layout hierarchy",
+        "Form interactions",
+        "Error and empty states",
+        "Responsive screen patterns"
+      ]
+    },
+    {
+      "title": "Visual design and interactive prototypes",
+      "text": "Create consistent interfaces and testable prototypes in Figma.",
+      "lessons": [
+        "Typography scales",
+        "Accessible color contrast",
+        "Reusable components",
+        "Auto Layout",
+        "Prototype transitions"
+      ]
+    },
+    {
+      "title": "Usability testing and design handoff",
+      "text": "Validate design decisions and prepare clear implementation guidance.",
+      "lessons": [
+        "Task-based usability tests",
+        "Participant feedback synthesis",
+        "Design iteration",
+        "Developer specifications",
+        "Portfolio case studies"
+      ]
+    }
+  ]
+}
