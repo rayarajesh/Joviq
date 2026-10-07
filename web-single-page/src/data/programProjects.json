@@ -1,0 +1,2353 @@
+{
+  "full-stack-web-development": [
+    {
+      "title": "E-Commerce Web Platform",
+      "text": "A practical e-commerce web platform project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Product catalog & search",
+        "Cart and checkout flow",
+        "Order management",
+        "Customer authentication",
+        "Responsive storefront"
+      ],
+      "technologies": [
+        "React",
+        "TypeScript",
+        "Node.js",
+        "Express",
+        "PostgreSQL",
+        "Stripe API",
+        "Git"
+      ]
+    },
+    {
+      "title": "Real-Time Collaboration Web App",
+      "text": "A practical real-time collaboration web app project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Live rooms & presence",
+        "Instant messaging",
+        "WebSocket updates",
+        "Shared activity feed",
+        "Conflict-safe state handling"
+      ],
+      "technologies": [
+        "React",
+        "TypeScript",
+        "Node.js",
+        "Socket.IO",
+        "Redis",
+        "PostgreSQL",
+        "Git"
+      ]
+    },
+    {
+      "title": "Learning Management System",
+      "text": "A practical learning management system project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Course catalog",
+        "Student enrollment",
+        "Video lesson tracking",
+        "Instructor dashboard",
+        "Progress and assessment management"
+      ],
+      "technologies": [
+        "React",
+        "TypeScript",
+        "Node.js",
+        "Express",
+        "PostgreSQL",
+        "Cloudinary",
+        "JWT"
+      ]
+    },
+    {
+      "title": "Job & Recruitment Portal",
+      "text": "A practical job & recruitment portal project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Job search & filtering",
+        "Candidate profiles",
+        "Resume upload",
+        "Employer job posting",
+        "Application tracking"
+      ],
+      "technologies": [
+        "React",
+        "TypeScript",
+        "Node.js",
+        "Express",
+        "PostgreSQL",
+        "Cloudinary",
+        "JWT"
+      ]
+    },
+    {
+      "title": "Service Booking Platform",
+      "text": "A practical service booking platform project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Service discovery",
+        "Slot availability",
+        "Booking workflow",
+        "Customer notifications",
+        "Provider management"
+      ],
+      "technologies": [
+        "React",
+        "TypeScript",
+        "Node.js",
+        "Express",
+        "PostgreSQL",
+        "Redis",
+        "Nodemailer"
+      ]
+    },
+    {
+      "title": "Inventory & Order Management System",
+      "text": "A practical inventory & order management system project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Product stock tracking",
+        "Purchase and sales orders",
+        "Low-stock alerts",
+        "Supplier records",
+        "Inventory reports"
+      ],
+      "technologies": [
+        "React",
+        "TypeScript",
+        "Node.js",
+        "Express",
+        "PostgreSQL",
+        "Prisma",
+        "Chart.js"
+      ]
+    }
+  ],
+  "generative-ai": [
+    {
+      "title": "AI-Powered Customer Support Assistant",
+      "text": "A practical ai-powered customer support assistant project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Intent detection",
+        "Context-aware replies",
+        "Conversation history",
+        "Agent escalation",
+        "Response evaluation"
+      ],
+      "technologies": [
+        "Python",
+        "OpenAI API",
+        "FastAPI",
+        "LangChain",
+        "PostgreSQL",
+        "Redis"
+      ]
+    },
+    {
+      "title": "Document Q&A with RAG",
+      "text": "A practical document q&a; with rag project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "PDF/document ingestion",
+        "Chunking & retrieval",
+        "Source-grounded answers",
+        "Citation handling",
+        "Query history"
+      ],
+      "technologies": [
+        "Python",
+        "LlamaIndex",
+        "OpenAI Embeddings",
+        "FAISS",
+        "PyPDF",
+        "Streamlit"
+      ]
+    },
+    {
+      "title": "AI Content Generation Platform",
+      "text": "A practical ai content generation platform project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Prompt-driven content workflows",
+        "Tone and length controls",
+        "Template library",
+        "Revision support",
+        "Content export"
+      ],
+      "technologies": [
+        "Python",
+        "OpenAI API",
+        "LangChain",
+        "FastAPI",
+        "PostgreSQL",
+        "Streamlit"
+      ]
+    },
+    {
+      "title": "Resume & Career Assistant",
+      "text": "A practical resume & career assistant project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Resume parsing",
+        "Skill-gap analysis",
+        "Job matching",
+        "Career recommendations",
+        "Personalized guidance"
+      ],
+      "technologies": [
+        "Python",
+        "OpenAI API",
+        "FastAPI",
+        "spaCy",
+        "PostgreSQL",
+        "React"
+      ]
+    },
+    {
+      "title": "Intelligent Study Assistant",
+      "text": "A practical intelligent study assistant project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Question generation",
+        "Personalized explanations",
+        "Study plans",
+        "Contextual Q&A",
+        "Learning progress"
+      ],
+      "technologies": [
+        "Python",
+        "OpenAI API",
+        "LangChain",
+        "FastAPI",
+        "ChromaDB",
+        "Streamlit"
+      ]
+    },
+    {
+      "title": "Meeting Summarization System",
+      "text": "A practical meeting summarization system project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Audio transcription",
+        "Speaker segmentation",
+        "Meeting summary",
+        "Action-item extraction",
+        "Searchable notes"
+      ],
+      "technologies": [
+        "Python",
+        "Whisper",
+        "OpenAI API",
+        "FastAPI",
+        "PostgreSQL",
+        "Streamlit"
+      ]
+    }
+  ],
+  "machine-learning": [
+    {
+      "title": "Customer Churn Prediction",
+      "text": "A practical customer churn prediction project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Churn probability scoring",
+        "Customer risk tiers",
+        "Feature preparation",
+        "Model evaluation",
+        "Retention insights"
+      ],
+      "technologies": [
+        "Python",
+        "Pandas",
+        "Scikit-learn",
+        "XGBoost",
+        "SHAP",
+        "Jupyter"
+      ]
+    },
+    {
+      "title": "House Price Prediction",
+      "text": "A practical house price prediction project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Price prediction model",
+        "Feature engineering",
+        "Error analysis",
+        "Price comparison",
+        "Model interpretation"
+      ],
+      "technologies": [
+        "Python",
+        "Pandas",
+        "Scikit-learn",
+        "XGBoost",
+        "Matplotlib",
+        "Jupyter"
+      ]
+    },
+    {
+      "title": "Fraud Detection Model",
+      "text": "A practical fraud detection model project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Transaction feature engineering",
+        "Class- imbalance handling",
+        "Fraud scoring",
+        "Threshold tuning",
+        "Model explainability"
+      ],
+      "technologies": [
+        "Python",
+        "Pandas",
+        "Scikit-learn",
+        "XGBoost",
+        "imbalanced-learn",
+        "SHAP"
+      ]
+    },
+    {
+      "title": "Customer Segmentation System",
+      "text": "A practical customer segmentation system project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Customer clustering",
+        "Segment profiling",
+        "Cluster validation",
+        "Visual segment maps",
+        "Business recommendations"
+      ],
+      "technologies": [
+        "Python",
+        "Pandas",
+        "Scikit-learn",
+        "KMeans",
+        "PCA",
+        "Plotly"
+      ]
+    },
+    {
+      "title": "Recommendation Engine",
+      "text": "A practical recommendation engine project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "User-item modelling",
+        "Similarity scoring",
+        "Recommendation ranking",
+        "Cold-start handling",
+        "Oﬄine evaluation"
+      ],
+      "technologies": [
+        "Python",
+        "Pandas",
+        "Scikit-learn",
+        "Surprise",
+        "NumPy",
+        "Jupyter"
+      ]
+    },
+    {
+      "title": "Demand Prediction Model",
+      "text": "A practical demand prediction model project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Time-series feature creation",
+        "Demand forecasting",
+        "Seasonality analysis",
+        "Forecast evaluation",
+        "Inventory signals"
+      ],
+      "technologies": [
+        "Python",
+        "Pandas",
+        "Statsmodels",
+        "XGBoost",
+        "Matplotlib",
+        "Jupyter"
+      ]
+    }
+  ],
+  "data-science": [
+    {
+      "title": "Sales Forecasting & Insights",
+      "text": "A practical sales forecasting & insights project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Sales trend analysis",
+        "Forecast generation",
+        "Product/channel comparison",
+        "Variance analysis",
+        "Decision-ready insights"
+      ],
+      "technologies": [
+        "Python",
+        "Pandas",
+        "Statsmodels",
+        "Plotly",
+        "Jupyter",
+        "Excel"
+      ]
+    },
+    {
+      "title": "Customer Behaviour Analysis",
+      "text": "A practical customer behaviour analysis project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Customer cohorts",
+        "Behaviour trends",
+        "Retention analysis",
+        "Segment profiling",
+        "Actionable customer insights"
+      ],
+      "technologies": [
+        "Python",
+        "Pandas",
+        "NumPy",
+        "Plotly",
+        "SQL",
+        "Jupyter"
+      ]
+    },
+    {
+      "title": "Healthcare Analytics Case Study",
+      "text": "A practical healthcare analytics case study project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Patient/visit trend analysis",
+        "Data quality checks",
+        "Outcome exploration",
+        "Risk indicators",
+        "Privacy- aware reporting"
+      ],
+      "technologies": [
+        "Python",
+        "Pandas",
+        "NumPy",
+        "Seaborn",
+        "Jupyter",
+        "SQL"
+      ]
+    },
+    {
+      "title": "Financial Risk Prediction",
+      "text": "A practical financial risk prediction project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Risk-factor analysis",
+        "Probability modelling",
+        "Feature importance",
+        "Scenario comparison",
+        "Decision recommendations"
+      ],
+      "technologies": [
+        "Python",
+        "Pandas",
+        "Scikit-learn",
+        "XGBoost",
+        "SHAP",
+        "Jupyter"
+      ]
+    },
+    {
+      "title": "Product Recommendation Analysis",
+      "text": "A practical product recommendation analysis project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Recommendation candidates",
+        "Customer-product matching",
+        "Ranking analysis",
+        "Evaluation metrics",
+        "Insight reporting"
+      ],
+      "technologies": [
+        "Python",
+        "Pandas",
+        "Scikit-learn",
+        "Surprise",
+        "Plotly",
+        "Jupyter"
+      ]
+    },
+    {
+      "title": "Social Media Sentiment Analysis",
+      "text": "A practical social media sentiment analysis project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Text preprocessing",
+        "Sentiment classification",
+        "Topic trends",
+        "Social channel comparison",
+        "Sentiment dashboard"
+      ],
+      "technologies": [
+        "Python",
+        "Pandas",
+        "NLTK",
+        "VADER",
+        "Plotly",
+        "Jupyter"
+      ]
+    }
+  ],
+  "data-analytics": [
+    {
+      "title": "Sales Performance Dashboard",
+      "text": "A practical sales performance dashboard project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Sales KPI tracking",
+        "Target vs actual",
+        "Regional drill-down",
+        "Rep performance",
+        "Automated reporting"
+      ],
+      "technologies": [
+        "Excel",
+        "SQL",
+        "Power BI",
+        "DAX",
+        "Power Query"
+      ]
+    },
+    {
+      "title": "Customer Analytics Dashboard",
+      "text": "A practical customer analytics dashboard project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Customer segments",
+        "Purchase trends",
+        "Cohort metrics",
+        "Retention KPIs",
+        "Interactive drill-through"
+      ],
+      "technologies": [
+        "SQL",
+        "Power BI",
+        "DAX",
+        "Power Query",
+        "Excel"
+      ]
+    },
+    {
+      "title": "Inventory Analytics System",
+      "text": "A practical inventory analytics system project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Stock turnover KPIs",
+        "SKU analysis",
+        "Reorder indicators",
+        "Warehouse trends",
+        "Inventory exception reporting"
+      ],
+      "technologies": [
+        "SQL",
+        "Power BI",
+        "DAX",
+        "Power Query",
+        "Excel"
+      ]
+    },
+    {
+      "title": "Marketing ROI Dashboard",
+      "text": "A practical marketing roi dashboard project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Campaign spend analysis",
+        "Conversion funnel",
+        "Channel ROI",
+        "CAC trends",
+        "Marketing performance scorecard"
+      ],
+      "technologies": [
+        "Google Analytics 4",
+        "SQL",
+        "Power BI",
+        "DAX",
+        "Excel"
+      ]
+    },
+    {
+      "title": "Employee Performance Analytics",
+      "text": "A practical employee performance analytics project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Employee KPI tracking",
+        "Attendance trends",
+        "Goal achievement",
+        "Department comparison",
+        "HR scorecards"
+      ],
+      "technologies": [
+        "Excel",
+        "SQL",
+        "Power BI",
+        "Power Query",
+        "DAX"
+      ]
+    },
+    {
+      "title": "Financial KPI Dashboard",
+      "text": "A practical financial kpi dashboard project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Revenue and margin KPIs",
+        "Budget vs actual",
+        "Cost trends",
+        "Variance analysis",
+        "Finance dashboard"
+      ],
+      "technologies": [
+        "Excel",
+        "SQL",
+        "Power BI",
+        "DAX",
+        "Power Query"
+      ]
+    }
+  ],
+  "cloud-computing": [
+    {
+      "title": "Cloud-Based LMS Deployment",
+      "text": "A practical cloud-based lms deployment project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Course application hosting",
+        "Scalable compute",
+        "Secure storage",
+        "Database connectivity",
+        "Access control"
+      ],
+      "technologies": [
+        "AWS EC2",
+        "S3",
+        "RDS",
+        "VPC",
+        "IAM",
+        "CloudWatch"
+      ]
+    },
+    {
+      "title": "Scalable Web Application on Cloud",
+      "text": "A practical scalable web application on cloud project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Load-balanced web tier",
+        "Auto scaling",
+        "CDN delivery",
+        "Managed database",
+        "High-availability design"
+      ],
+      "technologies": [
+        "AWS EC2",
+        "ALB",
+        "Auto Scaling",
+        "CloudFront",
+        "RDS",
+        "Route 53"
+      ]
+    },
+    {
+      "title": "Cloud Data Storage Solution",
+      "text": "A practical cloud data storage solution project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Object storage lifecycle",
+        "Encryption",
+        "Access policies",
+        "Backup rules",
+        "Data retrieval workflows"
+      ],
+      "technologies": [
+        "Azure Blob Storage",
+        "Azure Key Vault",
+        "Azure Functions",
+        "Azure Monitor",
+        "RBAC"
+      ]
+    },
+    {
+      "title": "Serverless Application",
+      "text": "A practical serverless application project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Event-driven API",
+        "Function triggers",
+        "Managed API layer",
+        "Queue processing",
+        "Serverless monitoring"
+      ],
+      "technologies": [
+        "AWS Lambda",
+        "API Gateway",
+        "SQS",
+        "DynamoDB",
+        "CloudWatch"
+      ]
+    },
+    {
+      "title": "Cloud Backup & Disaster Recovery",
+      "text": "A practical cloud backup & disaster recovery project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Automated backup schedules",
+        "Retention policies",
+        "Cross-region recovery",
+        "Restore testing",
+        "Recovery reporting"
+      ],
+      "technologies": [
+        "AWS S3",
+        "AWS Backup",
+        "RDS Snapshots",
+        "Route 53",
+        "CloudFormation"
+      ]
+    },
+    {
+      "title": "Cloud Monitoring Dashboard",
+      "text": "A practical cloud monitoring dashboard project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Infrastructure metrics",
+        "Log aggregation",
+        "Alert rules",
+        "Resource dashboards",
+        "Operational health checks"
+      ],
+      "technologies": [
+        "Azure Monitor",
+        "Log Analytics",
+        "Application Insights",
+        "Azure VM",
+        "Power BI"
+      ]
+    }
+  ],
+  "devops": [
+    {
+      "title": "Automated CI/CD Pipeline",
+      "text": "A practical automated ci/cd pipeline project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Source control workflow",
+        "Automated build",
+        "Unit-test gate",
+        "Deployment stages",
+        "Release notifications"
+      ],
+      "technologies": [
+        "Git",
+        "GitHub Actions",
+        "Docker",
+        "npm",
+        "Jest",
+        "AWS"
+      ]
+    },
+    {
+      "title": "Containerized Web Application",
+      "text": "A practical containerized web application project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Container packaging",
+        "Environment configuration",
+        "Image publishing",
+        "Health checks",
+        "Rollback workflow"
+      ],
+      "technologies": [
+        "Git",
+        "Docker",
+        "Docker Compose",
+        "GitHub Actions",
+        "Nginx",
+        "AWS ECS"
+      ]
+    },
+    {
+      "title": "Kubernetes Deployment Platform",
+      "text": "A practical kubernetes deployment platform project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Cluster deployment",
+        "Service exposure",
+        "Rolling updates",
+        "Autoscaling",
+        "Health probes"
+      ],
+      "technologies": [
+        "Git",
+        "Docker",
+        "Kubernetes",
+        "Helm",
+        "GitHub Actions",
+        "Prometheus"
+      ]
+    },
+    {
+      "title": "Infrastructure Automation Project",
+      "text": "A practical infrastructure automation project project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Infrastructure provisioning",
+        "Reusable modules",
+        "State management",
+        "Environment separation",
+        "Automated validation"
+      ],
+      "technologies": [
+        "Terraform",
+        "AWS",
+        "Git",
+        "GitHub Actions",
+        "S3 Backend",
+        "IAM"
+      ]
+    },
+    {
+      "title": "Cloud DevOps Pipeline",
+      "text": "A practical cloud devops pipeline project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Cloud build pipeline",
+        "Container registry",
+        "Automated deployment",
+        "Secrets handling",
+        "Release monitoring"
+      ],
+      "technologies": [
+        "AWS CodePipeline",
+        "CodeBuild",
+        "ECR",
+        "ECS",
+        "CloudWatch",
+        "Git"
+      ]
+    },
+    {
+      "title": "Application Monitoring System",
+      "text": "A practical application monitoring system project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Application metrics",
+        "Centralized logs",
+        "Alert rules",
+        "Health dashboards",
+        "Incident visibility"
+      ],
+      "technologies": [
+        "Prometheus",
+        "Grafana",
+        "Loki",
+        "Alertmanager",
+        "Docker",
+        "Kubernetes"
+      ]
+    }
+  ],
+  "ui-ux-design": [
+    {
+      "title": "EdTech Mobile App UX",
+      "text": "A practical edtech mobile app ux project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Student onboarding flow",
+        "Course discovery",
+        "Learning dashboard",
+        "Mobile navigation",
+        "Accessibility checks"
+      ],
+      "technologies": [
+        "Figma",
+        "FigJam",
+        "Auto Layout",
+        "Interactive Prototypes",
+        "WCAG checklist"
+      ]
+    },
+    {
+      "title": "E-Commerce Website Redesign",
+      "text": "A practical e-commerce website redesign project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Usability audit",
+        "Navigation redesign",
+        "Product search flow",
+        "Checkout improvements",
+        "Responsive layouts"
+      ],
+      "technologies": [
+        "Figma",
+        "FigJam",
+        "Auto Layout",
+        "Prototyping",
+        "Design Tokens"
+      ]
+    },
+    {
+      "title": "Student Dashboard Design",
+      "text": "A practical student dashboard design project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Course progress visualization",
+        "Task hierarchy",
+        "Notification patterns",
+        "Responsive dashboard",
+        "Usability validation"
+      ],
+      "technologies": [
+        "Figma",
+        "Components",
+        "Variants",
+        "Auto Layout",
+        "Prototype",
+        "FigJam"
+      ]
+    },
+    {
+      "title": "FinTech App Experience",
+      "text": "A practical fintech app experience project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Secure payment flow",
+        "Transaction states",
+        "Account management",
+        "Error handling",
+        "Accessibility considerations"
+      ],
+      "technologies": [
+        "Figma",
+        "Auto Layout",
+        "Components",
+        "Prototyping",
+        "Design System"
+      ]
+    },
+    {
+      "title": "Healthcare Appointment Interface",
+      "text": "A practical healthcare appointment interface project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Appointment booking journey",
+        "Calendar states",
+        "Form validation",
+        "Confirmation flow",
+        "Accessibility review"
+      ],
+      "technologies": [
+        "Figma",
+        "Auto Layout",
+        "Variants",
+        "Prototyping",
+        "FigJam",
+        "WCAG"
+      ]
+    },
+    {
+      "title": "Job Portal UX Case Study",
+      "text": "A practical job portal ux case study project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Job discovery journey",
+        "Search/filter UX",
+        "Application flow",
+        "Candidate dashboard",
+        "Usability findings"
+      ],
+      "technologies": [
+        "Figma",
+        "FigJam",
+        "Auto Layout",
+        "Prototyping",
+        "Components"
+      ]
+    }
+  ],
+  "cyber-security-ethical-hacking": [
+    {
+      "title": "Web Application Security Assessment",
+      "text": "A practical web application security assessment project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Attack-surface mapping",
+        "Authentication review",
+        "Input validation checks",
+        "Vulnerability findings",
+        "Remediation plan"
+      ],
+      "technologies": [
+        "Linux",
+        "OWASP ZAP",
+        "Burp Suite",
+        "Nmap",
+        "CVSS"
+      ]
+    },
+    {
+      "title": "Network Security Audit Lab",
+      "text": "A practical network security audit lab project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Network inventory",
+        "Port/service mapping",
+        "Configuration review",
+        "Risk classification",
+        "Audit report"
+      ],
+      "technologies": [
+        "Linux",
+        "Nmap",
+        "Wireshark",
+        "OpenVAS",
+        "Nessus"
+      ]
+    },
+    {
+      "title": "Vulnerability Assessment Report",
+      "text": "A practical vulnerability assessment report project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Host baseline checks",
+        "Patch verification",
+        "Access-control review",
+        "Secure configuration",
+        "Hardening report"
+      ],
+      "technologies": [
+        "Linux",
+        "Lynis",
+        "OpenSCAP",
+        "UFW",
+        "Auditd"
+      ]
+    },
+    {
+      "title": "Phishing Awareness Simulation",
+      "text": "A practical phishing awareness simulation project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "OWASP risk checks",
+        "Session security review",
+        "API validation",
+        "Access-control testing",
+        "Remediation evidence"
+      ],
+      "technologies": [
+        "Burp Suite",
+        "OWASP ZAP",
+        "Postman",
+        "Docker",
+        "OWASP ASVS"
+      ]
+    },
+    {
+      "title": "Secure Authentication Case Study",
+      "text": "A practical secure authentication case study project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Asset discovery",
+        "Service enumeration",
+        "Vulnerability scanning",
+        "Risk prioritization",
+        "Evidence capture"
+      ],
+      "technologies": [
+        "Nmap",
+        "OpenVAS",
+        "Nessus",
+        "Nuclei",
+        "CVSS"
+      ]
+    },
+    {
+      "title": "Security Monitoring Dashboard",
+      "text": "A practical security monitoring dashboard project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Defined test scope",
+        "Controlled exploitation",
+        "Evidence collection",
+        "Impact assessment",
+        "Professional report"
+      ],
+      "technologies": [
+        "Kali Linux",
+        "Metasploit",
+        "Burp Suite",
+        "Nmap",
+        "BloodHound"
+      ]
+    }
+  ],
+  "autocad": [
+    {
+      "title": "Mechanical Component Drafting",
+      "text": "A practical mechanical component drafting project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Precision component geometry",
+        "Dimensioning",
+        "Manufacturing annotations",
+        "Layer standards",
+        "Print-ready drawing"
+      ],
+      "technologies": [
+        "AutoCAD",
+        "Object Snaps",
+        "Layers",
+        "Dimensions",
+        "Plot Styles"
+      ]
+    },
+    {
+      "title": "Residential Floor Plan",
+      "text": "A practical residential floor plan project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Room layout planning",
+        "Doors/windows",
+        "Dimensions",
+        "Furniture blocks",
+        "Sheet setup"
+      ],
+      "technologies": [
+        "AutoCAD",
+        "Blocks",
+        "Layers",
+        "Annotative Dimensions",
+        "Layouts"
+      ]
+    },
+    {
+      "title": "Industrial Layout Drawing",
+      "text": "A practical industrial layout drawing project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Plant/site arrangement",
+        "Equipment footprints",
+        "Utility routing",
+        "Layer standards",
+        "Drawing coordination"
+      ],
+      "technologies": [
+        "AutoCAD",
+        "Xrefs",
+        "Layers",
+        "Blocks",
+        "Civil 3D references"
+      ]
+    },
+    {
+      "title": "Piping & Equipment Layout",
+      "text": "A practical piping & equipment layout project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Equipment placement",
+        "Pipe routing",
+        "Annotation",
+        "Isometric preparation",
+        "Layout documentation"
+      ],
+      "technologies": [
+        "AutoCAD Plant 3D",
+        "AutoCAD",
+        "Blocks",
+        "Layers",
+        "Orthographic Views"
+      ]
+    },
+    {
+      "title": "Structural Detailing Drawing",
+      "text": "A practical structural detailing drawing project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Structural member detailing",
+        "Connection annotations",
+        "Section views",
+        "Revision marks",
+        "Drawing standards"
+      ],
+      "technologies": [
+        "AutoCAD",
+        "Layers",
+        "Blocks",
+        "Dimensions",
+        "Xrefs",
+        "Plot Styles"
+      ]
+    },
+    {
+      "title": "Electrical Layout Plan",
+      "text": "A practical electrical layout plan project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Lighting/power layout",
+        "Symbol libraries",
+        "Circuit annotation",
+        "Panel references",
+        "Sheet organization"
+      ],
+      "technologies": [
+        "AutoCAD Electrical",
+        "AutoCAD",
+        "Symbol Libraries",
+        "Layers",
+        "Templates"
+      ]
+    }
+  ],
+  "solidworks-creo": [
+    {
+      "title": "Mechanical Part Design",
+      "text": "A practical mechanical part design project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Parametric part features",
+        "Design intent",
+        "Material assignment",
+        "Configurations",
+        "Manufacturing drawing"
+      ],
+      "technologies": [
+        "SolidWorks",
+        "Creo Parametric",
+        "FeatureManager",
+        "Sketcher",
+        "GD&T"
+      ]
+    },
+    {
+      "title": "Gearbox Assembly",
+      "text": "A practical gearbox assembly project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Gear train components",
+        "Assembly mates",
+        "Motion relationships",
+        "Interference checks",
+        "BOM generation"
+      ],
+      "technologies": [
+        "SolidWorks",
+        "Creo",
+        "Assembly Mates",
+        "Motion Study",
+        "BOM"
+      ]
+    },
+    {
+      "title": "Automotive Component Model",
+      "text": "A practical automotive component model project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Automotive component geometry",
+        "Parametric surfaces",
+        "Assembly fit",
+        "Drawing views",
+        "Design revisions"
+      ],
+      "technologies": [
+        "Creo Parametric",
+        "SolidWorks",
+        "Surface Modelling",
+        "Assemblies",
+        "GD&T"
+      ]
+    },
+    {
+      "title": "Sheet Metal Product Design",
+      "text": "A practical sheet metal product design project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Sheet metal features",
+        "Bend allowance",
+        "Flat pattern",
+        "Enclosure assembly",
+        "Manufacturing documentation"
+      ],
+      "technologies": [
+        "SolidWorks Sheet Metal",
+        "Creo Sheetmetal",
+        "Flat Pattern",
+        "Bend Tables"
+      ]
+    },
+    {
+      "title": "Machine Fixture Design",
+      "text": "A practical machine fixture design project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Fixture components",
+        "Locating scheme",
+        "Clamping features",
+        "Assembly validation",
+        "Manufacturing drawings"
+      ],
+      "technologies": [
+        "SolidWorks",
+        "Creo",
+        "Assembly Mates",
+        "Hole Wizard",
+        "GD&T"
+      ]
+    },
+    {
+      "title": "Product Enclosure Design",
+      "text": "A practical product enclosure design project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Enclosure geometry",
+        "Snap-fit features",
+        "Wall thickness",
+        "Mounting details",
+        "Assembly documentation"
+      ],
+      "technologies": [
+        "SolidWorks",
+        "Creo",
+        "Shell",
+        "Draft",
+        "Configurations",
+        "Engineering Drawings"
+      ]
+    }
+  ],
+  "vlsi": [
+    {
+      "title": "ALU RTL Design",
+      "text": "A practical alu rtl design project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "ALU arithmetic/logic operations",
+        "Opcode control",
+        "RTL coding",
+        "Functional verification",
+        "Synthesis analysis"
+      ],
+      "technologies": [
+        "Verilog",
+        "Icarus Verilog",
+        "GTKWave",
+        "Vivado",
+        "Testbench"
+      ]
+    },
+    {
+      "title": "UART Communication Module",
+      "text": "A practical uart communication module project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "UART TX/RX logic",
+        "Baud-rate control",
+        "Frame handling",
+        "RTL simulation",
+        "FPGA validation"
+      ],
+      "technologies": [
+        "Verilog",
+        "Vivado",
+        "GTKWave",
+        "UART",
+        "FPGA Board"
+      ]
+    },
+    {
+      "title": "FIFO Memory Design",
+      "text": "A practical fifo memory design project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Synchronous/asynchronous FIFO",
+        "Read/write pointers",
+        "Full/empty flags",
+        "CDC checks",
+        "Simulation"
+      ],
+      "technologies": [
+        "Verilog",
+        "QuestaSim",
+        "Vivado",
+        "GTKWave",
+        "Assertions"
+      ]
+    },
+    {
+      "title": "Digital Clock System",
+      "text": "A practical digital clock system project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Clock divider",
+        "Time counters",
+        "Seven- segment display",
+        "Reset logic",
+        "FPGA demonstration"
+      ],
+      "technologies": [
+        "Verilog",
+        "Vivado",
+        "Xilinx FPGA",
+        "Simulation",
+        "Constraints"
+      ]
+    },
+    {
+      "title": "Traffic Light Controller",
+      "text": "A practical traffic light controller project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "FSM-based traﬃc control",
+        "Timing states",
+        "Sensor inputs",
+        "Safe transitions",
+        "FPGA validation"
+      ],
+      "technologies": [
+        "Verilog",
+        "Vivado",
+        "FSM",
+        "GTKWave",
+        "FPGA Board"
+      ]
+    },
+    {
+      "title": "RISC Processor Module",
+      "text": "A practical risc processor module project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Instruction decode",
+        "Register file",
+        "ALU datapath",
+        "Control unit",
+        "Simulation and synthesis"
+      ],
+      "technologies": [
+        "Verilog",
+        "Vivado",
+        "GTKWave",
+        "RTL",
+        "RISC-V ISA concepts"
+      ]
+    }
+  ],
+  "embedded-systems": [
+    {
+      "title": "Smart Home Controller",
+      "text": "A practical smart home controller project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Appliance control logic",
+        "Sensor inputs",
+        "Relay/actuator control",
+        "User interface",
+        "Fault handling"
+      ],
+      "technologies": [
+        "Embedded C",
+        "STM32",
+        "GPIO",
+        "FreeRTOS",
+        "UART",
+        "Sensors"
+      ]
+    },
+    {
+      "title": "IoT Environmental Monitoring",
+      "text": "A practical iot environmental monitoring project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Environmental sensing",
+        "Periodic sampling",
+        "Data logging",
+        "Threshold alerts",
+        "Cloud telemetry"
+      ],
+      "technologies": [
+        "Embedded C",
+        "ESP32",
+        "FreeRTOS",
+        "MQTT",
+        "DHT22",
+        "Wi-Fi"
+      ]
+    },
+    {
+      "title": "Digital Temperature Controller",
+      "text": "A practical digital temperature controller project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Temperature acquisition",
+        "Control loop",
+        "Threshold logic",
+        "Display output",
+        "Calibration handling"
+      ],
+      "technologies": [
+        "Embedded C",
+        "STM32",
+        "ADC",
+        "PWM",
+        "I2C LCD",
+        "Timers"
+      ]
+    },
+    {
+      "title": "Motor Control System",
+      "text": "A practical motor control system project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "PWM motor drive",
+        "Speed control",
+        "Feedback sensing",
+        "Fault protection",
+        "Real-time control"
+      ],
+      "technologies": [
+        "Embedded C",
+        "STM32",
+        "PWM",
+        "ADC",
+        "FreeRTOS",
+        "Motor Driver"
+      ]
+    },
+    {
+      "title": "Smart Energy Meter",
+      "text": "A practical smart energy meter project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Energy measurement",
+        "Voltage/current sensing",
+        "Power calculation",
+        "Data display",
+        "Usage logging"
+      ],
+      "technologies": [
+        "Embedded C",
+        "ESP32",
+        "ADC",
+        "I2C",
+        "Energy Metering IC",
+        "OLED"
+      ]
+    },
+    {
+      "title": "Industrial Sensor Monitoring",
+      "text": "A practical industrial sensor monitoring project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Multi-sensor acquisition",
+        "Sampling scheduler",
+        "Threshold alerts",
+        "Industrial communication",
+        "Diagnostics"
+      ],
+      "technologies": [
+        "Embedded C",
+        "STM32",
+        "FreeRTOS",
+        "RS-485",
+        "Modbus RTU",
+        "Sensors"
+      ]
+    }
+  ],
+  "hev-management": [
+    {
+      "title": "Hybrid Powertrain Simulation",
+      "text": "A practical hybrid powertrain simulation project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Hybrid powertrain block model",
+        "Drive- cycle simulation",
+        "Power-flow analysis",
+        "Eﬃciency comparison",
+        "Performance plots"
+      ],
+      "technologies": [
+        "MATLAB",
+        "Simulink",
+        "Simscape Electrical",
+        "Vehicle Dynamics Blockset"
+      ]
+    },
+    {
+      "title": "Battery State-of-Charge Monitor",
+      "text": "A practical battery state-of-charge monitor project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "SOC estimation",
+        "Battery current/ voltage tracking",
+        "Charge-discharge analysis",
+        "Threshold alerts",
+        "Model validation"
+      ],
+      "technologies": [
+        "MATLAB",
+        "Simulink",
+        "Simscape Battery",
+        "Stateflow",
+        "Data Logging"
+      ]
+    },
+    {
+      "title": "Regenerative Braking Model",
+      "text": "A practical regenerative braking model project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Regenerative braking logic",
+        "Brake blending",
+        "Energy recovery",
+        "SOC constraints",
+        "Drive- cycle evaluation"
+      ],
+      "technologies": [
+        "MATLAB",
+        "Simulink",
+        "Simscape Driveline",
+        "Stateflow",
+        "Vehicle Dynamics Blockset"
+      ]
+    },
+    {
+      "title": "Energy Management Strategy",
+      "text": "A practical energy management strategy project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Rule-based energy strategy",
+        "Engine/ motor power split",
+        "SOC management",
+        "Eﬃciency metrics",
+        "Scenario comparison"
+      ],
+      "technologies": [
+        "MATLAB",
+        "Simulink",
+        "Stateflow",
+        "Simscape Electrical",
+        "Optimization Toolbox"
+      ]
+    },
+    {
+      "title": "Electric Motor Control Study",
+      "text": "A practical electric motor control study project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Motor torque control",
+        "Speed response",
+        "Eﬃciency mapping",
+        "Controller tuning",
+        "Dynamic simulation"
+      ],
+      "technologies": [
+        "MATLAB",
+        "Simulink",
+        "Simscape Electrical",
+        "Motor Control Blockset",
+        "Scope"
+      ]
+    },
+    {
+      "title": "HEV Performance Analysis",
+      "text": "A practical hev performance analysis project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Acceleration analysis",
+        "Fuel/energy consumption",
+        "Range estimation",
+        "Drive-cycle metrics",
+        "Comparative plots"
+      ],
+      "technologies": [
+        "MATLAB",
+        "Simulink",
+        "Vehicle Dynamics Blockset",
+        "Simscape",
+        "Powertrain Blockset"
+      ]
+    }
+  ],
+  "digital-marketing": [
+    {
+      "title": "Real-Time Marketing Performance Dashboard",
+      "text": "Build a practical marketing intelligence dashboard that combines campaign, conversion and ROI data for fast performance decisions.",
+      "artifacts": [
+        "Campaign Tracking",
+        "Conversion Monitoring",
+        "Audience Analysis",
+        "Budget Tracking",
+        "ROI Analysis",
+        "Performance Alerts"
+      ],
+      "technologies": [
+        "Google Analytics 4",
+        "Google Ads",
+        "Looker Studio",
+        "Excel"
+      ]
+    },
+    {
+      "title": "SEO Performance & Ranking Intelligence",
+      "text": "Monitor search visibility, website health and competitors to identify actionable SEO opportunities.",
+      "artifacts": [
+        "Keyword Tracking",
+        "Ranking Analysis",
+        "Competitor Monitoring",
+        "SEO Health Score",
+        "Traffic Analysis",
+        "Optimization Recommendations"
+      ],
+      "technologies": [
+        "Google Search Console",
+        "Google Analytics 4",
+        "Semrush",
+        "Looker Studio"
+      ]
+    },
+    {
+      "title": "Social Media Engagement Optimization",
+      "text": "Analyze social content and audience engagement to identify high-performing formats and improve content planning.",
+      "artifacts": [
+        "Engagement Tracking",
+        "Content Performance",
+        "Audience Analysis",
+        "Best-Post Detection",
+        "Growth Monitoring",
+        "Content Recommendations"
+      ],
+      "technologies": [
+        "Meta Business Suite",
+        "Instagram Insights",
+        "Python",
+        "Power BI"
+      ]
+    },
+    {
+      "title": "Advertising Budget Optimization",
+      "text": "Compare campaign spending, conversions and returns to recommend efficient budget allocation across paid channels.",
+      "artifacts": [
+        "Campaign Comparison",
+        "Cost-per-Lead Analysis",
+        "Budget Allocation",
+        "Conversion Tracking",
+        "ROI Monitoring",
+        "Optimization Suggestions"
+      ],
+      "technologies": [
+        "Google Ads",
+        "Meta Ads Manager",
+        "Excel",
+        "Power BI"
+      ]
+    },
+    {
+      "title": "Marketing Content Intelligence",
+      "text": "Evaluate content topics, reach and engagement to guide evidence-based content planning and publishing decisions.",
+      "artifacts": [
+        "Content Performance Tracking",
+        "Engagement Analysis",
+        "Topic Identification",
+        "Content Recommendations",
+        "Performance Comparison",
+        "Publishing Insights"
+      ],
+      "technologies": [
+        "Python",
+        "Pandas",
+        "Google Analytics 4",
+        "Power BI"
+      ]
+    },
+    {
+      "title": "Automated Lead Generation & Qualification",
+      "text": "Create a lead-management workflow that captures, scores and prioritizes prospects for effective sales follow-up.",
+      "artifacts": [
+        "Lead Collection",
+        "Lead Scoring",
+        "Customer Segmentation",
+        "Lead Prioritization",
+        "Conversion Tracking",
+        "Follow-Up Management"
+      ],
+      "technologies": [
+        "HubSpot",
+        "Python",
+        "SQL",
+        "Power BI"
+      ]
+    }
+  ],
+  "finance": [
+    {
+      "title": "Real-Time Financial Performance Dashboard",
+      "text": "Create a management dashboard that brings revenue, expenses, profitability and core financial indicators into one view.",
+      "artifacts": [
+        "Revenue Tracking",
+        "Expense Monitoring",
+        "Profit Analysis",
+        "KPI Alerts",
+        "Trend Detection",
+        "Automated Reporting"
+      ],
+      "technologies": [
+        "Excel",
+        "Power BI",
+        "SQL"
+      ]
+    },
+    {
+      "title": "Cash Flow Monitoring & Forecasting System",
+      "text": "Build a cash-flow planning model that tracks inflows and outflows and estimates future liquidity under scenarios.",
+      "artifacts": [
+        "Cash Inflow Tracking",
+        "Outflow Monitoring",
+        "Cash Forecasting",
+        "Liquidity Alerts",
+        "Scenario Analysis",
+        "Runway Tracking"
+      ],
+      "technologies": [
+        "Python",
+        "Excel",
+        "Power BI"
+      ]
+    },
+    {
+      "title": "Financial Risk Monitoring System",
+      "text": "Develop a risk-monitoring solution that evaluates financial indicators and highlights changes requiring management attention.",
+      "artifacts": [
+        "Risk Indicators",
+        "Ratio Monitoring",
+        "Risk Scoring",
+        "Trend Analysis",
+        "Alert Generation",
+        "Risk Reporting"
+      ],
+      "technologies": [
+        "Python",
+        "Power BI",
+        "Excel"
+      ]
+    },
+    {
+      "title": "Investment Portfolio Performance System",
+      "text": "Track asset allocation, returns, diversification and risk while comparing portfolio performance with selected benchmarks.",
+      "artifacts": [
+        "Portfolio Tracking",
+        "Asset Allocation",
+        "Return Calculation",
+        "Risk Measurement",
+        "Diversification Analysis",
+        "Performance Alerts"
+      ],
+      "technologies": [
+        "Python",
+        "Pandas",
+        "NumPy",
+        "Power BI"
+      ]
+    },
+    {
+      "title": "Company Valuation Intelligence Model",
+      "text": "Build a valuation model combining DCF, scenarios and sensitivity testing to evaluate enterprise and equity value.",
+      "artifacts": [
+        "Financial Data Analysis",
+        "DCF Valuation",
+        "Scenario Analysis",
+        "Sensitivity Testing",
+        "Valuation Comparison",
+        "Assumption Tracking"
+      ],
+      "technologies": [
+        "Excel",
+        "Python",
+        "Power BI"
+      ]
+    },
+    {
+      "title": "Automated Financial Statement Analysis",
+      "text": "Automate financial ratios and comparative analysis to provide a clear view of profitability, liquidity and financial health.",
+      "artifacts": [
+        "Automated Ratio Calculation",
+        "Profitability Analysis",
+        "Year-on-Year Comparison",
+        "Anomaly Detection",
+        "Financial Health Score",
+        "Trend Review"
+      ],
+      "technologies": [
+        "Python",
+        "Pandas",
+        "Excel",
+        "Power BI"
+      ]
+    }
+  ],
+  "stock-market": [
+    {
+      "title": "Real-Time Stock Market Intelligence Dashboard",
+      "text": "Build a market-monitoring dashboard that combines prices, indices, volume and technical signals for structured observation.",
+      "artifacts": [
+        "Updated Stock Prices",
+        "Nifty & Sensex Tracking",
+        "Price Movement Analysis",
+        "Volume Monitoring",
+        "Technical Indicators",
+        "Watchlist"
+      ],
+      "technologies": [
+        "Python",
+        "Pandas",
+        "NumPy",
+        "Power BI",
+        "Market Data APIs"
+      ]
+    },
+    {
+      "title": "Automated Stock Screening & Shortlisting",
+      "text": "Create a screening workflow that applies selected fundamental and technical criteria to shortlist securities for analysis.",
+      "artifacts": [
+        "Fundamental Filters",
+        "Technical Filters",
+        "Custom Stock Criteria",
+        "Stock Ranking",
+        "Automated Shortlisting",
+        "Sector-wise Filtering"
+      ],
+      "technologies": [
+        "Python",
+        "Pandas",
+        "SQL",
+        "NumPy"
+      ]
+    },
+    {
+      "title": "Technical Trading Signal Detection",
+      "text": "Develop a technical-analysis system that identifies trends, indicator signals, chart patterns and potential market setups.",
+      "artifacts": [
+        "Candlestick Analysis",
+        "Trend Detection",
+        "Support & Resistance",
+        "Moving Average Signals",
+        "RSI Analysis",
+        "MACD Signals",
+        "Breakout Detection"
+      ],
+      "technologies": [
+        "Python",
+        "Pandas",
+        "NumPy",
+        "Matplotlib",
+        "TradingView"
+      ]
+    },
+    {
+      "title": "Portfolio Risk & Performance Management",
+      "text": "Track holdings, allocation, returns, diversification and risk measures to evaluate portfolio behaviour against benchmarks.",
+      "artifacts": [
+        "Portfolio Creation",
+        "Stock Allocation",
+        "Investment Tracking",
+        "Profit/Loss Monitoring",
+        "Diversification",
+        "Risk Measurement",
+        "Drawdown Analysis"
+      ],
+      "technologies": [
+        "Python",
+        "Pandas",
+        "NumPy",
+        "Power BI"
+      ]
+    },
+    {
+      "title": "Market Sentiment & News Intelligence",
+      "text": "Analyze financial news and sentiment to study company-specific signals and broader market events.",
+      "artifacts": [
+        "News Data Collection",
+        "Text Processing",
+        "Sentiment Classification",
+        "Sentiment Score",
+        "Company-wise Sentiment",
+        "Market Event Tracking"
+      ],
+      "technologies": [
+        "Python",
+        "NLP",
+        "Pandas",
+        "APIs",
+        "Power BI"
+      ]
+    },
+    {
+      "title": "Trading Strategy Backtesting Engine",
+      "text": "Simulate defined trading rules on historical data and measure returns, drawdown, win rate and other performance metrics.",
+      "artifacts": [
+        "Historical Data",
+        "Buy/Sell Signals",
+        "Entry & Exit Rules",
+        "Stop-Loss",
+        "Profit Target",
+        "Profit/Loss",
+        "Maximum Drawdown",
+        "Win Rate"
+      ],
+      "technologies": [
+        "Python",
+        "Pandas",
+        "NumPy",
+        "Matplotlib",
+        "Jupyter Notebook"
+      ]
+    }
+  ],
+  "business-analytics": [
+    {
+      "title": "Real-Time Sales Intelligence Dashboard",
+      "text": "Build a sales analytics dashboard that monitors revenue, targets, products and regions for business performance decisions.",
+      "artifacts": [
+        "Sales KPIs",
+        "Revenue Tracking",
+        "Product Analysis",
+        "Region Analysis",
+        "Target Monitoring",
+        "Alerts"
+      ],
+      "technologies": [
+        "SQL",
+        "Power BI",
+        "Excel"
+      ]
+    },
+    {
+      "title": "Customer Behaviour Intelligence",
+      "text": "Segment customers and study purchasing patterns, value and retention behaviour to identify actionable opportunities.",
+      "artifacts": [
+        "Customer Segmentation",
+        "Purchase Analysis",
+        "Customer Value",
+        "Retention Tracking",
+        "Behaviour Patterns",
+        "Cohort Views"
+      ],
+      "technologies": [
+        "Python",
+        "Pandas",
+        "SQL",
+        "Power BI"
+      ]
+    },
+    {
+      "title": "Customer Churn Prediction System",
+      "text": "Develop a predictive model that identifies customers with higher churn risk and supports retention planning.",
+      "artifacts": [
+        "Churn Detection",
+        "Customer Risk Score",
+        "Behaviour Analysis",
+        "Retention Insights",
+        "Prediction Model",
+        "Model Evaluation"
+      ],
+      "technologies": [
+        "Python",
+        "Pandas",
+        "Scikit-learn",
+        "Power BI"
+      ]
+    },
+    {
+      "title": "Business Demand Forecasting System",
+      "text": "Use historical patterns and seasonality to estimate future demand and support planning decisions.",
+      "artifacts": [
+        "Historical Trend Analysis",
+        "Demand Forecasting",
+        "Seasonal Patterns",
+        "Forecast Comparison",
+        "Planning Insights",
+        "Error Tracking"
+      ],
+      "technologies": [
+        "Python",
+        "Pandas",
+        "Statsmodels",
+        "Matplotlib"
+      ]
+    },
+    {
+      "title": "Employee Performance Analytics",
+      "text": "Create an HR analytics dashboard comparing employee KPIs, attendance, performance trends and departmental productivity.",
+      "artifacts": [
+        "KPI Tracking",
+        "Attendance Analysis",
+        "Performance Trends",
+        "Department Comparison",
+        "Productivity Insights",
+        "Team Benchmarking"
+      ],
+      "technologies": [
+        "Power BI",
+        "Excel",
+        "SQL"
+      ]
+    },
+    {
+      "title": "Inventory Optimization Dashboard",
+      "text": "Analyze stock levels and demand patterns to support replenishment, turnover improvement and exception management.",
+      "artifacts": [
+        "Stock-Level Monitoring",
+        "Demand Analysis",
+        "Low-Stock Alerts",
+        "Inventory Turnover",
+        "Reorder Insights",
+        "SKU Analysis"
+      ],
+      "technologies": [
+        "SQL",
+        "Power BI",
+        "Python"
+      ]
+    }
+  ],
+  "international-business-management": [
+    {
+      "title": "IBM watsonx AI Business Solution",
+      "text": "Develop an enterprise AI workflow that prepares data, processes a business use case and evaluates generated outputs.",
+      "artifacts": [
+        "Business Problem Analysis",
+        "AI Workflow",
+        "Data Preparation",
+        "Output Evaluation",
+        "Business Insights",
+        "Governance Checks"
+      ],
+      "technologies": [
+        "IBM watsonx",
+        "Python",
+        "Jupyter Notebook"
+      ]
+    },
+    {
+      "title": "IBM Cognos Analytics Dashboard",
+      "text": "Transform business data into interactive KPI reports and management insights using an enterprise BI workflow.",
+      "artifacts": [
+        "Data Integration",
+        "KPI Development",
+        "Interactive Reports",
+        "Performance Monitoring",
+        "Drill-Down Analysis",
+        "Business Insights"
+      ],
+      "technologies": [
+        "IBM Cognos Analytics",
+        "SQL",
+        "Excel"
+      ]
+    },
+    {
+      "title": "Cloud-Based Enterprise Data Solution",
+      "text": "Demonstrate how data can be stored, managed, accessed and monitored using an enterprise cloud environment.",
+      "artifacts": [
+        "Cloud Storage",
+        "Data Management",
+        "Application Deployment",
+        "Access Control",
+        "Resource Monitoring",
+        "Data Lifecycle"
+      ],
+      "technologies": [
+        "IBM Cloud",
+        "IBM Cloud Object Storage",
+        "Python"
+      ]
+    },
+    {
+      "title": "Enterprise Data Analytics Project",
+      "text": "Integrate and transform business data before presenting KPIs and insights for structured decision support.",
+      "artifacts": [
+        "Data Integration",
+        "Data Transformation",
+        "KPI Analysis",
+        "Visualization",
+        "Decision Support",
+        "Data Quality Checks"
+      ],
+      "technologies": [
+        "IBM Cognos",
+        "SQL",
+        "Python"
+      ]
+    },
+    {
+      "title": "Cloud Application Deployment",
+      "text": "Deploy an application in an enterprise cloud environment with resource management, monitoring and baseline security controls.",
+      "artifacts": [
+        "Application Setup",
+        "Cloud Deployment",
+        "Resource Management",
+        "Monitoring",
+        "Security Configuration",
+        "Deployment Validation"
+      ],
+      "technologies": [
+        "IBM Cloud",
+        "Docker",
+        "Git",
+        "Python"
+      ]
+    },
+    {
+      "title": "AI-Powered Business Assistant",
+      "text": "Build an AI assistant that processes natural-language questions and retrieves useful business information for users.",
+      "artifacts": [
+        "User Queries",
+        "Natural Language Processing",
+        "Automated Responses",
+        "Knowledge Retrieval",
+        "Interaction Logging",
+        "Escalation"
+      ],
+      "technologies": [
+        "Python",
+        "IBM watsonx",
+        "APIs"
+      ]
+    }
+  ],
+  "hrm": [
+    {
+      "title": "Recruitment & Applicant Tracking System",
+      "text": "Design a practical recruitment workflow to manage job openings, candidates, screening stages and hiring progress.",
+      "artifacts": [
+        "Job Requisition Tracking",
+        "Candidate Profiles",
+        "Resume Screening",
+        "Interview Stages",
+        "Hiring Status",
+        "Recruitment Reports"
+      ],
+      "technologies": [
+        "Google Forms",
+        "Google Sheets",
+        "Excel",
+        "Power BI"
+      ]
+    },
+    {
+      "title": "Employee Onboarding Management System",
+      "text": "Create a structured onboarding workflow that tracks documents, joining tasks, orientation and completion status.",
+      "artifacts": [
+        "Onboarding Checklist",
+        "Document Tracking",
+        "Task Assignment",
+        "Orientation Schedule",
+        "Status Monitoring",
+        "Completion Reports"
+      ],
+      "technologies": [
+        "Google Workspace",
+        "Google Sheets",
+        "Forms",
+        "Apps Script"
+      ]
+    },
+    {
+      "title": "Employee Performance Dashboard",
+      "text": "Build an HR dashboard that monitors goals, KRAs, review outcomes and performance trends across teams.",
+      "artifacts": [
+        "KPI/KRA Tracking",
+        "Goal Progress",
+        "Review Status",
+        "Performance Trends",
+        "Department Comparison",
+        "Manager Insights"
+      ],
+      "technologies": [
+        "Excel",
+        "Power BI",
+        "SQL"
+      ]
+    },
+    {
+      "title": "Employee Attrition & Retention Analytics",
+      "text": "Analyze workforce data to identify attrition patterns, risk factors and retention opportunities without exposing sensitive employee information.",
+      "artifacts": [
+        "Attrition Rate",
+        "Risk Segmentation",
+        "Tenure Analysis",
+        "Department Trends",
+        "Exit Pattern Analysis",
+        "Retention Insights"
+      ],
+      "technologies": [
+        "Python",
+        "Pandas",
+        "SQL",
+        "Power BI"
+      ]
+    },
+    {
+      "title": "Employee Engagement & Grievance Management",
+      "text": "Build a structured people-operations workflow for engagement surveys, issue categorization, follow-up and resolution tracking.",
+      "artifacts": [
+        "Engagement Surveys",
+        "Issue Categorization",
+        "Grievance Tracking",
+        "Action Ownership",
+        "Resolution Status",
+        "Trend Analysis"
+      ],
+      "technologies": [
+        "Google Forms",
+        "Google Sheets",
+        "Power BI",
+        "Apps Script"
+      ]
+    },
+    {
+      "title": "Employee Training & Skill Development Platform",
+      "text": "Develop a training-management solution that maps employee skills, learning needs, programs and completion outcomes.",
+      "artifacts": [
+        "Skill Gap Mapping",
+        "Training Calendar",
+        "Course Enrollment",
+        "Attendance Tracking",
+        "Completion Status",
+        "Training Effectiveness"
+      ],
+      "technologies": [
+        "Excel",
+        "Google Sheets",
+        "Power BI",
+        "Forms"
+      ]
+    }
+  ],
+  "solidworks": [
+    {
+      "title": "Mechanical Part Design",
+      "text": "A practical mechanical part design project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Parametric part features",
+        "Design intent",
+        "Material assignment",
+        "Configurations",
+        "Manufacturing drawing"
+      ],
+      "technologies": [
+        "SolidWorks",
+        "Creo Parametric",
+        "FeatureManager",
+        "Sketcher",
+        "GD&T"
+      ]
+    },
+    {
+      "title": "Gearbox Assembly",
+      "text": "A practical gearbox assembly project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Gear train components",
+        "Assembly mates",
+        "Motion relationships",
+        "Interference checks",
+        "BOM generation"
+      ],
+      "technologies": [
+        "SolidWorks",
+        "Creo",
+        "Assembly Mates",
+        "Motion Study",
+        "BOM"
+      ]
+    },
+    {
+      "title": "Automotive Component Model",
+      "text": "A practical automotive component model project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Automotive component geometry",
+        "Parametric surfaces",
+        "Assembly fit",
+        "Drawing views",
+        "Design revisions"
+      ],
+      "technologies": [
+        "Creo Parametric",
+        "SolidWorks",
+        "Surface Modelling",
+        "Assemblies",
+        "GD&T"
+      ]
+    },
+    {
+      "title": "Sheet Metal Product Design",
+      "text": "A practical sheet metal product design project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Sheet metal features",
+        "Bend allowance",
+        "Flat pattern",
+        "Enclosure assembly",
+        "Manufacturing documentation"
+      ],
+      "technologies": [
+        "SolidWorks Sheet Metal",
+        "Creo Sheetmetal",
+        "Flat Pattern",
+        "Bend Tables"
+      ]
+    },
+    {
+      "title": "Machine Fixture Design",
+      "text": "A practical machine fixture design project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Fixture components",
+        "Locating scheme",
+        "Clamping features",
+        "Assembly validation",
+        "Manufacturing drawings"
+      ],
+      "technologies": [
+        "SolidWorks",
+        "Creo",
+        "Assembly Mates",
+        "Hole Wizard",
+        "GD&T"
+      ]
+    },
+    {
+      "title": "Product Enclosure Design",
+      "text": "A practical product enclosure design project focused on applying domain concepts to an industry-oriented use case.",
+      "artifacts": [
+        "Enclosure geometry",
+        "Snap-fit features",
+        "Wall thickness",
+        "Mounting details",
+        "Assembly documentation"
+      ],
+      "technologies": [
+        "SolidWorks",
+        "Creo",
+        "Shell",
+        "Draft",
+        "Configurations",
+        "Engineering Drawings"
+      ]
+    }
+  ]
+}

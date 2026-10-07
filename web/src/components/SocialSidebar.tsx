@@ -5,6 +5,9 @@ const order = ["whatsapp", "instagram", "facebook", "linkedin"];
 const sidebarLinks = order.flatMap((tone) => socialLinks.filter((link) => link.tone === tone));
 
 export function SocialSidebar() {
+  const { pathname } = useLocation();
+  if (pathname.replace(/\/$/, "") === "/checkout") return null;
+
   return (
     <nav className="social-sidebar" aria-label="Connect with Joviq">
       {sidebarLinks.map(({ label, href, Icon, tone }) => (
@@ -24,3 +27,4 @@ export function SocialSidebar() {
     </nav>
   );
 }
+import { useLocation } from "react-router-dom";
