@@ -97,7 +97,7 @@ public sealed class AuthService(
             await emailSender.SendAsync(
                 email,
                 "Verify your Joviq LMS account",
-                $"Your Joviq Technologies verification OTP is <strong>{code}</strong>. It expires soon.",
+                EmailTemplates.EmailVerification(user.FullName, code),
                 cancellationToken);
             verificationEmailSent = true;
         }
@@ -434,7 +434,7 @@ public sealed class AuthService(
         }
 
         var code = await otpService.CreateOtpAsync(user.Id, email, OtpDestinationType.Email, OtpPurpose.EmailVerification, metadata.IpAddress, cancellationToken);
-        await emailSender.SendAsync(email, "Verify your Joviq LMS account", $"Your verification OTP is <strong>{code}</strong>.", cancellationToken);
+        await emailSender.SendAsync(email, "Verify your Joviq LMS account", EmailTemplates.EmailVerification(user.FullName, code), cancellationToken);
         AddAudit(user.Id, "EmailVerificationRequested", user.Email, user.PhoneNumber, metadata);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
@@ -467,7 +467,7 @@ public sealed class AuthService(
         }
 
         var code = await otpService.CreateOtpAsync(user.Id, email, OtpDestinationType.Email, OtpPurpose.ForgotPassword, metadata.IpAddress, cancellationToken);
-        await emailSender.SendAsync(email, "Reset your Joviq LMS password", $"Your password reset OTP is <strong>{code}</strong>.", cancellationToken);
+        await emailSender.SendAsync(email, "Reset your Joviq LMS password", EmailTemplates.PasswordResetOtp(user.FullName, code), cancellationToken);
 
         AddAudit(user.Id, "ForgotPasswordRequested", user.Email, user.PhoneNumber, metadata);
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -571,7 +571,7 @@ public sealed class AuthService(
 
         var destination = user.Email ?? throw new AppException("User email is missing.", 400, "email_missing");
         var code = await otpService.CreateOtpAsync(user.Id, destination, OtpDestinationType.Email, OtpPurpose.DeleteAccount, metadata.IpAddress, cancellationToken);
-        await emailSender.SendAsync(destination, "Confirm Joviq LMS account deletion", $"Your account deletion OTP is <strong>{code}</strong>.", cancellationToken);
+        await emailSender.SendAsync(destination, "Confirm Joviq LMS account deletion", EmailTemplates.AccountDeletionOtp(user.FullName, code), cancellationToken);
         AddAudit(user.Id, "DeleteAccountRequested", user.Email, user.PhoneNumber, metadata);
         await dbContext.SaveChangesAsync(cancellationToken);
     }

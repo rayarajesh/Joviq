@@ -75,10 +75,10 @@ function SinglePage() {
             onSelectPlan={(plan, programSlug) => setEnrollment({ plan, programSlug })}
           />
         ) : null}
+        <Pricing onSelectPlan={(plan) => setEnrollment({ plan, programSlug: selectedSlug ?? undefined })} />
         <WhyJoviq />
         <CampusSection onContact={openContact} />
         <CertificateSection />
-        <Pricing onSelectPlan={(plan) => setEnrollment({ plan, programSlug: selectedSlug ?? undefined })} />
         <Reviews />
         <Faq />
         <Contact interest={contactInterest} />

@@ -1,6 +1,6 @@
 import { createServer as createHttpServer } from 'node:http';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
-import { resolve, dirname, extname } from 'node:path';
+import { resolve, dirname, extname, sep } from 'node:path';
 import { chromium } from 'playwright';
 import { createServer as createViteServer, loadEnv } from 'vite';
 
@@ -15,7 +15,7 @@ const server = createHttpServer(async (request, response) => {
   try {
     const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
     const path = resolve(dist, `.${pathname}`);
-    if (!path.startsWith(`${dist}/`) && path !== dist) { response.writeHead(403).end(); return; }
+    if (!path.startsWith(`${dist}${sep}`) && path !== dist) { response.writeHead(403).end(); return; }
     if (!extname(pathname)) { response.setHeader('Content-Type', 'text/html'); response.end(template); return; }
     response.setHeader('Content-Type', types[extname(path)] ?? 'application/octet-stream');
     response.end(await readFile(path));

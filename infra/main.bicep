@@ -253,6 +253,8 @@ var apiSettings = [
   { name: 'Cors__AllowedOrigins__5', value: origins[length(origins) > 5 ? 5 : 0] }
   { name: 'ExternalAuth__FrontendCallbackUrl', value: '${origin}/auth/google/callback' }
   { name: 'Payments__FrontendBaseUrl', value: origin }
+  { name: 'Payments__SinglePageOrigins__0', value: 'https://joviqtechnologieslms.com' }
+  { name: 'Payments__SinglePageOrigins__1', value: 'https://www.joviqtechnologieslms.com' }
   { name: 'Payments__PublicBaseUrl', value: 'https://${baseName}-api.azurewebsites.net' }
   { name: 'Payments__CashfreeEnvironment', value: production ? 'production' : 'sandbox' }
   { name: 'Database__SeedCatalog', value: 'true' }
