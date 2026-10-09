@@ -39,21 +39,30 @@ type Props = {
   plan: ProgramPlan;
   /** Fixed when opened from the course section; chosen in the dialog when opened from pricing. */
   programSlug?: string;
+  initialValues?: {
+    fullName: string;
+    phoneNumber: string;
+    email: string;
+    collegeName: string;
+  };
+  initialPaymentChoice?: PaymentChoice;
+  initialAcceptedTerms?: boolean;
+  autoStart?: boolean;
   onClose: () => void;
 };
 
-export function EnrollmentDialog({ plan, programSlug, onClose }: Props) {
+export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaymentChoice, initialAcceptedTerms, autoStart = false, onClose }: Props) {
   const auth = useAuth();
-  const { user } = auth;
+  const { user, isBooting } = auth;
   const payment = usePaymentFlow();
   const [step, setStep] = useState<Step>("details");
   const [slug, setSlug] = useState(programSlug ?? "");
-  const [fullName, setFullName] = useState(user?.fullName ?? "");
-  const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber ?? "");
-  const [email, setEmail] = useState(user?.email ?? "");
-  const [collegeName, setCollegeName] = useState("");
-  const [paymentChoice, setPaymentChoice] = useState<PaymentChoice>("token");
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [fullName, setFullName] = useState(initialValues?.fullName ?? user?.fullName ?? "");
+  const [phoneNumber, setPhoneNumber] = useState(initialValues?.phoneNumber ?? user?.phoneNumber ?? "");
+  const [email, setEmail] = useState(initialValues?.email ?? user?.email ?? "");
+  const [collegeName, setCollegeName] = useState(initialValues?.collegeName ?? "");
+  const [paymentChoice, setPaymentChoice] = useState<PaymentChoice>(initialPaymentChoice ?? "token");
+  const [acceptedTerms, setAcceptedTerms] = useState(initialAcceptedTerms ?? false);
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -61,6 +70,7 @@ export function EnrollmentDialog({ plan, programSlug, onClose }: Props) {
   const [retryAt, setRetryAt] = useState(0);
   const [retrySeconds, setRetrySeconds] = useState(0);
   const submittingRef = useRef(false);
+  const autoStartedRef = useRef(false);
   const targetRef = useRef<PaymentTarget | null>(null);
   const programTitle = uniquePrograms.find((program) => program.slug === slug)?.title ?? "your program";
   const enrollmentEmail = resolveCheckoutEmail(email, user?.email);
@@ -108,6 +118,12 @@ export function EnrollmentDialog({ plan, programSlug, onClose }: Props) {
     }
   }
 
+  useEffect(() => {
+    if (!autoStart || isBooting || autoStartedRef.current) return;
+    autoStartedRef.current = true;
+    void run(continueToPayment);
+  }, [autoStart, isBooting]);
+
   function goToPayment(target: PaymentTarget) {
     targetRef.current = target;
     setStep("payment");
@@ -115,9 +131,7 @@ export function EnrollmentDialog({ plan, programSlug, onClose }: Props) {
   }
 
   /** Mirrors /web's continueToCheckout: authoritative pricing, checkout account, then payment. */
-  async function submitDetails(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    await run(async () => {
+  async function continueToPayment() {
       if (!slug) throw new Error("Choose the program you want to join.");
       const applicant: EnrollmentApplicant = user
         ? { fullName: user.fullName, phoneNumber: user.phoneNumber || phoneNumber, email: enrollmentEmail, collegeName: "" }
@@ -175,7 +189,11 @@ export function EnrollmentDialog({ plan, programSlug, onClose }: Props) {
       }
 
       goToPayment(target);
-    });
+  }
+
+  async function submitDetails(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await run(continueToPayment);
   }
 
   async function submitSignIn(event: FormEvent<HTMLFormElement>) {
