@@ -1278,6 +1278,10 @@ namespace Joviq.Lms.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("CurrentYearOfStudy")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
                     b.Property<string>("Degree")
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
@@ -1296,6 +1300,21 @@ namespace Joviq.Lms.Infrastructure.Migrations
                     b.Property<string>("PortfolioUrl")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<string>("PreferredCategoryName")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<string>("PreferredProgramSlug")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<string>("PreferredProgramTitle")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateOnly?>("PreferredStartDate")
+                        .HasColumnType("date");
 
                     b.Property<string>("ResumeContentType")
                         .HasMaxLength(120)
@@ -1324,6 +1343,10 @@ namespace Joviq.Lms.Infrastructure.Migrations
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("WhatsAppNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.HasKey("UserId");
 

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, FormEvent, PointerEvent } from "react";
 import {
+  ArrowRight,
   Check,
-  ChevronDown,
   CreditCard,
   GraduationCap,
   LockKeyhole,
@@ -13,15 +13,15 @@ import {
   UserRound,
   X
 } from "lucide-react";
-import { defaultProgramPlans, findProgramBySlug, uniquePrograms } from "../data/siteContent";
+import { defaultProgramPlans } from "../data/siteContent";
 import type { ProgramPlan } from "../data/siteContent";
-import { getProgramImage } from "../data/programVisuals";
+import { authApi } from "../features/auth/api/authApi";
+import { env } from "../config/env";
 import { formatInr } from "./format";
 
 export type HeroPaymentChoice = "token" | "full";
 
 export type HeroCheckoutDetails = {
-  programSlug: string;
   plan: ProgramPlan;
   paymentChoice: HeroPaymentChoice;
   fullName: string;
@@ -31,62 +31,56 @@ export type HeroCheckoutDetails = {
   acceptedTerms: boolean;
 };
 
-function defaultPlanCode(slug: string) {
-  const program = findProgramBySlug(slug);
-  return program?.plans.find((plan) => plan.code === "INTERMEDIATE" && plan.isActive)?.code
-    ?? program?.plans.find((plan) => plan.isActive)?.code
-    ?? "";
+function GoogleMark() {
+  return (
+    <svg aria-hidden="true" className="hero-resume-strip__google-mark" viewBox="0 0 24 24">
+      <path fill="#4285F4" d="M21.35 12.27c0-.72-.06-1.25-.2-1.8H12v3.41h5.37a4.58 4.58 0 0 1-1.99 3.01v2.48h3.22c1.89-1.74 2.75-4.3 2.75-7.1Z" />
+      <path fill="#34A853" d="M12 21.6c2.7 0 4.96-.89 6.61-2.42l-3.22-2.48c-.9.6-2.05.96-3.39.96-2.61 0-4.82-1.76-5.61-4.13H3.06v2.56A9.99 9.99 0 0 0 12 21.6Z" />
+      <path fill="#FBBC05" d="M6.39 13.53A6 6 0 0 1 6.08 12c0-.53.11-1.05.31-1.53V7.91H3.06A9.93 9.93 0 0 0 2 12c0 1.47.35 2.86 1.06 4.09l3.33-2.56Z" />
+      <path fill="#EA4335" d="M12 6.34c1.47 0 2.79.5 3.83 1.49l2.87-2.87C16.95 3.35 14.7 2.4 12 2.4a9.99 9.99 0 0 0-8.94 5.51l3.33 2.56C7.18 8.1 9.39 6.34 12 6.34Z" />
+    </svg>
+  );
 }
 
 export function Hero({ onCheckout }: { onCheckout: (details: HeroCheckoutDetails) => void }) {
-  const [selectedCourse, setSelectedCourse] = useState("");
   const [selectedPlanCode, setSelectedPlanCode] = useState("INTERMEDIATE");
   const [paymentChoice, setPaymentChoice] = useState<HeroPaymentChoice>("token");
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
+  const [resumeEmail, setResumeEmail] = useState("");
+  const [resumeError, setResumeError] = useState("");
   const [collegeName, setCollegeName] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
-  const [courseMenuOpen, setCourseMenuOpen] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(5 * 60);
   const heroRef = useRef<HTMLElement>(null);
   const frameRef = useRef(0);
-  const coursePickerRef = useRef<HTMLDivElement>(null);
 
-  const selectedProgram = findProgramBySlug(selectedCourse);
-  const activePlans = selectedProgram?.plans.filter((plan) => plan.isActive) ?? [];
-  const displayPlans = activePlans.length ? activePlans : defaultProgramPlans.filter((plan) => plan.isActive);
-  const selectedPlan = activePlans.find((plan) => plan.code === selectedPlanCode);
-  const displayPlan = selectedPlan ?? displayPlans.find((plan) => plan.code === selectedPlanCode) ?? displayPlans[0];
-  const amountPlan = selectedPlan ?? displayPlan;
-  const courseImage = selectedProgram ? getProgramImage(selectedProgram.slug, selectedProgram.domain) : "/assets/learning-studio.jpg";
-  const amount = amountPlan ? paymentChoice === "token" ? amountPlan.reserveAmount : amountPlan.offerPrice : 0;
+  const displayPlans = defaultProgramPlans.filter((plan) => plan.isActive);
+  const selectedPlan = displayPlans.find((plan) => plan.code === selectedPlanCode) ?? displayPlans[0];
+  const displayPlan = selectedPlan;
+  const amountPlan = selectedPlan;
+  const amount = selectedPlan ? paymentChoice === "token" ? selectedPlan.reserveAmount : selectedPlan.offerPrice : 0;
   const amountLabel = amountPlan ? formatInr(amount) : "—";
   const balanceLabel = amountPlan ? formatInr(Math.max(0, amountPlan.offerPrice - amountPlan.reserveAmount)) : "—";
   const timerLabel = `${Math.floor(remainingSeconds / 60)}:${String(remainingSeconds % 60).padStart(2, "0")}`;
   const timerProgress = (remainingSeconds / (5 * 60)) * 360;
+  const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const isValidPhone = /^[6-9][0-9]{9}$/.test(phoneNumber);
+  const canContinueToPayment = Boolean(
+    selectedPlan &&
+    fullName.trim() &&
+    isValidPhone &&
+    isValidEmail &&
+    collegeName.trim() &&
+    acceptedTerms
+  );
 
   useEffect(() => {
     const timer = window.setInterval(() => setRemainingSeconds((seconds) => Math.max(0, seconds - 1)), 1000);
     return () => window.clearInterval(timer);
   }, []);
-
-  useEffect(() => {
-    if (!courseMenuOpen) return;
-    function closeOnOutsideClick(event: globalThis.PointerEvent) {
-      if (!coursePickerRef.current?.contains(event.target as Node)) setCourseMenuOpen(false);
-    }
-    function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") setCourseMenuOpen(false);
-    }
-    document.addEventListener("pointerdown", closeOnOutsideClick);
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("pointerdown", closeOnOutsideClick);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [courseMenuOpen]);
 
   useEffect(() => {
     if (!termsOpen) return;
@@ -116,17 +110,10 @@ export function Hero({ onCheckout }: { onCheckout: (details: HeroCheckoutDetails
     heroRef.current?.style.setProperty("--gy", "30%");
   }
 
-  function chooseCourse(slug: string) {
-    setSelectedCourse(slug);
-    setSelectedPlanCode(defaultPlanCode(slug));
-    setCourseMenuOpen(false);
-  }
-
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!selectedCourse || !selectedPlan || !acceptedTerms) return;
+    if (!canContinueToPayment) return;
     onCheckout({
-      programSlug: selectedCourse,
       plan: selectedPlan,
       paymentChoice,
       fullName: fullName.trim(),
@@ -135,6 +122,22 @@ export function Hero({ onCheckout }: { onCheckout: (details: HeroCheckoutDetails
       collegeName: collegeName.trim(),
       acceptedTerms
     });
+  }
+
+  function resumeOnboarding() {
+    const normalizedEmail = resumeEmail.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      setResumeError("Enter the email used during payment.");
+      return;
+    }
+
+    setResumeError("");
+    const mainWebUrl = env.lmsAppUrl || "http://localhost:5173";
+    window.location.assign(`${mainWebUrl}/login?returnUrl=${encodeURIComponent("/student/onboarding")}&email=${encodeURIComponent(normalizedEmail)}`);
+  }
+
+  function continueWithGoogle() {
+    window.location.assign(authApi.oauthStartUrl({ allowSignUp: false, acceptedTerms: false, returnUrl: "/student/onboarding" }));
   }
 
   return (
@@ -158,7 +161,7 @@ export function Hero({ onCheckout }: { onCheckout: (details: HeroCheckoutDetails
               <span className="hero-payment__brand"><span><Sparkles size={14} /></span> Joviq learning</span>
               <span className="hero-payment__aside-kicker">Enrollment workspace</span>
               <h1 id="hero-title">Start your next chapter.</h1>
-              <p>Choose a course, compare the available support, and secure your place in a few simple steps.</p>
+              <p>Choose your support level, share your details, and secure your place in a few simple steps.</p>
             </div>
             <div className="hero-payment__header-visual hero-payment__time-visual" aria-hidden="true">
               <span className="hero-payment__time-orbit hero-payment__time-orbit--one" />
@@ -173,39 +176,31 @@ export function Hero({ onCheckout }: { onCheckout: (details: HeroCheckoutDetails
             </div>
           </header>
 
-          <section className="hero-payment__course-bar" aria-labelledby="hero-course-title">
-            <div className="hero-payment__course-label">
-              <span id="hero-course-title"><GraduationCap size={16} /> Choose your course <b>* Required</b></span>
-              <small>{selectedProgram ? "Course plans and pricing are ready below." : "Select a course to load its plans and pricing."}</small>
+          <div className="hero-resume-strip" aria-label="Resume onboarding">
+            <div className="hero-resume-strip__copy">
+              <strong>Already registered? Resume onboarding</strong>
+              <span>Enter the email used during payment to continue your form.</span>
             </div>
-            <div className={`hero-payment__course-picker${courseMenuOpen ? " is-open" : ""}`} ref={coursePickerRef}>
-              <select className="sr-only" required value={selectedCourse} onChange={(event) => chooseCourse(event.target.value)} aria-label="Choose course" tabIndex={-1}>
-                <option value="" disabled>Choose a course to begin</option>
-                {uniquePrograms.map((program) => <option key={program.slug} value={program.slug}>{program.title}</option>)}
-              </select>
-              <button className="hero-payment__course-trigger" type="button" aria-haspopup="listbox" aria-expanded={courseMenuOpen} onClick={() => setCourseMenuOpen((open) => !open)}>
-                <span>{selectedProgram ? <img src={courseImage} alt="" /> : <GraduationCap size={17} />}</span>
-                <strong>{selectedProgram ? selectedProgram.title : "Choose a course to begin"}</strong>
-                <ChevronDown size={17} aria-hidden="true" />
+            <div className="hero-resume-strip__actions">
+              <div className={`hero-resume-strip__email${resumeError ? " is-invalid" : ""}`}>
+                <Mail size={17} aria-hidden="true" />
+                <input
+                  aria-label="Email used during payment"
+                  autoComplete="email"
+                  onChange={(event) => { setResumeEmail(event.target.value); setResumeError(""); }}
+                  onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); resumeOnboarding(); } }}
+                  placeholder="you@example.com"
+                  type="email"
+                  value={resumeEmail}
+                />
+                <button type="button" onClick={resumeOnboarding}>Continue <ArrowRight size={16} /></button>
+              </div>
+              {resumeError ? <small className="hero-resume-strip__error" role="alert">{resumeError}</small> : null}
+              <button className="hero-resume-strip__google" type="button" onClick={continueWithGoogle}>
+                <GoogleMark /> Continue with Google
               </button>
-              {courseMenuOpen ? (
-                <div className="hero-payment__course-menu" role="listbox" aria-label="Available courses">
-                  <div className="hero-payment__course-menu-head"><span>Explore programs</span><small>{uniquePrograms.length} career paths</small></div>
-                  {uniquePrograms.map((program, index) => (
-                    <button className={`hero-payment__course-option${selectedCourse === program.slug ? " is-selected" : ""}`} key={program.slug} type="button" role="option" aria-selected={selectedCourse === program.slug} onClick={() => chooseCourse(program.slug)} style={{ "--i": index } as CSSProperties}>
-                      <img src={getProgramImage(program.slug, program.domain)} alt="" />
-                      <span><strong>{program.title}</strong><small>{program.domain}</small></span>
-                      {selectedCourse === program.slug ? <Check size={16} /> : <ChevronDown className="hero-payment__course-option-arrow" size={14} />}
-                    </button>
-                  ))}
-                </div>
-              ) : null}
             </div>
-            <span className={`hero-payment__course-state${selectedProgram ? " is-ready" : ""}`}>
-              {selectedProgram ? <img src={courseImage} alt="" /> : <i />}
-              <span>{selectedProgram ? selectedProgram.title : "No course selected"}</span>
-            </span>
-          </section>
+          </div>
 
           <div className="hero-payment__workspace">
             <div className="hero-payment__selection-column">
@@ -213,9 +208,10 @@ export function Hero({ onCheckout }: { onCheckout: (details: HeroCheckoutDetails
                 <h2 id="hero-plan-title">1) Choose your plan <small>Support level</small></h2>
                 <div className="hero-payment__plans">
                   {displayPlans.map((plan) => (
-                    <label className={`hero-payment__plan${selectedPlan?.code === plan.code ? " is-selected" : ""}`} key={plan.code}>
+                    <label className={`hero-payment__plan hero-payment__choice-card${selectedPlan?.code === plan.code ? " is-selected" : ""}`} data-price={formatInr(plan.offerPrice)} key={plan.code}>
                       <input checked={selectedPlan?.code === plan.code} name="heroPlan" onChange={() => setSelectedPlanCode(plan.code)} type="radio" value={plan.code} />
-                      <span>
+                      {selectedPlan?.code === plan.code ? <span className="hero-payment__selection-badge" aria-hidden="true"><Check size={12} /></span> : null}
+                      <span className="hero-payment__choice-content">
                         <strong>{plan.name}{plan.code === "INTERMEDIATE" ? " ★" : ""}</strong>
                         <ul>{plan.features.slice(0, 3).map((feature) => <li key={feature}><Check size={11} />{feature}</li>)}</ul>
                       </span>
@@ -228,20 +224,22 @@ export function Hero({ onCheckout }: { onCheckout: (details: HeroCheckoutDetails
               <section className="hero-payment__section" aria-labelledby="hero-pay-title">
                 <h2 id="hero-pay-title">2) Choose how to pay <small>Secure checkout</small></h2>
                 <div className="hero-payment__pay-options">
-                  <label className={`hero-payment__pay-option${paymentChoice === "token" ? " is-selected" : ""}`}>
+                  <label className={`hero-payment__pay-option${paymentChoice === "token" ? " is-selected" : ""}`} data-price={displayPlan ? formatInr(displayPlan.reserveAmount) : "—"}>
                     <input checked={paymentChoice === "token"} name="heroPaymentChoice" onChange={() => setPaymentChoice("token")} type="radio" value="token" />
+                    {paymentChoice === "token" ? <span className="hero-payment__selection-badge" aria-hidden="true"><Check size={12} /></span> : null}
                     <span><strong>Reserve with {displayPlan ? formatInr(displayPlan.reserveAmount) : "—"}</strong><small>Pay now + remaining later</small></span>
                     <b>{displayPlan ? `${formatInr(displayPlan.reserveAmount)} now` : "—"}</b>
                   </label>
-                  <label className={`hero-payment__pay-option${paymentChoice === "full" ? " is-selected" : ""}`}>
+                  <label className={`hero-payment__pay-option${paymentChoice === "full" ? " is-selected" : ""}`} data-price={displayPlan ? formatInr(displayPlan.offerPrice) : "—"}>
                     <input checked={paymentChoice === "full"} name="heroPaymentChoice" onChange={() => setPaymentChoice("full")} type="radio" value="full" />
+                    {paymentChoice === "full" ? <span className="hero-payment__selection-badge" aria-hidden="true"><Check size={12} /></span> : null}
                     <span><strong>Pay in full</strong><small>One-time payment. Instant access.</small></span>
                     <b>{displayPlan ? formatInr(displayPlan.offerPrice) : "—"}</b>
                   </label>
                 </div>
                 <div className="hero-payment__summary">
                   <strong>You pay now: {amountLabel}</strong>
-                  <span>{displayPlan ? paymentChoice === "token" ? `Balance after reservation: ${balanceLabel}` : "No extra fee when paying in full." : "Select a course to calculate your payment."}</span>
+                  <span>{displayPlan ? paymentChoice === "token" ? `Balance after reservation: ${balanceLabel}` : "No extra fee when paying in full." : "Choose a plan to calculate your payment."}</span>
                 </div>
               </section>
             </div>
@@ -281,7 +279,7 @@ export function Hero({ onCheckout }: { onCheckout: (details: HeroCheckoutDetails
 
           <footer className="hero-payment__workspace-footer">
             <div className="hero-payment__trust"><span><ShieldCheck size={13} /> QR-verified certificates</span><span><LockKeyhole size={13} /> Secure checkout</span><span><Sparkles size={13} /> Instant access</span></div>
-            <button className="hero-payment__submit" disabled={!selectedPlan} type="submit"><CreditCard size={15} /> {selectedPlan ? `Continue securely · ${amountLabel}` : "Select a course to continue"}</button>
+            <button className="hero-payment__submit" disabled={!canContinueToPayment} type="submit"><CreditCard size={15} /> {selectedPlan ? `Continue to payment · ${amountLabel}` : "Continue to payment"}</button>
             <a className="hero-payment__help" href="tel:+919281977188"><Phone size={12} /> Need help? +91 92819 77188</a>
           </footer>
         </form>

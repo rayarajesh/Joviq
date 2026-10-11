@@ -105,7 +105,10 @@ export function usePaymentFlow() {
     const cashfree = window.Cashfree({
       mode: current.paymentEnvironment?.toLowerCase() === "production" ? "production" : "sandbox"
     });
-    const result = (await cashfree.checkout({ paymentSessionId: current.paymentSessionId, redirectTarget: "_modal" })) as CashfreeResult;
+    // Send the learner straight to Cashfree in the current tab. Cashfree
+    // returns to the configured /checkout URL, where PaymentReturn verifies
+    // the order server-side.
+    const result = (await cashfree.checkout({ paymentSessionId: current.paymentSessionId, redirectTarget: "_self" })) as CashfreeResult;
 
     // Some methods (UPI apps, net banking) leave the site; the return URL confirms those.
     if (result?.redirect) return;

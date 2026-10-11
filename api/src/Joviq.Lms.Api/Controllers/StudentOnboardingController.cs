@@ -60,6 +60,15 @@ public sealed class StudentOnboardingController(
         return Ok(ApiResponse<StudentOnboardingResponse>.Ok(result, "Academic details saved.", CorrelationId));
     }
 
+    [HttpPut("registration")]
+    public async Task<ActionResult<ApiResponse<StudentOnboardingResponse>>> UpdateRegistration(
+        UpdateRegistrationDetailsRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await studentOnboardingService.UpdateRegistrationDetailsAsync(RequiredUserId, request, cancellationToken);
+        return Ok(ApiResponse<StudentOnboardingResponse>.Ok(result, "Registration details saved.", CorrelationId));
+    }
+
     [HttpPut("career")]
     public async Task<ActionResult<ApiResponse<StudentOnboardingResponse>>> UpdateCareer(
         UpdateCareerDetailsRequest request,

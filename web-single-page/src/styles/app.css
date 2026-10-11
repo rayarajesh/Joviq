@@ -1017,6 +1017,24 @@ button, input, select, textarea { font: inherit; }
 }
 .hero-payment__workspace .hero-payment__pay-option.is-selected { border-color: #62c6ca !important; background: linear-gradient(135deg, #f2ffff, #f7f8ff) !important; }
 .hero-payment__workspace .hero-payment__pay-option:nth-child(2).is-selected { border-color: #edaa77 !important; background: linear-gradient(135deg, #fffaf2, #fff7fb) !important; }
+.hero-payment__workspace .hero-payment__submit {
+  background: linear-gradient(100deg, #245cff, #8d35ff 48%, #ff3f9f 78%, #ff9f2f) !important;
+  box-shadow: 0 16px 34px rgba(88, 70, 224, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.45) inset;
+}
+.hero-payment__workspace .hero-payment__submit:hover:not(:disabled) {
+  filter: saturate(1.15) brightness(1.08);
+  transform: translateY(-3px);
+}
+.hero-payment__workspace .hero-payment__submit:disabled {
+  color: #8894ab;
+  background: #e6ebf4 !important;
+  box-shadow: none;
+  cursor: not-allowed;
+  filter: none;
+  opacity: 1;
+  transform: none;
+}
+
 .hero-payment__workspace .hero-payment__plan > b,
 .hero-payment__workspace .hero-payment__pay-option > b { font-size: 0.78rem; }
 .hero-payment__workspace .hero-payment__summary {
@@ -1049,6 +1067,222 @@ button, input, select, textarea { font: inherit; }
 @keyframes terms-dialog-in { from { opacity: 0; transform: translateY(12px) scale(0.97); } }
 @keyframes choice-card-in { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: none; } }
 @keyframes choice-selected-pulse { 50% { box-shadow: 0 18px 34px rgba(89, 116, 207, 0.2), 0 0 0 4px rgba(112, 135, 232, 0.12); } }
+
+/* Button-like choice cards: brighter color, stronger contrast, and a clear action cue. */
+.hero-payment__workspace .hero-payment__plan,
+.hero-payment__workspace .hero-payment__pay-option {
+  min-height: 142px;
+  padding: 20px 20px 16px 27px !important;
+  border-width: 2px !important;
+  border-radius: 22px !important;
+  background: #ffffff !important;
+  box-shadow: 0 12px 26px rgba(75, 101, 160, 0.1) !important;
+  cursor: pointer;
+  user-select: none;
+}
+.hero-payment__workspace .hero-payment__plan:nth-child(1) {
+  border-color: #f4c2b0 !important;
+  background: linear-gradient(135deg, #fff0e8 0%, #fff5f7 54%, #f5f7ff 100%) !important;
+}
+.hero-payment__workspace .hero-payment__plan:nth-child(2) {
+  border-color: #b5c3f3 !important;
+  background: linear-gradient(135deg, #eef0ff 0%, #eaf5ff 58%, #f9efff 100%) !important;
+}
+.hero-payment__workspace .hero-payment__pay-option:nth-child(1) {
+  border-color: #9cddd9 !important;
+  background: linear-gradient(135deg, #e0fbf8 0%, #e9f5ff 58%, #f5f1ff 100%) !important;
+}
+.hero-payment__workspace .hero-payment__pay-option:nth-child(2) {
+  border-color: #f2c2a3 !important;
+  background: linear-gradient(135deg, #fff0df 0%, #fff3ed 56%, #fdeefa 100%) !important;
+}
+.hero-payment__workspace .hero-payment__plan::after,
+.hero-payment__workspace .hero-payment__pay-option::after {
+  content: attr(data-price);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  grid-column: 1 / -1;
+  justify-self: end;
+  min-height: 30px;
+  padding: 0 13px;
+  border: 1px solid #c8d3ed;
+  border-radius: 999px;
+  color: #536b9c;
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  transition: color 0.25s, background 0.25s, border-color 0.25s, transform 0.25s;
+}
+.hero-payment__workspace .hero-payment__plan.is-selected::after {
+  content: attr(data-price);
+  border-color: #7c89df;
+  color: #ffffff;
+  background: linear-gradient(100deg, #617ee8, #a36bd1);
+  box-shadow: 0 6px 14px rgba(98, 113, 211, 0.22);
+}
+.hero-payment__workspace .hero-payment__pay-option.is-selected::after {
+  content: attr(data-price);
+  border-color: #36b9ba;
+  color: #ffffff;
+  background: linear-gradient(100deg, #25b8b4, #5d8be9);
+  box-shadow: 0 6px 14px rgba(45, 160, 186, 0.2);
+}
+.hero-payment__workspace .hero-payment__pay-option:nth-child(2).is-selected::after {
+  border-color: #e49a70;
+  background: linear-gradient(100deg, #ec9c55, #d969ae);
+  box-shadow: 0 6px 14px rgba(222, 132, 104, 0.2);
+}
+.hero-payment__workspace .hero-payment__plan:hover::after,
+.hero-payment__workspace .hero-payment__pay-option:hover::after {
+  transform: translateY(-1px);
+  border-color: #8ea8eb;
+}
+.hero-payment__workspace .hero-payment__plan:has(input:focus-visible),
+.hero-payment__workspace .hero-payment__pay-option:has(input:focus-visible) {
+  outline: 3px solid rgba(103, 126, 225, 0.32);
+  outline-offset: 3px;
+}
+.hero-payment__workspace .hero-payment__submit {
+  min-height: 58px;
+  border: 2px solid rgba(255, 255, 255, 0.58);
+  background: linear-gradient(100deg, #3b82f6, #7959e8 46%, #d34cac 74%, #f39a43);
+  box-shadow: 0 16px 34px rgba(91, 82, 211, 0.3);
+  font-size: 0.88rem;
+  letter-spacing: 0.01em;
+}
+
+/* High-energy palette: richer color, soft glow, and a more tactile selected state. */
+.hero--payment {
+  background:
+    radial-gradient(48% 54% at 0% 28%, rgba(255, 103, 169, 0.2), transparent 72%),
+    radial-gradient(42% 58% at 100% 30%, rgba(91, 119, 255, 0.2), transparent 72%),
+    radial-gradient(42% 46% at 50% 100%, rgba(56, 215, 197, 0.18), transparent 72%),
+    linear-gradient(135deg, #f5f7ff 0%, #fff5fb 48%, #effdff 100%) !important;
+}
+.hero-payment__workspace .hero-payment__section:first-child {
+  border-color: rgba(244, 156, 143, 0.7) !important;
+  background: linear-gradient(145deg, rgba(255, 236, 226, 0.78), rgba(244, 235, 255, 0.72)) !important;
+  box-shadow: 0 16px 34px rgba(232, 133, 154, 0.1) !important;
+}
+.hero-payment__workspace .hero-payment__section:nth-child(2) {
+  border-color: rgba(91, 201, 203, 0.68) !important;
+  background: linear-gradient(145deg, rgba(218, 255, 247, 0.78), rgba(231, 236, 255, 0.76)) !important;
+  box-shadow: 0 16px 34px rgba(58, 175, 190, 0.1) !important;
+}
+.hero-payment__workspace .hero-payment__section h2 {
+  color: #2d4679 !important;
+}
+.hero-payment__workspace .hero-payment__section:first-child h2::first-letter,
+.hero-payment__workspace .hero-payment__section:nth-child(2) h2::first-letter {
+  color: #e96286;
+}
+.hero-payment__workspace .hero-payment__plan,
+.hero-payment__workspace .hero-payment__pay-option {
+  border-width: 2px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 18px 34px rgba(75, 101, 160, 0.12) !important;
+}
+.hero-payment__workspace .hero-payment__plan::before,
+.hero-payment__workspace .hero-payment__pay-option::before {
+  inset: 10px auto 10px 0 !important;
+  width: 6px !important;
+  border-radius: 0 999px 999px 0;
+}
+.hero-payment__workspace .hero-payment__plan:nth-child(1) {
+  border-color: #ff9d82 !important;
+  background:
+    radial-gradient(circle at 96% 8%, rgba(255, 255, 255, 0.96), transparent 34%),
+    linear-gradient(130deg, #ffd0c4 0%, #ffe0e7 48%, #f1e4ff 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92), 0 20px 38px rgba(239, 110, 134, 0.22) !important;
+}
+.hero-payment__workspace .hero-payment__plan:nth-child(1)::before {
+  background: linear-gradient(180deg, #ff8b63, #f14f9c) !important;
+}
+.hero-payment__workspace .hero-payment__plan:nth-child(2) {
+  border-color: #8b9bf1 !important;
+  background:
+    radial-gradient(circle at 93% 8%, rgba(255, 255, 255, 0.94), transparent 32%),
+    linear-gradient(130deg, #cbd8ff 0%, #ddd3ff 50%, #d0f4ff 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.94), 0 20px 42px rgba(99, 102, 206, 0.26) !important;
+}
+.hero-payment__workspace .hero-payment__plan:nth-child(2)::before {
+  background: linear-gradient(180deg, #687dff, #a754e8) !important;
+}
+.hero-payment__workspace .hero-payment__pay-option:nth-child(1) {
+  border-color: #4dcfd0 !important;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 255, 255, 0.94), transparent 34%),
+    linear-gradient(130deg, #a7eee1 0%, #c5efff 54%, #e8dcff 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92), 0 20px 38px rgba(49, 174, 191, 0.22) !important;
+}
+.hero-payment__workspace .hero-payment__pay-option:nth-child(1)::before {
+  background: linear-gradient(180deg, #26c9c2, #637cff) !important;
+}
+.hero-payment__workspace .hero-payment__pay-option:nth-child(2) {
+  border-color: #ffad78 !important;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 255, 255, 0.94), transparent 34%),
+    linear-gradient(130deg, #ffd0a9 0%, #ffe1d4 52%, #f4d9ff 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92), 0 20px 38px rgba(222, 132, 104, 0.2) !important;
+}
+.hero-payment__workspace .hero-payment__pay-option:nth-child(2)::before {
+  background: linear-gradient(180deg, #ff9b42, #f05d9e) !important;
+}
+.hero-payment__workspace .hero-payment__plan > span > strong { color: #d85452 !important; }
+.hero-payment__workspace .hero-payment__plan:nth-child(2) > span > strong { color: #5369d5 !important; }
+.hero-payment__workspace .hero-payment__pay-option:nth-child(1) > span > strong { color: #078f98 !important; }
+.hero-payment__workspace .hero-payment__pay-option:nth-child(2) > span > strong { color: #d5662e !important; }
+.hero-payment__workspace .hero-payment__plan li svg,
+.hero-payment__workspace .hero-payment__pay-option li svg { color: #149ca4 !important; filter: drop-shadow(0 2px 3px rgba(20, 156, 164, 0.2)); }
+.hero-payment__workspace .hero-payment__plan::after,
+.hero-payment__workspace .hero-payment__pay-option::after {
+  border-color: rgba(255, 255, 255, 0.9);
+  color: #536b9c;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 7px 14px rgba(73, 91, 151, 0.13);
+}
+.hero-payment__workspace .hero-payment__plan.is-selected {
+  border-color: #746ee8 !important;
+  background: linear-gradient(130deg, #c6d4ff 0%, #d9caff 47%, #c9efff 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.96), 0 22px 44px rgba(99, 86, 208, 0.31), 0 0 0 4px rgba(117, 105, 232, 0.12) !important;
+  transform: translateY(-2px);
+}
+.hero-payment__workspace .hero-payment__plan.is-selected::after {
+  border-color: #766cf0;
+  background: linear-gradient(100deg, #536ff0, #a54edb);
+  box-shadow: 0 8px 16px rgba(98, 82, 219, 0.3);
+}
+.hero-payment__workspace .hero-payment__pay-option.is-selected {
+  border-color: #22bfc2 !important;
+  background: linear-gradient(130deg, #8de8dc 0%, #aee8ff 52%, #d7c8ff 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.96), 0 22px 44px rgba(35, 166, 188, 0.28), 0 0 0 4px rgba(47, 193, 194, 0.12) !important;
+  transform: translateY(-2px);
+}
+.hero-payment__workspace .hero-payment__pay-option.is-selected::after {
+  border-color: #1ab2b5;
+  background: linear-gradient(100deg, #10bcb0, #4e89ef);
+  box-shadow: 0 8px 16px rgba(45, 160, 186, 0.3);
+}
+.hero-payment__workspace .hero-payment__pay-option:nth-child(2).is-selected {
+  border-color: #f08a5f !important;
+  background: linear-gradient(130deg, #ffc28f 0%, #ffd6c3 52%, #eecbff 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.96), 0 22px 44px rgba(222, 123, 94, 0.27), 0 0 0 4px rgba(241, 139, 100, 0.12) !important;
+}
+.hero-payment__workspace .hero-payment__pay-option:nth-child(2).is-selected::after {
+  border-color: #e8845c;
+  background: linear-gradient(100deg, #f18c46, #d950a7);
+  box-shadow: 0 8px 16px rgba(222, 132, 104, 0.3);
+}
+.hero-payment__workspace .hero-payment__summary {
+  border-color: rgba(114, 128, 226, 0.52) !important;
+  background: linear-gradient(100deg, rgba(196, 247, 245, 0.82), rgba(220, 215, 255, 0.86), rgba(255, 223, 198, 0.8)) !important;
+}
+.hero-payment__workspace .hero-payment__submit {
+  background: linear-gradient(100deg, #247cf3, #754bea 44%, #d83a9e 72%, #ff932f) !important;
+  box-shadow: 0 18px 38px rgba(91, 82, 211, 0.36), 0 0 0 4px rgba(255, 255, 255, 0.3) !important;
+}
+.hero-payment__workspace .hero-payment__submit:hover { filter: saturate(1.12) brightness(1.04); }
 
 .hero__inner { display: grid; grid-template-columns: 1.1fr 1fr; align-items: center; gap: clamp(32px, 4vw, 56px); }
 .hero__inner > * { min-width: 0; }
@@ -2057,6 +2291,73 @@ button, input, select, textarea { font: inherit; }
 .pay-panel__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 8px 0 6px; }
 .pay-panel .enroll-note { text-align: left; }
 
+/* Post-payment onboarding panels. */
+.payment-success-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(100%, 520px);
+  gap: 10px;
+  margin: 4px 0 2px;
+  text-align: left;
+}
+.payment-success-details > div,
+.account-choice-panel__summary {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid rgba(130, 119, 223, 0.18);
+  border-radius: 14px;
+  background: linear-gradient(135deg, #faf8ff, #f0fbff);
+}
+.payment-success-details small { color: var(--muted); font-size: 0.72rem; }
+.payment-success-details strong { color: var(--ink-2); font-size: 0.88rem; }
+.post-payment-registration__intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(104, 128, 233, 0.2);
+  border-radius: 18px;
+  background: linear-gradient(135deg, #f4f0ff, #ecfbff 52%, #fff3e9);
+}
+.post-payment-registration__icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  border-radius: 13px;
+  color: #fff;
+  background: linear-gradient(135deg, #586ff0, #cf58ae);
+  box-shadow: 0 10px 20px rgba(104, 97, 220, 0.24);
+}
+.post-payment-registration__intro h3 { margin-top: 4px; color: #2f3d6a; font-size: 1.08rem; }
+.post-payment-registration__intro p { margin-top: 5px; color: var(--muted); font-size: 0.8rem; line-height: 1.5; }
+.input-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 50px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-2);
+  color: var(--violet);
+}
+.input-with-icon:focus-within { border-color: var(--violet); background: var(--surface); box-shadow: 0 0 0 4px rgba(122, 108, 240, 0.15); }
+.input-with-icon input { min-height: 46px; flex: 1; padding: 0; border: 0; background: transparent; box-shadow: none !important; }
+.field__hint { color: var(--muted); font-size: 0.7rem; font-weight: 500; }
+.account-choice-panel { padding-top: 10px; }
+.account-choice-panel__icon { color: #fff; background: linear-gradient(135deg, #16b995, #4f83ef); box-shadow: 0 0 0 10px rgba(43, 174, 170, 0.12); }
+.account-choice-panel h3 { color: #2f3d6a; }
+.account-choice-panel__summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: min(100%, 520px); gap: 10px; text-align: left; }
+.account-choice-panel__summary span { display: flex; align-items: center; gap: 7px; color: #536696; font-size: 0.78rem; }
+.account-choice-panel__summary svg { flex-shrink: 0; color: #657ee9; }
+.account-choice-panel__summary strong { overflow: hidden; color: #304263; font-size: 0.82rem; text-overflow: ellipsis; white-space: nowrap; }
+.account-choice-panel__actions .btn { min-width: 185px; }
+.account-choice-panel__google { border-color: #b7c3e7; color: #4f6090; background: #fff; }
+.account-choice-panel__google:hover { border-color: #8799ec; color: #3c4e82; background: #f8f9ff; }
+
 .confetti { position: absolute; inset: -20px 0 auto; height: 0; pointer-events: none; }
 .confetti i {
   position: absolute; top: 0; left: calc(4% + var(--i) * 3.3%); width: 8px; height: 14px; border-radius: 2px;
@@ -2239,4 +2540,873 @@ button, input, select, textarea { font: inherit; }
   .marquee__track { animation: none; }
   .glass-pop--cert { animation: none; }
   .hero__underline path { stroke-dashoffset: 0; }
+}
+
+/* Hero resume banner: a quick path back into an unfinished enrollment. */
+.hero-resume-strip {
+  display: grid;
+  grid-template-columns: minmax(250px, 0.82fr) minmax(440px, 1.18fr);
+  align-items: center;
+  gap: 24px;
+  padding: 14px 42px;
+  color: #fff;
+  background: linear-gradient(105deg, #29275b 0%, #3e2867 47%, #5a2c71 100%);
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 12px 28px rgba(53, 38, 104, 0.14);
+}
+.hero-resume-strip__copy { display: grid; gap: 4px; min-width: 0; }
+.hero-resume-strip__copy strong { font-size: 0.98rem; line-height: 1.15; }
+.hero-resume-strip__copy span { color: rgba(255, 255, 255, 0.72); font-size: 0.72rem; line-height: 1.35; }
+.hero-resume-strip__actions { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px 10px; min-width: 0; }
+.hero-resume-strip__email { display: flex; align-items: center; min-height: 48px; overflow: hidden; border: 2px solid rgba(255, 255, 255, 0.26); border-radius: 14px; background: rgba(24, 24, 34, 0.9); transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+.hero-resume-strip__email:focus-within { border-color: #91b8ff; box-shadow: 0 0 0 4px rgba(111, 143, 255, 0.2); }
+.hero-resume-strip__email.is-invalid { border-color: #ff9a9a; }
+.hero-resume-strip__email > svg { flex-shrink: 0; margin-left: 14px; color: #aab7ff; }
+.hero-resume-strip__email input { width: 100%; min-width: 0; height: 44px; padding: 0 12px; border: 0; outline: 0; color: #fff; background: transparent; font: inherit; font-size: 0.82rem; }
+.hero-resume-strip__email input::placeholder { color: rgba(255, 255, 255, 0.46); }
+.hero-resume-strip__email button, .hero-resume-strip__google { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; border: 0; border-radius: 10px; font: inherit; font-size: 0.76rem; font-weight: 800; cursor: pointer; transition: transform 0.2s ease, filter 0.2s ease, background 0.2s ease; }
+.hero-resume-strip__email button { flex-shrink: 0; margin-right: 4px; padding: 0 14px; color: #201c3b; background: linear-gradient(135deg, #ffe1a8, #f3a6e2); }
+.hero-resume-strip__email button:hover, .hero-resume-strip__google:hover { transform: translateY(-1px); filter: brightness(1.08); }
+.hero-resume-strip__google { padding: 0 14px; color: #29264e; background: #fff; white-space: nowrap; box-shadow: 0 8px 18px rgba(13, 11, 36, 0.18); }
+.hero-resume-strip__google-mark { width: 18px; height: 18px; }
+.hero-resume-strip__error { grid-column: 1; margin: -3px 0 0 8px; color: #ffd1d1; font-size: 0.66rem; }
+
+@media (max-width: 900px) {
+  .hero-resume-strip { grid-template-columns: 1fr; gap: 12px; padding: 16px 24px; }
+  .hero-resume-strip__actions { grid-template-columns: minmax(0, 1fr) auto; }
+}
+
+@media (max-width: 620px) {
+  .hero-resume-strip { padding: 16px 18px; }
+  .hero-resume-strip__actions { grid-template-columns: 1fr; }
+  .hero-resume-strip__email { width: 100%; }
+  .hero-resume-strip__google { width: 100%; }
+  .hero-resume-strip__error { grid-column: 1; margin-left: 4px; }
+}
+
+/* Final disabled-state override after the page's decorative CTA layers. */
+.hero-payment__workspace .hero-payment__submit:disabled {
+  color: #8894ab !important;
+  background: #e6ebf4 !important;
+  box-shadow: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* Stronger checkout hierarchy: larger type with enough card height and
+   flexible columns so the content remains inside each option box. */
+.hero-payment__workspace .hero-payment__section h2 {
+  font-size: clamp(1rem, 1.35vw, 1.18rem) !important;
+  font-weight: 850 !important;
+  line-height: 1.25 !important;
+}
+
+.hero-payment__workspace .hero-payment__plan,
+.hero-payment__workspace .hero-payment__pay-option {
+  min-height: 124px !important;
+  padding: 18px 18px 17px 25px !important;
+  align-content: center !important;
+}
+
+.hero-payment__workspace .hero-payment__pay-option {
+  min-height: 106px !important;
+}
+
+.hero-payment__workspace .hero-payment__plan > span,
+.hero-payment__workspace .hero-payment__pay-option > span {
+  min-width: 0 !important;
+}
+
+.hero-payment__workspace .hero-payment__plan strong,
+.hero-payment__workspace .hero-payment__pay-option strong {
+  overflow-wrap: anywhere;
+  color: #2d4169 !important;
+  font-size: clamp(1rem, 1.25vw, 1.2rem) !important;
+  font-weight: 850 !important;
+  line-height: 1.2 !important;
+}
+
+.hero-payment__workspace .hero-payment__plan > b,
+.hero-payment__workspace .hero-payment__pay-option > b {
+  align-self: start;
+  color: #40588e !important;
+  font-size: clamp(0.95rem, 1.2vw, 1.12rem) !important;
+  font-weight: 900 !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+}
+
+.hero-payment__workspace .hero-payment__plan ul {
+  gap: 4px !important;
+  margin-top: 8px !important;
+  color: #687895 !important;
+  font-size: clamp(0.72rem, 0.9vw, 0.84rem) !important;
+  font-weight: 600 !important;
+  line-height: 1.25 !important;
+}
+
+.hero-payment__workspace .hero-payment__pay-option small {
+  margin-top: 7px !important;
+  color: #7f8ba2 !important;
+  font-size: clamp(0.72rem, 0.9vw, 0.84rem) !important;
+  font-weight: 600 !important;
+  line-height: 1.3 !important;
+}
+
+.hero-payment__workspace .hero-payment__summary {
+  font-size: 0.82rem !important;
+  font-weight: 750 !important;
+}
+
+.hero-payment__workspace .hero-payment__summary span {
+  font-weight: 600 !important;
+}
+
+.hero-payment__workspace .hero-payment__column-heading h2 {
+  font-size: clamp(1.2rem, 1.6vw, 1.45rem) !important;
+  font-weight: 900 !important;
+  line-height: 1.15 !important;
+}
+
+.hero-payment__workspace .hero-payment__field {
+  font-size: 0.82rem !important;
+  font-weight: 800 !important;
+}
+
+@media (max-width: 620px) {
+  .hero-payment__workspace .hero-payment__plan,
+  .hero-payment__workspace .hero-payment__pay-option {
+    min-height: 108px !important;
+    padding: 15px 14px 14px 21px !important;
+  }
+
+  .hero-payment__workspace .hero-payment__plan strong,
+  .hero-payment__workspace .hero-payment__pay-option strong {
+    font-size: 0.96rem !important;
+  }
+
+  .hero-payment__workspace .hero-payment__plan > b,
+  .hero-payment__workspace .hero-payment__pay-option > b {
+    font-size: 0.88rem !important;
+  }
+}
+
+/* Keep option text bright and readable while hovering a card. */
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:hover,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option:hover {
+  color: #f7fbff !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:hover strong,
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:hover > b,
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:hover ul,
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:hover li,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option:hover strong,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option:hover > b,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option:hover small {
+  color: #f7fbff !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:hover li svg,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option:hover svg {
+  color: #e8fbff !important;
+}
+
+/* Elevated details card: make the form feel like a clear, premium checkout
+   step instead of an open area beside the plan choices. */
+.hero-payment__workspace .hero-payment__details-column {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 26px 26px 24px !important;
+  border: 1px solid #d8e2f3 !important;
+  border-radius: 24px !important;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.96), rgba(246, 249, 255, 0.86)) !important;
+  box-shadow: 0 18px 44px rgba(89, 112, 166, 0.14), 0 1px 0 rgba(255, 255, 255, 0.95) inset !important;
+}
+
+.hero-payment__workspace .hero-payment__details-column::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 auto;
+  height: 5px;
+  border-radius: 24px 24px 0 0;
+  background: linear-gradient(90deg, #4e8dff, #8272e8 48%, #55c8bc);
+}
+
+.hero-payment__workspace .hero-payment__details-column::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -84px;
+  right: -72px;
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(117, 146, 255, 0.18), rgba(117, 146, 255, 0) 68%);
+  pointer-events: none;
+}
+
+.hero-payment__workspace .hero-payment__column-heading {
+  position: relative;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 26px !important;
+}
+
+.hero-payment__workspace .hero-payment__column-heading > span {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 14px !important;
+  color: #173a73 !important;
+  background: linear-gradient(135deg, #66dfff, #8296ff) !important;
+  box-shadow: 0 10px 22px rgba(76, 132, 233, 0.24) !important;
+  font-size: 0.9rem !important;
+  font-weight: 900 !important;
+}
+
+.hero-payment__workspace .hero-payment__column-heading h2 {
+  color: #293e68 !important;
+  font-size: clamp(1.35rem, 2vw, 1.7rem) !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.025em;
+}
+
+.hero-payment__workspace .hero-payment__column-heading p {
+  max-width: 31rem;
+  margin-top: 6px !important;
+  color: #8190a9 !important;
+  font-size: 0.78rem !important;
+  line-height: 1.45 !important;
+}
+
+.hero-payment__workspace .hero-payment__fields {
+  position: relative;
+  gap: 18px 16px !important;
+}
+
+.hero-payment__workspace .hero-payment__field {
+  gap: 8px !important;
+  color: #42577e !important;
+  font-size: 0.78rem !important;
+  font-weight: 850 !important;
+}
+
+.hero-payment__workspace .hero-payment__field > span:first-child {
+  letter-spacing: 0.01em;
+}
+
+.hero-payment__workspace .hero-payment__control,
+.hero-payment__workspace .hero-payment__phone-control {
+  min-height: 52px !important;
+  padding: 0 14px !important;
+  border: 1px solid #d9e3f3 !important;
+  border-radius: 14px !important;
+  background: rgba(255, 255, 255, 0.7) !important;
+  box-shadow: 0 5px 15px rgba(104, 126, 177, 0.06) inset !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+
+.hero-payment__workspace .hero-payment__control > svg,
+.hero-payment__workspace .hero-payment__phone-control > svg {
+  flex: 0 0 auto;
+  color: #7f91b2 !important;
+  transition: color 0.2s ease;
+}
+
+.hero-payment__workspace .hero-payment__control input,
+.hero-payment__workspace .hero-payment__phone-control input {
+  min-height: 44px !important;
+  color: #2f466f !important;
+  font-size: 0.84rem !important;
+  font-weight: 650 !important;
+}
+
+.hero-payment__workspace .hero-payment__control input::placeholder,
+.hero-payment__workspace .hero-payment__phone-control input::placeholder {
+  color: #96a4ba !important;
+  opacity: 1;
+}
+
+.hero-payment__workspace .hero-payment__control:focus-within,
+.hero-payment__workspace .hero-payment__phone-control:focus-within {
+  border-color: #67bfcf !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 4px rgba(103, 191, 207, 0.15), 0 7px 18px rgba(104, 126, 177, 0.08) !important;
+  transform: translateY(-1px);
+}
+
+.hero-payment__workspace .hero-payment__control:focus-within > svg,
+.hero-payment__workspace .hero-payment__phone-control:focus-within > svg {
+  color: #319eb2 !important;
+}
+
+.hero-payment__workspace .hero-payment__phone-control b {
+  padding: 4px 10px 4px 0 !important;
+  border-right: 1px solid #d5deed !important;
+  color: #526b96 !important;
+  font-size: 0.8rem !important;
+  font-weight: 850 !important;
+}
+
+.hero-payment__workspace .hero-payment__terms {
+  margin-top: 24px !important;
+  padding: 15px 16px !important;
+  border: 1px solid #dbe3f1 !important;
+  border-radius: 16px !important;
+  color: #586b8d !important;
+  background: linear-gradient(135deg, rgba(249, 251, 255, 0.94), rgba(240, 246, 255, 0.72)) !important;
+  box-shadow: 0 8px 18px rgba(104, 126, 177, 0.06) !important;
+  font-size: 0.78rem !important;
+  line-height: 1.4 !important;
+}
+
+.hero-payment__workspace .hero-payment__terms > input {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  width: 20px !important;
+  height: 20px !important;
+  margin: 0 !important;
+  border: 2px solid #b8c7df !important;
+  border-radius: 6px !important;
+  background: #ffffff !important;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hero-payment__workspace .hero-payment__terms > input:checked {
+  border-color: #6379d7 !important;
+  background: linear-gradient(135deg, #5d8cf0, #7668d7) !important;
+  box-shadow: 0 4px 10px rgba(91, 120, 218, 0.24) !important;
+}
+
+.hero-payment__workspace .hero-payment__terms > input:checked::after {
+  content: "✓";
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.hero-payment__workspace .hero-payment__terms-link {
+  color: #6172ce !important;
+  font-weight: 900 !important;
+  text-underline-offset: 3px;
+  transition: color 0.2s ease;
+}
+
+.hero-payment__workspace .hero-payment__terms-link:hover {
+  color: #318fa5 !important;
+}
+
+/* Polished choice cards: give each option a clear visual identity and make
+   the light hover text work against a richer, deeper hover surface. */
+.hero--payment .hero-payment-card--workspace .hero-payment__plan,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option {
+  overflow: hidden !important;
+  border: 1px solid rgba(169, 183, 216, 0.7) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 12px 26px rgba(101, 121, 174, 0.1) !important;
+  transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease, background 0.22s ease !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan::before,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option::before {
+  width: 6px !important;
+  border-radius: 0 8px 8px 0;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:nth-child(1) {
+  border-color: rgba(239, 170, 156, 0.78) !important;
+  background: linear-gradient(135deg, rgba(255, 247, 242, 0.96), rgba(255, 226, 226, 0.9)) !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:nth-child(2) {
+  border-color: rgba(161, 170, 233, 0.8) !important;
+  background: linear-gradient(135deg, rgba(245, 245, 255, 0.96), rgba(229, 240, 255, 0.9)) !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option:nth-child(1) {
+  border-color: rgba(137, 203, 214, 0.8) !important;
+  background: linear-gradient(135deg, rgba(237, 253, 253, 0.96), rgba(229, 239, 255, 0.9)) !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option:nth-child(2) {
+  border-color: rgba(239, 178, 151, 0.8) !important;
+  background: linear-gradient(135deg, rgba(255, 249, 239, 0.96), rgba(255, 231, 235, 0.9)) !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan.is-selected,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option.is-selected {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 16px 34px rgba(102, 123, 190, 0.18), 0 0 0 3px rgba(255, 255, 255, 0.72) inset !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:hover,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option:hover {
+  transform: translateY(-5px) !important;
+  box-shadow: 0 18px 34px rgba(79, 98, 160, 0.24) !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:nth-child(1):hover {
+  border-color: #d77a72 !important;
+  background: linear-gradient(135deg, #db8469, #bb5d7d) !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:nth-child(2):hover {
+  border-color: #6673d9 !important;
+  background: linear-gradient(135deg, #6879da, #6850c6) !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option:nth-child(1):hover {
+  border-color: #238eaa !important;
+  background: linear-gradient(135deg, #168f9d, #3c73d2) !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option:nth-child(2):hover {
+  border-color: #d87769 !important;
+  background: linear-gradient(135deg, #d7834e, #c74f8c) !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:hover strong,
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:hover > b,
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:hover ul,
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:hover li,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option:hover strong,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option:hover > b,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option:hover small {
+  color: #ffffff !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:hover li svg,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option:hover svg {
+  color: #dfffff !important;
+}
+
+/* Final cohesive checkout system: one surface language, one type hierarchy,
+   and light selected states that stay readable across every option. */
+.hero--payment .hero-payment-card--workspace {
+  color: #2e456e !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__section h2 {
+  color: #2d456f !important;
+  font-size: clamp(1.12rem, 1.5vw, 1.32rem) !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.018em;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__section h2 small {
+  color: #8494af !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option {
+  min-height: 136px !important;
+  padding: 19px 19px 18px 27px !important;
+  border: 1px solid #d9e3f2 !important;
+  border-radius: 20px !important;
+  color: #2e456e !important;
+  background: rgba(255, 255, 255, 0.82) !important;
+  box-shadow: 0 12px 26px rgba(95, 117, 169, 0.1) !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option {
+  min-height: 116px !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:nth-child(1) {
+  border-color: #f0c6b5 !important;
+  background: linear-gradient(135deg, #fffaf7 0%, #ffe9e9 100%) !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:nth-child(2) {
+  border-color: #bbc6ed !important;
+  background: linear-gradient(135deg, #f8f8ff 0%, #eaf1ff 100%) !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option:nth-child(1) {
+  border-color: #a9dfe4 !important;
+  background: linear-gradient(135deg, #f3ffff 0%, #ebf3ff 100%) !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option:nth-child(2) {
+  border-color: #f0c5ac !important;
+  background: linear-gradient(135deg, #fffaf3 0%, #ffecef 100%) !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan::before,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option::before {
+  width: 6px !important;
+  border-radius: 0 8px 8px 0 !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:nth-child(1)::before {
+  background: linear-gradient(180deg, #ff9b72, #f04f8c) !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:nth-child(2)::before {
+  background: linear-gradient(180deg, #728bff, #9a4fe1) !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option:nth-child(1)::before {
+  background: linear-gradient(180deg, #20c8bd, #5a7bff) !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option:nth-child(2)::before {
+  background: linear-gradient(180deg, #ffae5c, #ef4f91) !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan strong,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option strong {
+  color: #314a78 !important;
+  font-size: clamp(1.03rem, 1.35vw, 1.22rem) !important;
+  font-weight: 900 !important;
+  line-height: 1.2 !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:nth-child(1) > span > strong {
+  color: #d6783f !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:nth-child(2) > span > strong {
+  color: #5a6fc8 !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option:nth-child(1) > span > strong {
+  color: #269da2 !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option:nth-child(2) > span > strong {
+  color: #d47745 !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan > b,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option > b {
+  color: #46628e !important;
+  font-size: clamp(1rem, 1.25vw, 1.16rem) !important;
+  font-weight: 900 !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:nth-child(1) > b {
+  color: #e88a52 !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:nth-child(2) > b {
+  color: #5e70cc !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option:nth-child(1) > b {
+  color: #39b8cf !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option:nth-child(2) > b {
+  color: #e78952 !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan ul,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option small {
+  color: #7385a4 !important;
+  font-size: 0.8rem !important;
+  font-weight: 650 !important;
+  line-height: 1.35 !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan li svg {
+  color: #3aaebb !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan.is-selected,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option.is-selected {
+  transform: translateY(-2px) !important;
+  border-color: #7187e8 !important;
+  background: linear-gradient(135deg, #edf2ff 0%, #f3eaff 100%) !important;
+  box-shadow: 0 18px 34px rgba(92, 112, 199, 0.2), 0 0 0 3px rgba(116, 137, 232, 0.12) !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option.is-selected {
+  border-color: #df9a83 !important;
+  background: linear-gradient(135deg, #fff3df 0%, #ffe9ef 100%) !important;
+  box-shadow: 0 18px 34px rgba(212, 135, 123, 0.18), 0 0 0 3px rgba(239, 170, 146, 0.16) !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__summary {
+  margin-top: 15px !important;
+  padding: 14px 16px !important;
+  border: 1px solid #d9e2f1 !important;
+  border-radius: 15px !important;
+  color: #3a527b !important;
+  background: linear-gradient(100deg, #e8f9fb, #edeaff 52%, #fff0df) !important;
+  box-shadow: 0 8px 18px rgba(94, 117, 171, 0.08) !important;
+  font-size: 0.8rem !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__summary strong {
+  color: #3b557f !important;
+  font-weight: 850 !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__summary span {
+  color: #7486a5 !important;
+  font-weight: 700 !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan.is-selected:hover,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option.is-selected:hover {
+  color: #ffffff !important;
+}
+
+@media (max-width: 620px) {
+  .hero--payment .hero-payment-card--workspace .hero-payment__plan,
+  .hero--payment .hero-payment-card--workspace .hero-payment__pay-option {
+    min-height: 112px !important;
+    padding: 16px 15px 15px 23px !important;
+    border-radius: 17px !important;
+  }
+}
+
+/* Final refinement: reduce visual noise, clarify selection, and keep the
+   checkout focused on one obvious next step. */
+.hero--payment .hero-payment-card--workspace .hero-payment__workspace-header,
+.hero--payment .hero-payment-card--workspace .hero-payment__workspace-footer {
+  border-color: #dbe4f2 !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-resume-strip {
+  background: linear-gradient(110deg, #26365f 0%, #354b7f 55%, #3d4f88 100%) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  box-shadow: 0 16px 34px rgba(50, 62, 115, 0.2) !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__details-column {
+  align-self: start !important;
+  min-height: 0 !important;
+  background: #ffffff !important;
+  border-color: #dce5f3 !important;
+  box-shadow: 0 18px 42px rgba(93, 116, 169, 0.14) !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__details-column::after {
+  background: radial-gradient(circle, rgba(111, 145, 255, 0.12), rgba(111, 145, 255, 0) 70%) !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan.is-selected,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option.is-selected {
+  position: relative;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan.is-selected::after,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option.is-selected::after {
+  content: "✓";
+  position: absolute;
+  top: 13px;
+  left: 15px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  color: #ffffff;
+  background: #5b78df;
+  box-shadow: 0 5px 12px rgba(77, 102, 190, 0.22);
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option.is-selected::after {
+  background: #e08056;
+  box-shadow: 0 5px 12px rgba(212, 126, 85, 0.22);
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan.is-selected > span,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option.is-selected > span {
+  padding-left: 19px !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan.is-selected:hover::after,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option.is-selected:hover::after {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:not(.is-selected):hover,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option:not(.is-selected):hover,
+.hero--payment .hero-payment-card--workspace .hero-payment__plan.is-selected:hover,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option.is-selected:hover {
+  background: linear-gradient(135deg, #304b82, #5b70c9) !important;
+  border-color: #637fe2 !important;
+  box-shadow: 0 18px 34px rgba(60, 82, 151, 0.26) !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:hover strong,
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:hover > b,
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:hover ul,
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:hover li,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option:hover strong,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option:hover > b,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option:hover small {
+  color: #ffffff !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan:hover li svg,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option:hover svg {
+  color: #dffbff !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__summary {
+  border-color: #d9e3f1 !important;
+  color: #365079 !important;
+  background: #f4f7fc !important;
+  box-shadow: none !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__summary strong {
+  color: #2f4b77 !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__summary span {
+  color: #7285a4 !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__submit {
+  min-height: 56px !important;
+  border-radius: 16px !important;
+  color: #ffffff !important;
+  background: linear-gradient(100deg, #4d7ff2, #726ee0 52%, #56b9b0) !important;
+  box-shadow: 0 15px 30px rgba(79, 111, 216, 0.28) !important;
+  font-size: 0.86rem !important;
+  letter-spacing: 0.005em;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__submit:hover:not(:disabled) {
+  transform: translateY(-2px) !important;
+  filter: saturate(1.08) brightness(1.04) !important;
+  box-shadow: 0 19px 34px rgba(79, 111, 216, 0.34) !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__submit:disabled {
+  color: #8d9bb4 !important;
+  background: #e9eef6 !important;
+  border: 1px solid #d9e2ef !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 900px) {
+  .hero--payment .hero-payment-card--workspace .hero-payment__details-column {
+    align-self: stretch !important;
+  }
+}
+
+/* The price pill already uses ::after. Keep the selection indicator in its
+   own element so it never collides with the title or price. */
+.hero--payment .hero-payment-card--workspace .hero-payment__selection-badge {
+  position: absolute;
+  z-index: 2;
+  top: 14px;
+  left: 14px;
+  display: grid !important;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0 !important;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  color: #ffffff;
+  background: #5b78df;
+  box-shadow: 0 5px 12px rgba(77, 102, 190, 0.22);
+  pointer-events: none;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option .hero-payment__selection-badge {
+  background: #e08056;
+  box-shadow: 0 5px 12px rgba(212, 126, 85, 0.22);
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__selection-badge svg {
+  width: 12px;
+  height: 12px;
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__selection-badge svg {
+  display: none;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__selection-badge::after {
+  content: "✓";
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan.is-selected > .hero-payment__choice-content,
+.hero--payment .hero-payment-card--workspace .hero-payment__plan.is-selected > span:not(.hero-payment__selection-badge),
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option.is-selected > span:not(.hero-payment__selection-badge) {
+  padding-left: 30px !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__plan.is-selected::after,
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option.is-selected::after {
+  content: attr(data-price) !important;
+  position: static !important;
+  inset: auto !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  grid-column: 1 / -1 !important;
+  justify-self: end !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 30px !important;
+  padding: 0 13px !important;
+  border: 1px solid #7c89df !important;
+  border-radius: 999px !important;
+  color: #ffffff !important;
+  background: linear-gradient(100deg, #617ee8, #8b68d8) !important;
+  box-shadow: 0 6px 14px rgba(98, 113, 211, 0.22) !important;
+  font-size: 0.66rem !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+}
+
+.hero--payment .hero-payment-card--workspace .hero-payment__pay-option.is-selected::after {
+  border-color: #df9a70 !important;
+  background: linear-gradient(100deg, #ec9c55, #d969ae) !important;
+  box-shadow: 0 6px 14px rgba(222, 132, 104, 0.2) !important;
+}
+
+@media (max-width: 900px) {
+  .hero-payment__workspace .hero-payment__details-column {
+    padding: 24px 22px 22px !important;
+    border-left: 1px solid #d8e2f3 !important;
+  }
+}
+
+@media (max-width: 620px) {
+  .hero-payment__workspace .hero-payment__details-column {
+    padding: 22px 18px 18px !important;
+    border-radius: 20px !important;
+  }
+
+  .hero-payment__workspace .hero-payment__column-heading {
+    margin-bottom: 22px !important;
+  }
+
+  .hero-payment__workspace .hero-payment__column-heading > span {
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 12px !important;
+  }
 }

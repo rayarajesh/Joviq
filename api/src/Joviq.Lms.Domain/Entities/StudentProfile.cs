@@ -12,6 +12,18 @@ public sealed class StudentProfile : AuditableEntity
 
     public string? Branch { get; set; }
 
+    public string? WhatsAppNumber { get; set; }
+
+    public string? CurrentYearOfStudy { get; set; }
+
+    public string? PreferredCategoryName { get; set; }
+
+    public string? PreferredProgramSlug { get; set; }
+
+    public string? PreferredProgramTitle { get; set; }
+
+    public DateOnly? PreferredStartDate { get; set; }
+
     public int? GraduationYear { get; set; }
 
     public string? CgpaOrPercentage { get; set; }

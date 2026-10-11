@@ -13,6 +13,11 @@ public sealed class StudentProfileConfiguration : IEntityTypeConfiguration<Stude
         builder.Property(x => x.College).HasMaxLength(200);
         builder.Property(x => x.Degree).HasMaxLength(120);
         builder.Property(x => x.Branch).HasMaxLength(120);
+        builder.Property(x => x.WhatsAppNumber).HasMaxLength(20);
+        builder.Property(x => x.CurrentYearOfStudy).HasMaxLength(40);
+        builder.Property(x => x.PreferredCategoryName).HasMaxLength(160);
+        builder.Property(x => x.PreferredProgramSlug).HasMaxLength(160);
+        builder.Property(x => x.PreferredProgramTitle).HasMaxLength(200);
         builder.Property(x => x.CgpaOrPercentage).HasMaxLength(32);
         builder.Property(x => x.TargetJobRole).HasMaxLength(160);
         builder.Property(x => x.SkillsJson).HasColumnType("jsonb");

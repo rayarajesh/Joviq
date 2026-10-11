@@ -1,8 +1,22 @@
 import { request } from "../../../lib/api/httpClient";
 import type { AuthTokenResponse, CheckoutAccountRequest, PasswordResetVerificationResponse, UserSummary } from "./authTypes";
+import { env } from "../../../config/env";
 
 // The enrollment subset of the /web auth API: same endpoints, same payloads.
 export const authApi = {
+  oauthStartUrl(options: { phoneNumber?: string; returnUrl?: string; acceptedTerms?: boolean; allowSignUp?: boolean } = {}) {
+    const search = new URLSearchParams({
+      returnUrl: options.returnUrl ?? "/dashboard",
+      acceptedTerms: String(options.acceptedTerms ?? true),
+      allowSignUp: String(options.allowSignUp ?? true),
+      rememberMe: "true",
+      termsVersion: "2026-08-20",
+      privacyPolicyVersion: "2026-08-20"
+    });
+    if (options.phoneNumber) search.set("phoneNumber", options.phoneNumber);
+    return `${env.apiBaseUrl}/api/v1/auth/oauth/google/start?${search.toString()}`;
+  },
+
   createCheckoutAccount(body: CheckoutAccountRequest) {
     return request<AuthTokenResponse>("/api/v1/auth/checkout-account", {
       method: "POST",

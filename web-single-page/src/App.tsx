@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { findProgramBySlug } from "./data/siteContent";
+import { defaultProgramPlans } from "./data/siteContent";
 import type { ProgramPlan } from "./data/siteContent";
 import { AuthProvider } from "./features/auth/context/AuthContext";
 import { useReveal } from "./hooks/useReveal";
@@ -38,8 +38,10 @@ export function App() {
 function SinglePage() {
   const [query, setQuery] = useState("");
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
-  const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
   const [returnedOrderId, setReturnedOrderId] = useState(readReturnedOrderId);
+  // Keep the landing page clean on refresh. Enrollment dialogs should only open
+  // after the learner explicitly chooses a plan (or submits the hero checkout).
+  const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
   const [contactInterest, setContactInterest] = useState<CampusInterest | "program">("program");
   useReveal();
 
@@ -62,8 +64,7 @@ function SinglePage() {
   }
 
   function openHeroCheckout(details: HeroCheckoutDetails) {
-    const program = findProgramBySlug(details.programSlug);
-    if (program) setEnrollment({ plan: details.plan, programSlug: program.slug, prefill: details, autoStart: true });
+    setEnrollment({ plan: details.plan, prefill: details, autoStart: true });
   }
 
   function closeReturn() {

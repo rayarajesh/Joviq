@@ -8,6 +8,8 @@ public interface IStudentOnboardingService
 
     Task<StudentOnboardingResponse> UpdateAcademicAsync(Guid userId, UpdateAcademicDetailsRequest request, CancellationToken cancellationToken);
 
+    Task<StudentOnboardingResponse> UpdateRegistrationDetailsAsync(Guid userId, UpdateRegistrationDetailsRequest request, CancellationToken cancellationToken);
+
     Task<StudentOnboardingResponse> UpdateCareerAsync(Guid userId, UpdateCareerDetailsRequest request, CancellationToken cancellationToken);
 
     Task<StudentOnboardingResponse> SetProfilePhotoAsync(Guid userId, SetProfilePhotoRequest request, CancellationToken cancellationToken);
