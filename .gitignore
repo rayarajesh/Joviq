@@ -34,3 +34,6 @@ logs/
 /artifacts/
 /deploy-web.tar
 /deploy-web-single-page.tar
+
+# Project-local development database and temporary files.
+.local/

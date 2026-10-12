@@ -1733,7 +1733,6 @@ button, input, select, textarea { font: inherit; }
 .plan-card__desc { font-size: 0.92rem; }
 .plan-card__includes { font-weight: 700; color: var(--violet-deep); font-size: 0.9rem; }
 .plan-card .checklist { flex: 1; }
-.plan-card__deposit { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-weight: 600; }
 .plans-note { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 28px; font-size: 0.88rem; text-align: center; }
 .plans-note svg { color: var(--success); flex-shrink: 0; }
 

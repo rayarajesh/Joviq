@@ -256,6 +256,7 @@ export function Hero({ onCheckout }: { onCheckout: (details: HeroCheckoutDetails
                 <input id="hero-terms" checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.currentTarget.checked)} required type="checkbox" />
                 <label htmlFor="hero-terms">I agree to the <button className="hero-payment__terms-link" onClick={(event) => { event.preventDefault(); event.stopPropagation(); setTermsOpen(true); }} type="button">Terms &amp; Conditions</button></label>
               </div>
+              <button className="hero-payment__submit" disabled={!canContinueToPayment} type="submit"><CreditCard size={15} /> {selectedPlan ? paymentChoice === "token" ? `Pay securely ${amountLabel} & reserve your seat` : `Pay securely ${amountLabel}` : "Continue to payment"}</button>
             </section>
           </div>
 
@@ -279,7 +280,6 @@ export function Hero({ onCheckout }: { onCheckout: (details: HeroCheckoutDetails
 
           <footer className="hero-payment__workspace-footer">
             <div className="hero-payment__trust"><span><ShieldCheck size={13} /> QR-verified certificates</span><span><LockKeyhole size={13} /> Secure checkout</span><span><Sparkles size={13} /> Instant access</span></div>
-            <button className="hero-payment__submit" disabled={!canContinueToPayment} type="submit"><CreditCard size={15} /> {selectedPlan ? `Continue to payment · ${amountLabel}` : "Continue to payment"}</button>
             <a className="hero-payment__help" href="tel:+919281977188"><Phone size={12} /> Need help? +91 92819 77188</a>
           </footer>
         </form>

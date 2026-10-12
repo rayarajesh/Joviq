@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { defaultProgramPlans, expertGuides, homeFaqs, pricingPlans, uniquePrograms } from "../data/siteContent";
 import type { ProgramPlan } from "../data/siteContent";
+import type { PaymentChoice } from "../lib/checkoutLinks";
 import { toIndiaMobileNumber } from "../lib/validation/indiaMobile";
 import { env } from "../config/env";
 import { PlanCard, tilt, untilt } from "./Programs";
@@ -172,7 +173,7 @@ export function CertificateSection() {
 
 /* ---------- Pricing ---------- */
 
-export function Pricing({ onSelectPlan }: { onSelectPlan: (plan: ProgramPlan) => void }) {
+export function Pricing({ onSelectPlan, programSlug }: { onSelectPlan: (plan: ProgramPlan, paymentChoice: PaymentChoice) => void; programSlug?: string }) {
   return (
     <section className="section pricing" id="pricing" aria-labelledby="pricing-title">
       <div className="pricing__bg" aria-hidden="true" />
@@ -184,7 +185,7 @@ export function Pricing({ onSelectPlan }: { onSelectPlan: (plan: ProgramPlan) =>
         </div>
         <div className="plan-grid">
           {defaultProgramPlans.map((plan, index) => (
-            <PlanCard key={plan.code} index={index} plan={plan} description={pricingPlans[index]?.description} onSelect={() => onSelectPlan(plan)} />
+            <PlanCard key={plan.code} index={index} plan={plan} programSlug={programSlug} description={pricingPlans[index]?.description} onSelect={(choice) => onSelectPlan(plan, choice)} />
           ))}
         </div>
         <p className="plans-note"><ShieldCheck size={15} /> UPI, UPI QR, cards and net banking via secure gateway. Final pricing is confirmed for your program at checkout.</p>

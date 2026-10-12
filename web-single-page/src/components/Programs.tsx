@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import { findProgramBySlug, programCategories, uniquePrograms } from "../data/siteContent";
 import type { ProgramPlan } from "../data/siteContent";
+import { checkoutLink } from "../lib/checkoutLinks";
+import type { PaymentChoice } from "../lib/checkoutLinks";
 import { getProgramImage } from "../data/programVisuals";
 import { buildProgramViewModel } from "../data/programView";
 import { publicLmsApi } from "../features/lms/api/lmsApi";
@@ -165,7 +167,7 @@ const courseTabs = ["Overview", "Curriculum", "Projects", "FAQ"] as const;
 export function CourseSection({ slug, onClose, onSelectPlan }: {
   slug: string;
   onClose: () => void;
-  onSelectPlan: (plan: ProgramPlan, slug: string) => void;
+  onSelectPlan: (plan: ProgramPlan, slug: string, paymentChoice: PaymentChoice) => void;
 }) {
   const local = findProgramBySlug(slug);
   const [remote, setRemote] = useState<ProgramDetailsResponse | null>(null);
@@ -305,7 +307,7 @@ export function CourseSection({ slug, onClose, onSelectPlan }: {
           </div>
           <div className="plan-grid">
             {program.plans.map((plan, index) => (
-              <PlanCard key={plan.code} index={index} plan={plan} onSelect={() => onSelectPlan(plan, program.slug)} />
+              <PlanCard key={plan.code} index={index} plan={plan} programSlug={program.slug} onSelect={(choice) => onSelectPlan(plan, program.slug, choice)} />
             ))}
           </div>
           {remote ? <p className="plans-note"><ShieldCheck size={15} /> Live pricing from the Joviq catalog.</p> : null}
@@ -317,12 +319,18 @@ export function CourseSection({ slug, onClose, onSelectPlan }: {
 
 const planIcons = [Send, Sparkles, Award];
 
-export function PlanCard({ index, plan, onSelect, description }: {
+export function PlanCard({ index, plan, onSelect, description, programSlug }: {
   index: number;
   plan: ProgramPlan;
-  onSelect: () => void;
+  onSelect: (paymentChoice: PaymentChoice) => void;
   description?: string;
+  programSlug?: string;
 }) {
+  function select(event: MouseEvent<HTMLAnchorElement>, choice: PaymentChoice) {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    onSelect(choice);
+  }
   const isRecommended = plan.code === "INTERMEDIATE";
   const includedPlan = plan.code === "INTERMEDIATE" ? "Everything in Launch, plus" : plan.code === "MASTER" ? "Everything in Elevate, plus" : null;
   const savings = Math.max(0, plan.actualPrice - plan.offerPrice);
@@ -348,10 +356,12 @@ export function PlanCard({ index, plan, onSelect, description }: {
       {description ? <p className="plan-card__desc">{description}</p> : null}
       {includedPlan ? <p className="plan-card__includes">{includedPlan}</p> : null}
       <ul className="checklist">{plan.features.map((feature) => <li key={feature}><Check size={16} />{feature}</li>)}</ul>
-      <small className="plan-card__deposit"><WalletCards size={14} /> Reserve with {formatInr(plan.reserveAmount)}</small>
-      <button className={`btn btn--block ${isRecommended ? "btn--primary" : "btn--soft"}`} onClick={onSelect} type="button">
+      <a className="btn btn--block btn--ghost" href={checkoutLink(plan.code, "token", programSlug)} onClick={(event) => select(event, "token")} aria-label={`Reserve ${plan.name} with ${formatInr(plan.reserveAmount)}`}>
+        <WalletCards size={17} aria-hidden="true" /> Reserve with {formatInr(plan.reserveAmount)}
+      </a>
+      <a className={`btn btn--block ${isRecommended ? "btn--primary" : "btn--soft"}`} href={checkoutLink(plan.code, "full", programSlug)} onClick={(event) => select(event, "full")}>
         Select {plan.name} <ArrowRight size={17} />
-      </button>
+      </a>
       <span className="spotlight" aria-hidden="true" />
     </article>
   );

@@ -89,12 +89,13 @@ type Props = {
     collegeName: string;
   };
   initialPaymentChoice?: PaymentChoice;
+  onPaymentChoiceChange?: (choice: PaymentChoice) => void;
   initialAcceptedTerms?: boolean;
   autoStart?: boolean;
   onClose: () => void;
 };
 
-export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaymentChoice, initialAcceptedTerms, autoStart = false, onClose }: Props) {
+export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaymentChoice, onPaymentChoiceChange, initialAcceptedTerms, autoStart = false, onClose }: Props) {
   const auth = useAuth();
   const { user, isBooting } = auth;
   const payment = usePaymentFlow();
@@ -107,6 +108,14 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
   const [email, setEmail] = useState(initialValues?.email ?? user?.email ?? "");
   const [collegeName, setCollegeName] = useState(initialValues?.collegeName ?? "");
   const [paymentChoice, setPaymentChoice] = useState<PaymentChoice>(initialPaymentChoice ?? "token");
+  useEffect(() => {
+    setPaymentChoice(initialPaymentChoice ?? "token");
+  }, [initialPaymentChoice]);
+
+  function choosePayment(choice: PaymentChoice) {
+    setPaymentChoice(choice);
+    onPaymentChoiceChange?.(choice);
+  }
   const [acceptedTerms, setAcceptedTerms] = useState(initialAcceptedTerms ?? false);
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -402,7 +411,7 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
           <div className="enroll-dialog__title-icon"><UserPlus size={22} /></div>
           <div className="enroll-dialog__heading">
             <span className="eyebrow eyebrow--light">Registration before payment</span>
-            <h2 id="enroll-dialog-title">Secure your place in {programTitle}</h2>
+            <h2 id="enroll-dialog-title">Secure your place</h2>
             <p>{user ? "Choose how you want to start your learning journey." : "Share these details once, then choose how you want to start your learning journey."}</p>
           </div>
           <div className="enroll-dialog__summary">
@@ -480,13 +489,13 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
                 <legend><span>{paymentStepNumber}</span><strong>Choose your payment option</strong><small>Your account and course access are updated only after payment verification.</small></legend>
                 <div className="pay-options">
                   <label className={`pay-option${paymentChoice === "token" ? " is-selected" : ""}`}>
-                    <input checked={paymentChoice === "token"} name="paymentChoice" onChange={() => setPaymentChoice("token")} type="radio" value="token" />
+                    <input checked={paymentChoice === "token"} name="paymentChoice" onChange={() => choosePayment("token")} type="radio" value="token" />
                     <span className="pay-option__icon"><WalletCards size={19} /></span>
                     <span><strong>Reserve my seat</strong><small>Pay {formatInr(plan.reserveAmount)} for pre-registration now.</small></span>
                     <b>Pre-registration</b>
                   </label>
                   <label className={`pay-option${paymentChoice === "full" ? " is-selected" : ""}`}>
-                    <input checked={paymentChoice === "full"} name="paymentChoice" onChange={() => setPaymentChoice("full")} type="radio" value="full" />
+                    <input checked={paymentChoice === "full"} name="paymentChoice" onChange={() => choosePayment("full")} type="radio" value="full" />
                     <span className="pay-option__icon"><BadgeCheck size={19} /></span>
                     <span><strong>Pay in full</strong><small>Pay {formatInr(plan.offerPrice)} now and unlock the complete program for six months.</small></span>
                     <b>Full access</b>
