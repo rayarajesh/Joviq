@@ -377,6 +377,12 @@ export type CreateEnrollmentRequest = {
   startDate?: string;
 };
 
+export type ChangeEnrollmentProgramRequest = {
+  programId: string;
+  programPlanId: string;
+  startDate?: string;
+};
+
 export type SavePostPaymentRegistrationRequest = {
   fullName: string;
   phoneNumber: string;

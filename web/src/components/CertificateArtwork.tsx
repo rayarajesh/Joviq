@@ -32,12 +32,14 @@ type Template = {
   certificateId: { x: number; y: number; maxWidth: number };
   qr: { x: number; y: number; size: number };
   signatory: { cx: number; titleY: number; nameY: number; cover: [number, number, number, number] };
+  signatureImage: { x: number; y: number; width: number; height: number };
 };
 
 const WIDTH = 1600;
 const HEIGHT = 1131;
 const DEFAULT_SIGNATORY = "M VIJAYARAMARAJU";
 const DEFAULT_SIGNATURE_LABEL = "Executive Director";
+const SIGNATURE_IMAGE = "/assets/certificate-signature.png";
 
 const TEMPLATES: Record<"Training" | "Internship", Template> = {
   Training: {
@@ -48,6 +50,7 @@ const TEMPLATES: Record<"Training" | "Internship", Template> = {
     certificateId: { x: 182, y: 1012, maxWidth: 352 },
     qr: { x: 553, y: 940, size: 134 },
     signatory: { cx: 1107, titleY: 1009, nameY: 1041, cover: [966, 982, 1250, 1052] },
+    signatureImage: { x: 957, y: 873, width: 300, height: 100 },
   },
   Internship: {
     src: "/assets/certificates/internship-template.jpg",
@@ -57,6 +60,7 @@ const TEMPLATES: Record<"Training" | "Internship", Template> = {
     certificateId: { x: 169, y: 841, maxWidth: 352 },
     qr: { x: 540, y: 770, size: 134 },
     signatory: { cx: 878, titleY: 867, nameY: 898, cover: [722, 840, 1014, 906] },
+    signatureImage: { x: 726, y: 731, width: 300, height: 100 },
   },
 };
 
@@ -95,6 +99,13 @@ function formatCertificateDate(value?: string) {
   return MONTHS[Number(month) - 1] ? `${day} ${MONTHS[Number(month) - 1]} ${year}` : value;
 }
 
+function formatCertificateName(value?: string) {
+  return (value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/(^|[\s'-])([a-z])/g, (_, separator: string, letter: string) => `${separator}${letter.toUpperCase()}`);
+}
+
 const CERTIFICATE_FONTS = [NAME_FONT, FIELD_FONT, `500 ${CONNECTOR_SIZE}px "Joviq Certificate Body"`];
 
 /** Loads the certificate fonts, then re-measures so fitted sizes use the real glyphs. */
@@ -121,7 +132,7 @@ export function CertificateArtwork({
   const internship = type === "Internship";
   const template = TEMPLATES[internship ? "Internship" : "Training"];
   const fontsReady = useFontsReady();
-  const name = studentName?.trim() ?? "";
+  const name = formatCertificateName(studentName);
   const program = programTitle?.trim() ?? "";
   const from = formatCertificateDate(fromDate);
   const to = formatCertificateDate(toDate);
@@ -131,6 +142,7 @@ export function CertificateArtwork({
   // The original artwork already prints the default signatory; only redraw it when it differs.
   const customSignatory =
     signatory.toUpperCase() !== DEFAULT_SIGNATORY || signatureLabel.toLowerCase() !== DEFAULT_SIGNATURE_LABEL.toLowerCase();
+  const signature = template.signatureImage;
 
   const sizes = useMemo(() => ({
     name: fitSize(name, NAME_FONT, NAME_SIZE, template.name.maxWidth),
@@ -161,6 +173,16 @@ export function CertificateArtwork({
         <rect x={template.qr.x} y={template.qr.y} width={template.qr.size} height={template.qr.size} fill="#fff" />
         {qrCodeUrl ? (
           <image href={qrCodeUrl} x={template.qr.x} y={template.qr.y} width={template.qr.size} height={template.qr.size} />
+        ) : null}
+        {!customSignatory ? (
+          <image
+            href={SIGNATURE_IMAGE}
+            x={signature.x}
+            y={signature.y}
+            width={signature.width}
+            height={signature.height}
+            preserveAspectRatio="none"
+          />
         ) : null}
         {customSignatory ? (
           <>

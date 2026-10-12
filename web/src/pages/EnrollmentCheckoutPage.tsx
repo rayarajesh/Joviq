@@ -17,6 +17,13 @@ const CONFIRM_INTERVAL_MS = 3000;
 const STILL_PROCESSING_MESSAGE =
   "Your bank has not confirmed this payment yet. Do not pay again if money was deducted. Check payment status while confirmation is pending.";
 
+function readPaymentTransactionId(value: string | null) {
+  // The API expects our internal transaction Guid, never a gateway transaction id.
+  return value && /^(?:[0-9a-f]{32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.test(value)
+    ? value
+    : null;
+}
+
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 const errorCode = (error: unknown) => (error instanceof ApiError ? error.problem?.errorCode : undefined);
 
@@ -122,6 +129,9 @@ export function EnrollmentCheckoutPage() {
   const autoStartRequested = searchParams.get("autostart") === "1";
   // Cashfree sends students back here after bank / UPI-app redirects.
   const returnedOrderId = searchParams.get("cashfree") === "return" ? searchParams.get("order_id") : null;
+  const returnedTransactionId = searchParams.get("cashfree") === "return"
+    ? readPaymentTransactionId(searchParams.get("joviq_payment_transaction_id") ?? searchParams.get("transaction_id"))
+    : null;
   const [isConfirming, setIsConfirming] = useState(false);
   const [cashfreeStatus, setCashfreeStatus] = useState<"closed" | "pending" | null>(null);
   const autoStartRef = useRef(false);
@@ -279,11 +289,14 @@ export function EnrollmentCheckoutPage() {
   useEffect(() => {
     if (!returnedOrderId || !auth.user || confirmedReturnRef.current === returnedOrderId) return;
     confirmedReturnRef.current = returnedOrderId;
-    void confirmWithGateway({ gatewayOrderId: returnedOrderId }).then((outcome) => {
+    void confirmWithGateway({
+      gatewayOrderId: returnedOrderId,
+      paymentTransactionId: returnedTransactionId ?? undefined
+    }).then((outcome) => {
       if (outcome === "pending") setMessage({ tone: "success", text: STILL_PROCESSING_MESSAGE });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [returnedOrderId, auth.user?.id]);
+  }, [returnedOrderId, returnedTransactionId, auth.user?.id]);
 
   async function startPayment() {
     if (!pending || !program || !selectedPlan) return;
@@ -373,6 +386,7 @@ export function EnrollmentCheckoutPage() {
         modal: {
           ondismiss: () => {
             void studentLmsApi.markPaymentFailed(response.data.transaction.id, { failureReason: "Checkout was closed by the customer." });
+            clearPendingEnrollment();
           }
         }
       });
@@ -381,6 +395,7 @@ export function EnrollmentCheckoutPage() {
         void studentLmsApi.markPaymentFailed(response.data.transaction.id, {
           failureReason: failure.error?.description ?? failure.error?.reason ?? "Payment was declined."
         });
+        clearPendingEnrollment();
         setMessage({ tone: "error", text: failure.error?.description ?? "Payment was declined. You can try again." });
       });
       payment.open();
@@ -434,6 +449,10 @@ export function EnrollmentCheckoutPage() {
     // Closing the modal does not prove failure: the bank may still confirm this order.
     const outcome = await confirmWithGateway(target, 3);
     if (outcome !== "pending") return;
+    void studentLmsApi.markPaymentFailed(currentCheckout.transaction.id, {
+      failureReason: "Checkout was closed before payment was confirmed."
+    });
+    clearPendingEnrollment();
     setCashfreeStatus("closed");
     setMessage({
       tone: "success",
@@ -483,7 +502,10 @@ export function EnrollmentCheckoutPage() {
             <button
               className="secondary-action checkout-launcher__retry"
               type="button"
-              onClick={() => void confirmWithGateway({ gatewayOrderId: returnedOrderId }).then((outcome) => {
+              onClick={() => void confirmWithGateway({
+                gatewayOrderId: returnedOrderId,
+                paymentTransactionId: returnedTransactionId ?? undefined
+              }).then((outcome) => {
                 if (outcome === "pending") setMessage({ tone: "success", text: STILL_PROCESSING_MESSAGE });
               })}
             >

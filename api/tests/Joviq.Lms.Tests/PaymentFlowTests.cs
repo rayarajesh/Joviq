@@ -21,6 +21,26 @@ namespace Joviq.Lms.Tests;
 public sealed class PaymentFlowTests
 {
     [Fact]
+    public async Task FriendCertificateCanBeIssuedWithoutAnEnrollment()
+    {
+        using var f = new Fixture();
+
+        var certificate = await f.Service.IssueCertificateAsync(new IssueCertificateRequest
+        {
+            GenerateForFriend = true,
+            ProgramId = f.ProgramId,
+            StudentName = "ravi kumar",
+            FromDate = new DateOnly(2026, 10, 12),
+            ToDate = new DateOnly(2027, 4, 10)
+        }, default);
+
+        Assert.Equal("Ravi Kumar", certificate.StudentName);
+        Assert.NotEqual(Guid.Empty, certificate.StudentId);
+        Assert.Null(f.Db.Certificates.Single().EnrollmentId);
+        Assert.Empty(f.Db.Notifications);
+    }
+
+    [Fact]
     public async Task PaymentCapturedInTimeIsCreditedEvenWhenConfirmedAfterCheckoutExpiry()
     {
         using var f = new Fixture();
@@ -47,16 +67,24 @@ public sealed class PaymentFlowTests
     }
 
     [Fact]
-    public async Task UnpaidCheckoutPastExpiryIsFailed()
+    public async Task UnpaidCheckoutPastExpiryIsCleanedUp()
     {
         using var f = new Fixture();
+        f.Db.AuthAuditLogs.Add(new AuthAuditLog
+        {
+            UserId = f.StudentId,
+            EventType = "CheckoutAccountCreated"
+        });
+        f.Db.SaveChanges();
         var checkout = await f.Checkout(PaymentMode.ReserveSeat);
         f.Now = f.Now.AddMinutes(45);
 
         var error = await Assert.ThrowsAsync<AppException>(() => f.Verify(checkout));
 
         Assert.Equal("payment_expired", error.ErrorCode);
-        Assert.Equal(PaymentStatus.Failed, f.Transaction(checkout).Status);
+        Assert.Empty(f.Db.PaymentTransactions);
+        Assert.Empty(f.Db.Enrollments);
+        Assert.False(f.Db.Users.Any(x => x.Id == f.StudentId));
     }
 
     [Fact]
@@ -103,7 +131,7 @@ public sealed class PaymentFlowTests
 
         Assert.False(f.Transaction(second).RefundRequired);
         Assert.True(f.Transaction(first).RefundRequired);
-        Assert.Equal(7999, f.Enrollment().PaidAmount);
+        Assert.Equal(4000, f.Enrollment().PaidAmount);
         Assert.Single(f.Db.Notifications.Where(x => x.UserId == f.AdminId && x.Title == "Refund needed"));
         Assert.Single(f.Db.Notifications.Where(x => x.UserId == f.StudentId && x.Title == "Extra payment received"));
     }
@@ -116,7 +144,7 @@ public sealed class PaymentFlowTests
 
         var checkout = await f.Checkout(PaymentMode.PayInFull, f.MasteryPlanId);
 
-        Assert.Equal(14999, checkout.Transaction.Amount);
+        Assert.Equal(7000, checkout.Transaction.Amount);
         Assert.Equal(f.MasteryPlanId, f.Enrollment().ProgramPlanId);
     }
 
@@ -130,7 +158,7 @@ public sealed class PaymentFlowTests
 
         var balance = await f.Checkout(PaymentMode.RemainingBalance, f.MasteryPlanId);
 
-        Assert.Equal(6499, balance.Transaction.Amount);
+        Assert.Equal(2500, balance.Transaction.Amount);
         Assert.Equal(f.LaunchPlanId, f.Enrollment().ProgramPlanId);
     }
 
@@ -161,7 +189,7 @@ public sealed class PaymentFlowTests
         await f.Verify(balance);
 
         var enrollment = f.Enrollment();
-        Assert.Equal(7999, enrollment.PaidAmount);
+        Assert.Equal(4000, enrollment.PaidAmount);
         Assert.Equal(EnrollmentStatus.Active, enrollment.Status);
         Assert.DoesNotContain(f.Db.PaymentTransactions, x => x.RefundRequired);
     }
@@ -199,16 +227,16 @@ public sealed class PaymentFlowTests
                 Id = ProgramId, CategoryId = categoryId, Title = "Science", Slug = "science", Status = ProgramStatus.Published,
                 Plans =
                 [
-                    new ProgramPlan { Id = LaunchPlanId, ProgramId = ProgramId, Name = "Launch", Code = "SELF", IsActive = true, OfferPrice = 7999, ActualPrice = 7999 },
-                    new ProgramPlan { Id = MasteryPlanId, ProgramId = ProgramId, Name = "Mastery", Code = "MASTER", IsActive = true, OfferPrice = 14999, ActualPrice = 14999 },
+                    new ProgramPlan { Id = LaunchPlanId, ProgramId = ProgramId, Name = "Launch", Code = "SELF", IsActive = true, OfferPrice = 4000, ActualPrice = 4000 },
+                    new ProgramPlan { Id = MasteryPlanId, ProgramId = ProgramId, Name = "Mastery", Code = "MASTER", IsActive = true, OfferPrice = 7000, ActualPrice = 7000 },
                 ]
             });
             Db.SaveChanges();
 
             var gateway = new Mock<IPaymentGateway>();
             gateway.Setup(x => x.CreateOrderAsync(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<string>(), It.IsAny<DateTimeOffset>(),
-                    It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((Guid id, decimal amount, string currency, DateTimeOffset expires, string? _, string? _, string? _, string? _, CancellationToken _) =>
+                    It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>(), It.IsAny<string?>()))
+                .ReturnsAsync((Guid id, decimal amount, string currency, DateTimeOffset expires, string? _, string? _, string? _, string? _, CancellationToken _, string? _) =>
                 {
                     OrdersCreated++;
                     return new PaymentGatewayOrder("Cashfree", "key", $"joviq_{id:N}", (long)(amount * 100), currency, expires, $"session_{id:N}", "sandbox");

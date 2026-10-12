@@ -146,8 +146,9 @@ public sealed record PaymentTransactionResponse(
     Guid ProgramId,
     Guid? ProgramPlanId,
     string Gateway,
-    string GatewayOrderId,
+    string? GatewayOrderId,
     string? GatewayPaymentId,
+    string? GatewayLinkId,
     string Mode,
     string Status,
     decimal Amount,
@@ -156,6 +157,7 @@ public sealed record PaymentTransactionResponse(
     DateTimeOffset? VerifiedAt,
     string? InvoiceNumber,
     string? FailureReason,
+    string? Notes,
     decimal OriginalAmount,
     decimal DiscountAmount,
     string? CouponCode,
@@ -563,9 +565,19 @@ public sealed class UpdateEnrollmentStatusRequest
     public string? LockedReason { get; init; }
 }
 
+public sealed class ChangeEnrollmentProgramRequest
+{
+    public Guid ProgramId { get; init; }
+
+    public Guid ProgramPlanId { get; init; }
+
+    public DateOnly? StartDate { get; init; }
+}
+
 public sealed class AdminEnrollmentRequest
 {
     public Guid? EnrollmentId { get; init; }
+    public Guid? PaymentTransactionId { get; init; }
     public Guid? StudentId { get; init; }
     public Joviq.Lms.Application.Users.CreateAdminUserRequest? NewStudent { get; init; }
     public Guid ProgramId { get; init; }
@@ -715,6 +727,8 @@ public sealed class CreateCouponRequest
 
 public sealed class IssueCertificateRequest
 {
+    public bool GenerateForFriend { get; init; }
+
     public Guid StudentId { get; init; }
 
     public Guid ProgramId { get; init; }

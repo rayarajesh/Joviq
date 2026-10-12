@@ -11,7 +11,8 @@ public interface IPaymentGateway
         string? customerEmail,
         string? customerPhone,
         string? customerCollege,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        string? frontendBaseUrl = null);
 
     Task<PaymentGatewayVerification> VerifyPaymentAsync(
         string orderId,

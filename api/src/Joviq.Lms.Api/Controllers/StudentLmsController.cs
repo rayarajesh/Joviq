@@ -62,6 +62,20 @@ public sealed class StudentLmsController(
         return Ok(ApiResponse<EnrollmentResponse>.Ok(result, "Enrollment created.", CorrelationId));
     }
 
+    [HttpPatch("payments/{paymentId:guid}/enrollment")]
+    public async Task<ActionResult<ApiResponse<EnrollmentResponse>>> CompletePaidEnrollmentRegistration(
+        Guid paymentId,
+        ChangeEnrollmentProgramRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.CompletePaidEnrollmentRegistrationAsync(
+            RequiredUserId,
+            paymentId,
+            request,
+            cancellationToken);
+        return Ok(ApiResponse<EnrollmentResponse>.Ok(result, "Paid enrollment course updated.", CorrelationId));
+    }
+
     [HttpPost("payments/checkout")]
     public async Task<ActionResult<ApiResponse<PaymentCheckoutResponse>>> CreatePaymentCheckout(
         CreatePaymentCheckoutRequest request,

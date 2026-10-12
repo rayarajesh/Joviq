@@ -28,6 +28,12 @@ public interface ILmsPortalService
 
     Task<EnrollmentResponse> CreateEnrollmentAsync(Guid studentId, CreateEnrollmentRequest request, CancellationToken cancellationToken);
 
+    Task<EnrollmentResponse> CompletePaidEnrollmentRegistrationAsync(
+        Guid studentId,
+        Guid paymentId,
+        ChangeEnrollmentProgramRequest request,
+        CancellationToken cancellationToken);
+
     Task<PaymentCheckoutResponse> CreatePaymentCheckoutAsync(Guid studentId, CreatePaymentCheckoutRequest request, CancellationToken cancellationToken);
 
     Task<CouponValidationResponse> ValidateCouponAsync(Guid studentId, ValidateCouponRequest request, CancellationToken cancellationToken);
@@ -35,6 +41,8 @@ public interface ILmsPortalService
     Task<PaymentTransactionResponse> VerifyPaymentAsync(Guid studentId, VerifyPaymentLmsRequest request, CancellationToken cancellationToken);
 
     Task<PaymentTransactionResponse> MarkPaymentFailedAsync(Guid studentId, Guid paymentId, string? failureReason, CancellationToken cancellationToken);
+
+    Task<int> CleanupExpiredCheckoutsAsync(CancellationToken cancellationToken);
 
     Task<PaymentReceiptResponse> GetPaymentReceiptAsync(Guid studentId, Guid paymentId, CancellationToken cancellationToken);
 
@@ -114,6 +122,8 @@ public interface ILmsPortalService
 
     Task<IReadOnlyList<EnrollmentResponse>> GetAdminEnrollmentsAsync(CancellationToken cancellationToken);
     Task<EnrollmentResponse> CreateAdminEnrollmentAsync(AdminEnrollmentRequest request, CancellationToken cancellationToken);
+
+    Task<EnrollmentResponse> ChangeEnrollmentProgramAsync(Guid enrollmentId, ChangeEnrollmentProgramRequest request, CancellationToken cancellationToken);
 
     Task<EnrollmentResponse> UpdateEnrollmentStatusAsync(Guid enrollmentId, UpdateEnrollmentStatusRequest request, CancellationToken cancellationToken);
 

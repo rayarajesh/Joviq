@@ -169,7 +169,7 @@ public static class LmsSeedData
     {
         var plans = new[]
         {
-            new PlanSeed("Launch", "SELF", 7999m, 7999m, 1500m, [
+            new PlanSeed("Launch", "SELF", 4000m, 4000m, 1500m, [
                 "Lesson Replays",
                 "Complete Curriculum",
                 "Projects",
@@ -177,14 +177,14 @@ public static class LmsSeedData
                 "Certificate",
                 "Basic Support"
             ]),
-            new PlanSeed("Elevate", "INTERMEDIATE", 9999m, 9999m, 1500m, [
+            new PlanSeed("Elevate", "INTERMEDIATE", 5000m, 5000m, 1500m, [
                 "Live Sessions",
                 "Project Reviews",
                 "Resume Review",
                 "Interview Preparation",
                 "Priority Support"
             ]),
-            new PlanSeed("Mastery", "MASTER", 14999m, 14999m, 1500m, [
+            new PlanSeed("Mastery", "MASTER", 7000m, 7000m, 1500m, [
                 "Additional Live Sessions",
                 "Advanced Project Reviews",
                 "Portfolio Development",

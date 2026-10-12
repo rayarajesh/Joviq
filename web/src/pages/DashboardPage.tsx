@@ -48,7 +48,6 @@ import {
   Link2,
   LayoutDashboard,
   Lock,
-  Mail,
   Pencil,
   PlayCircle,
   Plus,
@@ -134,7 +133,6 @@ type MessageState = { tone: "success" | "error"; text: string } | null;
 type PeopleStatusFilter =
   | "All"
   | "Active"
-  | "PendingEmailVerification"
   | "Locked";
 type PeopleSortBy =
   | "fullName"
@@ -165,7 +163,6 @@ const initialPeopleQuery: PeopleQueryState = {
 const peopleStatusOptions: { label: string; value: PeopleStatusFilter }[] = [
   { label: "All status", value: "All" },
   { label: "Active", value: "Active" },
-  { label: "Pending email", value: "PendingEmailVerification" },
   { label: "Locked", value: "Locked" },
 ];
 const peopleSortOptions: {
@@ -469,6 +466,9 @@ function AdminDashboard({
   }));
   const [studentsPage, setStudentsPage] =
     useState<PagedResult<AdminUserResponse> | null>(null);
+  const [couponStudents, setCouponStudents] = useState<AdminUserResponse[]>(
+    [],
+  );
   const [summary, setSummary] = useState<AdminUserSummaryResponse | null>(null);
   const [lmsSummary, setLmsSummary] = useState<AdminLmsSummaryResponse | null>(
     null,
@@ -516,6 +516,7 @@ function AdminDashboard({
       const [
         summaryResponse,
         studentsResponse,
+        couponStudentsResponse,
         lmsSummaryResponse,
         lmsProgramsResponse,
         categoriesResponse,
@@ -530,6 +531,13 @@ function AdminDashboard({
       ] = await Promise.allSettled([
         adminUsersApi.getSummary(),
         adminUsersApi.getUsers(toPeopleListParams("Student", studentQuery)),
+        adminUsersApi.getUsers({
+          role: "Student",
+          sortBy: "fullName",
+          sortDirection: "asc",
+          page: 1,
+          pageSize: 100,
+        }),
         adminLmsApi.getSummary(),
         adminLmsApi.getPrograms(),
         adminLmsApi.getCategories(),
@@ -547,6 +555,8 @@ function AdminDashboard({
         setSummary(summaryResponse.value.data);
       if (studentsResponse.status === "fulfilled")
         setStudentsPage(studentsResponse.value.data);
+      if (couponStudentsResponse.status === "fulfilled")
+        setCouponStudents(couponStudentsResponse.value.data.items);
       if (lmsSummaryResponse.status === "fulfilled")
         setLmsSummary(lmsSummaryResponse.value.data);
       if (lmsProgramsResponse.status === "fulfilled")
@@ -646,7 +656,7 @@ function AdminDashboard({
 
   async function runUserAction(
     user: AdminUserResponse,
-    action: "lock" | "unlock" | "reset",
+    action: "lock" | "unlock",
   ) {
     const actionKey = `${user.id}-${action}`;
     setActionUserId(actionKey);
@@ -659,10 +669,6 @@ function AdminDashboard({
 
       if (action === "unlock") {
         await adminUsersApi.unlockUser(user.id);
-      }
-
-      if (action === "reset") {
-        await adminUsersApi.sendResetPasswordLink(user.id);
       }
 
       setMessage({
@@ -767,6 +773,7 @@ function AdminDashboard({
           currentUserId={currentUserId}
           emptyText="No student accounts yet."
           enrollments={adminEnrollments}
+          programs={lmsPrograms}
           isCreating={creatingRole === "Student"}
           isLoading={isLoading}
           page={studentsPage}
@@ -777,6 +784,7 @@ function AdminDashboard({
           onCreateUser={createRoleUser}
           onMessage={setMessage}
           onQueryChange={setStudentQuery}
+          onRefresh={loadDashboard}
           onSaveUserEdit={saveUserEdit}
           onUserAction={runUserAction}
         />
@@ -800,6 +808,7 @@ function AdminDashboard({
           adminProjects={adminProjects}
           auditLogs={auditLogs}
           categories={programCategories}
+          couponStudents={couponStudents}
           programs={lmsPrograms}
           students={students}
           summary={lmsSummary}
@@ -837,7 +846,6 @@ function AdminOverview({
   const navigate = useNavigate();
   const totalUsers = summary?.totalUsers ?? 0;
   const activeUsers = summary?.active ?? 0;
-  const pendingUsers = summary?.pendingEmailVerification ?? 0;
   const publishedPrograms =
     lmsSummary?.publishedPrograms ??
     programs.filter((program) => program.status === "Published").length;
@@ -869,7 +877,7 @@ function AdminOverview({
       icon: GraduationCap,
       label: "Students",
       value: summary?.students ?? 0,
-      detail: `${pendingUsers} pending email`,
+      detail: `${activeUsers} active`,
       tone: "blue",
     },
     {
@@ -910,12 +918,6 @@ function AdminOverview({
       module: "Projects",
     },
     {
-      icon: Mail,
-      label: "Pending email",
-      value: pendingUsers,
-      module: "Students",
-    },
-    {
       icon: BadgePercent,
       label: "Active coupons",
       value: activeCoupons,
@@ -943,13 +945,6 @@ function AdminOverview({
       detail: "Transactions awaiting review",
       value: pendingPayments,
       module: "Payments",
-    },
-    {
-      icon: UsersRound,
-      label: "Student accounts",
-      detail: "Pending email verification",
-      value: pendingUsers,
-      module: "Students",
     },
     {
       icon: Tags,
@@ -1010,6 +1005,7 @@ function AdminLmsPanel({
   adminProjects,
   auditLogs,
   categories,
+  couponStudents,
   programs,
   students,
   summary,
@@ -1026,6 +1022,7 @@ function AdminLmsPanel({
   adminProjects: ProjectResponse[];
   auditLogs: AuditLogResponse[];
   categories: ProgramCategoryResponse[];
+  couponStudents: AdminUserResponse[];
   programs: ProgramSummaryResponse[];
   students: AdminUserResponse[];
   summary: AdminLmsSummaryResponse | null;
@@ -1062,6 +1059,7 @@ function AdminLmsPanel({
     useState<CertificateArtworkProps | null>(null);
   const [certificateDraft, setCertificateDraft] =
     useState<IssueCertificateRequest>(() => ({
+      generateForFriend: false,
       studentId: "",
       programId: "",
       enrollmentId: "",
@@ -1072,6 +1070,10 @@ function AdminLmsPanel({
       authorizedSignatory: "M VIJAYARAMARAJU",
       signatureText: "Executive Director",
     }));
+  const certificateForFriend = certificateDraft.generateForFriend === true;
+  const certificateProgramTitle = certificateForFriend
+    ? programs.find((program) => program.id === certificateDraft.programId)?.title
+    : adminEnrollments.find((enrollment) => enrollment.id === certificateDraft.enrollmentId)?.programTitle;
   const [isIssuingCertificate, setIsIssuingCertificate] = useState(false);
   const [categoryDialogMode, setCategoryDialogMode] = useState<
     "create" | "edit" | null
@@ -2251,6 +2253,7 @@ function AdminLmsPanel({
     );
     setCertificateDraft((current) => ({
       ...current,
+      generateForFriend: false,
       enrollmentId,
       studentId: enrollment?.studentId ?? "",
       programId: enrollment?.programId ?? "",
@@ -2261,6 +2264,22 @@ function AdminLmsPanel({
         "",
       fromDate: enrollment?.startDate ?? current.fromDate,
       toDate: enrollment?.accessExpiresAt?.slice(0, 10) ?? current.toDate,
+    }));
+  }
+
+  function selectCertificateRecipient(value: string) {
+    if (value !== "__friend__") {
+      selectCertificateEnrollment(value);
+      return;
+    }
+
+    setCertificateDraft((current) => ({
+      ...current,
+      generateForFriend: true,
+      studentId: "",
+      programId: "",
+      enrollmentId: "",
+      studentName: "",
     }));
   }
 
@@ -2447,7 +2466,7 @@ function AdminLmsPanel({
       ) : null}
 
       {enrollmentDialog && <AdminEnrollmentDialog
-        students={students} programs={programs}
+        students={students} programs={programs} payments={adminPayments}
         enrollment={enrollmentDialog === "new" ? undefined : enrollmentDialog}
         onClose={() => setEnrollmentDialog(null)}
         onSaved={async enrollment => {
@@ -4520,6 +4539,11 @@ function AdminLmsPanel({
                           </span>
                         </div>
                         <div className="enrollment-admin-card__actions">
+                          {enrollment.status !== "Cancelled" ? (
+                            <button className="enrollment-admin-button" type="button" onClick={() => setEnrollmentDialog(enrollment)}>
+                              <Pencil size={16} /> Edit enrollment
+                            </button>
+                          ) : null}
                           {enrollment.balanceAmount > 0 && enrollment.status !== "Cancelled" && !enrollment.isAccessExpired && (
                             <button className="enrollment-admin-button" type="button" onClick={() => setEnrollmentDialog(enrollment)}>
                               <CreditCard size={16} /> Record payment
@@ -4661,6 +4685,16 @@ function AdminLmsPanel({
                                       Invoice {payment.invoiceNumber}
                                     </small>
                                   ) : null}
+                                  {payment.gatewayOrderId ? (
+                                    <small>Order {payment.gatewayOrderId}</small>
+                                  ) : null}
+                                  {payment.gatewayPaymentId ? (
+                                    <small>Payment {payment.gatewayPaymentId}</small>
+                                  ) : null}
+                                  {payment.gatewayLinkId ? (
+                                    <small>Link {payment.gatewayLinkId}</small>
+                                  ) : null}
+                                  {payment.notes ? <small>{payment.notes}</small> : null}
                                 </div>
                               </div>
                             ))
@@ -4958,7 +4992,7 @@ function AdminLmsPanel({
             {isCouponDialogOpen ? (
               <CouponDiscountDialog
                 programs={programs}
-                students={students}
+                students={couponStudents}
                 targetMode={couponTargetMode}
                 onClose={() => {
                   setIsCouponDialogOpen(false);
@@ -5160,8 +5194,8 @@ function AdminLmsPanel({
                 <span className="eyebrow">CERTIFICATE ISSUANCE</span>
                 <h3>Create certificate</h3>
                 <p>
-                  Select a fully paid enrollment, complete the certificate
-                  details, preview it, then issue.
+                  Select a fully paid enrollment or generate one for a friend,
+                  complete the certificate details, preview it, then issue.
                 </p>
               </div>
               <Award size={28} />
@@ -5172,12 +5206,12 @@ function AdminLmsPanel({
             >
               <div className="certificate-admin-fields">
                 <label>
-                  Paid student
+                  Certificate recipient
                   <select
                     required
-                    value={certificateDraft.enrollmentId}
+                    value={certificateForFriend ? "__friend__" : certificateDraft.enrollmentId}
                     onChange={(event) =>
-                      selectCertificateEnrollment(event.currentTarget.value)
+                      selectCertificateRecipient(event.currentTarget.value)
                     }
                   >
                     <option value="">Select a fully paid enrollment</option>
@@ -5195,6 +5229,7 @@ function AdminLmsPanel({
                           · {enrollment.programTitle}
                         </option>
                       ))}
+                    <option value="__friend__">Generate for a friend</option>
                   </select>
                 </label>
                 <label>
@@ -5226,17 +5261,36 @@ function AdminLmsPanel({
                     placeholder="Full name on certificate"
                   />
                 </label>
-                <label>
-                  Program
-                  <input
-                    readOnly
-                    value={
-                      adminEnrollments.find(
-                        (item) => item.id === certificateDraft.enrollmentId,
-                      )?.programTitle ?? "Select an enrollment"
-                    }
-                  />
-                </label>
+                {certificateForFriend ? (
+                  <label>
+                    Friend&apos;s program
+                    <select
+                      required
+                      value={certificateDraft.programId}
+                      onChange={(event) =>
+                        setCertificateDraft((current) => ({
+                          ...current,
+                          programId: event.currentTarget.value,
+                        }))
+                      }
+                    >
+                      <option value="">Select a program</option>
+                      {programs.map((program) => (
+                        <option key={program.id} value={program.id}>
+                          {program.title}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : (
+                  <label>
+                    Program
+                    <input
+                      readOnly
+                      value={certificateProgramTitle ?? "Select an enrollment"}
+                    />
+                  </label>
+                )}
                 <label>
                   Starting date
                   <input
@@ -5295,11 +5349,7 @@ function AdminLmsPanel({
               <CertificateArtwork
                 type={certificateDraft.type === 2 ? "Internship" : "Training"}
                 studentName={certificateDraft.studentName}
-                programTitle={
-                  adminEnrollments.find(
-                    (item) => item.id === certificateDraft.enrollmentId,
-                  )?.programTitle
-                }
+                programTitle={certificateProgramTitle}
                 fromDate={certificateDraft.fromDate}
                 toDate={certificateDraft.toDate}
                 authorizedSignatory={certificateDraft.authorizedSignatory}
@@ -5309,7 +5359,9 @@ function AdminLmsPanel({
                 className="primary-action"
                 type="submit"
                 disabled={
-                  isIssuingCertificate || !certificateDraft.enrollmentId
+                  isIssuingCertificate ||
+                  (!certificateForFriend && !certificateDraft.enrollmentId) ||
+                  (certificateForFriend && !certificateDraft.programId)
                 }
               >
                 {isIssuingCertificate
@@ -5570,6 +5622,18 @@ function CouponDiscountDialog({
   const [discountType, setDiscountType] = useState<"fixed" | "percentage">(
     "fixed",
   );
+  const [studentSearch, setStudentSearch] = useState("");
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const normalizedStudentSearch = studentSearch.trim().toLowerCase();
+  const filteredStudents = students.filter((student) => {
+    if (!normalizedStudentSearch) {
+      return true;
+    }
+
+    return `${student.fullName} ${student.email}`
+      .toLowerCase()
+      .includes(normalizedStudentSearch);
+  });
 
   return (
     <div
@@ -5748,16 +5812,68 @@ function CouponDiscountDialog({
               ) : null}
               {targetMode === "students" ? (
                 <div className="coupon-target-picker">
-                  <label className="coupon-discount-field">
+                  <div className="coupon-discount-field">
                     <span>Select student(s)</span>
-                    <select name="targetStudentIds" multiple size={5}>
-                      {students.map((student) => (
-                        <option key={student.id} value={student.id}>
-                          {student.fullName} · {student.email}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                    <div className="coupon-student-picker">
+                      <label className="coupon-student-search">
+                        <Search size={16} aria-hidden="true" />
+                        <input
+                          type="search"
+                          value={studentSearch}
+                          onChange={(event) => setStudentSearch(event.target.value)}
+                          placeholder="Search students by name or email"
+                          aria-label="Search students by name or email"
+                        />
+                      </label>
+                      <div className="coupon-student-list" role="group" aria-label="Students">
+                        {filteredStudents.length > 0 ? (
+                          filteredStudents.map((student) => (
+                            <label className="coupon-student-option" key={student.id}>
+                              <input
+                                type="checkbox"
+                                name="targetStudentIds"
+                                value={student.id}
+                                checked={selectedStudentIds.includes(student.id)}
+                                onChange={() =>
+                                  setSelectedStudentIds((current) =>
+                                    current.includes(student.id)
+                                      ? current.filter((id) => id !== student.id)
+                                      : [...current, student.id],
+                                  )
+                                }
+                              />
+                              <span className="coupon-student-option__copy">
+                                <strong>{student.fullName}</strong>
+                                <small>{student.email}</small>
+                              </span>
+                            </label>
+                          ))
+                        ) : (
+                          <p className="coupon-student-list__empty">
+                            No students match your search.
+                          </p>
+                        )}
+                        {selectedStudentIds
+                          .filter(
+                            (studentId) =>
+                              !filteredStudents.some(
+                                (student) => student.id === studentId,
+                              ),
+                          )
+                          .map((studentId) => (
+                            <input
+                              key={studentId}
+                              type="hidden"
+                              name="targetStudentIds"
+                              value={studentId}
+                            />
+                          ))}
+                      </div>
+                      <small>
+                        Search by name or email, then tick one or more students.
+                      </small>
+                    </div>
+                  </div>
                   <label className="coupon-discount-field">
                     <span>Or enter student email(s)</span>
                     <textarea
@@ -5791,6 +5907,7 @@ type AdminPeoplePanelProps = {
   currentUserId?: string;
   emptyText: string;
   enrollments: EnrollmentResponse[];
+  programs: ProgramSummaryResponse[];
   isCreating: boolean;
   isLoading: boolean;
   page: PagedResult<AdminUserResponse> | null;
@@ -5804,13 +5921,14 @@ type AdminPeoplePanelProps = {
   ) => Promise<boolean>;
   onMessage: (message: MessageState) => void;
   onQueryChange: (query: PeopleQueryState) => void;
+  onRefresh: () => Promise<void>;
   onSaveUserEdit: (
     event: FormEvent<HTMLFormElement>,
     user: AdminUserResponse,
   ) => Promise<boolean>;
   onUserAction: (
     user: AdminUserResponse,
-    action: "lock" | "unlock" | "reset",
+    action: "lock" | "unlock",
   ) => Promise<void>;
 };
 
@@ -5819,6 +5937,7 @@ function AdminPeoplePanel({
   currentUserId,
   emptyText,
   enrollments,
+  programs,
   isCreating,
   isLoading,
   page,
@@ -5829,11 +5948,13 @@ function AdminPeoplePanel({
   onCreateUser,
   onMessage,
   onQueryChange,
+  onRefresh,
   onSaveUserEdit,
   onUserAction,
 }: AdminPeoplePanelProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [programEnrollment, setProgramEnrollment] = useState<EnrollmentResponse | null>(null);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [searchDraft, setSearchDraft] = useState(query.search);
   const [temporaryPassword, setTemporaryPassword] = useState(() =>
@@ -5847,9 +5968,6 @@ function AdminPeoplePanel({
   ).length;
   const onboardedCount = users.filter(
     (user) => user.onboardingStatus === "Completed",
-  ).length;
-  const pendingCount = users.filter(
-    (user) => user.accountStatus === "PendingEmailVerification",
   ).length;
   const totalCount = page?.totalCount ?? users.length;
   const totalPages = Math.max(page?.totalPages ?? 1, 1);
@@ -5965,10 +6083,6 @@ function AdminPeoplePanel({
           <span>
             <strong>{onboardedCount}</strong>
             Onboarded
-          </span>
-          <span>
-            <strong>{pendingCount}</strong>
-            Pending email
           </span>
         </div>
       </div>
@@ -6197,11 +6311,37 @@ function AdminPeoplePanel({
                     </span>
                   </button>
                   <div className="admin-person-card__badges">
-                    <span className={statusClassName(user.accountStatus)}>
-                      {formatStatusLabel(user.accountStatus)}
-                    </span>
+                    {user.accountStatus !== "PendingEmailVerification" ? (
+                      <span className={statusClassName(user.accountStatus)}>
+                        {formatStatusLabel(user.accountStatus)}
+                      </span>
+                    ) : null}
                   </div>
                   <div className="admin-person-card__actions">
+                    {role === "Student" ? (
+                      <button
+                        type="button"
+                        className="admin-person-card__course-action"
+                        onClick={() => {
+                          if (activeCourses.length === 1) {
+                            setProgramEnrollment(activeCourses[0]);
+                          } else if (activeCourses.length > 1) {
+                            setExpandedUserId(user.id);
+                          } else {
+                            onMessage({
+                              tone: "error",
+                              text: `${user.fullName} has no active or reserved enrollment to change.`,
+                            });
+                          }
+                        }}
+                        title={activeCourses.length > 1
+                          ? "Open courses and choose one to change"
+                          : "Change course"}
+                      >
+                        <Pencil size={15} />
+                        <span>Change course</span>
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() =>
@@ -6234,14 +6374,6 @@ function AdminPeoplePanel({
                       title={isLocked ? "Unlock account" : "Lock account"}
                     >
                       {isLocked ? <Unlock size={16} /> : <Lock size={16} />}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={actionUserId === `${user.id}-reset`}
-                      onClick={() => void onUserAction(user, "reset")}
-                      title="Send reset link"
-                    >
-                      <Mail size={16} />
                     </button>
                   </div>
 
@@ -6281,9 +6413,6 @@ function AdminPeoplePanel({
                           defaultValue={user.accountStatus}
                         >
                           <option value="Active">Active</option>
-                          <option value="PendingEmailVerification">
-                            Pending email verification
-                          </option>
                           <option value="Locked">Locked</option>
                         </select>
                       </label>
@@ -6336,7 +6465,16 @@ function AdminPeoplePanel({
                               <p>No active courses.</p>
                             ) : null}
                             {activeCourses.map((course) => (
-                              <span key={course.id}>{course.programTitle}</span>
+                              <span key={course.id} className="admin-person-course-row">
+                                <strong>{course.programTitle}</strong>
+                                <button
+                                  type="button"
+                                  className="admin-person-course-change"
+                                  onClick={() => setProgramEnrollment(course)}
+                                >
+                                  <Pencil size={14} /> Change course
+                                </button>
+                              </span>
                             ))}
                           </div>
                           <div>
@@ -6388,6 +6526,20 @@ function AdminPeoplePanel({
           </button>
         </div>
       </div>
+      {programEnrollment ? (
+        <AdminEnrollmentDialog
+          students={users}
+          programs={programs}
+          payments={[]}
+          enrollment={programEnrollment}
+          programOnly
+          onClose={() => setProgramEnrollment(null)}
+          onSaved={async (updatedEnrollment) => {
+            onMessage({ tone: "success", text: `${updatedEnrollment.studentName ?? "Student"}'s course was updated successfully.` });
+            await onRefresh();
+          }}
+        />
+      ) : null}
     </section>
   );
 }
@@ -7808,17 +7960,13 @@ function toKebabCase(value: string) {
   return value.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
 }
 
-function actionMessage(action: "lock" | "unlock" | "reset", fullName: string) {
+function actionMessage(action: "lock" | "unlock", fullName: string) {
   if (action === "lock") {
     return `${fullName} locked successfully.`;
   }
 
   if (action === "unlock") {
     return `${fullName} unlocked successfully.`;
-  }
-
-  if (action === "reset") {
-    return `Password reset message prepared for ${fullName}.`;
   }
 
   return `${fullName} updated successfully.`;

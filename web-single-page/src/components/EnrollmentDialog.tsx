@@ -26,7 +26,7 @@ import { programCategories, uniquePrograms } from "../data/siteContent";
 import type { ProgramPlan } from "../data/siteContent";
 import { authApi } from "../features/auth/api/authApi";
 import { useAuth } from "../features/auth/context/useAuth";
-import { publicLmsApi, studentOnboardingApi } from "../features/lms/api/lmsApi";
+import { publicLmsApi, studentLmsApi, studentOnboardingApi } from "../features/lms/api/lmsApi";
 import { checkoutEmailsMatch, resolveCheckoutEmail, savePendingEnrollment, savePostPaymentRegistration } from "../features/lms/checkout";
 import type { EnrollmentApplicant } from "../features/lms/checkout";
 import { usePaymentFlow } from "../features/lms/usePaymentFlow";
@@ -92,14 +92,15 @@ type Props = {
   onPaymentChoiceChange?: (choice: PaymentChoice) => void;
   initialAcceptedTerms?: boolean;
   autoStart?: boolean;
+  initialPostPaymentTarget?: PaymentTarget;
   onClose: () => void;
 };
 
-export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaymentChoice, onPaymentChoiceChange, initialAcceptedTerms, autoStart = false, onClose }: Props) {
+export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaymentChoice, onPaymentChoiceChange, initialAcceptedTerms, autoStart = false, initialPostPaymentTarget, onClose }: Props) {
   const auth = useAuth();
   const { user, isBooting } = auth;
   const payment = usePaymentFlow();
-  const [step, setStep] = useState<RegistrationStep>("details");
+  const [step, setStep] = useState<RegistrationStep>(initialPostPaymentTarget ? "registration" : "details");
   // The program picker is intentionally kept out of the dialog; enrollment uses the first catalog program
   // unless the dialog was opened from a specific program card.
   const slug = programSlug ?? uniquePrograms[0]?.slug ?? "";
@@ -129,7 +130,7 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
   const [retrySeconds, setRetrySeconds] = useState(0);
   const submittingRef = useRef(false);
   const autoStartedRef = useRef(false);
-  const targetRef = useRef<PaymentTarget | null>(null);
+  const targetRef = useRef<PaymentTarget | null>(initialPostPaymentTarget ?? null);
   const programTitle = uniquePrograms.find((program) => program.slug === slug)?.title ?? "your program";
   const enrollmentEmail = resolveCheckoutEmail(email, user?.email);
   // Signed-in students already registered their details; only ask for a phone if the account lacks one.
@@ -151,8 +152,13 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
     (step === "details" || step === "payment") &&
     !["error", "closed", "pending", "development", "success"].includes(payment.phase);
 
+  function closeDialog() {
+    void payment.cancel();
+    onClose();
+  }
+
   useDialogAccessibility(true, ".enroll-dialog", () => {
-    if (!isWorking) onClose();
+    if (!isWorking) closeDialog();
   });
 
   useEffect(() => {
@@ -205,6 +211,10 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
 
   function openRegistrationDetails() {
     const applicant = currentTarget?.applicant;
+    const paymentTransactionId = currentTarget?.paymentTransactionId ?? payment.checkout?.transaction.id;
+    if (currentTarget && paymentTransactionId && currentTarget.paymentTransactionId !== paymentTransactionId) {
+      targetRef.current = { ...currentTarget, paymentTransactionId };
+    }
     setRegistration((current) => ({
       ...current,
       fullName: current.fullName || user?.fullName || applicant?.fullName || fullName,
@@ -235,6 +245,24 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
       }
       if (!registration.currentYearOfStudy) throw new Error("Choose your current year of study.");
 
+      const paymentTarget = targetRef.current ?? currentTarget;
+      const paymentTransactionId = paymentTarget?.paymentTransactionId ?? payment.checkout?.transaction.id;
+      if (!paymentTransactionId) {
+        throw new Error("The verified payment reference is missing. Please return to the payment confirmation and try again.");
+      }
+
+      const selectedProgramDetails = (await publicLmsApi.getProgram(selectedProgram.slug)).data;
+      const selectedPlan = selectedProgramDetails.plans.find((item) =>
+        item.isActive && item.name.trim().toLowerCase() === (paymentTarget?.planName ?? plan.name).trim().toLowerCase())
+        ?? selectedProgramDetails.plans.find((item) => item.isActive);
+      if (!selectedPlan) throw new Error("The selected course has no active enrollment level.");
+
+      await studentLmsApi.completePaidEnrollmentRegistration(paymentTransactionId, {
+        programId: selectedProgramDetails.id,
+        programPlanId: selectedPlan.id,
+        startDate: registration.startDate
+      });
+
       const savedDetails = {
         fullName: registration.fullName.trim(),
         phoneNumber: registration.phoneNumber,
@@ -242,8 +270,8 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
         categoryName: category.domain,
         programSlug: selectedProgram.slug,
         programTitle: selectedProgram.title,
-        enrolledProgramTitle: currentTarget?.programTitle ?? programTitle,
-        enrolledLevel: currentTarget?.planName ?? plan.name,
+        enrolledProgramTitle: selectedProgramDetails.title,
+        enrolledLevel: selectedPlan.name,
         startDate: registration.startDate,
         currentYearOfStudy: registration.currentYearOfStudy
       };
@@ -258,7 +286,18 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
         startDate: savedDetails.startDate,
         currentYearOfStudy: savedDetails.currentYearOfStudy
       });
-      if (currentTarget) targetRef.current = { ...currentTarget, startDate: registration.startDate };
+      if (paymentTarget) {
+        targetRef.current = {
+          ...paymentTarget,
+          programId: selectedProgramDetails.id,
+          programSlug: selectedProgramDetails.slug,
+          programTitle: selectedProgramDetails.title,
+          planId: selectedPlan.id,
+          planName: selectedPlan.name,
+          paymentTransactionId,
+          startDate: registration.startDate
+        };
+      }
       setStep("account-choice");
     });
   }
@@ -274,6 +313,9 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
 
   /** Mirrors /web's continueToCheckout: authoritative pricing, checkout account, then payment. */
   async function continueToPayment() {
+      if (user && !user.roles.includes("Student")) {
+        throw new Error("You are signed in as an administrator. Choose Use another account and sign in with a student account to continue checkout.");
+      }
       if (!slug) throw new Error("Choose the program you want to join.");
       const applicant: EnrollmentApplicant = user
         ? { fullName: user.fullName, phoneNumber: user.phoneNumber || phoneNumber, email: enrollmentEmail, collegeName: "" }
@@ -402,7 +444,7 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
       className="enroll-backdrop"
       role="presentation"
       onClick={(event) => {
-        if (event.target === event.currentTarget && !isWorking) onClose();
+        if (event.target === event.currentTarget && !isWorking) closeDialog();
       }}
     >
       <section aria-labelledby="enroll-dialog-title" aria-modal="true" className="enroll-dialog" role="dialog">
@@ -410,16 +452,16 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
           <span className="enroll-dialog__orb" aria-hidden="true" />
           <div className="enroll-dialog__title-icon"><UserPlus size={22} /></div>
           <div className="enroll-dialog__heading">
-            <span className="eyebrow eyebrow--light">Registration before payment</span>
-            <h2 id="enroll-dialog-title">Secure your place</h2>
-            <p>{user ? "Choose how you want to start your learning journey." : "Share these details once, then choose how you want to start your learning journey."}</p>
+            <span className="eyebrow eyebrow--light">{initialPostPaymentTarget ? "Registration after payment" : "Registration before payment"}</span>
+            <h2 id="enroll-dialog-title">{initialPostPaymentTarget ? "Complete your enrollment" : "Secure your place"}</h2>
+            <p>{initialPostPaymentTarget ? "Choose your course and preferred start date to finish your registration." : user ? "Choose how you want to start your learning journey." : "Share these details once, then choose how you want to start your learning journey."}</p>
           </div>
           <div className="enroll-dialog__summary">
             <div><WalletCards size={18} /><span><small>Selected level</small><strong>{plan.name}</strong></span></div>
             <div><BadgeCheck size={18} /><span><small>Full plan value</small><strong>{formatInr(plan.offerPrice)}</strong></span></div>
             <div><CalendarClock size={18} /><span><small>Access period</small><strong>6 months</strong></span></div>
           </div>
-          <button aria-label="Close registration dialog" className="enroll-dialog__close" disabled={isWorking} onClick={onClose} type="button"><X size={18} /></button>
+          <button aria-label="Close registration dialog" className="enroll-dialog__close" disabled={isWorking} onClick={closeDialog} type="button"><X size={18} /></button>
         </header>
 
         <ol className="enroll-steps" aria-label="Enrollment progress">
@@ -571,10 +613,10 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
             <PaymentPanel
               payment={payment}
               target={currentTarget}
-              onBack={() => { payment.reset(); setStep("details"); }}
+              onBack={() => { void payment.cancel(); payment.reset(); setStep("details"); }}
               onRetry={() => targetRef.current && void payment.startPayment(targetRef.current)}
               onContinueRegistration={openRegistrationDetails}
-              onClose={onClose}
+              onClose={closeDialog}
             />
           ) : null}
 
@@ -651,7 +693,7 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
               </fieldset>
 
               {errorMessage ? <p className="enroll-error" role="alert">{errorMessage}</p> : null}
-              <div className="enroll-note"><Save size={17} /><span>Your details will be saved before you choose how to access the main Joviq web app.</span></div>
+              <div className="enroll-note"><Save size={17} /><span>{initialPostPaymentTarget ? "Your payment is verified. Submit your course and start date to finish enrollment." : "Your details will be saved before you choose how to access the main Joviq web app."}</span></div>
               <button className="btn btn--primary btn--block" disabled={isSubmitting} type="submit">
                 {isSubmitting ? <LoaderCircle className="spin" size={18} /> : <Save size={18} />}
                 {isSubmitting ? "Saving details…" : "Save details and continue"}
@@ -663,14 +705,14 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
             <div className="pay-panel account-choice-panel">
               <div className="pay-panel__icon account-choice-panel__icon"><CheckCircle2 size={34} /></div>
               <span className="eyebrow">Registration saved</span>
-              <h3>Choose how you want to continue</h3>
-              <p>Your enrollment details are saved. Sign in to the main Joviq web app or continue securely with Google.</p>
+              <h3>Course registration complete</h3>
+              <p>Your course and preferred start date are saved. Continue to the main Joviq website to access your student dashboard.</p>
               <div className="account-choice-panel__summary">
                 <span><GraduationCap size={16} /><strong>{selectedRegistrationProgram?.title ?? "Selected program"}</strong></span>
                 <span><CalendarDays size={16} /><strong>{registration.startDate}</strong></span>
               </div>
               <div className="pay-panel__actions account-choice-panel__actions">
-                <button className="btn btn--primary" onClick={redirectToMainWebLogin} type="button"><LogIn size={18} /> Sign in / Login</button>
+                <button className="btn btn--primary" onClick={redirectToMainWebLogin} type="button"><LogIn size={18} /> Continue to website</button>
                 <button className="btn btn--ghost account-choice-panel__google" onClick={continueWithGoogle} type="button"><Globe2 size={18} /> Continue with Google</button>
               </div>
               <div className="enroll-note"><MessageCircle size={17} /><span>After sign-in, your saved enrollment details will be ready in the main Joviq web app.</span></div>
@@ -693,6 +735,7 @@ export function PaymentPanel({ payment, target, onBack, onRetry, onContinueRegis
   onClose: () => void;
 }) {
   const { phase, message } = payment;
+  const amountPaid = payment.checkout?.transaction.amount ?? target?.amountPaid;
   const title = {
     idle: "Preparing your secure checkout",
     preparing: "Opening secure checkout",
@@ -700,11 +743,11 @@ export function PaymentPanel({ payment, target, onBack, onRetry, onContinueRegis
     pending: "Payment is being processed",
     closed: "Checkout closed",
     development: "Test checkout is ready",
-    success: "Thank you for choosing Joviq!",
+    success: "Enrollment successful!",
     error: "We could not complete checkout"
   }[phase];
   const text = phase === "success"
-    ? "Payment verified successfully. Your enrollment is confirmed; continue to complete your registration."
+    ? "Your payment was successful and your enrollment is confirmed. Review your details, then continue registration."
     : phase === "confirming"
       ? "Checking with your bank. Please keep this window open — this usually takes a few seconds."
       : message || "Your payment dialog will open here. Please keep this window open.";
@@ -722,9 +765,10 @@ export function PaymentPanel({ payment, target, onBack, onRetry, onContinueRegis
       {phase === "success" ? (
         <div className="payment-success-details" aria-label="Enrollment details">
           <div><small>Full name</small><strong>{target?.applicant.fullName ?? "Your Joviq account"}</strong></div>
+          <div><small>Email</small><strong>{target?.applicant.email ?? payment.checkout?.transaction.studentEmail ?? "Saved at checkout"}</strong></div>
           <div><small>Phone number</small><strong>{target?.applicant.phoneNumber ?? "Saved at checkout"}</strong></div>
-          <div><small>Enrolled program</small><strong>{target?.programTitle ?? "Your selected program"}</strong></div>
           <div><small>Enrolled level</small><strong>{target?.planName ?? "Selected plan"}</strong></div>
+          <div><small>Amount paid</small><strong>{amountPaid === undefined ? "Confirmed" : formatInr(amountPaid)}</strong></div>
         </div>
       ) : null}
       <div className="pay-panel__actions">

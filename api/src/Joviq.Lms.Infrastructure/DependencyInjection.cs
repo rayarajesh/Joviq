@@ -241,6 +241,7 @@ public static class DependencyInjection
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
         services.AddHostedService<AuditLogRetentionService>();
+        services.AddHostedService<AbandonedCheckoutCleanupService>();
 
         var assetStorageOptions = configuration.GetSection(AssetStorageOptions.SectionName).Get<AssetStorageOptions>() ?? new AssetStorageOptions();
         if (assetStorageOptions.Provider.Equals("AzureBlob", StringComparison.OrdinalIgnoreCase))

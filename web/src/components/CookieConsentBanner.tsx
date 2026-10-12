@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X, Settings } from 'lucide-react';
 import { useCookieConsent } from '../hooks/useCookieConsent';
 import '../styles/cookie-banner.css';
 
 export function CookieConsentBanner() {
-  const { hasConsent, acceptAll, rejectAll, saveCustom, isLoaded } = useCookieConsent();
-  const [showBanner, setShowBanner] = useState(!hasConsent());
+  const { acceptAll, rejectAll, saveCustom, isLoaded, consentData } = useCookieConsent();
+  const [showBanner, setShowBanner] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [customPreferences, setCustomPreferences] = useState({
     necessary: true,
@@ -13,6 +13,12 @@ export function CookieConsentBanner() {
     marketing: false,
     preferences: true,
   });
+
+  useEffect(() => {
+    if (isLoaded) {
+      setShowBanner(consentData === null);
+    }
+  }, [consentData, isLoaded]);
 
   if (!isLoaded || !showBanner) return null;
 

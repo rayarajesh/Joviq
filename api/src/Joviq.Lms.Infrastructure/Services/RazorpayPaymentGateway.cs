@@ -42,7 +42,8 @@ public sealed class RazorpayPaymentGateway : IPaymentGateway
         string? customerEmail,
         string? customerPhone,
         string? customerCollege,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? frontendBaseUrl = null)
     {
         EnsureConfigured();
 

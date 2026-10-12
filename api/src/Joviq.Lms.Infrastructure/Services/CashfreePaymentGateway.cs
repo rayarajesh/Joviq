@@ -26,7 +26,8 @@ public sealed class CashfreePaymentGateway(
         string? customerEmail,
         string? customerPhone,
         string? customerCollege,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? frontendBaseUrl = null)
     {
         EnsureConfigured();
 
@@ -49,9 +50,11 @@ public sealed class CashfreePaymentGateway(
 
         if (!string.IsNullOrWhiteSpace(options.PublicBaseUrl))
         {
-            var frontendBase = string.IsNullOrWhiteSpace(options.FrontendBaseUrl)
+            var frontendBase = string.IsNullOrWhiteSpace(frontendBaseUrl)
+                ? (string.IsNullOrWhiteSpace(options.FrontendBaseUrl)
                 ? options.PublicBaseUrl
-                : options.FrontendBaseUrl;
+                : options.FrontendBaseUrl)
+                : frontendBaseUrl;
             if (string.Equals(options.CashfreeEnvironment, "production", StringComparison.OrdinalIgnoreCase) &&
                 (IsLocalUrl(options.PublicBaseUrl) || IsLocalUrl(frontendBase)))
             {
@@ -63,7 +66,9 @@ public sealed class CashfreePaymentGateway(
             }
             body["order_meta"] = new
             {
-                return_url = $"{frontendBase.TrimEnd('/')}/checkout?cashfree=return&order_id={orderId}",
+                // Keep this parameter namespaced so Cashfree cannot overwrite it with a
+                // gateway transaction value that is not our internal Guid.
+                return_url = $"{frontendBase.TrimEnd('/')}/checkout?cashfree=return&order_id={Uri.EscapeDataString(orderId)}&joviq_payment_transaction_id={Uri.EscapeDataString(transactionId.ToString())}",
                 notify_url = $"{options.PublicBaseUrl.TrimEnd('/')}/api/v1/payments/webhooks/cashfree"
             };
         }

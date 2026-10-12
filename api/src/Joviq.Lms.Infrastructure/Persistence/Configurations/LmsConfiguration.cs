@@ -165,8 +165,10 @@ public sealed class PaymentTransactionConfiguration : IEntityTypeConfiguration<P
         builder.HasIndex(x => x.GatewayOrderId).IsUnique();
         builder.HasIndex(x => new { x.StudentId, x.Status });
         builder.Property(x => x.Gateway).HasMaxLength(80).IsRequired();
-        builder.Property(x => x.GatewayOrderId).HasMaxLength(160).IsRequired();
+        builder.Property(x => x.GatewayOrderId).HasMaxLength(160);
         builder.Property(x => x.GatewayPaymentId).HasMaxLength(160);
+        builder.Property(x => x.GatewayLinkId).HasMaxLength(160);
+        builder.Property(x => x.Notes).HasMaxLength(500);
         builder.Property(x => x.Mode).HasConversion<string>().HasMaxLength(64);
         builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(64);
         builder.Property(x => x.Amount).HasPrecision(12, 2);

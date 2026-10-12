@@ -15,6 +15,7 @@ import { CampusSection } from "./components/Campus";
 import type { CampusInterest } from "./components/Campus";
 import { checkoutLink, readCheckoutLink } from "./lib/checkoutLinks";
 import type { PaymentChoice } from "./lib/checkoutLinks";
+import type { PaymentTarget } from "./features/lms/usePaymentFlow";
 
 type Enrollment = {
   plan: ProgramPlan;
@@ -30,6 +31,16 @@ function readReturnedOrderId() {
   return params.get("cashfree") === "return" ? params.get("order_id") : null;
 }
 
+function readReturnedTransactionId() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("cashfree") !== "return") return null;
+
+  const value = params.get("joviq_payment_transaction_id") ?? params.get("transaction_id");
+  return value && /^(?:[0-9a-f]{32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.test(value)
+    ? value
+    : null;
+}
+
 export function App() {
   return (
     <AuthProvider>
@@ -42,6 +53,8 @@ function SinglePage() {
   const [query, setQuery] = useState("");
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [returnedOrderId, setReturnedOrderId] = useState(readReturnedOrderId);
+  const [returnedTransactionId, setReturnedTransactionId] = useState(readReturnedTransactionId);
+  const [postPaymentTarget, setPostPaymentTarget] = useState<PaymentTarget | null>(null);
   const [enrollment, setEnrollment] = useState<Enrollment | null>(() => readCheckoutLink(window.location.search, defaultProgramPlans));
   const [contactInterest, setContactInterest] = useState<CampusInterest | "program">("program");
   useReveal();
@@ -50,6 +63,7 @@ function SinglePage() {
     function restoreLocation() {
       setEnrollment(readCheckoutLink(window.location.search, defaultProgramPlans));
       setReturnedOrderId(readReturnedOrderId());
+      setReturnedTransactionId(readReturnedTransactionId());
     }
     window.addEventListener("popstate", restoreLocation);
     return () => window.removeEventListener("popstate", restoreLocation);
@@ -96,8 +110,22 @@ function SinglePage() {
 
   function closeReturn() {
     setReturnedOrderId(null);
+    setReturnedTransactionId(null);
     window.history.replaceState(null, "", window.location.pathname === "/checkout" ? "/" : window.location.pathname);
   }
+
+  function continueRegistration(target: PaymentTarget) {
+    closeReturn();
+    setPostPaymentTarget(target);
+  }
+
+  function closePostPaymentRegistration() {
+    setPostPaymentTarget(null);
+  }
+
+  const postPaymentPlan = postPaymentTarget
+    ? defaultProgramPlans.find((plan) => plan.name === postPaymentTarget.planName || plan.code === postPaymentTarget.planName) ?? defaultProgramPlans[0]
+    : null;
 
   return (
     <>
@@ -145,7 +173,29 @@ function SinglePage() {
           onClose={closeEnrollment}
         />
       ) : null}
-      {returnedOrderId ? <PaymentReturn orderId={returnedOrderId} onClose={closeReturn} /> : null}
+      {returnedOrderId ? (
+        <PaymentReturn
+          orderId={returnedOrderId}
+          paymentTransactionId={returnedTransactionId ?? undefined}
+          onContinueRegistration={continueRegistration}
+          onClose={closeReturn}
+        />
+      ) : null}
+      {postPaymentTarget && postPaymentPlan ? (
+        <EnrollmentDialog
+          key={`post-payment-${postPaymentTarget.programId}-${postPaymentTarget.planId}`}
+          plan={postPaymentPlan}
+          programSlug={postPaymentTarget.programSlug}
+          initialValues={{
+            fullName: postPaymentTarget.applicant.fullName,
+            phoneNumber: postPaymentTarget.applicant.phoneNumber,
+            email: postPaymentTarget.applicant.email,
+            collegeName: postPaymentTarget.applicant.collegeName
+          }}
+          initialPostPaymentTarget={postPaymentTarget}
+          onClose={closePostPaymentRegistration}
+        />
+      ) : null}
     </>
   );
 }

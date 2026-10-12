@@ -302,6 +302,16 @@ public sealed class AdminLmsController(
         return Ok(ApiResponse<EnrollmentResponse>.Ok(result, "Enrollment saved.", CorrelationId));
     }
 
+    [HttpPatch("enrollments/{enrollmentId:guid}/program")]
+    public async Task<ActionResult<ApiResponse<EnrollmentResponse>>> ChangeEnrollmentProgram(
+        Guid enrollmentId,
+        ChangeEnrollmentProgramRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await lmsPortalService.ChangeEnrollmentProgramAsync(enrollmentId, request, cancellationToken);
+        return Ok(ApiResponse<EnrollmentResponse>.Ok(result, "Enrollment course updated.", CorrelationId));
+    }
+
     [HttpPatch("enrollments/{enrollmentId:guid}/status")]
     public async Task<ActionResult<ApiResponse<EnrollmentResponse>>> UpdateEnrollmentStatus(
         Guid enrollmentId,

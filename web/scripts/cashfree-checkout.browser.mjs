@@ -33,7 +33,7 @@ try {
       else if (path.endsWith('/auth/me')) data = user;
       else if (path.endsWith('/public/programs/data-science')) {
         await new Promise((resolve) => setTimeout(resolve, 100));
-        data = { id: 'program', title: 'Data Science', plans: [{ id: 'plan', code: 'SELF', isActive: true, reserveAmount: 1000, offerPrice: 7999 }] };
+        data = { id: 'program', title: 'Data Science', plans: [{ id: 'plan', code: 'SELF', isActive: true, reserveAmount: 1500, offerPrice: 4000 }] };
       } else if (path.endsWith('/enrollments')) data = { id: 'enrollment' };
       else if (path.endsWith('/payments/checkout')) {
         checkoutRequests += 1;

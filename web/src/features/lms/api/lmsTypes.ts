@@ -151,8 +151,9 @@ export type PaymentTransactionResponse = {
   programId: string;
   programPlanId?: string;
   gateway: string;
-  gatewayOrderId: string;
+  gatewayOrderId?: string;
   gatewayPaymentId?: string;
+  gatewayLinkId?: string;
   mode: string;
   status: string;
   amount: number;
@@ -161,6 +162,7 @@ export type PaymentTransactionResponse = {
   verifiedAt?: string;
   invoiceNumber?: string;
   failureReason?: string;
+  notes?: string;
   originalAmount: number;
   discountAmount: number;
   couponCode?: string;
@@ -379,6 +381,7 @@ export type CreateEnrollmentRequest = {
 
 export type AdminEnrollmentRequest = {
   enrollmentId?: string;
+  paymentTransactionId?: string;
   studentId?: string;
   newStudent?: {
     fullName: string; email: string; phoneNumber: string;
@@ -512,6 +515,12 @@ export type UpdateEnrollmentStatusRequest = {
   lockedReason?: string;
 };
 
+export type ChangeEnrollmentProgramRequest = {
+  programId: string;
+  programPlanId: string;
+  startDate?: string;
+};
+
 export type UpdatePaymentStatusRequest = {
   status: number;
   gatewayPaymentId?: string;
@@ -549,6 +558,7 @@ export type CreateCouponRequest = {
 };
 
 export type IssueCertificateRequest = {
+  generateForFriend?: boolean;
   studentId: string;
   programId: string;
   enrollmentId?: string;
