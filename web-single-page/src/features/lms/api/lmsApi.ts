@@ -6,6 +6,7 @@ import type {
   PaymentCheckoutResponse,
   PaymentTransactionResponse,
   ProgramDetailsResponse,
+  SavePostPaymentRegistrationRequest,
   VerifyPaymentRequest
 } from "./lmsTypes";
 
@@ -13,6 +14,12 @@ import type {
 export const publicLmsApi = {
   getProgram(slug: string) {
     return request<ProgramDetailsResponse>(`/api/v1/public/programs/${slug}`);
+  }
+};
+
+export const studentOnboardingApi = {
+  saveRegistration(body: SavePostPaymentRegistrationRequest) {
+    return request<unknown>("/api/v1/student/onboarding/registration", { method: "PUT", body });
   }
 };
 

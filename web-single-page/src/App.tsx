@@ -1,9 +1,11 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { defaultProgramPlans } from "./data/siteContent";
 import type { ProgramPlan } from "./data/siteContent";
 import { AuthProvider } from "./features/auth/context/AuthContext";
 import { useReveal } from "./hooks/useReveal";
 import { Navbar } from "./components/Navbar";
 import { Hero } from "./components/Hero";
+import type { HeroCheckoutDetails } from "./components/Hero";
 import { CourseSection, ProgramExplorer } from "./components/Programs";
 import { CertificateSection, Contact, Faq, FinalCta, Footer, PartnersMarquee, Pricing, Reviews, WhyJoviq } from "./components/Sections";
 import { EnrollmentDialog } from "./components/EnrollmentDialog";
@@ -11,8 +13,16 @@ import { PaymentReturn } from "./components/PaymentReturn";
 import { BackToTop } from "./components/BackToTop";
 import { CampusSection } from "./components/Campus";
 import type { CampusInterest } from "./components/Campus";
+import { checkoutLink, readCheckoutLink } from "./lib/checkoutLinks";
+import type { PaymentChoice } from "./lib/checkoutLinks";
 
-type Enrollment = { plan: ProgramPlan; programSlug?: string };
+type Enrollment = {
+  plan: ProgramPlan;
+  programSlug?: string;
+  prefill?: HeroCheckoutDetails;
+  autoStart?: boolean;
+  paymentChoice?: PaymentChoice;
+};
 
 /** Cashfree sends learners back with ?cashfree=return&order_id=… after bank / UPI-app redirects. */
 function readReturnedOrderId() {
@@ -31,10 +41,36 @@ export function App() {
 function SinglePage() {
   const [query, setQuery] = useState("");
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
-  const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
   const [returnedOrderId, setReturnedOrderId] = useState(readReturnedOrderId);
+  const [enrollment, setEnrollment] = useState<Enrollment | null>(() => readCheckoutLink(window.location.search, defaultProgramPlans));
   const [contactInterest, setContactInterest] = useState<CampusInterest | "program">("program");
   useReveal();
+
+  useEffect(() => {
+    function restoreLocation() {
+      setEnrollment(readCheckoutLink(window.location.search, defaultProgramPlans));
+      setReturnedOrderId(readReturnedOrderId());
+    }
+    window.addEventListener("popstate", restoreLocation);
+    return () => window.removeEventListener("popstate", restoreLocation);
+  }, []);
+
+  function openEnrollment(plan: ProgramPlan, paymentChoice: PaymentChoice, programSlug?: string) {
+    window.history.pushState(null, "", checkoutLink(plan.code, paymentChoice, programSlug));
+    setEnrollment({ plan, programSlug, paymentChoice });
+  }
+
+  function closeEnrollment() {
+    const url = new URL(window.location.href);
+    for (const param of ["plan", "payment", "program"]) url.searchParams.delete(param);
+    window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+    setEnrollment(null);
+  }
+
+  function updatePaymentChoice(choice: PaymentChoice) {
+    if (!enrollment || enrollment.autoStart) return;
+    window.history.replaceState(null, "", checkoutLink(enrollment.plan.code, choice, enrollment.programSlug));
+  }
 
   function openContact(interest: CampusInterest) {
     setContactInterest(interest);
@@ -54,6 +90,10 @@ function SinglePage() {
     requestAnimationFrame(() => document.getElementById("programs")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
 
+  function openHeroCheckout(details: HeroCheckoutDetails) {
+    setEnrollment({ plan: details.plan, prefill: details, autoStart: true });
+  }
+
   function closeReturn() {
     setReturnedOrderId(null);
     window.history.replaceState(null, "", window.location.pathname === "/checkout" ? "/" : window.location.pathname);
@@ -64,7 +104,7 @@ function SinglePage() {
       <a className="skip-link" href="#programs">Skip to programs</a>
       <Navbar />
       <main>
-        <Hero onSearch={setQuery} />
+        <Hero onCheckout={openHeroCheckout} />
         <PartnersMarquee />
         <ProgramExplorer query={query} onQueryChange={setQuery} selectedSlug={selectedSlug} onSelect={openCourse} />
         {selectedSlug ? (
@@ -72,13 +112,13 @@ function SinglePage() {
             key={selectedSlug}
             slug={selectedSlug}
             onClose={closeCourse}
-            onSelectPlan={(plan, programSlug) => setEnrollment({ plan, programSlug })}
+            onSelectPlan={(plan, programSlug, choice) => openEnrollment(plan, choice, programSlug)}
           />
         ) : null}
+        <Pricing programSlug={selectedSlug ?? undefined} onSelectPlan={(plan, choice) => openEnrollment(plan, choice, selectedSlug ?? undefined)} />
         <WhyJoviq />
         <CampusSection onContact={openContact} />
         <CertificateSection />
-        <Pricing onSelectPlan={(plan) => setEnrollment({ plan, programSlug: selectedSlug ?? undefined })} />
         <Reviews />
         <Faq />
         <Contact interest={contactInterest} />
@@ -92,7 +132,17 @@ function SinglePage() {
           key={`${enrollment.programSlug ?? "any"}-${enrollment.plan.code}`}
           plan={enrollment.plan}
           programSlug={enrollment.programSlug}
-          onClose={() => setEnrollment(null)}
+          initialValues={enrollment.prefill ? {
+            fullName: enrollment.prefill.fullName,
+            phoneNumber: enrollment.prefill.phoneNumber,
+            email: enrollment.prefill.email,
+            collegeName: enrollment.prefill.collegeName
+          } : undefined}
+          initialPaymentChoice={enrollment.prefill?.paymentChoice ?? enrollment.paymentChoice}
+          onPaymentChoiceChange={updatePaymentChoice}
+          initialAcceptedTerms={enrollment.prefill?.acceptedTerms}
+          autoStart={enrollment.autoStart}
+          onClose={closeEnrollment}
         />
       ) : null}
       {returnedOrderId ? <PaymentReturn orderId={returnedOrderId} onClose={closeReturn} /> : null}

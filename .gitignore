@@ -29,3 +29,11 @@ logs/
 
 # Local development diagnostics and browser audit artifacts.
 /tmp/
+
+# Generated deployment packages and API publish artifacts.
+/artifacts/
+/deploy-web.tar
+/deploy-web-single-page.tar
+
+# Project-local development database and temporary files.
+.local/

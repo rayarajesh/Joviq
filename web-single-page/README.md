@@ -19,6 +19,21 @@ Configure in `.env.local` (see `.env.example`):
 | `VITE_DEV_PROXY_TARGET` | Dev proxy target for `/api`. |
 | `VITE_LMS_APP_URL` | The full LMS app, used for the post-payment dashboard link and legal pages. |
 
+## Shareable checkout links
+
+Use these paths on the deployed single-page site's domain:
+
+| Plan | Reserve | Pay in full |
+| --- | --- | --- |
+| Launch | `/?plan=launch&payment=reserve` | `/?plan=launch&payment=full` |
+| Elevate | `/?plan=elevate&payment=reserve` | `/?plan=elevate&payment=full` |
+
+These links open registration immediately with the selected plan and payment option.
+Clients still provide their details before payment. No personal information or payment authorization is stored in the URL.
+Add `&program=<program-slug>` to target a specific course; course-card links include it automatically.
+Right-click a pricing button to copy its link. Changing the payment option updates the address bar.
+The plain site URL opens the landing page, and closing registration removes checkout parameters.
+
 ## Enrollment flow (same as /web)
 
 Choosing **Select plan** on the course section or on pricing opens the registration dialog. The dialog then:

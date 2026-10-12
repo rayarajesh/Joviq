@@ -377,6 +377,17 @@ export type CreateEnrollmentRequest = {
   startDate?: string;
 };
 
+export type SavePostPaymentRegistrationRequest = {
+  fullName: string;
+  phoneNumber: string;
+  whatsappNumber: string;
+  categoryName: string;
+  programSlug: string;
+  programTitle: string;
+  startDate: string;
+  currentYearOfStudy: string;
+};
+
 export type AdminEnrollmentRequest = {
   enrollmentId?: string;
   studentId?: string;

@@ -15,6 +15,7 @@ public sealed record StudentOnboardingResponse(
     AcademicDetailsResponse Academic,
     CareerDetailsResponse Career,
     ResumeDetailsResponse Resume,
+    RegistrationDetailsResponse Registration,
     int CompletionPercentage,
     IReadOnlyList<string> MissingFields);
 
@@ -44,6 +45,14 @@ public sealed record ResumeDetailsResponse(
     string? ResumeContentType,
     long? ResumeSizeBytes,
     DateTimeOffset? ResumeUploadedAt);
+
+public sealed record RegistrationDetailsResponse(
+    string? WhatsAppNumber,
+    string? CategoryName,
+    string? ProgramSlug,
+    string? ProgramTitle,
+    string? StartDate,
+    string? CurrentYearOfStudy);
 
 public sealed record UpdatePersonalDetailsRequest
 {
@@ -75,6 +84,33 @@ public sealed record UpdateAcademicDetailsRequest
 
     [MaxLength(32)]
     public string? CgpaOrPercentage { get; init; }
+}
+
+public sealed record UpdateRegistrationDetailsRequest
+{
+    [Required, MaxLength(160)]
+    public string FullName { get; init; } = string.Empty;
+
+    [Required, MaxLength(20)]
+    public string PhoneNumber { get; init; } = string.Empty;
+
+    [Required, MaxLength(20)]
+    public string WhatsAppNumber { get; init; } = string.Empty;
+
+    [Required, MaxLength(160)]
+    public string CategoryName { get; init; } = string.Empty;
+
+    [Required, MaxLength(160)]
+    public string ProgramSlug { get; init; } = string.Empty;
+
+    [Required, MaxLength(200)]
+    public string ProgramTitle { get; init; } = string.Empty;
+
+    [Required]
+    public DateOnly StartDate { get; init; }
+
+    [Required, MaxLength(40)]
+    public string CurrentYearOfStudy { get; init; } = string.Empty;
 }
 
 public sealed record UpdateCareerDetailsRequest

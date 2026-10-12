@@ -1,4 +1,5 @@
 export const pendingEnrollmentStorageKey = "joviq-pending-enrollment";
+export const postPaymentRegistrationStorageKey = "joviq-post-payment-registration";
 
 export function resolveCheckoutEmail(applicantEmail: string, accountEmail?: string) {
   return (accountEmail?.trim() || applicantEmail.trim()).toLowerCase();
@@ -26,6 +27,20 @@ export type PendingEnrollment = {
   amount?: number;
   applicant?: EnrollmentApplicant;
   startDate?: string;
+};
+
+export type PostPaymentRegistration = {
+  fullName: string;
+  phoneNumber: string;
+  whatsappNumber: string;
+  categoryName: string;
+  programSlug: string;
+  programTitle: string;
+  enrolledProgramTitle: string;
+  enrolledLevel: string;
+  startDate: string;
+  currentYearOfStudy: string;
+  savedAt: string;
 };
 
 export function savePendingEnrollment(enrollment: PendingEnrollment) {
@@ -56,4 +71,11 @@ export function readPendingEnrollment(): PendingEnrollment | null {
 
 export function clearPendingEnrollment() {
   window.localStorage.removeItem(pendingEnrollmentStorageKey);
+}
+
+export function savePostPaymentRegistration(details: Omit<PostPaymentRegistration, "savedAt">) {
+  window.localStorage.setItem(postPaymentRegistrationStorageKey, JSON.stringify({
+    ...details,
+    savedAt: new Date().toISOString()
+  } satisfies PostPaymentRegistration));
 }

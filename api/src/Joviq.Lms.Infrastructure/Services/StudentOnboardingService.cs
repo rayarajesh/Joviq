@@ -65,6 +65,36 @@ public sealed class StudentOnboardingService(
         return BuildResponse(pair.User, pair.Profile);
     }
 
+    public async Task<StudentOnboardingResponse> UpdateRegistrationDetailsAsync(
+        Guid userId,
+        UpdateRegistrationDetailsRequest request,
+        CancellationToken cancellationToken)
+    {
+        var pair = await GetUserAndProfileAsync(userId, saveIfCreated: false, cancellationToken);
+        var today = DateOnly.FromDateTime(clock.UtcNow.UtcDateTime);
+
+        if (request.StartDate <= today || request.StartDate > today.AddMonths(3))
+        {
+            throw new ValidationAppException(new Dictionary<string, string[]>
+            {
+                [nameof(UpdateRegistrationDetailsRequest.StartDate)] = ["Start date must be a future date within the next three months."]
+            });
+        }
+
+        pair.User.FullName = RequiredText(request.FullName, nameof(UpdateRegistrationDetailsRequest.FullName), 160);
+        pair.User.PhoneNumber = NormalizePhoneNumber(request.PhoneNumber, nameof(UpdateRegistrationDetailsRequest.PhoneNumber));
+        pair.Profile.WhatsAppNumber = NormalizePhoneNumber(request.WhatsAppNumber, nameof(UpdateRegistrationDetailsRequest.WhatsAppNumber));
+        pair.Profile.CurrentYearOfStudy = RequiredText(request.CurrentYearOfStudy, nameof(UpdateRegistrationDetailsRequest.CurrentYearOfStudy), 40);
+        pair.Profile.PreferredCategoryName = RequiredText(request.CategoryName, nameof(UpdateRegistrationDetailsRequest.CategoryName), 160);
+        pair.Profile.PreferredProgramSlug = RequiredText(request.ProgramSlug, nameof(UpdateRegistrationDetailsRequest.ProgramSlug), 160);
+        pair.Profile.PreferredProgramTitle = RequiredText(request.ProgramTitle, nameof(UpdateRegistrationDetailsRequest.ProgramTitle), 200);
+        pair.Profile.PreferredStartDate = request.StartDate;
+        MarkInProgress(pair.User);
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return BuildResponse(pair.User, pair.Profile);
+    }
+
     public async Task<StudentOnboardingResponse> UpdateCareerAsync(
         Guid userId,
         UpdateCareerDetailsRequest request,
@@ -213,6 +243,13 @@ public sealed class StudentOnboardingService(
                 profile.ResumeContentType,
                 profile.ResumeSizeBytes,
                 profile.ResumeUploadedAt),
+            new RegistrationDetailsResponse(
+                profile.WhatsAppNumber,
+                profile.PreferredCategoryName,
+                profile.PreferredProgramSlug,
+                profile.PreferredProgramTitle,
+                profile.PreferredStartDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                profile.CurrentYearOfStudy),
             completionPercentage,
             missingFields);
     }
@@ -507,6 +544,39 @@ public sealed class StudentOnboardingService(
         }
 
         return trimmed;
+    }
+
+    private static string RequiredText(string? value, string fieldName, int maxLength)
+    {
+        var trimmed = NormalizeOptionalText(value);
+        if (trimmed is null || trimmed.Length < 2 || trimmed.Length > maxLength)
+        {
+            throw new ValidationAppException(new Dictionary<string, string[]>
+            {
+                [fieldName] = [$"{fieldName} must be 2 to {maxLength} characters."]
+            });
+        }
+
+        return trimmed;
+    }
+
+    private static string NormalizePhoneNumber(string? value, string fieldName)
+    {
+        var digits = new string((value ?? string.Empty).Where(char.IsDigit).ToArray());
+        if (digits.Length == 12 && digits.StartsWith("91", StringComparison.Ordinal))
+        {
+            digits = digits[2..];
+        }
+
+        if (digits.Length != 10 || digits[0] is < '6' or > '9')
+        {
+            throw new ValidationAppException(new Dictionary<string, string[]>
+            {
+                [fieldName] = ["Enter a valid 10-digit Indian mobile number."]
+            });
+        }
+
+        return digits;
     }
 
     private static string? NormalizeOptionalText(string? value)

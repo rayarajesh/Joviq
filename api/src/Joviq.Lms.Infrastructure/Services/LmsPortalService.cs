@@ -11,7 +11,9 @@ using Joviq.Lms.Domain.Entities;
 using Joviq.Lms.Domain.Enums;
 using Joviq.Lms.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Joviq.Lms.Application.Users;
 using Joviq.Lms.Application.Common.Security;
@@ -26,7 +28,10 @@ public sealed class LmsPortalService(
     IPaymentGateway paymentGateway,
     IOptions<PaymentOptions> paymentOptions,
     IConfiguration configuration,
-    IAdminUserService adminUserService) : ILmsPortalService
+    IAdminUserService adminUserService,
+    IHttpContextAccessor? httpContextAccessor = null,
+    IEmailSender? emailSender = null,
+    ILogger<LmsPortalService>? logger = null) : ILmsPortalService
 {
     private const string DefaultThumbnailUrl = "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=82";
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
@@ -37,9 +42,15 @@ public sealed class LmsPortalService(
     private static readonly IReadOnlyDictionary<string, FixedPlanPricing> FixedPlans =
         new Dictionary<string, FixedPlanPricing>(StringComparer.OrdinalIgnoreCase)
         {
-            ["SELF"] = new("Launch", 7999m, 1500m),
-            ["INTERMEDIATE"] = new("Elevate", 9999m, 1500m),
-            ["MASTER"] = new("Mastery", 14999m, 1500m)
+            ["SELF"] = new("Launch", 7999m, 7999m, 1500m),
+            ["INTERMEDIATE"] = new("Elevate", 9999m, 9999m, 1500m),
+            ["MASTER"] = new("Mastery", 14999m, 14999m, 1500m)
+        };
+    private static readonly IReadOnlyDictionary<string, FixedPlanPricing> SinglePageFixedPlans =
+        new Dictionary<string, FixedPlanPricing>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["SELF"] = new("Launch", 7999m, 4000m, 1500m),
+            ["INTERMEDIATE"] = new("Elevate", 9999m, 5000m, 1500m)
         };
 
     private PaymentOptions Payments => paymentOptions.Value;
@@ -528,9 +539,15 @@ public sealed class LmsPortalService(
 
             // An earlier attempt may have been paid (UPI app, closed pop-up, other tab). Credit it
             // instead of charging the student a second time.
-            if (await ReconcileEarlierAttemptsAsync(enrollment, cancellationToken))
+            var wasUnpaidBeforeRecovery = enrollment.PaidAmount <= 0;
+            var recoveredPayment = await ReconcileEarlierAttemptsAsync(enrollment, cancellationToken);
+            if (recoveredPayment is not null)
             {
                 await dbContext.SaveChangesAsync(cancellationToken);
+                if (wasUnpaidBeforeRecovery)
+                {
+                    await SendEnrollmentConfirmationEmailAsync(recoveredPayment, cancellationToken);
+                }
                 throw new AppException(
                     "We have already received your earlier payment, so nothing was charged again. Your dashboard is updated.",
                     409,
@@ -819,8 +836,12 @@ public sealed class LmsPortalService(
             throw new AppException("This gateway payment was already processed.", 409, "payment_already_processed");
         }
 
-        await CompleteGatewayPaymentAsync(transaction, paymentId, "Student.PaymentVerified", cancellationToken);
+        var sendEnrollmentConfirmation = await CompleteGatewayPaymentAsync(transaction, paymentId, "Student.PaymentVerified", cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
+        if (sendEnrollmentConfirmation)
+        {
+            await SendEnrollmentConfirmationEmailAsync(transaction, cancellationToken);
+        }
         return MapPayment(transaction);
     }
 
@@ -953,8 +974,12 @@ public sealed class LmsPortalService(
             return;
         }
 
-        await CompleteGatewayPaymentAsync(transaction, paymentId, "Student.PaymentVerifiedByWebhook", cancellationToken);
+        var sendEnrollmentConfirmation = await CompleteGatewayPaymentAsync(transaction, paymentId, "Student.PaymentVerifiedByWebhook", cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
+        if (sendEnrollmentConfirmation)
+        {
+            await SendEnrollmentConfirmationEmailAsync(transaction, cancellationToken);
+        }
     }
 
     public async Task ProcessCashfreePaymentWebhookAsync(string payload, CancellationToken cancellationToken)
@@ -994,8 +1019,12 @@ public sealed class LmsPortalService(
             return;
         }
 
-        await CompleteGatewayPaymentAsync(transaction, paymentId, "Student.PaymentVerifiedByCashfreeWebhook", cancellationToken);
+        var sendEnrollmentConfirmation = await CompleteGatewayPaymentAsync(transaction, paymentId, "Student.PaymentVerifiedByCashfreeWebhook", cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
+        if (sendEnrollmentConfirmation)
+        {
+            await SendEnrollmentConfirmationEmailAsync(transaction, cancellationToken);
+        }
     }
 
     public async Task<IReadOnlyList<ProjectResponse>> GetStudentProjectsAsync(
@@ -2036,6 +2065,10 @@ public sealed class LmsPortalService(
             ?? throw new AppException("Payment was not found.", 404, "payment_not_found");
 
         var wasVerified = payment.Status == PaymentStatus.Verified;
+        var sendEnrollmentConfirmation = request.Status == PaymentStatus.Verified &&
+            !wasVerified &&
+            payment.Enrollment is not null &&
+            payment.Enrollment.PaidAmount <= 0;
         if (wasVerified && request.Status != PaymentStatus.Verified)
         {
             throw new AppException("A verified payment cannot be moved back to pending or failed.", 409, "payment_already_verified");
@@ -2077,6 +2110,10 @@ public sealed class LmsPortalService(
 
         Audit("Admin.PaymentStatusUpdated", new { payment.Id, payment.StudentId, payment.EnrollmentId, payment.Status, payment.Amount });
         await dbContext.SaveChangesAsync(cancellationToken);
+        if (sendEnrollmentConfirmation)
+        {
+            await SendEnrollmentConfirmationEmailAsync(payment, cancellationToken);
+        }
         return MapPayment(payment);
     }
 
@@ -2244,6 +2281,7 @@ public sealed class LmsPortalService(
 
         Audit("Admin.CertificateIssued", new { certificate.Id, certificate.StudentId, certificate.ProgramId, certificate.CertificateId, certificate.Type });
         await dbContext.SaveChangesAsync(cancellationToken);
+        await SendCertificateIssuedEmailAsync(certificate, program.Title, cancellationToken);
         return new CertificateResponse(
             certificate.Id,
             certificate.StudentId,
@@ -2456,7 +2494,7 @@ public sealed class LmsPortalService(
             .FirstOrDefault();
     }
 
-    private static decimal CalculatePaymentAmount(Enrollment enrollment, ProgramPlan plan, PaymentMode mode, DateTimeOffset now)
+    private decimal CalculatePaymentAmount(Enrollment enrollment, ProgramPlan plan, PaymentMode mode, DateTimeOffset now)
     {
         var pricing = GetFixedPricing(plan);
         var total = pricing.TotalAmount;
@@ -2488,15 +2526,35 @@ public sealed class LmsPortalService(
         return amount;
     }
 
-    private static FixedPlanPricing GetFixedPricing(ProgramPlan plan)
+    private bool IsSinglePageFrontendRequest
     {
-        return FixedPlans.TryGetValue(plan.Code, out var pricing)
+        get
+        {
+            var origin = httpContextAccessor?.HttpContext?.Request.Headers.Origin.ToString();
+            if (string.IsNullOrWhiteSpace(origin)) return false;
+
+            var origins = configuration.GetSection("Payments:SinglePageOrigins").Get<string[]>() ?? [];
+            return origins.Any(value => string.Equals(value.TrimEnd('/'), origin.TrimEnd('/'), StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    private FixedPlanPricing GetFixedPricing(ProgramPlan plan)
+    {
+        var plans = IsSinglePageFrontendRequest ? SinglePageFixedPlans : FixedPlans;
+        return plans.TryGetValue(plan.Code, out var pricing)
             ? pricing
-            : throw new AppException("Only the Launch, Elevate, and Mastery plans are available.", 400, "invalid_program_plan");
+            : throw new AppException(
+                IsSinglePageFrontendRequest
+                    ? "Only the Launch and Elevate plans are available."
+                    : "Only the Launch, Elevate, and Mastery plans are available.",
+                400,
+                "invalid_program_plan");
     }
 
     private static decimal GetPlanTotal(ProgramPlan plan)
-        => GetFixedPricing(plan).TotalAmount;
+        => FixedPlans.TryGetValue(plan.Code, out var pricing)
+            ? pricing.TotalAmount
+            : throw new AppException("Program plan was not found.", 400, "invalid_program_plan");
 
     private DateOnly? NormalizeStartDate(DateOnly? startDate)
     {
@@ -2723,7 +2781,7 @@ public sealed class LmsPortalService(
     }
 
     /// <summary>Moves an enrollment to the plan the student just chose, as long as nothing has been paid yet.</summary>
-    private static bool SwitchUnpaidPlan(Enrollment enrollment, LearningProgram program, Guid? planId)
+    private bool SwitchUnpaidPlan(Enrollment enrollment, LearningProgram program, Guid? planId)
     {
         if (!planId.HasValue || planId == enrollment.ProgramPlanId || enrollment.PaidAmount > 0)
         {
@@ -2744,9 +2802,9 @@ public sealed class LmsPortalService(
 
     /// <summary>
     /// Checks this enrollment's recent unconfirmed Cashfree attempts with the gateway and credits any that were
-    /// actually paid. Returns true when at least one payment was recovered.
+    /// actually paid. Returns the first recovered payment when one is found.
     /// </summary>
-    private async Task<bool> ReconcileEarlierAttemptsAsync(Enrollment enrollment, CancellationToken cancellationToken)
+    private async Task<PaymentTransaction?> ReconcileEarlierAttemptsAsync(Enrollment enrollment, CancellationToken cancellationToken)
     {
         var since = clock.UtcNow.AddDays(-1);
         var attempts = await dbContext.PaymentTransactions
@@ -2759,7 +2817,7 @@ public sealed class LmsPortalService(
             .Take(5)
             .ToListAsync(cancellationToken);
 
-        var recovered = false;
+        PaymentTransaction? recoveredPayment = null;
         foreach (var attempt in attempts)
         {
             PaymentGatewayVerification verification;
@@ -2783,10 +2841,10 @@ public sealed class LmsPortalService(
 
             attempt.Enrollment = enrollment;
             await CompleteGatewayPaymentAsync(attempt, verification.PaymentId, "Student.PaymentRecoveredAtCheckout", cancellationToken);
-            recovered = true;
+            recoveredPayment ??= attempt;
         }
 
-        return recovered;
+        return recoveredPayment;
     }
 
     /// <summary>An open gateway checkout for the same payment that can simply be reopened.</summary>
@@ -2831,13 +2889,14 @@ public sealed class LmsPortalService(
     /// verify call, a webhook, or recovery at the next checkout. Money the enrollment no longer owed is
     /// flagged for refund instead of disappearing.
     /// </summary>
-    private async Task CompleteGatewayPaymentAsync(
+    private async Task<bool> CompleteGatewayPaymentAsync(
         PaymentTransaction transaction,
         string paymentId,
         string auditEvent,
         CancellationToken cancellationToken)
     {
         var now = clock.UtcNow;
+        var sendEnrollmentConfirmation = transaction.Enrollment is not null && transaction.Enrollment.PaidAmount <= 0;
         transaction.Status = PaymentStatus.Verified;
         transaction.GatewayPaymentId = paymentId;
         transaction.VerifiedAt = now;
@@ -2874,10 +2933,95 @@ public sealed class LmsPortalService(
             ActionUrl = "/dashboard"
         });
         Audit(auditEvent, new { transaction.Id, transaction.StudentId, transaction.EnrollmentId, transaction.Amount, transaction.GatewayPaymentId });
+        return sendEnrollmentConfirmation;
+    }
+
+    private async Task SendEnrollmentConfirmationEmailAsync(
+        PaymentTransaction transaction,
+        CancellationToken cancellationToken)
+    {
+        var student = await dbContext.Users
+            .AsNoTracking()
+            .Where(x => x.Id == transaction.StudentId)
+            .Select(x => new { x.FullName, x.Email })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (student is null || string.IsNullOrWhiteSpace(student.Email))
+        {
+            return;
+        }
+
+        var programTitle = transaction.Enrollment?.Program?.Title ?? "your Joviq program";
+        var planName = transaction.Enrollment?.ProgramPlan?.Name ?? "Selected plan";
+        var amount = transaction.Amount.ToString("N0");
+        var invoiceNumber = transaction.InvoiceNumber ?? $"JOVIQ-{transaction.Id.ToString("N")[..10].ToUpperInvariant()}";
+        var startDate = transaction.Enrollment?.StartDate?.ToString("dd MMM yyyy") ?? "To be confirmed";
+
+        await SendEmailBestEffortAsync(
+            transaction.StudentId,
+            student.Email,
+            "Your Joviq course enrollment is confirmed",
+            EmailTemplates.EnrollmentConfirmation(student.FullName, programTitle, planName, amount, invoiceNumber, startDate),
+            "enrollment confirmation",
+            cancellationToken);
+    }
+
+    private async Task SendCertificateIssuedEmailAsync(
+        Certificate certificate,
+        string programTitle,
+        CancellationToken cancellationToken)
+    {
+        var student = await dbContext.Users
+            .AsNoTracking()
+            .Where(x => x.Id == certificate.StudentId)
+            .Select(x => new { x.FullName, x.Email })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (student is null || string.IsNullOrWhiteSpace(student.Email))
+        {
+            return;
+        }
+
+        await SendEmailBestEffortAsync(
+            certificate.StudentId,
+            student.Email,
+            "Your Joviq certificate is ready",
+            EmailTemplates.CertificateIssued(
+                student.FullName,
+                programTitle,
+                certificate.Type.ToString(),
+                certificate.CertificateId,
+                certificate.VerificationUrl),
+            "certificate issued",
+            cancellationToken);
+    }
+
+    private async Task SendEmailBestEffortAsync(
+        Guid studentId,
+        string recipient,
+        string subject,
+        string htmlBody,
+        string emailPurpose,
+        CancellationToken cancellationToken)
+    {
+        if (emailSender is null || string.IsNullOrWhiteSpace(recipient))
+        {
+            return;
+        }
+
+        try
+        {
+            await emailSender.SendAsync(recipient, subject, htmlBody, cancellationToken);
+            logger?.LogInformation("Sent {EmailPurpose} email to student {StudentId}.", emailPurpose, studentId);
+        }
+        catch (Exception exception)
+        {
+            logger?.LogError(exception, "Failed to send {EmailPurpose} email to student {StudentId}.", emailPurpose, studentId);
+        }
     }
 
     /// <summary>How much of this payment exceeds what the enrollment still owed before it was applied.</summary>
-    private static decimal CalculateExcessPayment(PaymentTransaction transaction, DateTimeOffset now)
+    private decimal CalculateExcessPayment(PaymentTransaction transaction, DateTimeOffset now)
     {
         var enrollment = transaction.Enrollment;
         if (enrollment is null || IsAccessExpired(enrollment, now))
@@ -2965,7 +3109,10 @@ public sealed class LmsPortalService(
         payment.InvoiceNumber ??= $"JOVIQ-{now:yyyyMMdd}-{payment.Id.ToString("N")[..8].ToUpperInvariant()}";
     }
 
-    private sealed record FixedPlanPricing(string Name, decimal TotalAmount, decimal ReserveAmount);
+    private sealed record FixedPlanPricing(string Name, decimal ActualAmount, decimal OfferAmount, decimal ReserveAmount)
+    {
+        public decimal TotalAmount => OfferAmount;
+    }
 
     private static ProgramSummaryResponse MapProgramSummary(LearningProgram program)
     {
@@ -2991,7 +3138,7 @@ public sealed class LmsPortalService(
             DeserializeList(program.SkillsJson));
     }
 
-    private static ProgramDetailsResponse MapProgramDetails(
+    private ProgramDetailsResponse MapProgramDetails(
         LearningProgram program,
         IReadOnlyList<Project> projects,
         IReadOnlyDictionary<Guid, LessonProgress> progress,
@@ -3015,7 +3162,11 @@ public sealed class LmsPortalService(
             DeserializeList(program.SkillsJson),
             DeserializeList(program.OutcomesJson),
             DeserializeFaqs(program.FaqsJson),
-            program.Plans.OrderBy(x => x.SortOrder).Select(MapPlan).ToList(),
+            program.Plans
+                .Where(x => includeInactive || !IsSinglePageFrontendRequest || SinglePageFixedPlans.ContainsKey(x.Code))
+                .OrderBy(x => x.SortOrder)
+                .Select(MapPlan)
+                .ToList(),
             program.Modules
                 .Where(module => includeInactive || module.IsActive)
                 .OrderBy(x => x.SortOrder)
@@ -3059,7 +3210,7 @@ public sealed class LmsPortalService(
         }
     }
 
-    private static ProgramPlanResponse MapPlan(ProgramPlan plan)
+    private ProgramPlanResponse MapPlan(ProgramPlan plan)
     {
         var pricing = GetFixedPricing(plan);
         return new ProgramPlanResponse(
@@ -3067,8 +3218,8 @@ public sealed class LmsPortalService(
             plan.ProgramId,
             pricing.Name,
             plan.Code,
-            pricing.TotalAmount,
-            pricing.TotalAmount,
+            pricing.ActualAmount,
+            pricing.OfferAmount,
             pricing.ReserveAmount,
             DeserializeList(plan.FeaturesJson),
             plan.IsActive);

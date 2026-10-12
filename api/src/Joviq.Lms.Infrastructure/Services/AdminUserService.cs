@@ -1,4 +1,3 @@
-using System.Net;
 using Joviq.Lms.Application.Auth;
 using Joviq.Lms.Application.Common.Exceptions;
 using Joviq.Lms.Application.Common.Interfaces;
@@ -309,7 +308,7 @@ public sealed class AdminUserService(
         await emailSender.SendAsync(
             user.Email,
             "Reset your Joviq LMS password",
-            $"Use this password reset token in the LMS reset-password screen: <strong>{WebUtility.HtmlEncode(token)}</strong>",
+            EmailTemplates.AdminPasswordReset(user.FullName, token),
             cancellationToken);
         auditLog.Add("Admin.User.PasswordResetLinkSent", new { targetUserId = user.Id }, user.Id, user.Email, user.PhoneNumber);
         await dbContext.SaveChangesAsync(cancellationToken);

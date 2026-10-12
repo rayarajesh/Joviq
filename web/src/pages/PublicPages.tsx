@@ -371,6 +371,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const [loginSearchParams] = useSearchParams();
   const returnUrl = normalizeOAuthReturnUrl(loginSearchParams.get("returnUrl"));
+  const resumeEmail = loginSearchParams.get("email")?.trim().toLowerCase() ?? "";
   const [mode, setMode] = useState<AuthPageMode>("login");
   const [message, setMessage] = useState<PageMessage>(null);
   const [pendingEmail, setPendingEmail] = useState("");
@@ -684,7 +685,7 @@ export function LoginPage() {
                 <label className="auth2-field">
                   Email
                   <span className="auth2-input"><Mail size={18} />
-                    <input name="email" type="email" autoComplete="email" placeholder="you@example.com" maxLength={256} pattern={emailPattern} required />
+                    <input defaultValue={resumeEmail} name="email" type="email" autoComplete="email" placeholder="you@example.com" maxLength={256} pattern={emailPattern} required />
                   </span>
                 </label>
                 <label className="auth2-field">
