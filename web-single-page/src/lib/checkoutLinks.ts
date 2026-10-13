@@ -2,7 +2,7 @@ import type { ProgramPlan } from "../data/siteContent";
 
 export type PaymentChoice = "token" | "full";
 
-const planNames: Record<string, string> = { SELF: "launch", INTERMEDIATE: "elevate", MASTER: "master" };
+const planNames: Record<string, string> = { SELF: "launch", INTERMEDIATE: "elevate" };
 
 export function checkoutLink(planCode: string, paymentChoice: PaymentChoice, programSlug?: string, pathname = window.location.pathname) {
   const params = new URLSearchParams({
