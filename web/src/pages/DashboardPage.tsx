@@ -2,7 +2,11 @@ import "../styles/admin-modules.css";
 import { AcademyOverview } from "../components/AcademyOverview";
 import { AdminCallbackRequests } from "../components/AdminCallbackRequests";
 import { AdminEnrollmentDialog } from "../components/AdminEnrollmentDialog";
-import { CertificateArtwork, CertificateViewer } from "../components/CertificateArtwork";
+import {
+  CertificateArtwork,
+  CertificateViewer,
+  useCertificatePrinter,
+} from "../components/CertificateArtwork";
 import type { CertificateArtworkProps } from "../components/CertificateArtwork";
 import { StudentOverview } from "../components/StudentOverview";
 import { AdminSupportInbox, StudentSupportChat, useSupportUnread } from "../components/SupportChat";
@@ -37,6 +41,7 @@ import {
   ClipboardList,
   BriefcaseBusiness,
   CreditCard,
+  Download,
   Eye,
   EyeOff,
   ExternalLink,
@@ -993,6 +998,8 @@ type ProgramProjectDraft = {
 };
 
 type CouponTargetMode = "all" | "courses" | "students";
+type CertificateRecipientMode = "paid" | "due" | "friend";
+type CertificateSort = "newest" | "oldest" | "student" | "program";
 
 function AdminLmsPanel({
   activeModule,
@@ -1057,6 +1064,8 @@ function AdminLmsPanel({
     useState("");
   const [viewingCertificate, setViewingCertificate] =
     useState<CertificateArtworkProps | null>(null);
+  const { print: printCertificate, host: certificatePrintHost } =
+    useCertificatePrinter();
   const [certificateDraft, setCertificateDraft] =
     useState<IssueCertificateRequest>(() => ({
       generateForFriend: false,
@@ -1070,7 +1079,9 @@ function AdminLmsPanel({
       authorizedSignatory: "M VIJAYARAMARAJU",
       signatureText: "Executive Director",
     }));
-  const certificateForFriend = certificateDraft.generateForFriend === true;
+  const [certificateRecipientMode, setCertificateRecipientMode] =
+    useState<CertificateRecipientMode>("paid");
+  const certificateForFriend = certificateRecipientMode === "friend";
   const certificateProgramTitle = certificateForFriend
     ? programs.find((program) => program.id === certificateDraft.programId)?.title
     : adminEnrollments.find((enrollment) => enrollment.id === certificateDraft.enrollmentId)?.programTitle;
@@ -1127,10 +1138,20 @@ function AdminLmsPanel({
   >(null);
   const [paymentPeriod, setPaymentPeriod] = useState("all");
   const [enrollmentSearch, setEnrollmentSearch] = useState("");
+  const [enrollmentMonthFilter, setEnrollmentMonthFilter] = useState("All");
   const [enrollmentCategoryFilter, setEnrollmentCategoryFilter] =
     useState("All");
   const [enrollmentProgramFilter, setEnrollmentProgramFilter] = useState("All");
   const [enrollmentStatusFilter, setEnrollmentStatusFilter] = useState("All");
+  const [certificateEnrollmentMonthFilter, setCertificateEnrollmentMonthFilter] =
+    useState("All");
+  const [certificateSearch, setCertificateSearch] = useState("");
+  const [certificateMonthFilter, setCertificateMonthFilter] = useState("All");
+  const [certificateStatusFilter, setCertificateStatusFilter] =
+    useState("All");
+  const [certificateTypeFilter, setCertificateTypeFilter] = useState("All");
+  const [certificateSort, setCertificateSort] =
+    useState<CertificateSort>("newest");
   const [paymentSearch, setPaymentSearch] = useState("");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState("All");
   const hasOpenAdminDialog = Boolean(
@@ -1155,6 +1176,16 @@ function AdminLmsPanel({
   const enrollmentProgramCategoryById = useMemo(
     () => new Map(programs.map((program) => [program.id, program.categoryId])),
     [programs],
+  );
+
+  const enrollmentMonthOptions = useMemo(
+    () => getMonthOptions(adminEnrollments.map((enrollment) => enrollment.enrolledAt)),
+    [adminEnrollments],
+  );
+
+  const certificateMonthOptions = useMemo(
+    () => getMonthOptions(adminCertificates.map((certificate) => certificate.issuedAt)),
+    [adminCertificates],
   );
 
   const enrollmentStats = useMemo(() => {
@@ -1199,6 +1230,9 @@ function AdminLmsPanel({
       const matchesProgram =
         enrollmentProgramFilter === "All" ||
         enrollment.programId === enrollmentProgramFilter;
+      const matchesMonth =
+        enrollmentMonthFilter === "All" ||
+        getMonthKey(enrollment.enrolledAt) === enrollmentMonthFilter;
       const matchesStatus =
         enrollmentStatusFilter === "All" ||
         enrollment.status === enrollmentStatusFilter;
@@ -1217,6 +1251,7 @@ function AdminLmsPanel({
       return (
         matchesCategory &&
         matchesProgram &&
+        matchesMonth &&
         matchesStatus &&
         (!query || searchText.includes(query))
       );
@@ -1224,10 +1259,117 @@ function AdminLmsPanel({
   }, [
     adminEnrollments,
     enrollmentCategoryFilter,
+    enrollmentMonthFilter,
     enrollmentProgramCategoryById,
     enrollmentProgramFilter,
     enrollmentSearch,
     enrollmentStatusFilter,
+  ]);
+
+  const certificateEnrollments = useMemo(() => {
+    return adminEnrollments.filter((enrollment) => {
+      const matchesMonth =
+        certificateEnrollmentMonthFilter === "All" ||
+        getMonthKey(enrollment.enrolledAt) === certificateEnrollmentMonthFilter;
+
+      return matchesMonth;
+    });
+  }, [
+    adminEnrollments,
+    certificateEnrollmentMonthFilter,
+  ]);
+
+  const certificateRecipientEnrollments = useMemo(() => {
+    if (certificateRecipientMode === "friend") {
+      return [];
+    }
+
+    return certificateEnrollments.filter((enrollment) =>
+      certificateRecipientMode === "paid"
+        ? enrollment.balanceAmount <= 0
+        : enrollment.balanceAmount > 0,
+    );
+  }, [certificateEnrollments, certificateRecipientMode]);
+
+  const certificateRecipientOptions = useMemo(() => {
+    const selectedEnrollment = certificateDraft.enrollmentId
+      ? adminEnrollments.find(
+          (enrollment) => enrollment.id === certificateDraft.enrollmentId,
+        )
+      : undefined;
+    const selectedMatchesMode =
+      (certificateRecipientMode === "paid" &&
+        selectedEnrollment !== undefined &&
+        selectedEnrollment.balanceAmount <= 0) ||
+      (certificateRecipientMode === "due" &&
+        selectedEnrollment !== undefined &&
+        selectedEnrollment.balanceAmount > 0);
+
+    if (
+      !selectedEnrollment ||
+      !selectedMatchesMode ||
+      certificateRecipientEnrollments.some(
+        (enrollment) => enrollment.id === selectedEnrollment.id,
+      )
+    ) {
+      return certificateRecipientEnrollments;
+    }
+
+    return [selectedEnrollment, ...certificateRecipientEnrollments];
+  }, [
+    adminEnrollments,
+    certificateDraft.enrollmentId,
+    certificateRecipientEnrollments,
+    certificateRecipientMode,
+  ]);
+
+  const visibleCertificates = useMemo(() => {
+    const query = certificateSearch.trim().toLowerCase();
+    const filtered = adminCertificates.filter((certificate) => {
+      const searchText = [
+        certificate.studentName,
+        certificate.studentEmail,
+        certificate.programTitle,
+        certificate.certificateId,
+        certificate.type,
+        certificate.status,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return (
+        (!query || searchText.includes(query)) &&
+        (certificateMonthFilter === "All" ||
+          getMonthKey(certificate.issuedAt) === certificateMonthFilter) &&
+        (certificateStatusFilter === "All" ||
+          certificate.status === certificateStatusFilter) &&
+        (certificateTypeFilter === "All" ||
+          certificate.type === certificateTypeFilter)
+      );
+    });
+
+    return filtered.sort((first, second) => {
+      if (certificateSort === "student") {
+        return first.studentName.localeCompare(second.studentName);
+      }
+      if (certificateSort === "program") {
+        return first.programTitle.localeCompare(second.programTitle);
+      }
+
+      const firstDate = first.issuedAt ? new Date(first.issuedAt).getTime() : 0;
+      const secondDate = second.issuedAt ? new Date(second.issuedAt).getTime() : 0;
+      return certificateSort === "oldest"
+        ? firstDate - secondDate
+        : secondDate - firstDate;
+    });
+  }, [
+    adminCertificates,
+    certificateMonthFilter,
+    certificateSearch,
+    certificateSort,
+    certificateStatusFilter,
+    certificateTypeFilter,
   ]);
 
   const paymentStats = useMemo(
@@ -2251,6 +2393,9 @@ function AdminLmsPanel({
     const enrollment = adminEnrollments.find(
       (item) => item.id === enrollmentId,
     );
+    setCertificateRecipientMode(
+      enrollment && enrollment.balanceAmount > 0 ? "due" : "paid",
+    );
     setCertificateDraft((current) => ({
       ...current,
       generateForFriend: false,
@@ -2267,9 +2412,17 @@ function AdminLmsPanel({
     }));
   }
 
-  function selectCertificateRecipient(value: string) {
-    if (value !== "__friend__") {
-      selectCertificateEnrollment(value);
+  function selectCertificateRecipientMode(value: CertificateRecipientMode) {
+    setCertificateRecipientMode(value);
+    if (value !== "friend") {
+      setCertificateDraft((current) => ({
+        ...current,
+        generateForFriend: false,
+        studentId: "",
+        programId: "",
+        enrollmentId: "",
+        studentName: "",
+      }));
       return;
     }
 
@@ -2359,6 +2512,7 @@ function AdminLmsPanel({
   const usesCatalogModuleHero = isCategoriesModule || isProgramsModule;
   const showGenericLmsHero =
     !isCurriculumModule &&
+    activeModule !== "Certificates" &&
     !["Enrollments", "Payments", "Coupons", "Audit Logs"].includes(activeModule);
   const selectedCategorySlug = searchParams.get("category");
   const selectedProgramCategory = selectedCategorySlug
@@ -4385,6 +4539,7 @@ function AdminLmsPanel({
                     className="secondary-action admin-enrollment-reset"
                     onClick={() => {
                       setEnrollmentSearch("");
+                      setEnrollmentMonthFilter("All");
                       setEnrollmentCategoryFilter("All");
                       setEnrollmentProgramFilter("All");
                       setEnrollmentStatusFilter("All");
@@ -4403,6 +4558,23 @@ function AdminLmsPanel({
                       }
                       placeholder="Search student or program"
                     />
+                  </label>
+                  <label className="enrollment-admin-filter">
+                    <CalendarDays size={16} />
+                    <span className="sr-only">Filter by enrollment month</span>
+                    <select
+                      value={enrollmentMonthFilter}
+                      onChange={(event) =>
+                        setEnrollmentMonthFilter(event.target.value)
+                      }
+                    >
+                      <option value="All">All enrollment months</option>
+                      {enrollmentMonthOptions.map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
                   </label>
                   <label className="enrollment-admin-filter">
                     <Layers3 size={16} />
@@ -5189,59 +5361,100 @@ function AdminLmsPanel({
 
         {showModule("Certificates") ? (
           <section className="lms-list-panel lms-list-panel--wide">
-            <div className="certificate-admin-heading">
-              <div>
-                <span className="eyebrow">CERTIFICATE ISSUANCE</span>
-                <h3>Create certificate</h3>
-                <p>
-                  Select a fully paid enrollment or generate one for a friend,
-                  complete the certificate details, preview it, then issue.
-                </p>
-              </div>
-              <Award size={28} />
-            </div>
             <form
               className="certificate-admin-form"
               onSubmit={issueCertificate}
             >
               <div className="certificate-admin-fields">
-                <label>
+                <label className="certificate-admin-recipient-field">
                   Certificate recipient
                   <select
+                    value={certificateRecipientMode}
+                    onChange={(event) =>
+                      selectCertificateRecipientMode(
+                        event.currentTarget.value as CertificateRecipientMode,
+                      )
+                    }
+                  >
+                    <option value="paid">Select a student who paid in full</option>
+                    <option value="due">Select a student with payment dues</option>
+                    <option value="friend">Generate a certificate for a friend for free</option>
+                  </select>
+                  {!certificateForFriend ? (
+                  <select
                     required
+                    value={certificateDraft.enrollmentId}
+                    onChange={(event) =>
+                      selectCertificateEnrollment(event.currentTarget.value)
+                    }
+                  >
+                    <option value="">Select a student</option>
+                    {certificateRecipientOptions.map((enrollment) => (
+                      <option key={enrollment.id} value={enrollment.id}>
+                        {enrollment.studentName ??
+                          enrollment.studentEmail ??
+                          enrollment.studentId}{" "}
+                        · {enrollment.programTitle} · {enrollment.balanceAmount > 0
+                          ? `Balance ${formatCurrency(enrollment.balanceAmount)} due`
+                          : "Paid in full"}
+                      </option>
+                    ))}
+                  </select>
+                  ) : null}
+                </label>
+                {!certificateForFriend ? (
+                <label>
+                  Enrollment month / year
+                  <select
+                    value={certificateEnrollmentMonthFilter}
+                    onChange={(event) =>
+                      setCertificateEnrollmentMonthFilter(event.target.value)
+                    }
+                  >
+                    <option value="All">All enrollment months</option>
+                    {enrollmentMonthOptions.map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                ) : null}
+                {/* Legacy recipient control replaced by the combined search-and-select field above.
+                <label className="certificate-admin-legacy-recipient">
+                  Certificate recipient
+                  <select
                     value={certificateForFriend ? "__friend__" : certificateDraft.enrollmentId}
                     onChange={(event) =>
                       selectCertificateRecipient(event.currentTarget.value)
                     }
                   >
-                    <option value="">Select a fully paid enrollment</option>
-                    {adminEnrollments
-                      .filter(
-                        (enrollment) =>
-                          enrollment.hasFullAccess &&
-                          !enrollment.isAccessExpired,
-                      )
-                      .map((enrollment) => (
+                    <option value="">Select an enrollment</option>
+                    {certificateEnrollments.map((enrollment) => (
                         <option key={enrollment.id} value={enrollment.id}>
                           {enrollment.studentName ??
                             enrollment.studentEmail ??
                             enrollment.studentId}{" "}
-                          · {enrollment.programTitle}
+                          · {enrollment.programTitle} · {enrollment.balanceAmount > 0
+                            ? `Balance ${formatCurrency(enrollment.balanceAmount)} due`
+                            : "Paid in full"}
                         </option>
-                      ))}
+                    ))}
                     <option value="__friend__">Generate for a friend</option>
                   </select>
                 </label>
+                */}
                 <label>
                   Certificate type
                   <select
                     value={certificateDraft.type}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const value = event.currentTarget.value;
                       setCertificateDraft((current) => ({
                         ...current,
-                        type: Number(event.currentTarget.value),
-                      }))
-                    }
+                        type: Number(value),
+                      }));
+                    }}
                   >
                     <option value={1}>Training Certificate</option>
                     <option value={2}>Internship Certificate</option>
@@ -5252,12 +5465,13 @@ function AdminLmsPanel({
                   <input
                     required
                     value={certificateDraft.studentName}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const value = event.currentTarget.value;
                       setCertificateDraft((current) => ({
                         ...current,
-                        studentName: event.currentTarget.value,
-                      }))
-                    }
+                        studentName: value,
+                      }));
+                    }}
                     placeholder="Full name on certificate"
                   />
                 </label>
@@ -5267,12 +5481,13 @@ function AdminLmsPanel({
                     <select
                       required
                       value={certificateDraft.programId}
-                      onChange={(event) =>
+                      onChange={(event) => {
+                        const value = event.currentTarget.value;
                         setCertificateDraft((current) => ({
                           ...current,
-                          programId: event.currentTarget.value,
-                        }))
-                      }
+                          programId: value,
+                        }));
+                      }}
                     >
                       <option value="">Select a program</option>
                       {programs.map((program) => (
@@ -5297,12 +5512,13 @@ function AdminLmsPanel({
                     required
                     type="date"
                     value={certificateDraft.fromDate}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const value = event.currentTarget.value;
                       setCertificateDraft((current) => ({
                         ...current,
-                        fromDate: event.currentTarget.value,
-                      }))
-                    }
+                        fromDate: value,
+                      }));
+                    }}
                   />
                 </label>
                 <label>
@@ -5311,24 +5527,26 @@ function AdminLmsPanel({
                     required
                     type="date"
                     value={certificateDraft.toDate}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const value = event.currentTarget.value;
                       setCertificateDraft((current) => ({
                         ...current,
-                        toDate: event.currentTarget.value,
-                      }))
-                    }
+                        toDate: value,
+                      }));
+                    }}
                   />
                 </label>
                 <label>
                   Director name
                   <input
                     value={certificateDraft.authorizedSignatory}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const value = event.currentTarget.value;
                       setCertificateDraft((current) => ({
                         ...current,
-                        authorizedSignatory: event.currentTarget.value,
-                      }))
-                    }
+                        authorizedSignatory: value,
+                      }));
+                    }}
                     placeholder="Director name"
                   />
                 </label>
@@ -5336,12 +5554,13 @@ function AdminLmsPanel({
                   Signature label
                   <input
                     value={certificateDraft.signatureText}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const value = event.currentTarget.value;
                       setCertificateDraft((current) => ({
                         ...current,
-                        signatureText: event.currentTarget.value,
-                      }))
-                    }
+                        signatureText: value,
+                      }));
+                    }}
                     placeholder="Executive Director"
                   />
                 </label>
@@ -5370,38 +5589,125 @@ function AdminLmsPanel({
                 <ArrowRight size={16} />
               </button>
             </form>
-            <h3>Issued certificates</h3>
+            <div className="certificate-list-toolbar">
+              <label className="certificate-list-search">
+                <Search size={17} />
+                <span className="sr-only">Search certificates</span>
+                <input
+                  type="search"
+                  value={certificateSearch}
+                  onChange={(event) => setCertificateSearch(event.target.value)}
+                  placeholder="Search student name, email, program, or certificate ID"
+                />
+              </label>
+              <label className="certificate-list-filter">
+                <CalendarDays size={16} />
+                <span className="sr-only">Filter by certificate month</span>
+                <select
+                  value={certificateMonthFilter}
+                  onChange={(event) => setCertificateMonthFilter(event.target.value)}
+                >
+                  <option value="All">All certificate months</option>
+                  {certificateMonthOptions.map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="certificate-list-filter">
+                <SlidersHorizontal size={16} />
+                <span className="sr-only">Filter by certificate status</span>
+                <select
+                  value={certificateStatusFilter}
+                  onChange={(event) => setCertificateStatusFilter(event.target.value)}
+                >
+                  <option value="All">All statuses</option>
+                  <option value="Issued">Issued</option>
+                  <option value="Revoked">Revoked</option>
+                </select>
+              </label>
+              <label className="certificate-list-filter">
+                <Award size={16} />
+                <span className="sr-only">Filter by certificate type</span>
+                <select
+                  value={certificateTypeFilter}
+                  onChange={(event) => setCertificateTypeFilter(event.target.value)}
+                >
+                  <option value="All">All types</option>
+                  <option value="Training">Training</option>
+                  <option value="Internship">Internship</option>
+                </select>
+              </label>
+              <label className="certificate-list-filter">
+                <ListChecks size={16} />
+                <span className="sr-only">Sort certificates</span>
+                <select
+                  value={certificateSort}
+                  onChange={(event) =>
+                    setCertificateSort(event.target.value as CertificateSort)
+                  }
+                >
+                  <option value="newest">Newest first</option>
+                  <option value="oldest">Oldest first</option>
+                  <option value="student">Student name A-Z</option>
+                  <option value="program">Program A-Z</option>
+                </select>
+              </label>
+              <button
+                className="secondary-action certificate-list-reset"
+                type="button"
+                onClick={() => {
+                  setCertificateSearch("");
+                  setCertificateMonthFilter("All");
+                  setCertificateStatusFilter("All");
+                  setCertificateTypeFilter("All");
+                  setCertificateSort("newest");
+                }}
+              >
+                <RotateCcw size={16} /> Reset
+              </button>
+            </div>
+            <p className="certificate-list-count">
+              Showing {visibleCertificates.length} of {adminCertificates.length} certificates
+            </p>
             <div className="lms-scroll-list">
-              {adminCertificates.length === 0 ? (
-                <div className="table-state">No certificates issued yet.</div>
+              {visibleCertificates.length === 0 ? (
+                <div className="table-state">
+                  {adminCertificates.length === 0
+                    ? "No certificates issued yet."
+                    : "No certificates match the selected filters."}
+                </div>
               ) : null}
-              {adminCertificates.map((certificate) => (
+              {visibleCertificates.map((certificate) => (
                 <article key={certificate.id} className="lms-list-item">
                   <div>
-                    <strong>{certificate.certificateId}</strong>
+                    <strong>{certificate.studentName || "Friend certificate"}</strong>
                     <span>
-                      {certificate.programTitle} - {certificate.type}
+                      {certificate.studentEmail || "No student email"}
+                    </span>
+                    <span>
+                      {certificate.certificateId} · {certificate.programTitle} - {certificate.type}
                     </span>
                   </div>
                   <div className="lms-row-actions">
                     <small>{certificate.status}</small>
                     <button
                       type="button"
-                      onClick={() =>
-                        setViewingCertificate({
-                          type: certificate.type,
-                          studentName: certificate.studentName,
-                          programTitle: certificate.programTitle,
-                          fromDate: certificate.fromDate,
-                          toDate: certificate.toDate,
-                          certificateId: certificate.certificateId,
-                          qrCodeUrl: certificate.qrCodeUrl,
-                          authorizedSignatory: certificate.authorizedSignatory,
-                          signatureText: certificate.signatureText,
-                        })
-                      }
+                      onClick={() => setViewingCertificate(toCertificateArtwork(certificate))}
                     >
                       View
+                    </button>
+                    <button
+                      type="button"
+                      title="Display the certificate and open the PDF download preview"
+                      onClick={() => {
+                        const artwork = toCertificateArtwork(certificate);
+                        setViewingCertificate(artwork);
+                        printCertificate(artwork);
+                      }}
+                    >
+                      <Download size={15} /> Download
                     </button>
                     {certificate.status !== "Revoked" ? (
                       <button
@@ -5415,6 +5721,7 @@ function AdminLmsPanel({
                 </article>
               ))}
             </div>
+            {certificatePrintHost}
             {viewingCertificate ? (
               <CertificateViewer
                 certificate={viewingCertificate}
@@ -7447,12 +7754,70 @@ function generateTemporaryPassword() {
   return `Joviq@${randomText}${randomNumber}A`;
 }
 
+function toCertificateArtwork(certificate: CertificateResponse): CertificateArtworkProps {
+  return {
+    type: certificate.type,
+    studentName: certificate.studentName,
+    programTitle: certificate.programTitle,
+    fromDate: certificate.fromDate,
+    toDate: certificate.toDate,
+    certificateId: certificate.certificateId,
+    qrCodeUrl: certificate.qrCodeUrl,
+    authorizedSignatory: certificate.authorizedSignatory,
+    signatureText: certificate.signatureText,
+  };
+}
+
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-IN", {
     day: "2-digit",
     month: "short",
     year: "numeric",
   }).format(new Date(value));
+}
+
+function getMonthKey(value?: string) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function formatMonthKey(value: string) {
+  const [year, month] = value.split("-").map(Number);
+  return new Intl.DateTimeFormat("en-IN", {
+    month: "long",
+    year: "numeric",
+  }).format(new Date(year, month - 1, 1));
+}
+
+function getMonthOptions(values: Array<string | undefined>) {
+  const years = new Set<number>([new Date().getFullYear()]);
+  for (const value of values) {
+    if (!value) {
+      continue;
+    }
+
+    const year = new Date(value).getFullYear();
+    if (!Number.isNaN(year)) {
+      years.add(year);
+    }
+  }
+
+  return Array.from(years)
+    .sort((first, second) => second - first)
+    .flatMap((year) =>
+      Array.from({ length: 12 }, (_, index) => {
+        const monthKey = `${year}-${String(index + 1).padStart(2, "0")}`;
+        return [monthKey, formatMonthKey(monthKey)] as [string, string];
+      }),
+    );
 }
 
 function formatDateTime(value?: string) {

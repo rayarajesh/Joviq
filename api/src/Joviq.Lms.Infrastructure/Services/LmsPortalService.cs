@@ -343,7 +343,7 @@ public sealed class LmsPortalService(
                 .Where(x => x.StudentId == studentId && programIds.Contains(x.ProgramId))
                 .OrderByDescending(x => x.IssuedAt ?? x.CreatedAt)
                 .ToListAsync(cancellationToken))
-            .Select(MapCertificate)
+            .Select(certificate => MapCertificate(certificate, null))
             .GroupBy(certificate => certificate.ProgramId)
             .ToDictionary(group => group.Key, group => (IReadOnlyList<CertificateResponse>)group.ToList());
 
@@ -1260,7 +1260,9 @@ public sealed class LmsPortalService(
             .OrderByDescending(x => x.IssuedAt ?? x.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        return certificates.Select(MapCertificate).ToList();
+        return certificates
+            .Select(certificate => MapCertificate(certificate, null))
+            .ToList();
     }
 
     public async Task<IReadOnlyList<NotificationResponse>> GetStudentNotificationsAsync(
@@ -2294,7 +2296,6 @@ public sealed class LmsPortalService(
             .Include(x => x.Program)
             .Include(x => x.ProgramPlan)
             .OrderByDescending(x => x.CreatedAt)
-            .Take(200)
             .ToListAsync(cancellationToken);
 
         var studentIds = enrollments
@@ -2522,10 +2523,22 @@ public sealed class LmsPortalService(
             .AsNoTracking()
             .Include(x => x.Program)
             .OrderByDescending(x => x.CreatedAt)
-            .Take(200)
             .ToListAsync(cancellationToken);
 
-        return certificates.Select(MapCertificate).ToList();
+        var studentIds = certificates
+            .Select(certificate => certificate.StudentId)
+            .Distinct()
+            .ToList();
+        var studentEmails = await dbContext.Users
+            .AsNoTracking()
+            .Where(user => studentIds.Contains(user.Id))
+            .ToDictionaryAsync(user => user.Id, user => user.Email, cancellationToken);
+
+        return certificates
+            .Select(certificate => studentEmails.TryGetValue(certificate.StudentId, out var email)
+                ? MapCertificate(certificate, email)
+                : MapCertificate(certificate, null))
+            .ToList();
     }
 
     public async Task<CertificateResponse> IssueCertificateAsync(
@@ -2548,11 +2561,6 @@ public sealed class LmsPortalService(
             (enrollment is null || enrollment.StudentId != request.StudentId || enrollment.ProgramId != request.ProgramId))
         {
             throw new AppException("A matching student enrollment is required before issuing a certificate.", 400, "certificate_enrollment_required");
-        }
-
-        if (!request.GenerateForFriend)
-        {
-            EnsureFullAccess(enrollment!, clock.UtcNow);
         }
 
         var studentName = FormatCertificateName(RequiredText(request.StudentName, nameof(request.StudentName), 2, 180));
@@ -2622,7 +2630,8 @@ public sealed class LmsPortalService(
             certificate.VerificationUrl,
             certificate.QrCodeUrl,
             certificate.AuthorizedSignatory,
-            certificate.SignatureText);
+            certificate.SignatureText,
+            null);
     }
 
     public async Task<CertificateResponse> UpdateCertificateStatusAsync(
@@ -2638,7 +2647,7 @@ public sealed class LmsPortalService(
         certificate.Status = request.Status;
         Audit("Admin.CertificateStatusUpdated", new { certificate.Id, certificate.StudentId, certificate.ProgramId, certificate.CertificateId, certificate.Status });
         await dbContext.SaveChangesAsync(cancellationToken);
-        return MapCertificate(certificate);
+        return MapCertificate(certificate, null);
     }
 
     public async Task<IReadOnlyList<AdminNotificationResponse>> GetAdminNotificationsAsync(CancellationToken cancellationToken)
@@ -3857,7 +3866,7 @@ public sealed class LmsPortalService(
             submission.ReviewedAt);
     }
 
-    private static CertificateResponse MapCertificate(Certificate certificate)
+    private static CertificateResponse MapCertificate(Certificate certificate, string? studentEmail)
     {
         return new CertificateResponse(
             certificate.Id,
@@ -3875,7 +3884,8 @@ public sealed class LmsPortalService(
             certificate.VerificationUrl,
             certificate.QrCodeUrl,
             certificate.AuthorizedSignatory,
-            certificate.SignatureText);
+            certificate.SignatureText,
+            studentEmail);
     }
 
     private static NotificationResponse MapNotification(Notification notification)

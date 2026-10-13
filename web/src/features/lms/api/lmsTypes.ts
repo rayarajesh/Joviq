@@ -293,6 +293,7 @@ export type CertificateResponse = {
   qrCodeUrl?: string;
   authorizedSignatory?: string;
   signatureText?: string;
+  studentEmail?: string;
 };
 
 export type NotificationResponse = {
