@@ -18,6 +18,7 @@ import type { ProgramPlan } from "../data/siteContent";
 import { authApi } from "../features/auth/api/authApi";
 import { env } from "../config/env";
 import { formatInr } from "./format";
+import { planLink, readPlanLink } from "../lib/planLinks";
 
 export type HeroPaymentChoice = "token" | "full";
 
@@ -43,8 +44,8 @@ function GoogleMark() {
 }
 
 export function Hero({ onCheckout }: { onCheckout: (details: HeroCheckoutDetails) => void }) {
-  const [selectedPlanCode, setSelectedPlanCode] = useState("INTERMEDIATE");
-  const [paymentChoice, setPaymentChoice] = useState<HeroPaymentChoice>("token");
+  const [selectedPlanCode, setSelectedPlanCode] = useState(() => readPlanLink(window.location.pathname)?.planCode ?? "INTERMEDIATE");
+  const [paymentChoice, setPaymentChoice] = useState<HeroPaymentChoice>(() => readPlanLink(window.location.pathname)?.paymentChoice ?? "token");
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
@@ -53,6 +54,8 @@ export function Hero({ onCheckout }: { onCheckout: (details: HeroCheckoutDetails
   const [collegeName, setCollegeName] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
+  const [popupOpen, setPopupOpen] = useState(() => Boolean(readPlanLink(window.location.pathname)?.paymentChoice));
+  const popupRef = useRef<HTMLDialogElement>(null);
   const [remainingSeconds, setRemainingSeconds] = useState(5 * 60);
   const heroRef = useRef<HTMLElement>(null);
   const frameRef = useRef(0);
@@ -93,6 +96,52 @@ export function Hero({ onCheckout }: { onCheckout: (details: HeroCheckoutDetails
 
   useEffect(() => () => cancelAnimationFrame(frameRef.current), []);
 
+  useEffect(() => {
+    const dialog = popupRef.current;
+    if (!dialog || !popupOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    dialog.showModal();
+    return () => {
+      dialog.close();
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [popupOpen]);
+
+  function closePopup() {
+    setPopupOpen(false);
+    setTermsOpen(false);
+    const url = new URL(window.location.href);
+    url.pathname = "/";
+    window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  }
+
+  useEffect(() => {
+    function restoreSelection() {
+      const selection = readPlanLink(window.location.pathname);
+      setSelectedPlanCode(selection?.planCode ?? "INTERMEDIATE");
+      setPaymentChoice(selection?.paymentChoice ?? "token");
+      setPopupOpen(Boolean(selection?.paymentChoice));
+    }
+    window.addEventListener("popstate", restoreSelection);
+    return () => window.removeEventListener("popstate", restoreSelection);
+  }, []);
+
+  function selectPlan(code: string) {
+    setSelectedPlanCode(code);
+    const selection = readPlanLink(window.location.pathname);
+    const url = new URL(window.location.href);
+    url.pathname = planLink(code, selection?.paymentChoice ? paymentChoice : undefined);
+    window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  }
+
+  function selectPayment(choice: HeroPaymentChoice) {
+    setPaymentChoice(choice);
+    const url = new URL(window.location.href);
+    url.pathname = planLink(selectedPlanCode, choice);
+    window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  }
+
   function trackPointer(event: PointerEvent<HTMLElement>) {
     if (event.pointerType !== "mouse") return;
     const hero = heroRef.current;
@@ -113,6 +162,7 @@ export function Hero({ onCheckout }: { onCheckout: (details: HeroCheckoutDetails
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!canContinueToPayment) return;
+    setPopupOpen(false);
     onCheckout({
       plan: selectedPlan,
       paymentChoice,
@@ -155,7 +205,18 @@ export function Hero({ onCheckout }: { onCheckout: (details: HeroCheckoutDetails
       </div>
 
       <div className="container hero__payment-container">
+        <dialog
+          ref={popupRef}
+          className={`hero-checkout-dialog${popupOpen ? " is-popup" : ""}`}
+          aria-labelledby="hero-title"
+          onCancel={(event) => {
+            event.preventDefault();
+            if (termsOpen) setTermsOpen(false);
+            else closePopup();
+          }}
+        >
         <form className="hero-payment-card hero-payment-card--workspace" onSubmit={submit}>
+          {popupOpen ? <button className="hero-checkout-dialog__close" type="button" aria-label="Close enrollment popup" onClick={closePopup}><X size={22} /></button> : null}
           <header className="hero-payment__workspace-header">
             <div className="hero-payment__header-copy">
               <span className="hero-payment__brand"><span><Sparkles size={14} /></span> Joviq learning</span>
@@ -203,13 +264,13 @@ export function Hero({ onCheckout }: { onCheckout: (details: HeroCheckoutDetails
           </div>
 
           <div className="hero-payment__workspace">
-            <div className="hero-payment__selection-column">
+            {!popupOpen ? <div className="hero-payment__selection-column">
               <section className="hero-payment__section" aria-labelledby="hero-plan-title">
                 <h2 id="hero-plan-title">1) Choose your plan <small>Support level</small></h2>
                 <div className="hero-payment__plans">
                   {displayPlans.map((plan) => (
                     <label className={`hero-payment__plan hero-payment__choice-card${selectedPlan?.code === plan.code ? " is-selected" : ""}`} data-price={formatInr(plan.offerPrice)} key={plan.code}>
-                      <input checked={selectedPlan?.code === plan.code} name="heroPlan" onChange={() => setSelectedPlanCode(plan.code)} type="radio" value={plan.code} />
+                      <input checked={selectedPlan?.code === plan.code} name="heroPlan" onChange={() => selectPlan(plan.code)} type="radio" value={plan.code} />
                       {selectedPlan?.code === plan.code ? <span className="hero-payment__selection-badge" aria-hidden="true"><Check size={12} /></span> : null}
                       <span className="hero-payment__choice-content">
                         <strong>{plan.name}{plan.code === "INTERMEDIATE" ? " ★" : ""}</strong>
@@ -225,13 +286,13 @@ export function Hero({ onCheckout }: { onCheckout: (details: HeroCheckoutDetails
                 <h2 id="hero-pay-title">2) Choose how to pay <small>Secure checkout</small></h2>
                 <div className="hero-payment__pay-options">
                   <label className={`hero-payment__pay-option${paymentChoice === "token" ? " is-selected" : ""}`} data-price={displayPlan ? formatInr(displayPlan.reserveAmount) : "—"}>
-                    <input checked={paymentChoice === "token"} name="heroPaymentChoice" onChange={() => setPaymentChoice("token")} type="radio" value="token" />
+                    <input checked={paymentChoice === "token"} name="heroPaymentChoice" onChange={() => selectPayment("token")} type="radio" value="token" />
                     {paymentChoice === "token" ? <span className="hero-payment__selection-badge" aria-hidden="true"><Check size={12} /></span> : null}
                     <span><strong>Reserve with {displayPlan ? formatInr(displayPlan.reserveAmount) : "—"}</strong><small>Pay now + remaining later</small></span>
                     <b>{displayPlan ? `${formatInr(displayPlan.reserveAmount)} now` : "—"}</b>
                   </label>
                   <label className={`hero-payment__pay-option${paymentChoice === "full" ? " is-selected" : ""}`} data-price={displayPlan ? formatInr(displayPlan.offerPrice) : "—"}>
-                    <input checked={paymentChoice === "full"} name="heroPaymentChoice" onChange={() => setPaymentChoice("full")} type="radio" value="full" />
+                    <input checked={paymentChoice === "full"} name="heroPaymentChoice" onChange={() => selectPayment("full")} type="radio" value="full" />
                     {paymentChoice === "full" ? <span className="hero-payment__selection-badge" aria-hidden="true"><Check size={12} /></span> : null}
                     <span><strong>Pay in full</strong><small>One-time payment. Instant access.</small></span>
                     <b>{displayPlan ? formatInr(displayPlan.offerPrice) : "—"}</b>
@@ -244,6 +305,7 @@ export function Hero({ onCheckout }: { onCheckout: (details: HeroCheckoutDetails
               </section>
             </div>
 
+            : null}
             <section className="hero-payment__details-column" aria-labelledby="hero-details-title">
               <div className="hero-payment__column-heading"><span>02</span><div><h2 id="hero-details-title">Your details</h2><p>We use these details for enrollment and your payment receipt.</p></div></div>
               <div className="hero-payment__fields">
@@ -283,6 +345,7 @@ export function Hero({ onCheckout }: { onCheckout: (details: HeroCheckoutDetails
             <a className="hero-payment__help" href="tel:+919281977188"><Phone size={12} /> Need help? +91 92819 77188</a>
           </footer>
         </form>
+        </dialog>
       </div>
 
       <div className="hero__wave" aria-hidden="true"><svg viewBox="0 0 1440 90" preserveAspectRatio="none"><path d="M0 40c240 50 480 50 720 20s480-60 720-10v40H0z" /></svg></div>
