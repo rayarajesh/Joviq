@@ -1547,6 +1547,9 @@
   font-size: 11px;
   font-weight: 600;
 }
+.certificate-admin-recipient-field {
+  grid-column: 1 / -1;
+}
 .certificate-admin-fields input,
 .certificate-admin-fields select {
   width: 100%;
@@ -1613,6 +1616,51 @@
 .certificate-admin-preview > div b {
   font-size: 10px;
 }
+.certificate-list-toolbar {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) repeat(4, minmax(130px, auto)) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  margin: 12px 0 6px;
+  border: 1px solid #e5eaf6;
+  border-radius: 10px;
+  background: #fff;
+}
+.certificate-list-search,
+.certificate-list-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid #e4e9f5;
+  border-radius: 7px;
+  box-sizing: border-box;
+  background: #fff;
+  color: #7180a4;
+}
+.certificate-list-search input,
+.certificate-list-filter select {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: #26345f;
+  font-size: 11px;
+}
+.certificate-list-reset {
+  min-height: 36px;
+  white-space: nowrap;
+}
+.certificate-list-count {
+  margin: 0 0 10px;
+  color: #7580a5;
+  font-size: 12px;
+}
 .certificate-admin-form > .primary-action {
   grid-column: 1/-1;
   justify-self: start;
@@ -1630,10 +1678,22 @@
   .certificate-admin-form > .primary-action {
     grid-column: auto;
   }
+  .certificate-list-toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .certificate-list-search {
+    grid-column: 1 / -1;
+  }
 }
 @media (max-width: 600px) {
   .certificate-admin-fields {
     grid-template-columns: 1fr;
+  }
+  .certificate-list-toolbar {
+    grid-template-columns: 1fr;
+  }
+  .certificate-list-search {
+    grid-column: auto;
   }
 }
 

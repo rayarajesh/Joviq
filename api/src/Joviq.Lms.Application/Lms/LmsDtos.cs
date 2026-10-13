@@ -276,7 +276,8 @@ public sealed record CertificateResponse(
     string? VerificationUrl,
     string? QrCodeUrl,
     string? AuthorizedSignatory,
-    string? SignatureText);
+    string? SignatureText,
+    string? StudentEmail);
 
 public sealed record CertificateVerificationResponse(
     bool IsValid,

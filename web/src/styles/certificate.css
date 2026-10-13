@@ -213,6 +213,16 @@
     width: 100% !important;
     box-shadow: none !important;
   }
+
+  /* The staging wrapper is off-screen on the normal page. Reset that
+     positioning inside the print page so the certificate is actually
+     included in the browser's PDF preview. */
+  .certificate-print-root > .certificate-print-staging {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    width: 100% !important;
+  }
 }
 
 @media (max-width: 560px) {
