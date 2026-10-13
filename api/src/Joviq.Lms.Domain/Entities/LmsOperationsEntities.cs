@@ -54,9 +54,13 @@ public sealed class PaymentTransaction : AuditableEntity
 
     public string Gateway { get; set; } = "Manual";
 
-    public string GatewayOrderId { get; set; } = string.Empty;
+    public string? GatewayOrderId { get; set; }
 
     public string? GatewayPaymentId { get; set; }
+
+    public string? GatewayLinkId { get; set; }
+
+    public string? Notes { get; set; }
 
     public PaymentMode Mode { get; set; }
 

@@ -73,8 +73,8 @@ export const defaultProgramPlans: ProgramPlan[] = [
   {
     name: "Launch",
     code: "SELF",
-    actualPrice: 7999,
-    offerPrice: 7999,
+    actualPrice: 4000,
+    offerPrice: 4000,
     reserveAmount: 1500,
     features: [
       "16 Live Sessions",
@@ -92,8 +92,8 @@ export const defaultProgramPlans: ProgramPlan[] = [
   {
     name: "Elevate",
     code: "INTERMEDIATE",
-    actualPrice: 9999,
-    offerPrice: 9999,
+    actualPrice: 5000,
+    offerPrice: 5000,
     reserveAmount: 1500,
     features: [
       "22 Live Sessions",
@@ -113,8 +113,8 @@ export const defaultProgramPlans: ProgramPlan[] = [
   {
     name: "Mastery",
     code: "MASTER",
-    actualPrice: 14999,
-    offerPrice: 14999,
+    actualPrice: 7000,
+    offerPrice: 7000,
     reserveAmount: 1500,
     features: [
       "28 Live Sessions",
@@ -725,19 +725,19 @@ export const successOutcomes = [
 export const pricingPlans = [
   {
     name: "Launch",
-    price: "INR 7,999",
+    price: "INR 4,000",
     description: "For learners who want a strong, structured start with guided learning and essential support.",
     features: ["16 live sessions", "Real-time project", "Interview assistance", "6 months LMS access"]
   },
   {
     name: "Elevate",
-    price: "INR 9,999",
+    price: "INR 5,000",
     description: "For learners who want personal expert support, deeper project review, and placement readiness.",
     features: ["22 live sessions", "Personal expert support", "Expert guidance & review", "Placement support", "6 months LMS access"]
   },
   {
     name: "Mastery",
-    price: "INR 14,999",
+    price: "INR 7,000",
     description: "For learners who want advanced hands-on projects, detailed expert review, and full career guidance.",
     features: ["28 live sessions", "Multiple real-time projects", "Advanced interview prep", "Career guidance", "6 months LMS access"]
   }

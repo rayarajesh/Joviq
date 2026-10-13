@@ -332,7 +332,7 @@ export function PlanCard({ index, plan, onSelect, description, programSlug }: {
     onSelect(choice);
   }
   const isRecommended = plan.code === "INTERMEDIATE";
-  const includedPlan = plan.code === "INTERMEDIATE" ? "Everything in Launch, plus" : plan.code === "MASTER" ? "Everything in Elevate, plus" : null;
+  const includedPlan = plan.code === "INTERMEDIATE" ? "Everything in Launch, plus" : null;
   const savings = Math.max(0, plan.actualPrice - plan.offerPrice);
   const PlanIcon = planIcons[index % planIcons.length];
 
@@ -347,7 +347,7 @@ export function PlanCard({ index, plan, onSelect, description, programSlug }: {
       {isRecommended ? <span className="plan-card__flag"><BadgeCheck size={14} /> Most popular</span> : null}
       <header>
         <span className="icon-badge"><PlanIcon size={20} /></span>
-        <div><h4>{plan.name}</h4><small>{isRecommended ? "Best value for most learners" : plan.code === "MASTER" ? "Maximum support" : "Strong start"}</small></div>
+        <div><h4>{plan.name}</h4><small>{isRecommended ? "Best value for most learners" : "Strong start"}</small></div>
       </header>
       <div className="plan-card__price">
         <strong>{formatInr(plan.offerPrice)}</strong>

@@ -973,8 +973,11 @@ namespace Joviq.Lms.Infrastructure.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
 
+                    b.Property<string>("GatewayLinkId")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
                     b.Property<string>("GatewayOrderId")
-                        .IsRequired()
                         .HasMaxLength(160)
                         .HasColumnType("character varying(160)");
 
@@ -994,6 +997,10 @@ namespace Joviq.Lms.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<decimal>("OriginalAmount")
                         .HasPrecision(12, 2)

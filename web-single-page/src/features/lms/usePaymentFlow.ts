@@ -34,12 +34,15 @@ export type PaymentPhase =
 
 export type PaymentTarget = {
   programId: string;
+  programSlug?: string;
   programTitle: string;
   planId: string;
   planName: string;
+  paymentTransactionId?: string;
   paymentMode: 1 | 2;
   applicant: EnrollmentApplicant;
   startDate?: string;
+  amountPaid?: number;
 };
 
 type ConfirmTarget = { paymentTransactionId?: string; gatewayOrderId: string };
@@ -124,6 +127,10 @@ export function usePaymentFlow() {
 
     // Closing the modal does not prove failure: the bank may still confirm this order.
     if ((await confirmWithGateway(target, 3)) !== "pending") return;
+    void studentLmsApi.markPaymentFailed(current.transaction.id, {
+      failureReason: "Checkout was closed before payment was confirmed."
+    });
+    clearPendingEnrollment();
     setPhase("closed");
     setMessage(result?.error?.message
       ? `${result.error.message} No payment has been confirmed. If money was deducted, check payment status before trying again.`
@@ -195,6 +202,7 @@ export function usePaymentFlow() {
         modal: {
           ondismiss: () => {
             void studentLmsApi.markPaymentFailed(current.transaction.id, { failureReason: "Checkout was closed by the customer." });
+            clearPendingEnrollment();
             setPhase("closed");
             setMessage("Checkout was closed. No payment has been confirmed.");
           }
@@ -204,6 +212,7 @@ export function usePaymentFlow() {
         void studentLmsApi.markPaymentFailed(current.transaction.id, {
           failureReason: failure.error?.description ?? failure.error?.reason ?? "Payment was declined."
         });
+        clearPendingEnrollment();
         setPhase("error");
         setMessage(failure.error?.description ?? "Payment was declined. You can try again.");
       });
@@ -245,5 +254,15 @@ export function usePaymentFlow() {
     setMessage("");
   }, []);
 
-  return { phase, message, checkout, startPayment, checkStatus, completeTestPayment, reset };
+  const cancel = useCallback(async () => {
+    const current = checkout;
+    clearPendingEnrollment();
+    if (current && phase !== "success" && phase !== "development") {
+      await studentLmsApi.markPaymentFailed(current.transaction.id, {
+        failureReason: "Checkout was closed before payment was confirmed."
+      }).catch(() => undefined);
+    }
+  }, [checkout, phase]);
+
+  return { phase, message, checkout, startPayment, checkStatus, completeTestPayment, reset, cancel };
 }

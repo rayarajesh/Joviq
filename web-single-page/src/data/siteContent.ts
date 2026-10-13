@@ -48,6 +48,10 @@ export type ProgramPlan = {
   isActive: boolean;
 };
 
+export function isVisibleProgramPlan(plan: Pick<ProgramPlan, "code">) {
+  return plan.code !== "MASTER";
+}
+
 export type ProgramCategory = {
   domain: string;
   description: string;
@@ -73,7 +77,7 @@ export const defaultProgramPlans: ProgramPlan[] = [
   {
     name: "Launch",
     code: "SELF",
-    actualPrice: 7999,
+    actualPrice: 4000,
     offerPrice: 4000,
     reserveAmount: 1500,
     features: [
@@ -92,7 +96,7 @@ export const defaultProgramPlans: ProgramPlan[] = [
   {
     name: "Elevate",
     code: "INTERMEDIATE",
-    actualPrice: 9999,
+    actualPrice: 5000,
     offerPrice: 5000,
     reserveAmount: 1500,
     features: [
@@ -109,7 +113,7 @@ export const defaultProgramPlans: ProgramPlan[] = [
       "QR-Verified Certification"
     ],
     isActive: true
-  }
+  },
 ];
 
 type ProgramSeed = Omit<Program, "plans"> & { plans?: ProgramPlan[] };
@@ -715,7 +719,7 @@ export const pricingPlans = [
     price: "INR 5,000",
     description: "For learners who want personal expert support, deeper project review, and placement readiness.",
     features: ["22 live sessions", "Personal expert support", "Expert guidance & review", "Placement support", "6 months LMS access"]
-  }
+  },
 ];
 
 export const homeFaqs = [

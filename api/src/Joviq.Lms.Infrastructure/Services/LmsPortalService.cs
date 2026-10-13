@@ -10,6 +10,8 @@ using Joviq.Lms.Application.Lms;
 using Joviq.Lms.Domain.Entities;
 using Joviq.Lms.Domain.Enums;
 using Joviq.Lms.Infrastructure.Persistence;
+using Joviq.Lms.Infrastructure.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
@@ -42,15 +44,16 @@ public sealed class LmsPortalService(
     private static readonly IReadOnlyDictionary<string, FixedPlanPricing> FixedPlans =
         new Dictionary<string, FixedPlanPricing>(StringComparer.OrdinalIgnoreCase)
         {
-            ["SELF"] = new("Launch", 7999m, 7999m, 1500m),
-            ["INTERMEDIATE"] = new("Elevate", 9999m, 9999m, 1500m),
-            ["MASTER"] = new("Mastery", 14999m, 14999m, 1500m)
+            ["SELF"] = new("Launch", 4000m, 4000m, 1500m),
+            ["INTERMEDIATE"] = new("Elevate", 5000m, 5000m, 1500m),
+            ["MASTER"] = new("Mastery", 7000m, 7000m, 1500m)
         };
     private static readonly IReadOnlyDictionary<string, FixedPlanPricing> SinglePageFixedPlans =
         new Dictionary<string, FixedPlanPricing>(StringComparer.OrdinalIgnoreCase)
         {
-            ["SELF"] = new("Launch", 7999m, 4000m, 1500m),
-            ["INTERMEDIATE"] = new("Elevate", 9999m, 5000m, 1500m)
+            ["SELF"] = new("Launch", 4000m, 4000m, 1500m),
+            ["INTERMEDIATE"] = new("Elevate", 5000m, 5000m, 1500m),
+            ["MASTER"] = new("Mastery", 7000m, 7000m, 1500m)
         };
 
     private PaymentOptions Payments => paymentOptions.Value;
@@ -518,6 +521,33 @@ public sealed class LmsPortalService(
         return MapEnrollment(enrollment);
     }
 
+    public async Task<EnrollmentResponse> CompletePaidEnrollmentRegistrationAsync(
+        Guid studentId,
+        Guid paymentId,
+        ChangeEnrollmentProgramRequest request,
+        CancellationToken cancellationToken)
+    {
+        var payment = await dbContext.PaymentTransactions
+            .Include(x => x.Enrollment)
+                .ThenInclude(x => x!.Program)
+            .Include(x => x.Enrollment)
+                .ThenInclude(x => x!.ProgramPlan)
+            .FirstOrDefaultAsync(x => x.Id == paymentId && x.StudentId == studentId, cancellationToken)
+            ?? throw new AppException("Payment was not found.", 404, "payment_not_found");
+
+        if (payment.Status != PaymentStatus.Verified)
+            throw new AppException("Payment must be verified before completing registration.", 409, "payment_not_verified");
+
+        if (payment.Enrollment is null)
+            throw new AppException("The verified payment is not linked to an enrollment.", 409, "enrollment_not_found");
+
+        return await ChangeEnrollmentProgramCoreAsync(
+            payment.Enrollment,
+            request,
+            "Student.EnrollmentProgramChangedAfterPayment",
+            cancellationToken);
+    }
+
     public async Task<PaymentCheckoutResponse> CreatePaymentCheckoutAsync(
         Guid studentId,
         CreatePaymentCheckoutRequest request,
@@ -601,7 +631,7 @@ public sealed class LmsPortalService(
                 MapPayment(openCheckout),
                 openCheckout.Gateway,
                 Payments.KeyId,
-                openCheckout.GatewayOrderId,
+                openCheckout.GatewayOrderId!,
                 checked((long)Math.Round(openCheckout.Amount * 100m, MidpointRounding.AwayFromZero)),
                 openCheckout.Currency,
                 openCheckout.CheckoutExpiresAt!.Value,
@@ -678,7 +708,8 @@ public sealed class LmsPortalService(
                 request.CustomerEmail,
                 request.CustomerPhone,
                 request.CustomerCollege,
-                cancellationToken);
+                cancellationToken,
+                PaymentReturnFrontendBaseUrl);
             transaction.Gateway = gatewayOrder.Provider;
             transaction.GatewayOrderId = gatewayOrder.OrderId;
             transaction.GatewaySessionId = gatewayOrder.PaymentSessionId;
@@ -789,6 +820,8 @@ public sealed class LmsPortalService(
 
         var orderId = request.GatewayOrderId ?? transaction.GatewayOrderId;
         var isFreePayment = string.Equals(transaction.Gateway, "Free", StringComparison.OrdinalIgnoreCase);
+        if (!isFreePayment && string.IsNullOrWhiteSpace(transaction.GatewayOrderId))
+            throw new AppException("This payment does not have a gateway order ID.", 400, "payment_order_missing");
         if (!string.IsNullOrWhiteSpace(request.GatewayOrderId) &&
             !string.Equals(transaction.GatewayOrderId, orderId, StringComparison.Ordinal))
         {
@@ -800,7 +833,7 @@ public sealed class LmsPortalService(
         var paymentVerification = isFreePayment
             ? new PaymentGatewayVerification(true, $"free_{transaction.Id:N}")
             : await paymentGateway.VerifyPaymentAsync(
-                transaction.GatewayOrderId,
+                transaction.GatewayOrderId!,
                 request.GatewayPaymentId,
                 request.GatewaySignature,
                 cancellationToken);
@@ -808,7 +841,10 @@ public sealed class LmsPortalService(
         {
             if (transaction.CheckoutExpiresAt.HasValue && transaction.CheckoutExpiresAt <= clock.UtcNow)
             {
-                await FailTransactionAsync(transaction, "Checkout expired before the payment was completed.", cancellationToken);
+                await CleanupUnpaidCheckoutAsync(
+                    transaction,
+                    "Checkout expired before the payment was completed.",
+                    cancellationToken);
                 throw new AppException("This payment session expired before the payment was completed. Start a new payment attempt.", 400, "payment_expired");
             }
 
@@ -865,6 +901,97 @@ public sealed class LmsPortalService(
         return MapPayment(payment);
     }
 
+    /// <summary>
+    /// Removes expired unpaid checkout data after giving the gateway one final chance to report a
+    /// successful payment. This keeps a late bank/UPI confirmation recoverable while ensuring
+    /// abandoned checkout details do not remain in the LMS indefinitely.
+    /// </summary>
+    public async Task<int> CleanupExpiredCheckoutsAsync(CancellationToken cancellationToken)
+    {
+        var now = clock.UtcNow;
+        var expired = await dbContext.PaymentTransactions
+            .Include(x => x.Enrollment)
+                .ThenInclude(x => x!.Program)
+            .Include(x => x.Enrollment)
+                .ThenInclude(x => x!.ProgramPlan)
+            .Where(x => x.Status != PaymentStatus.Verified &&
+                        x.CheckoutExpiresAt.HasValue &&
+                        x.CheckoutExpiresAt <= now)
+            .OrderBy(x => x.CheckoutExpiresAt)
+            .Take(100)
+            .ToListAsync(cancellationToken);
+
+        var cleaned = 0;
+        foreach (var transaction in expired)
+        {
+            if (transaction.Status == PaymentStatus.Verified)
+            {
+                continue;
+            }
+
+            // Free checkouts have no external order to verify. All paid providers get one final
+            // gateway check before their unpaid records are removed.
+            if (string.Equals(transaction.Gateway, "Free", StringComparison.OrdinalIgnoreCase))
+            {
+                if (await CleanupUnpaidCheckoutAsync(
+                        transaction,
+                        "Checkout expired before registration was completed.",
+                        cancellationToken))
+                {
+                    cleaned++;
+                }
+
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(transaction.GatewayOrderId))
+            {
+                continue;
+            }
+
+            PaymentGatewayVerification verification;
+            try
+            {
+                verification = await paymentGateway.VerifyPaymentAsync(
+                    transaction.GatewayOrderId,
+                    null,
+                    null,
+                    cancellationToken);
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                logger?.LogWarning(exception, "Unable to verify expired checkout {PaymentId}; retaining it for a later cleanup attempt.", transaction.Id);
+                continue;
+            }
+
+            if (verification.IsValid && !string.IsNullOrWhiteSpace(verification.PaymentId))
+            {
+                var sendEnrollmentConfirmation = await CompleteGatewayPaymentAsync(
+                    transaction,
+                    verification.PaymentId,
+                    "Student.PaymentRecoveredBeforeCheckoutCleanup",
+                    cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken);
+                if (sendEnrollmentConfirmation)
+                {
+                    await SendEnrollmentConfirmationEmailAsync(transaction, cancellationToken);
+                }
+
+                continue;
+            }
+
+            if (await CleanupUnpaidCheckoutAsync(
+                    transaction,
+                    "Checkout expired before the payment was completed.",
+                    cancellationToken))
+            {
+                cleaned++;
+            }
+        }
+
+        return cleaned;
+    }
+
     public Task<PaymentReceiptResponse> GetPaymentReceiptAsync(
         Guid studentId,
         Guid paymentId,
@@ -916,7 +1043,7 @@ public sealed class LmsPortalService(
             payment.CouponCode,
             payment.Currency,
             payment.Gateway,
-            payment.GatewayOrderId,
+            payment.GatewayOrderId ?? string.Empty,
             payment.GatewayPaymentId,
             payment.VerifiedAt,
             payment.CreatedAt);
@@ -1876,34 +2003,24 @@ public sealed class LmsPortalService(
             throw Validation(nameof(request.PaymentEnvironment), "Payment environment does not match this server.");
         if (request.StudentId.HasValue == (request.NewStudent is not null))
             throw Validation(nameof(request.StudentId), "Select an existing student or enter a new student.");
+        if (request.PaymentTransactionId.HasValue && !request.EnrollmentId.HasValue)
+            throw Validation(nameof(request.PaymentTransactionId), "A payment transaction can only be edited from its enrollment.");
         var today = DateOnly.FromDateTime(clock.UtcNow.UtcDateTime);
         if (request.StartDate is { } startDate && (startDate < today.AddYears(-5) || startDate > today.AddYears(5)))
             throw Validation(nameof(request.StartDate), "Start date must be within five years of today.");
-        if ((request.Notes?.Length ?? 0) > 500 || (request.CashfreeOrderId?.Length ?? 0) > 160 ||
-            (request.CashfreePaymentId?.Length ?? 0) > 160 || (request.CashfreeLinkId?.Length ?? 0) > 160)
-            throw Validation(nameof(request.Notes), "Notes or payment references are too long.");
-
-        var orderId = request.CashfreeOrderId?.Trim();
+        var notes = OptionalText(request.Notes, 500);
+        var orderId = OptionalText(request.CashfreeOrderId, 160);
+        var paymentId = OptionalText(request.CashfreePaymentId, 160);
+        var linkId = OptionalText(request.CashfreeLinkId, 160);
         if (request.PaymentKind is not null && request.PaymentKind is not ("full" or "token" or "other"))
             throw Validation(nameof(request.PaymentKind), "Select full payment, token payment, or other amount.");
         if (request.AmountPaid is { } enteredAmount && (enteredAmount <= 0 || decimal.Round(enteredAmount, 2) != enteredAmount))
             throw Validation(nameof(request.AmountPaid), "Enter a positive amount with at most two decimal places.");
         if (request.PaymentKind is not null && request.AmountPaid is null)
             throw Validation(nameof(request.AmountPaid), "Enter the amount paid.");
-        ExternalPaymentVerification? verified = null;
-        if (!string.IsNullOrWhiteSpace(orderId))
-        {
-            verified = await paymentGateway.VerifyExternalPaymentAsync(orderId,
-                request.CashfreePaymentId?.Trim(), request.CashfreeLinkId?.Trim(), cancellationToken)
-                ?? throw new AppException("Cashfree has not confirmed a successful payment for these references.", 400, "payment_not_verified");
-            if (verified.Amount <= 0 || verified.Currency != "INR" || decimal.Round(verified.Amount, 2) != verified.Amount)
-                throw Validation(nameof(request.CashfreeOrderId), "Payment must be in INR with a valid amount.");
-            if (request.AmountPaid.HasValue && request.AmountPaid.Value != verified.Amount)
-                throw Validation(nameof(request.AmountPaid), "Entered amount does not match the payment confirmed by Cashfree.");
-        }
-        else if (request.EnrollmentId.HasValue || !string.IsNullOrWhiteSpace(request.CashfreePaymentId) ||
-                 !string.IsNullOrWhiteSpace(request.CashfreeLinkId) || request.AmountPaid.HasValue || request.PaymentKind is not null)
-            throw Validation(nameof(request.CashfreeOrderId), "Enter the Cashfree order ID to record a payment.");
+
+        var paymentWasRequested = request.AmountPaid.HasValue || request.PaymentKind is not null ||
+            orderId is not null || paymentId is not null || linkId is not null;
 
         // Keep student creation, payment attribution, and access changes in one transaction.
         await using var transaction = await dbContext.Database.BeginTransactionAsync(
@@ -1925,10 +2042,27 @@ public sealed class LmsPortalService(
             enrollment = await dbContext.Enrollments.Include(x => x.Program).Include(x => x.ProgramPlan)
                 .FirstOrDefaultAsync(x => x.Id == request.EnrollmentId, cancellationToken)
                 ?? throw new AppException("Enrollment was not found.", 404, "enrollment_not_found");
-            if (enrollment.StudentId != studentId || enrollment.ProgramId != request.ProgramId ||
-                enrollment.ProgramPlanId != request.ProgramPlanId || enrollment.Status == EnrollmentStatus.Cancelled ||
-                IsAccessExpired(enrollment, clock.UtcNow))
-                throw Validation(nameof(request.EnrollmentId), "The selected enrollment cannot receive this payment.");
+            if (enrollment.StudentId != studentId || enrollment.Status == EnrollmentStatus.Cancelled ||
+                (paymentWasRequested && IsAccessExpired(enrollment, clock.UtcNow)))
+                throw Validation(nameof(request.EnrollmentId), "The selected enrollment cannot receive this payment or update.");
+
+            if (enrollment.ProgramId != request.ProgramId || enrollment.ProgramPlanId != request.ProgramPlanId)
+            {
+                await ChangeEnrollmentProgramCoreAsync(
+                    enrollment,
+                    new ChangeEnrollmentProgramRequest
+                    {
+                        ProgramId = request.ProgramId,
+                        ProgramPlanId = request.ProgramPlanId,
+                        StartDate = request.StartDate
+                    },
+                    "Admin.EnrollmentUpdated",
+                    cancellationToken);
+            }
+            else if (request.StartDate.HasValue)
+            {
+                enrollment.StartDate = request.StartDate;
+            }
         }
         else
         {
@@ -1941,7 +2075,49 @@ public sealed class LmsPortalService(
             enrollment.StartDate = request.StartDate ?? DateOnly.FromDateTime(clock.UtcNow.UtcDateTime);
         }
 
-        if (verified is not null)
+        PaymentTransaction? paymentToEdit = null;
+        if (request.PaymentTransactionId.HasValue)
+        {
+            paymentToEdit = await dbContext.PaymentTransactions
+                .FirstOrDefaultAsync(x => x.Id == request.PaymentTransactionId && x.EnrollmentId == enrollment.Id, cancellationToken)
+                ?? throw new AppException("The selected payment was not found for this enrollment.", 404, "payment_not_found");
+        }
+
+        var existingPaymentReferencesUnchanged = paymentToEdit is not null &&
+            string.Equals(paymentToEdit.GatewayOrderId, orderId, StringComparison.Ordinal) &&
+            string.Equals(paymentToEdit.GatewayPaymentId, paymentId, StringComparison.Ordinal);
+        ExternalPaymentVerification? verified = null;
+        if (orderId is not null && !existingPaymentReferencesUnchanged)
+        {
+            verified = await paymentGateway.VerifyExternalPaymentAsync(orderId,
+                paymentId, linkId, cancellationToken)
+                ?? throw new AppException("Cashfree has not confirmed a successful payment for these references.", 400, "payment_not_verified");
+            if (verified.Amount <= 0 || verified.Currency != "INR" || decimal.Round(verified.Amount, 2) != verified.Amount)
+                throw Validation(nameof(request.CashfreeOrderId), "Payment must be in INR with a valid amount.");
+            if (request.AmountPaid.HasValue && request.AmountPaid.Value != verified.Amount)
+                throw Validation(nameof(request.AmountPaid), "Entered amount does not match the payment confirmed by Cashfree.");
+        }
+
+        if (paymentToEdit is not null && request.AmountPaid.HasValue)
+            throw Validation(nameof(request.AmountPaid), "Edit payment references without changing an existing payment amount.");
+
+        if (paymentToEdit is not null)
+        {
+            if (verified is not null)
+            {
+                if (paymentToEdit.Status != PaymentStatus.Verified || paymentToEdit.Amount != verified.Amount)
+                    throw Validation(nameof(request.CashfreeOrderId), "The edited Cashfree payment must match the existing verified payment.");
+                if (await dbContext.PaymentTransactions.AnyAsync(x => x.Id != paymentToEdit.Id &&
+                    (x.GatewayOrderId == orderId || x.GatewayPaymentId == verified.PaymentId), cancellationToken))
+                    throw new AppException("This payment reference has already been recorded.", 409, "payment_already_recorded");
+            }
+
+            paymentToEdit.GatewayOrderId = orderId;
+            paymentToEdit.GatewayPaymentId = verified?.PaymentId ?? paymentId;
+            paymentToEdit.GatewayLinkId = linkId;
+            paymentToEdit.Notes = notes;
+        }
+        else if (verified is not null)
         {
             var phone = new string((student.PhoneNumber ?? "").Where(char.IsDigit).ToArray());
             var payerPhone = new string((verified.CustomerPhone ?? "").Where(char.IsDigit).ToArray());
@@ -1963,7 +2139,8 @@ public sealed class LmsPortalService(
             {
                 Id = Guid.NewGuid(), StudentId = studentId, ProgramId = enrollment.ProgramId,
                 ProgramPlanId = enrollment.ProgramPlanId, EnrollmentId = enrollment.Id, Enrollment = enrollment,
-                Gateway = "Cashfree", GatewayOrderId = orderId!, GatewayPaymentId = verified.PaymentId,
+                Gateway = "Cashfree", GatewayOrderId = orderId, GatewayPaymentId = verified.PaymentId,
+                GatewayLinkId = linkId, Notes = notes,
                 Amount = verified.Amount, OriginalAmount = verified.Amount, Currency = verified.Currency,
                 Mode = enrollment.PaidAmount > 0 ? PaymentMode.RemainingBalance :
                     verified.Amount == outstanding ? PaymentMode.PayInFull : PaymentMode.ReserveSeat,
@@ -1972,11 +2149,142 @@ public sealed class LmsPortalService(
             ApplyVerifiedPayment(payment, clock.UtcNow);
             dbContext.PaymentTransactions.Add(payment);
         }
+        else if (request.AmountPaid.HasValue)
+        {
+            var amount = request.AmountPaid.Value;
+            var outstanding = enrollment.TotalAmount - enrollment.DiscountAmount - enrollment.PaidAmount;
+            if (amount > outstanding)
+                throw Validation(nameof(request.AmountPaid), "Payment exceeds this enrollment's outstanding balance.");
+            if (request.PaymentKind == "full" && amount != outstanding)
+                throw Validation(nameof(request.AmountPaid), "Full payment must cover the outstanding balance.");
+            if (request.PaymentKind == "token" && (enrollment.PaidAmount > 0 || enrollment.ProgramPlan is null ||
+                amount != GetFixedPricing(enrollment.ProgramPlan).ReserveAmount || amount >= outstanding))
+                throw Validation(nameof(request.AmountPaid), "Token payment must match the plan's initial reservation amount.");
+            if (paymentId is not null && await dbContext.PaymentTransactions.AnyAsync(x => x.GatewayPaymentId == paymentId, cancellationToken))
+                throw new AppException("This payment ID has already been recorded.", 409, "payment_already_recorded");
+
+            var payment = new PaymentTransaction
+            {
+                Id = Guid.NewGuid(), StudentId = studentId, ProgramId = enrollment.ProgramId,
+                ProgramPlanId = enrollment.ProgramPlanId, EnrollmentId = enrollment.Id, Enrollment = enrollment,
+                Gateway = "Manual", GatewayOrderId = orderId, GatewayPaymentId = paymentId,
+                GatewayLinkId = linkId, Notes = notes, Amount = amount, OriginalAmount = amount,
+                Currency = "INR", Mode = enrollment.PaidAmount > 0 ? PaymentMode.RemainingBalance :
+                    amount == outstanding ? PaymentMode.PayInFull : PaymentMode.ReserveSeat,
+                Status = PaymentStatus.Verified, VerifiedAt = clock.UtcNow
+            };
+            ApplyVerifiedPayment(payment, clock.UtcNow);
+            dbContext.PaymentTransactions.Add(payment);
+        }
+        else if (paymentWasRequested && request.EnrollmentId is not null && paymentToEdit is null)
+        {
+            throw Validation(nameof(request.PaymentTransactionId), "Select an existing payment to edit its details.");
+        }
         Audit("Admin.OfflineEnrollmentRecorded", new { enrollment.Id, studentId, enrollment.ProgramId,
-            request.PaymentEnvironment, request.PaymentKind, request.AmountPaid, OrderId = orderId, request.CashfreeLinkId, request.Notes });
+            request.PaymentEnvironment, request.PaymentKind, request.AmountPaid, OrderId = orderId, CashfreePaymentId = paymentId,
+            CashfreeLinkId = linkId, Notes = notes, PaymentTransactionId = paymentToEdit?.Id });
         await dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return MapEnrollment(enrollment, student.FullName, student.Email, student.PhoneNumber);
+    }
+
+    public async Task<EnrollmentResponse> ChangeEnrollmentProgramAsync(
+        Guid enrollmentId,
+        ChangeEnrollmentProgramRequest request,
+        CancellationToken cancellationToken)
+    {
+        var enrollment = await dbContext.Enrollments
+            .Include(x => x.Program)
+            .Include(x => x.ProgramPlan)
+            .FirstOrDefaultAsync(x => x.Id == enrollmentId, cancellationToken)
+            ?? throw new AppException("Enrollment was not found.", 404, "enrollment_not_found");
+
+        return await ChangeEnrollmentProgramCoreAsync(
+            enrollment,
+            request,
+            "Admin.EnrollmentProgramChanged",
+            cancellationToken);
+    }
+
+    private async Task<EnrollmentResponse> ChangeEnrollmentProgramCoreAsync(
+        Enrollment enrollment,
+        ChangeEnrollmentProgramRequest request,
+        string auditEvent,
+        CancellationToken cancellationToken)
+    {
+        if (enrollment.Status is EnrollmentStatus.Cancelled or EnrollmentStatus.Completed)
+            throw Validation(nameof(request.ProgramId), "Only active or reserved enrollments can change course.");
+
+        var program = await dbContext.LearningPrograms
+            .Include(x => x.Plans)
+            .FirstOrDefaultAsync(x => x.Id == request.ProgramId, cancellationToken)
+            ?? throw new AppException("Program was not found.", 404, "program_not_found");
+
+        if (program.Status != ProgramStatus.Published)
+            throw Validation(nameof(request.ProgramId), "Select a published program.");
+
+        var plan = program.Plans.FirstOrDefault(x => x.Id == request.ProgramPlanId && x.IsActive)
+            ?? throw Validation(nameof(request.ProgramPlanId), "Select an active plan for the selected program.");
+
+        var today = DateOnly.FromDateTime(clock.UtcNow.UtcDateTime);
+        if (request.StartDate is { } startDate && (startDate < today.AddYears(-5) || startDate > today.AddYears(5)))
+            throw Validation(nameof(request.StartDate), "Start date must be within five years of today.");
+
+        if (await dbContext.Enrollments.AnyAsync(x =>
+                x.Id != enrollment.Id &&
+                x.StudentId == enrollment.StudentId &&
+                x.ProgramId == program.Id &&
+                x.Status != EnrollmentStatus.Cancelled,
+            cancellationToken))
+        {
+            throw new AppException("This student already has an enrollment in the selected program.", 409, "enrollment_exists");
+        }
+
+        var oldProgramId = enrollment.ProgramId;
+        var oldPlanId = enrollment.ProgramPlanId;
+        var pricing = GetFixedPricing(plan);
+        var linkedPayments = await dbContext.PaymentTransactions
+            .Where(x => x.EnrollmentId == enrollment.Id)
+            .ToListAsync(cancellationToken);
+
+        enrollment.ProgramId = program.Id;
+        enrollment.Program = program;
+        enrollment.ProgramPlanId = plan.Id;
+        enrollment.ProgramPlan = plan;
+        enrollment.TotalAmount = pricing.TotalAmount;
+        enrollment.DiscountAmount = Math.Min(enrollment.DiscountAmount, Math.Max(enrollment.TotalAmount - enrollment.PaidAmount, 0));
+        if (request.StartDate.HasValue)
+            enrollment.StartDate = request.StartDate;
+
+        foreach (var payment in linkedPayments)
+        {
+            payment.ProgramId = program.Id;
+            payment.ProgramPlanId = plan.Id;
+        }
+
+        if (enrollment.PaidAmount + enrollment.DiscountAmount >= enrollment.TotalAmount)
+        {
+            enrollment.Status = EnrollmentStatus.Active;
+            enrollment.FullAccessUnlockedAt ??= clock.UtcNow;
+            enrollment.LockedReason = null;
+        }
+        else
+        {
+            enrollment.Status = EnrollmentStatus.Reserved;
+            enrollment.LockedReason = "Preview access is limited to the first module. Pay the remaining balance to unlock the complete program.";
+        }
+
+        Audit(auditEvent, new
+        {
+            enrollment.Id,
+            enrollment.StudentId,
+            OldProgramId = oldProgramId,
+            OldPlanId = oldPlanId,
+            NewProgramId = enrollment.ProgramId,
+            NewPlanId = enrollment.ProgramPlanId
+        });
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return MapEnrollment(enrollment);
     }
 
     public async Task<IReadOnlyList<EnrollmentResponse>> GetAdminEnrollmentsAsync(CancellationToken cancellationToken)
@@ -2225,36 +2533,46 @@ public sealed class LmsPortalService(
         CancellationToken cancellationToken)
     {
         await EnsureProgramExistsAsync(request.ProgramId, cancellationToken);
-        if (!await dbContext.Users.AnyAsync(x => x.Id == request.StudentId, cancellationToken))
+        if (!request.GenerateForFriend && !await dbContext.Users.AnyAsync(x => x.Id == request.StudentId, cancellationToken))
         {
             throw new AppException("Student was not found.", 404, "student_not_found");
         }
 
         var program = await dbContext.LearningPrograms.AsNoTracking().FirstAsync(x => x.Id == request.ProgramId, cancellationToken);
-        var enrollment = request.EnrollmentId.HasValue
-            ? await dbContext.Enrollments.AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.EnrollmentId.Value, cancellationToken)
-            : await dbContext.Enrollments.AsNoTracking().Where(x => x.StudentId == request.StudentId && x.ProgramId == request.ProgramId).OrderByDescending(x => x.CreatedAt).FirstOrDefaultAsync(cancellationToken);
-        if (enrollment is null || enrollment.StudentId != request.StudentId || enrollment.ProgramId != request.ProgramId)
+        var enrollment = request.GenerateForFriend
+            ? null
+            : request.EnrollmentId.HasValue
+                ? await dbContext.Enrollments.AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.EnrollmentId.Value, cancellationToken)
+                : await dbContext.Enrollments.AsNoTracking().Where(x => x.StudentId == request.StudentId && x.ProgramId == request.ProgramId).OrderByDescending(x => x.CreatedAt).FirstOrDefaultAsync(cancellationToken);
+        if (!request.GenerateForFriend &&
+            (enrollment is null || enrollment.StudentId != request.StudentId || enrollment.ProgramId != request.ProgramId))
         {
             throw new AppException("A matching student enrollment is required before issuing a certificate.", 400, "certificate_enrollment_required");
         }
 
-        EnsureFullAccess(enrollment, clock.UtcNow);
-        var studentName = RequiredText(request.StudentName, nameof(request.StudentName), 2, 180);
+        if (!request.GenerateForFriend)
+        {
+            EnsureFullAccess(enrollment!, clock.UtcNow);
+        }
+
+        var studentName = FormatCertificateName(RequiredText(request.StudentName, nameof(request.StudentName), 2, 180));
         if (request.ToDate < request.FromDate)
         {
             throw new AppException("The certificate ending date must be on or after the starting date.", 400, "certificate_dates_invalid");
         }
 
+        // Friend certificates are intentionally not attached to an LMS account. Keep a unique
+        // internal identity so the existing certificate schema and verification history remain intact.
+        var certificateStudentId = request.GenerateForFriend ? Guid.NewGuid() : request.StudentId;
         var certificateId = $"JOVIQ-{clock.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}";
         var verificationSlug = certificateId.ToLowerInvariant();
         var verificationUrl = CreateVerificationUrl(verificationSlug);
         var certificate = new Certificate
         {
             Id = Guid.NewGuid(),
-            StudentId = request.StudentId,
+            StudentId = certificateStudentId,
             ProgramId = request.ProgramId,
-            EnrollmentId = enrollment.Id,
+            EnrollmentId = enrollment?.Id,
             Type = request.Type,
             Status = CertificateStatus.Issued,
             CertificateId = certificateId,
@@ -2270,18 +2588,24 @@ public sealed class LmsPortalService(
         };
 
         dbContext.Certificates.Add(certificate);
-        dbContext.Notifications.Add(new Notification
+        if (!request.GenerateForFriend)
         {
-            Id = Guid.NewGuid(),
-            UserId = request.StudentId,
-            Title = "Certificate issued",
-            Body = $"Your {program.Title} certificate is ready.",
-            ActionUrl = "/dashboard"
-        });
+            dbContext.Notifications.Add(new Notification
+            {
+                Id = Guid.NewGuid(),
+                UserId = request.StudentId,
+                Title = "Certificate issued",
+                Body = $"Your {program.Title} certificate is ready.",
+                ActionUrl = "/dashboard"
+            });
+        }
 
-        Audit("Admin.CertificateIssued", new { certificate.Id, certificate.StudentId, certificate.ProgramId, certificate.CertificateId, certificate.Type });
+        Audit("Admin.CertificateIssued", new { certificate.Id, certificate.StudentId, certificate.ProgramId, certificate.CertificateId, certificate.Type, request.GenerateForFriend });
         await dbContext.SaveChangesAsync(cancellationToken);
-        await SendCertificateIssuedEmailAsync(certificate, program.Title, cancellationToken);
+        if (!request.GenerateForFriend)
+        {
+            await SendCertificateIssuedEmailAsync(certificate, program.Title, cancellationToken);
+        }
         return new CertificateResponse(
             certificate.Id,
             certificate.StudentId,
@@ -2530,13 +2854,19 @@ public sealed class LmsPortalService(
     {
         get
         {
-            var origin = httpContextAccessor?.HttpContext?.Request.Headers.Origin.ToString();
+            var origin = CurrentRequestOrigin;
             if (string.IsNullOrWhiteSpace(origin)) return false;
 
             var origins = configuration.GetSection("Payments:SinglePageOrigins").Get<string[]>() ?? [];
             return origins.Any(value => string.Equals(value.TrimEnd('/'), origin.TrimEnd('/'), StringComparison.OrdinalIgnoreCase));
         }
     }
+
+    private string? CurrentRequestOrigin
+        => httpContextAccessor?.HttpContext?.Request.Headers.Origin.ToString();
+
+    private string? PaymentReturnFrontendBaseUrl
+        => IsSinglePageFrontendRequest ? CurrentRequestOrigin : null;
 
     private FixedPlanPricing GetFixedPricing(ProgramPlan plan)
     {
@@ -2545,7 +2875,7 @@ public sealed class LmsPortalService(
             ? pricing
             : throw new AppException(
                 IsSinglePageFrontendRequest
-                    ? "Only the Launch and Elevate plans are available."
+                    ? "Only the Launch, Elevate, and Mastery plans are available."
                     : "Only the Launch, Elevate, and Mastery plans are available.",
                 400,
                 "invalid_program_plan");
@@ -2820,6 +3150,11 @@ public sealed class LmsPortalService(
         PaymentTransaction? recoveredPayment = null;
         foreach (var attempt in attempts)
         {
+            if (string.IsNullOrWhiteSpace(attempt.GatewayOrderId))
+            {
+                continue;
+            }
+
             PaymentGatewayVerification verification;
             try
             {
@@ -2868,6 +3203,153 @@ public sealed class LmsPortalService(
                         x.CheckoutExpiresAt > usableUntil)
             .OrderByDescending(x => x.CreatedAt)
             .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private async Task<bool> CleanupUnpaidCheckoutAsync(
+        PaymentTransaction transaction,
+        string failureReason,
+        CancellationToken cancellationToken)
+    {
+        if (transaction.Status == PaymentStatus.Verified)
+        {
+            return false;
+        }
+
+        var enrollment = transaction.Enrollment;
+        if (enrollment is null && transaction.EnrollmentId.HasValue)
+        {
+            enrollment = await dbContext.Enrollments
+                .FirstOrDefaultAsync(x => x.Id == transaction.EnrollmentId.Value, cancellationToken);
+        }
+
+        // A gateway response that disagrees with a paid enrollment must never delete the learner's
+        // financial history. This is a defensive guard for retries racing with webhooks.
+        if (enrollment?.PaidAmount > 0 ||
+            (enrollment is not null && enrollment.Status != EnrollmentStatus.Reserved))
+        {
+            if (transaction.Status == PaymentStatus.Pending)
+            {
+                await FailTransactionAsync(transaction, failureReason, cancellationToken);
+            }
+
+            return false;
+        }
+
+        var relatedPayments = await dbContext.PaymentTransactions
+            .Where(x => x.StudentId == transaction.StudentId &&
+                        (x.Id == transaction.Id ||
+                         (transaction.EnrollmentId.HasValue && x.EnrollmentId == transaction.EnrollmentId.Value)))
+            .ToListAsync(cancellationToken);
+
+        var paymentIds = relatedPayments.Select(x => x.Id).ToArray();
+        if (paymentIds.Length > 0)
+        {
+            var redemptions = await dbContext.CouponRedemptions
+                .Where(x => paymentIds.Contains(x.PaymentTransactionId))
+                .ToListAsync(cancellationToken);
+            dbContext.CouponRedemptions.RemoveRange(redemptions);
+            dbContext.PaymentTransactions.RemoveRange(relatedPayments);
+        }
+
+        if (enrollment is not null)
+        {
+            dbContext.Enrollments.Remove(enrollment);
+        }
+
+        await RemoveAbandonedCheckoutAccountAsync(
+            transaction.StudentId,
+            enrollment?.Id,
+            paymentIds,
+            cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return paymentIds.Length > 0 || enrollment is not null;
+    }
+
+    private async Task RemoveAbandonedCheckoutAccountAsync(
+        Guid studentId,
+        Guid? removedEnrollmentId,
+        IReadOnlyCollection<Guid> removedPaymentIds,
+        CancellationToken cancellationToken)
+    {
+        var wasCreatedForCheckout = await dbContext.AuthAuditLogs.AnyAsync(
+            x => x.UserId == studentId && x.EventType == "CheckoutAccountCreated",
+            cancellationToken);
+        if (!wasCreatedForCheckout)
+        {
+            return;
+        }
+
+        // A learner may open more than one course checkout. Keep the temporary account until
+        // every unpaid checkout/enrollment belonging to it has been cleaned up.
+        var hasOtherCheckoutData =
+            await dbContext.PaymentTransactions.AnyAsync(
+                x => x.StudentId == studentId && !removedPaymentIds.Contains(x.Id),
+                cancellationToken) ||
+            await dbContext.Enrollments.AnyAsync(
+                x => x.StudentId == studentId && (!removedEnrollmentId.HasValue || x.Id != removedEnrollmentId.Value),
+                cancellationToken);
+        if (hasOtherCheckoutData)
+        {
+            return;
+        }
+
+        // Never remove a real learner account just because one checkout expired.
+        var hasLearnerActivity =
+            await dbContext.PaymentTransactions.AnyAsync(
+                x => x.StudentId == studentId && x.Status == PaymentStatus.Verified,
+                cancellationToken) ||
+            await dbContext.Enrollments.AnyAsync(
+                x => x.StudentId == studentId &&
+                     (x.PaidAmount > 0 || x.Status != EnrollmentStatus.Reserved),
+                cancellationToken) ||
+            await dbContext.LessonProgress.AnyAsync(x => x.StudentId == studentId, cancellationToken) ||
+            await dbContext.ProjectAssignments.AnyAsync(x => x.StudentId == studentId, cancellationToken) ||
+            await dbContext.ProjectSubmissions.AnyAsync(x => x.StudentId == studentId, cancellationToken) ||
+            await dbContext.Certificates.AnyAsync(x => x.StudentId == studentId, cancellationToken) ||
+            await dbContext.SupportMessages.AnyAsync(x => x.StudentId == studentId, cancellationToken) ||
+            await dbContext.Assets.AnyAsync(x => x.OwnerUserId == studentId, cancellationToken);
+        if (hasLearnerActivity)
+        {
+            return;
+        }
+
+        dbContext.UserSessions.RemoveRange(await dbContext.UserSessions
+            .Where(x => x.UserId == studentId)
+            .ToListAsync(cancellationToken));
+        dbContext.UserOtps.RemoveRange(await dbContext.UserOtps
+            .Where(x => x.UserId == studentId)
+            .ToListAsync(cancellationToken));
+        dbContext.UserConsents.RemoveRange(await dbContext.UserConsents
+            .Where(x => x.UserId == studentId)
+            .ToListAsync(cancellationToken));
+        dbContext.StudentProfiles.RemoveRange(await dbContext.StudentProfiles
+            .Where(x => x.UserId == studentId)
+            .ToListAsync(cancellationToken));
+        dbContext.Notifications.RemoveRange(await dbContext.Notifications
+            .Where(x => x.UserId == studentId)
+            .ToListAsync(cancellationToken));
+        dbContext.AuthAuditLogs.RemoveRange(await dbContext.AuthAuditLogs
+            .Where(x => x.UserId == studentId)
+            .ToListAsync(cancellationToken));
+
+        dbContext.UserClaims.RemoveRange(await dbContext.UserClaims
+            .Where(x => x.UserId == studentId)
+            .ToListAsync(cancellationToken));
+        dbContext.UserLogins.RemoveRange(await dbContext.UserLogins
+            .Where(x => x.UserId == studentId)
+            .ToListAsync(cancellationToken));
+        dbContext.UserRoles.RemoveRange(await dbContext.UserRoles
+            .Where(x => x.UserId == studentId)
+            .ToListAsync(cancellationToken));
+        dbContext.UserTokens.RemoveRange(await dbContext.UserTokens
+            .Where(x => x.UserId == studentId)
+            .ToListAsync(cancellationToken));
+
+        var user = await dbContext.Users.FirstOrDefaultAsync(x => x.Id == studentId, cancellationToken);
+        if (user is not null)
+        {
+            dbContext.Users.Remove(user);
+        }
     }
 
     private async Task FailTransactionAsync(PaymentTransaction transaction, string reason, CancellationToken cancellationToken)
@@ -3317,6 +3799,7 @@ public sealed class LmsPortalService(
             payment.Gateway,
             payment.GatewayOrderId,
             payment.GatewayPaymentId,
+            payment.GatewayLinkId,
             payment.Mode.ToString(),
             payment.Status.ToString(),
             payment.Amount,
@@ -3325,6 +3808,7 @@ public sealed class LmsPortalService(
             payment.VerifiedAt,
             payment.InvoiceNumber,
             payment.FailureReason,
+            payment.Notes,
             payment.OriginalAmount > 0 ? payment.OriginalAmount : payment.Amount,
             payment.DiscountAmount,
             payment.CouponCode,
@@ -3486,8 +3970,8 @@ public sealed class LmsPortalService(
             {
                 Name = "Launch",
                 Code = "SELF",
-                ActualPrice = 8000m,
-                OfferPrice = 8000m,
+                ActualPrice = 4000m,
+                OfferPrice = 4000m,
                 Features = new[]
                 {
                     "Lesson Replays", "Complete Curriculum", "Projects", "LMS Access",
@@ -3498,8 +3982,8 @@ public sealed class LmsPortalService(
             {
                 Name = "Elevate",
                 Code = "INTERMEDIATE",
-                ActualPrice = 10000m,
-                OfferPrice = 10000m,
+                ActualPrice = 5000m,
+                OfferPrice = 5000m,
                 Features = new[]
                 {
                     "Live Sessions", "Project Reviews", "Resume Review",
@@ -3510,8 +3994,8 @@ public sealed class LmsPortalService(
             {
                 Name = "Mastery",
                 Code = "MASTER",
-                ActualPrice = 15000m,
-                OfferPrice = 15000m,
+                ActualPrice = 7000m,
+                OfferPrice = 7000m,
                 Features = new[]
                 {
                     "Additional Live Sessions", "Advanced Project Reviews", "Portfolio Development",
@@ -3698,6 +4182,16 @@ public sealed class LmsPortalService(
         }
 
         return trimmed;
+    }
+
+    private static string FormatCertificateName(string value)
+    {
+        var normalized = value.ToLowerInvariant();
+        return Regex.Replace(
+            normalized,
+            "(^|[\\s'-])([a-z])",
+            match => $"{match.Groups[1].Value}{match.Groups[2].Value.ToUpperInvariant()}"
+        );
     }
 
     private static string? OptionalText(string? value, int maxLength)

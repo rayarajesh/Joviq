@@ -37,3 +37,4 @@ logs/
 
 # Project-local development database and temporary files.
 .local/
+/.tmp/

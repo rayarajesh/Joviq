@@ -13792,6 +13792,16 @@ button.hero-button {
     transform 150ms ease;
 }
 
+.admin-person-card__actions .admin-person-card__course-action {
+  width: auto;
+  min-height: 32px;
+  gap: 5px;
+  padding: 5px 9px;
+  color: #5148a8;
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
 .admin-person-card__actions button:hover,
 .admin-person-card__actions button:focus-visible {
   border-color: rgba(15, 118, 110, 0.32);
@@ -13881,6 +13891,35 @@ button.hero-button {
   color: #0f766e;
   padding: 5px 8px;
   font-weight: 900;
+}
+
+.admin-person-courses .admin-person-course-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.admin-person-course-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  border-radius: 7px;
+  padding: 5px 8px;
+  color: #5148a8;
+  background: #fff;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.admin-person-course-change:hover,
+.admin-person-course-change:focus-visible {
+  background: #f0edff;
 }
 
 .admin-people-pagination {

@@ -10,6 +10,7 @@ import type {
   CreateCouponRequest,
   CreateEnrollmentRequest,
   AdminEnrollmentRequest,
+  ChangeEnrollmentProgramRequest,
   CreateLessonRequest,
   CreateModuleRequest,
   CreatePaymentCheckoutRequest,
@@ -376,6 +377,13 @@ export const adminLmsApi = {
 
   createEnrollment(body: AdminEnrollmentRequest) {
     return request<EnrollmentResponse>("/api/v1/admin/lms/enrollments", { method: "POST", body });
+  },
+
+  changeEnrollmentProgram(enrollmentId: string, body: ChangeEnrollmentProgramRequest) {
+    return request<EnrollmentResponse>(
+      `/api/v1/admin/lms/enrollments/${enrollmentId}/program`,
+      { method: "PATCH", body },
+    );
   },
 
   updateEnrollmentStatus(

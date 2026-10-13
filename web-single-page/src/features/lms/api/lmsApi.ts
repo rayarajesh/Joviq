@@ -1,6 +1,7 @@
 import { request } from "../../../lib/api/httpClient";
 import type {
   CreateEnrollmentRequest,
+  ChangeEnrollmentProgramRequest,
   CreatePaymentCheckoutRequest,
   EnrollmentResponse,
   PaymentCheckoutResponse,
@@ -26,6 +27,10 @@ export const studentOnboardingApi = {
 export const studentLmsApi = {
   createEnrollment(body: CreateEnrollmentRequest) {
     return request<EnrollmentResponse>("/api/v1/student/lms/enrollments", { method: "POST", body });
+  },
+
+  completePaidEnrollmentRegistration(paymentId: string, body: ChangeEnrollmentProgramRequest) {
+    return request<EnrollmentResponse>(`/api/v1/student/lms/payments/${paymentId}/enrollment`, { method: "PATCH", body });
   },
 
   createPaymentCheckout(body: CreatePaymentCheckoutRequest) {

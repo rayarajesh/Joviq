@@ -21,6 +21,15 @@ Configure in `.env.local` (see `.env.example`):
 
 ## Shareable checkout links
 
+The enrollment form at the top of the page supports these direct links:
+
+| Plan | Choose payment | Reserve | Pay in full |
+| --- | --- | --- | --- |
+| Launch | `/launch` | `/launch/reserve` | `/launch/full` |
+| Elevate | `/elevate` | `/elevate/reserve` | `/elevate/full` |
+
+Plan-only links select the plan and keep the standard reservation default; visitors can choose either payment option. The four payment-specific links open a modal containing the details form and countdown timer. The URL determines the plan and payment amount; the plan and payment selectors remain on the main page only. The close button or Escape dismisses the modal and returns the URL to `/`. Visitors can change either selection before submitting, and the address updates to match. These links do not submit registration or initiate payment. Hosting must serve `index.html` for these frontend routes, as the Vite development server does.
+
 Use these paths on the deployed single-page site's domain:
 
 | Plan | Reserve | Pay in full |

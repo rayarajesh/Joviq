@@ -1,4 +1,4 @@
-import { defaultProgramPlans } from "./siteContent";
+import { defaultProgramPlans, isVisibleProgramPlan } from "./siteContent";
 import type { Program, ProgramPlan } from "./siteContent";
 import type { ProgramDetailsResponse } from "../features/lms/api/lmsTypes";
 
@@ -58,7 +58,7 @@ export function buildProgramViewModel(local: Program | undefined, remote: Progra
         : createFallbackCurriculum(title),
     title
   );
-  const remotePlans = remote?.plans.filter((plan) => plan.isActive).map((plan) => ({
+  const remotePlans = remote?.plans.filter((plan) => plan.isActive && isVisibleProgramPlan(plan)).map((plan) => ({
     id: plan.id,
     name: plan.name,
     code: plan.code,
@@ -85,7 +85,9 @@ export function buildProgramViewModel(local: Program | undefined, remote: Progra
     certification: remote?.certificationName ?? local?.certification ?? `Joviq ${title} Certification`,
     outcomes: remote?.outcomes.length ? remote.outcomes : local?.outcomes ?? [],
     interviewPrep: local?.interviewPrep ?? ["Resume and portfolio review", "Project explanation practice", "Technical mock interview", "HR interview preparation"],
-    plans: remotePlans.length ? remotePlans : local?.plans ?? defaultProgramPlans,
+    plans: remotePlans.length
+      ? remotePlans
+      : (local?.plans ?? defaultProgramPlans).filter(isVisibleProgramPlan),
     faqs: remote?.faqs.length ? remote.faqs : local?.faqs.length ? local.faqs : createFallbackFaqs(title),
     level: remote?.level ?? local?.level ?? "Beginner to job-ready"
   };
