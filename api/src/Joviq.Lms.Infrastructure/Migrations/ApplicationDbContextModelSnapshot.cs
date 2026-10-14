@@ -279,6 +279,10 @@ namespace Joviq.Lms.Infrastructure.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
+                    b.Property<string>("StudentEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
                     b.Property<Guid>("StudentId")
                         .HasColumnType("uuid");
 

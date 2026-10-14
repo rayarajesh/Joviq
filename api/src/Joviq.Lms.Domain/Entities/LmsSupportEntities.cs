@@ -35,6 +35,8 @@ public sealed class Certificate : AuditableEntity
 
     public string StudentName { get; set; } = string.Empty;
 
+    public string? StudentEmail { get; set; }
+
     public DateOnly? FromDate { get; set; }
 
     public DateOnly? ToDate { get; set; }

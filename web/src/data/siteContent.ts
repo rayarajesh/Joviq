@@ -48,6 +48,28 @@ export type ProgramPlan = {
   isActive: boolean;
 };
 
+/**
+ * Public-facing prices for the marketing site preview.
+ * These values intentionally do not change the plan amounts used by checkout.
+ */
+export const displayPlanPrices = {
+  Launch: 7999,
+  Elevate: 9999,
+  Mastery: 14999
+} as const;
+
+const displayPlanPricesByCode: Record<string, number> = {
+  SELF: displayPlanPrices.Launch,
+  INTERMEDIATE: displayPlanPrices.Elevate,
+  MASTER: displayPlanPrices.Mastery
+};
+
+export function getDisplayPlanPrice(plan: Pick<ProgramPlan, "code" | "name" | "offerPrice">) {
+  return displayPlanPrices[plan.name as keyof typeof displayPlanPrices]
+    ?? displayPlanPricesByCode[plan.code]
+    ?? plan.offerPrice;
+}
+
 export type ProgramCategory = {
   domain: string;
   description: string;
@@ -725,19 +747,19 @@ export const successOutcomes = [
 export const pricingPlans = [
   {
     name: "Launch",
-    price: "INR 4,000",
+    price: "INR 7,999",
     description: "For learners who want a strong, structured start with guided learning and essential support.",
     features: ["16 live sessions", "Real-time project", "Interview assistance", "6 months LMS access"]
   },
   {
     name: "Elevate",
-    price: "INR 5,000",
+    price: "INR 9,999",
     description: "For learners who want personal expert support, deeper project review, and placement readiness.",
     features: ["22 live sessions", "Personal expert support", "Expert guidance & review", "Placement support", "6 months LMS access"]
   },
   {
     name: "Mastery",
-    price: "INR 7,000",
+    price: "INR 14,999",
     description: "For learners who want advanced hands-on projects, detailed expert review, and full career guidance.",
     features: ["28 live sessions", "Multiple real-time projects", "Advanced interview prep", "Career guidance", "6 months LMS access"]
   }

@@ -2546,19 +2546,24 @@ public sealed class LmsPortalService(
         CancellationToken cancellationToken)
     {
         await EnsureProgramExistsAsync(request.ProgramId, cancellationToken);
-        if (!request.GenerateForFriend && !await dbContext.Users.AnyAsync(x => x.Id == request.StudentId, cancellationToken))
+        var requestedStudentId = request.StudentId ?? Guid.Empty;
+        if (!request.GenerateForFriend && (!request.StudentId.HasValue || !await dbContext.Users.AnyAsync(x => x.Id == requestedStudentId, cancellationToken)))
         {
             throw new AppException("Student was not found.", 404, "student_not_found");
         }
+
+        var recipientEmail = request.GenerateForFriend
+            ? ValidateEmail(request.StudentEmail ?? string.Empty, nameof(request.StudentEmail))
+            : null;
 
         var program = await dbContext.LearningPrograms.AsNoTracking().FirstAsync(x => x.Id == request.ProgramId, cancellationToken);
         var enrollment = request.GenerateForFriend
             ? null
             : request.EnrollmentId.HasValue
                 ? await dbContext.Enrollments.AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.EnrollmentId.Value, cancellationToken)
-                : await dbContext.Enrollments.AsNoTracking().Where(x => x.StudentId == request.StudentId && x.ProgramId == request.ProgramId).OrderByDescending(x => x.CreatedAt).FirstOrDefaultAsync(cancellationToken);
+                : await dbContext.Enrollments.AsNoTracking().Where(x => x.StudentId == requestedStudentId && x.ProgramId == request.ProgramId).OrderByDescending(x => x.CreatedAt).FirstOrDefaultAsync(cancellationToken);
         if (!request.GenerateForFriend &&
-            (enrollment is null || enrollment.StudentId != request.StudentId || enrollment.ProgramId != request.ProgramId))
+            (enrollment is null || enrollment.StudentId != requestedStudentId || enrollment.ProgramId != request.ProgramId))
         {
             throw new AppException("A matching student enrollment is required before issuing a certificate.", 400, "certificate_enrollment_required");
         }
@@ -2571,7 +2576,7 @@ public sealed class LmsPortalService(
 
         // Friend certificates are intentionally not attached to an LMS account. Keep a unique
         // internal identity so the existing certificate schema and verification history remain intact.
-        var certificateStudentId = request.GenerateForFriend ? Guid.NewGuid() : request.StudentId;
+        var certificateStudentId = request.GenerateForFriend ? Guid.NewGuid() : requestedStudentId;
         var certificateId = $"JOVIQ-{clock.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}";
         var verificationSlug = certificateId.ToLowerInvariant();
         var verificationUrl = CreateVerificationUrl(verificationSlug);
@@ -2590,6 +2595,7 @@ public sealed class LmsPortalService(
             QrCodeUrl = CreateQrCodeUrl(verificationUrl),
             AuthorizedSignatory = OptionalText(request.AuthorizedSignatory, 180) ?? "M VIJAYARAMARAJU",
             StudentName = studentName,
+            StudentEmail = recipientEmail,
             FromDate = request.FromDate,
             ToDate = request.ToDate,
             SignatureText = OptionalText(request.SignatureText, 180) ?? "Executive Director"
@@ -2601,7 +2607,7 @@ public sealed class LmsPortalService(
             dbContext.Notifications.Add(new Notification
             {
                 Id = Guid.NewGuid(),
-                UserId = request.StudentId,
+                UserId = requestedStudentId,
                 Title = "Certificate issued",
                 Body = $"Your {program.Title} certificate is ready.",
                 ActionUrl = "/dashboard"
@@ -2610,7 +2616,7 @@ public sealed class LmsPortalService(
 
         Audit("Admin.CertificateIssued", new { certificate.Id, certificate.StudentId, certificate.ProgramId, certificate.CertificateId, certificate.Type, request.GenerateForFriend });
         await dbContext.SaveChangesAsync(cancellationToken);
-        if (!request.GenerateForFriend)
+        if (!request.GenerateForFriend || recipientEmail is not null)
         {
             await SendCertificateIssuedEmailAsync(certificate, program.Title, cancellationToken);
         }
@@ -2631,7 +2637,7 @@ public sealed class LmsPortalService(
             certificate.QrCodeUrl,
             certificate.AuthorizedSignatory,
             certificate.SignatureText,
-            null);
+            certificate.StudentEmail);
     }
 
     public async Task<CertificateResponse> UpdateCertificateStatusAsync(
@@ -3462,23 +3468,27 @@ public sealed class LmsPortalService(
         string programTitle,
         CancellationToken cancellationToken)
     {
-        var student = await dbContext.Users
-            .AsNoTracking()
-            .Where(x => x.Id == certificate.StudentId)
-            .Select(x => new { x.FullName, x.Email })
-            .FirstOrDefaultAsync(cancellationToken);
+        var student = string.IsNullOrWhiteSpace(certificate.StudentEmail)
+            ? await dbContext.Users
+                .AsNoTracking()
+                .Where(x => x.Id == certificate.StudentId)
+                .Select(x => new { x.FullName, x.Email })
+                .FirstOrDefaultAsync(cancellationToken)
+            : null;
+        var recipient = certificate.StudentEmail ?? student?.Email;
+        var recipientName = certificate.StudentEmail is null ? student?.FullName : certificate.StudentName;
 
-        if (student is null || string.IsNullOrWhiteSpace(student.Email))
+        if (string.IsNullOrWhiteSpace(recipient) || string.IsNullOrWhiteSpace(recipientName))
         {
             return;
         }
 
         await SendEmailBestEffortAsync(
             certificate.StudentId,
-            student.Email,
+            recipient,
             "Your Joviq certificate is ready",
             EmailTemplates.CertificateIssued(
-                student.FullName,
+                recipientName,
                 programTitle,
                 certificate.Type.ToString(),
                 certificate.CertificateId,
@@ -3885,7 +3895,7 @@ public sealed class LmsPortalService(
             certificate.QrCodeUrl,
             certificate.AuthorizedSignatory,
             certificate.SignatureText,
-            studentEmail);
+            studentEmail ?? certificate.StudentEmail);
     }
 
     private static NotificationResponse MapNotification(Notification notification)
