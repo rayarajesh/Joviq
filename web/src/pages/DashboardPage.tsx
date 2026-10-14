@@ -1070,6 +1070,7 @@ function AdminLmsPanel({
     useState<IssueCertificateRequest>(() => ({
       generateForFriend: false,
       studentId: "",
+      studentEmail: "",
       programId: "",
       enrollmentId: "",
       type: 1,
@@ -2401,6 +2402,7 @@ function AdminLmsPanel({
       generateForFriend: false,
       enrollmentId,
       studentId: enrollment?.studentId ?? "",
+      studentEmail: enrollment?.studentEmail ?? "",
       programId: enrollment?.programId ?? "",
       studentName:
         enrollment?.studentName ??
@@ -2419,6 +2421,7 @@ function AdminLmsPanel({
         ...current,
         generateForFriend: false,
         studentId: "",
+        studentEmail: "",
         programId: "",
         enrollmentId: "",
         studentName: "",
@@ -2430,6 +2433,7 @@ function AdminLmsPanel({
       ...current,
       generateForFriend: true,
       studentId: "",
+      studentEmail: "",
       programId: "",
       enrollmentId: "",
       studentName: "",
@@ -2443,6 +2447,8 @@ function AdminLmsPanel({
     try {
       await adminLmsApi.issueCertificate({
         ...certificateDraft,
+        studentId: certificateForFriend ? undefined : certificateDraft.studentId,
+        studentEmail: certificateForFriend ? certificateDraft.studentEmail?.trim() : undefined,
         enrollmentId: certificateDraft.enrollmentId || undefined,
         type: Number(certificateDraft.type),
         authorizedSignatory:
@@ -4748,8 +4754,8 @@ function AdminLmsPanel({
 
                       <div className="enrollment-admin-card__grid">
                         <div className="enrollment-admin-detail">
-                          <span>Enrollment date</span>
-                          <strong>{formatDate(enrollment.enrolledAt)}</strong>
+                          <span>Start date</span>
+                          <strong>{formatDate(enrollment.startDate ?? enrollment.enrolledAt)}</strong>
                           <small>Cycle {enrollment.accessCycle || 1}</small>
                         </div>
                         <div className="enrollment-admin-detail">
@@ -5026,6 +5032,9 @@ function AdminLmsPanel({
                 const studentName =
                   payment.studentName ||
                   `Student ${payment.studentId.slice(0, 8)}`;
+                const linkedEnrollment = payment.enrollmentId
+                  ? adminEnrollments.find((enrollment) => enrollment.id === payment.enrollmentId)
+                  : undefined;
                 const isPending = payment.status === "Pending";
                 return (
                   <article
@@ -5106,6 +5115,11 @@ function AdminLmsPanel({
                         <small>
                           {payment.programPlanName || "Plan unavailable"}
                         </small>
+                      </div>
+                      <div>
+                        <span>Start date</span>
+                        <strong>{linkedEnrollment?.startDate ? formatDate(linkedEnrollment.startDate) : "Not set"}</strong>
+                        <small>{linkedEnrollment ? `Cycle ${linkedEnrollment.accessCycle || 1}` : "Enrollment unavailable"}</small>
                       </div>
                       <div>
                         <span>Payment method</span>
@@ -5477,6 +5491,24 @@ function AdminLmsPanel({
                 </label>
                 {certificateForFriend ? (
                   <label>
+                    Friend&apos;s email
+                    <input
+                      required
+                      type="email"
+                      value={certificateDraft.studentEmail ?? ""}
+                      onChange={(event) => {
+                        const value = event.currentTarget.value;
+                        setCertificateDraft((current) => ({
+                          ...current,
+                          studentEmail: value,
+                        }));
+                      }}
+                      placeholder="friend@example.com"
+                    />
+                  </label>
+                ) : null}
+                {certificateForFriend ? (
+                  <label>
                     Friend&apos;s program
                     <select
                       required
@@ -5580,7 +5612,7 @@ function AdminLmsPanel({
                 disabled={
                   isIssuingCertificate ||
                   (!certificateForFriend && !certificateDraft.enrollmentId) ||
-                  (certificateForFriend && !certificateDraft.programId)
+                  (certificateForFriend && (!certificateDraft.programId || !certificateDraft.studentEmail?.trim()))
                 }
               >
                 {isIssuingCertificate

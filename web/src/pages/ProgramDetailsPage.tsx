@@ -35,7 +35,7 @@ import { useScrollReveal } from "../hooks/useScrollReveal";
 import "../styles/showcase.css";
 import "../styles/program-details.css";
 import { IndiaMobileInput } from "../components/IndiaMobileInput";
-import { allPrograms, defaultProgramPlans, findProgramBySlug } from "../data/siteContent";
+import { allPrograms, defaultProgramPlans, findProgramBySlug, getDisplayPlanPrice } from "../data/siteContent";
 import type { Program, ProgramPlan } from "../data/siteContent";
 import { getProgramImage } from "../data/programVisuals";
 import { authApi } from "../features/auth/api/authApi";
@@ -466,6 +466,7 @@ function PlanCard({ index, onChoose, plan }: { index: number; onChoose: () => vo
   const isRecommended = plan.code === "INTERMEDIATE";
   const includedPlan = plan.code === "INTERMEDIATE" ? "Everything in Launch, plus" : plan.code === "MASTER" ? "Everything in Elevate, plus" : null;
   const savings = Math.max(0, plan.actualPrice - plan.offerPrice);
+  const displayPrice = getDisplayPlanPrice(plan);
   const tone = ["mint", "lilac", "peach"][index % 3];
   const PlanIcon = [Send, Sparkles, Award][index % 3];
 
@@ -477,7 +478,7 @@ function PlanCard({ index, onChoose, plan }: { index: number; onChoose: () => vo
         <div><h3>{plan.name}</h3><small>{isRecommended ? "Best value for most learners" : plan.code === "MASTER" ? "Maximum support" : "Strong start"}</small></div>
       </header>
       <div className="pdx-plan-price">
-        <strong>{formatInr(plan.offerPrice)}</strong>
+        <strong>{formatInr(displayPrice)}</strong>
         {savings > 0 ? <span><del>{formatInr(plan.actualPrice)}</del><b>Save {formatInr(savings)}</b></span> : null}
       </div>
       {includedPlan ? <p className="pdx-plan-includes">{includedPlan}</p> : null}
@@ -496,14 +497,15 @@ function EnrollForm({ onCheckout, onPlanChange, plans, programTitle, selectedPla
   selectedPlanCode: string;
 }) {
   const selectedPlan = plans.find((plan) => plan.code === selectedPlanCode) ?? plans[0];
+  const selectedDisplayPrice = selectedPlan ? getDisplayPlanPrice(selectedPlan) : null;
 
   return (
     <div className="pdx-enroll-form">
-      <div className="pdx-enroll-summary"><span>Selected plan</span><strong>{selectedPlan?.name ?? "Choose a plan"}</strong><small>{selectedPlan ? `${formatInr(selectedPlan.offerPrice)} full plan` : "Pricing unavailable"}</small></div>
+      <div className="pdx-enroll-summary"><span>Selected plan</span><strong>{selectedPlan?.name ?? "Choose a plan"}</strong><small>{selectedDisplayPrice ? `${formatInr(selectedDisplayPrice)} full plan` : "Pricing unavailable"}</small></div>
       <label>
         Plan
         <select name="planCode" value={selectedPlanCode} onChange={(event) => onPlanChange(event.target.value)}>
-          {plans.map((plan) => <option key={plan.code} value={plan.code}>{plan.name} - {formatInr(plan.offerPrice)}</option>)}
+          {plans.map((plan) => <option key={plan.code} value={plan.code}>{plan.name} - {formatInr(getDisplayPlanPrice(plan))}</option>)}
         </select>
       </label>
       <div className="pdx-enroll-note"><ShieldCheck size={17} /><span>Register with your name, phone, email, and college. Then choose a seat token or pay the full plan amount securely.</span></div>
@@ -533,6 +535,7 @@ function RegistrationDialog({ onClose, onSubmit, plan, programTitle }: {
   const [retryAt, setRetryAt] = useState(0);
   const [retrySeconds, setRetrySeconds] = useState(0);
   const enrollmentEmail = resolveCheckoutEmail(email, user?.email);
+  const displayPrice = getDisplayPlanPrice(plan);
   // Signed-in students already registered their details; only ask for a phone if the account lacks one.
   const needsPhone = !user?.phoneNumber;
   const paymentStep = user && !needsPhone ? "01" : "02";
@@ -610,7 +613,7 @@ function RegistrationDialog({ onClose, onSubmit, plan, programTitle }: {
           </div>
           <div className="enrollment-dialog__plan-summary">
             <div><WalletCards size={20} /><span><small>Selected level</small><strong>{plan.name}</strong></span></div>
-            <div><BadgeCheck size={20} /><span><small>Full plan value</small><strong>{formatInr(plan.offerPrice)}</strong></span></div>
+            <div><BadgeCheck size={20} /><span><small>Full plan value</small><strong>{formatInr(displayPrice)}</strong></span></div>
             <div><CalendarClock size={20} /><span><small>Access period</small><strong>6 months</strong></span></div>
           </div>
           <button aria-label="Close registration dialog" className="enrollment-dialog__close" onClick={onClose} type="button">×</button>
@@ -662,7 +665,7 @@ function RegistrationDialog({ onClose, onSubmit, plan, programTitle }: {
               <label className={`enrollment-dialog__payment-option${paymentChoice === "full" ? " is-selected" : ""}`}>
                 <input checked={paymentChoice === "full"} name="paymentChoice" onChange={() => setPaymentChoice("full")} type="radio" value="full" />
                 <span className="enrollment-dialog__payment-icon"><BadgeCheck size={20} /></span>
-                <span><strong>Pay in full</strong><small>Pay {formatInr(plan.offerPrice)} now and unlock the complete program for six months.</small></span>
+                <span><strong>Pay in full</strong><small>Pay {formatInr(displayPrice)} now and unlock the complete program for six months.</small></span>
                 <b>Full access</b>
               </label>
             </div>
@@ -674,7 +677,7 @@ function RegistrationDialog({ onClose, onSubmit, plan, programTitle }: {
           </label>
           {errorMessage ? <p className="enrollment-dialog__error" role="alert">{errorMessage}</p> : null}
           <div className="enrollment-dialog__secure-note"><ShieldCheck size={18} /><span>Existing learners sign in to continue. New learners receive a checkout account before secure payment opens.</span></div>
-          <button className="enrollment-dialog__submit" disabled={isSubmitting || retrySeconds > 0} type="submit"><ArrowRight size={18} /> {retrySeconds > 0 ? `Try again in ${retrySeconds}s` : isSubmitting ? "Preparing your account…" : `Continue with ${paymentChoice === "token" ? `pre-registration · ${formatInr(plan.reserveAmount)}` : `full payment · ${formatInr(plan.offerPrice)}`}`}</button>
+          <button className="enrollment-dialog__submit" disabled={isSubmitting || retrySeconds > 0} type="submit"><ArrowRight size={18} /> {retrySeconds > 0 ? `Try again in ${retrySeconds}s` : isSubmitting ? "Preparing your account…" : `Continue with ${paymentChoice === "token" ? `pre-registration · ${formatInr(plan.reserveAmount)}` : `full payment · ${formatInr(displayPrice)}`}`}</button>
         </form>
       </section>
     </div>

@@ -730,7 +730,9 @@ public sealed class IssueCertificateRequest
 {
     public bool GenerateForFriend { get; init; }
 
-    public Guid StudentId { get; init; }
+    public Guid? StudentId { get; init; }
+
+    public string? StudentEmail { get; init; }
 
     public Guid ProgramId { get; init; }
 

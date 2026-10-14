@@ -560,7 +560,8 @@ export type CreateCouponRequest = {
 
 export type IssueCertificateRequest = {
   generateForFriend?: boolean;
-  studentId: string;
+  studentId?: string;
+  studentEmail?: string;
   programId: string;
   enrollmentId?: string;
   type?: number;
