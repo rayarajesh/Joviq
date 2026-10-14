@@ -2553,7 +2553,9 @@ public sealed class LmsPortalService(
         }
 
         var recipientEmail = request.GenerateForFriend
-            ? ValidateEmail(request.StudentEmail ?? string.Empty, nameof(request.StudentEmail))
+            ? string.IsNullOrWhiteSpace(request.StudentEmail)
+                ? null
+                : ValidateEmail(request.StudentEmail!, nameof(request.StudentEmail))
             : null;
 
         var program = await dbContext.LearningPrograms.AsNoTracking().FirstAsync(x => x.Id == request.ProgramId, cancellationToken);
