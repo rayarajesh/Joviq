@@ -91,7 +91,7 @@ public sealed class CertificatePdfGenerator(IHttpClientFactory httpClientFactory
         }
 
         var contentId = objects.Count + 1;
-        objects.Add(Ascii(BuildContent(certificate, programTitle, backgroundId, qrId)));
+        objects.Add(ContentStreamObject(BuildContent(certificate, programTitle, backgroundId, qrId)));
         objects[2] = Ascii(BuildPage(contentId, backgroundId, qrId));
         return RenderDocument(objects);
     }
@@ -183,6 +183,17 @@ public sealed class CertificatePdfGenerator(IHttpClientFactory httpClientFactory
         using var stream = new MemoryStream(header.Length + bytes.Length + 16);
         stream.Write(header);
         stream.Write(bytes);
+        stream.Write(Ascii("\nendstream"));
+        return stream.ToArray();
+    }
+
+    private static byte[] ContentStreamObject(string content)
+    {
+        var contentBytes = Ascii(content);
+        var header = Ascii($"<< /Length {contentBytes.Length} >>\nstream\n");
+        using var stream = new MemoryStream(header.Length + contentBytes.Length + 16);
+        stream.Write(header);
+        stream.Write(contentBytes);
         stream.Write(Ascii("\nendstream"));
         return stream.ToArray();
     }

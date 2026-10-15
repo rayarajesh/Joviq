@@ -28,8 +28,13 @@ public sealed class CertificatePdfGeneratorTests
 
         Assert.Equal("application/pdf", attachment.ContentType);
         Assert.Equal("JOVIQ-20261015-TEST1234.pdf", attachment.FileName);
-        Assert.StartsWith("%PDF-1.4", System.Text.Encoding.ASCII.GetString(attachment.Content));
-        Assert.Contains("JOVIQ-20261015-TEST1234", System.Text.Encoding.ASCII.GetString(attachment.Content));
+        var pdf = System.Text.Encoding.ASCII.GetString(attachment.Content);
+        Assert.StartsWith("%PDF-1.4", pdf);
+        Assert.Contains("JOVIQ-20261015-TEST1234", pdf);
+        Assert.Contains("/Contents 7 0 R", pdf);
+        Assert.Contains("7 0 obj\n<< /Length ", pdf);
+        Assert.Contains("stream\nBT ", pdf);
+        Assert.Contains("\nendstream\nendobj", pdf);
     }
 
     private sealed class NotFoundHandler : HttpMessageHandler
