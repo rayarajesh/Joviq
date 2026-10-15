@@ -199,6 +199,7 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IAssetService, AssetService>();
         services.AddScoped<IAdminUserService, AdminUserService>();
+        services.AddScoped<CertificatePdfGenerator>();
         services.AddScoped<ILmsPortalService, LmsPortalService>();
         services.AddScoped<ISupportChatService, SupportChatService>();
         
@@ -207,6 +208,10 @@ public static class DependencyInjection
         {
             client.BaseAddress = new Uri("https://api.razorpay.com/v1/");
             client.Timeout = TimeSpan.FromSeconds(20);
+        });
+        services.AddHttpClient("CertificatePdf", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(15);
         });
 
         services.AddHttpClient<CashfreePaymentGateway>((serviceProvider, client) =>

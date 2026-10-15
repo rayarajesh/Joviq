@@ -107,7 +107,7 @@ public static class EmailTemplates
                   </td></tr>
                 </table>
                 {verificationLink}
-                <p style="margin:18px 0 0;color:#53617d;font-size:14px;line-height:23px;">You can also view your certificate anytime from your Joviq LMS dashboard.</p>
+                <p style="margin:18px 0 0;color:#53617d;font-size:14px;line-height:23px;">A PDF copy of your certificate is attached to this email. You can also view it anytime from your Joviq LMS dashboard.</p>
                 """);
     }
 

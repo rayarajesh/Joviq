@@ -33,7 +33,8 @@ public sealed class LmsPortalService(
     IAdminUserService adminUserService,
     IHttpContextAccessor? httpContextAccessor = null,
     IEmailSender? emailSender = null,
-    ILogger<LmsPortalService>? logger = null) : ILmsPortalService
+    ILogger<LmsPortalService>? logger = null,
+    CertificatePdfGenerator? certificatePdfGenerator = null) : ILmsPortalService
 {
     private const string DefaultThumbnailUrl = "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=82";
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
@@ -3472,6 +3473,11 @@ public sealed class LmsPortalService(
         string programTitle,
         CancellationToken cancellationToken)
     {
+        if (emailSender is null)
+        {
+            return;
+        }
+
         var student = string.IsNullOrWhiteSpace(certificate.StudentEmail)
             ? await dbContext.Users
                 .AsNoTracking()
@@ -3487,6 +3493,19 @@ public sealed class LmsPortalService(
             return;
         }
 
+        IReadOnlyCollection<EmailAttachment> attachments = [];
+        if (certificatePdfGenerator is not null)
+        {
+            try
+            {
+                attachments = [await certificatePdfGenerator.CreateAsync(certificate, programTitle, cancellationToken)];
+            }
+            catch (Exception exception)
+            {
+                logger?.LogWarning(exception, "Could not create the PDF attachment for certificate {CertificateId}.", certificate.CertificateId);
+            }
+        }
+
         await SendEmailBestEffortAsync(
             certificate.StudentId,
             recipient,
@@ -3498,7 +3517,8 @@ public sealed class LmsPortalService(
                 certificate.CertificateId,
                 certificate.VerificationUrl),
             "certificate issued",
-            cancellationToken);
+            cancellationToken,
+            attachments);
     }
 
     private async Task SendEmailBestEffortAsync(
@@ -3507,7 +3527,8 @@ public sealed class LmsPortalService(
         string subject,
         string htmlBody,
         string emailPurpose,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IReadOnlyCollection<EmailAttachment>? attachments = null)
     {
         if (emailSender is null || string.IsNullOrWhiteSpace(recipient))
         {
@@ -3516,7 +3537,7 @@ public sealed class LmsPortalService(
 
         try
         {
-            await emailSender.SendAsync(recipient, subject, htmlBody, cancellationToken);
+            await emailSender.SendAsync(recipient, subject, htmlBody, cancellationToken, attachments);
             logger?.LogInformation("Sent {EmailPurpose} email to student {StudentId}.", emailPurpose, studentId);
         }
         catch (Exception exception)
