@@ -1,5 +1,8 @@
 using System.Net;
 using System.Net.Mail;
+using System.Net.Mime;
+using System.Text;
+using System.Text.RegularExpressions;
 using Joviq.Lms.Application.Common.Exceptions;
 using Joviq.Lms.Application.Common.Interfaces;
 using Joviq.Lms.Application.Common.Options;
@@ -11,7 +14,12 @@ public sealed class SmtpEmailSender(IOptions<EmailSettingsOptions> options) : IE
 {
     private readonly EmailSettingsOptions _options = options.Value;
 
-    public async Task SendAsync(string to, string subject, string htmlBody, CancellationToken cancellationToken)
+    public async Task SendAsync(
+        string to,
+        string subject,
+        string htmlBody,
+        CancellationToken cancellationToken,
+        IReadOnlyCollection<EmailAttachment>? attachments = null)
     {
         if (string.IsNullOrWhiteSpace(_options.SmtpServer) ||
             string.IsNullOrWhiteSpace(_options.SenderEmail) ||
@@ -25,10 +33,19 @@ public sealed class SmtpEmailSender(IOptions<EmailSettingsOptions> options) : IE
         {
             From = new MailAddress(_options.SenderEmail, _options.SenderName),
             Subject = subject,
-            Body = htmlBody,
-            IsBodyHtml = true
+            Body = ToPlainText(htmlBody),
+            IsBodyHtml = false
         };
+        message.AlternateViews.Add(AlternateView.CreateAlternateViewFromString(htmlBody, Encoding.UTF8, MediaTypeNames.Text.Html));
         message.To.Add(to);
+        if (attachments is not null)
+        {
+            foreach (var attachment in attachments.Where(x => x.Content.Length > 0))
+            {
+                var stream = new MemoryStream(attachment.Content, writable: false);
+                message.Attachments.Add(new Attachment(stream, attachment.FileName, attachment.ContentType));
+            }
+        }
 
         using var client = new SmtpClient(_options.SmtpServer, _options.Port)
         {
@@ -46,5 +63,11 @@ public sealed class SmtpEmailSender(IOptions<EmailSettingsOptions> options) : IE
         {
             throw new AppException($"Could not send email: {ex.Message}", 502, "email_send_failed");
         }
+    }
+
+    private static string ToPlainText(string html)
+    {
+        var withoutTags = Regex.Replace(html, "<[^>]+>", " ");
+        return Regex.Replace(WebUtility.HtmlDecode(withoutTags), @"\s+", " ").Trim();
     }
 }
