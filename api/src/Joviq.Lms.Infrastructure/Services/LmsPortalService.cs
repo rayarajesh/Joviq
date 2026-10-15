@@ -203,10 +203,12 @@ public sealed class LmsPortalService(
                 cancellationToken)
             ?? throw new AppException("Certificate was not found.", 404, "certificate_not_found");
 
-        var studentName = await dbContext.Users
-            .Where(x => x.Id == certificate.StudentId)
-            .Select(x => x.FullName)
-            .FirstOrDefaultAsync(cancellationToken) ?? "Joviq Learner";
+        var studentName = !string.IsNullOrWhiteSpace(certificate.StudentName)
+            ? certificate.StudentName
+            : await dbContext.Users
+                .Where(x => x.Id == certificate.StudentId)
+                .Select(x => x.FullName)
+                .FirstOrDefaultAsync(cancellationToken) ?? "Joviq Learner";
 
         return new CertificateVerificationResponse(
             certificate.Status == CertificateStatus.Issued,

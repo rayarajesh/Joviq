@@ -41,6 +41,25 @@ public sealed class PaymentFlowTests
     }
 
     [Fact]
+    public async Task FriendCertificateVerificationUsesTheCertificateStudentName()
+    {
+        using var f = new Fixture();
+
+        var certificate = await f.Service.IssueCertificateAsync(new IssueCertificateRequest
+        {
+            GenerateForFriend = true,
+            ProgramId = f.ProgramId,
+            StudentName = "ravi kumar",
+            FromDate = new DateOnly(2026, 10, 12),
+            ToDate = new DateOnly(2027, 4, 10)
+        }, default);
+
+        var verification = await f.Service.VerifyCertificateAsync(certificate.CertificateId, default);
+
+        Assert.Equal("Ravi Kumar", verification.StudentName);
+    }
+
+    [Fact]
     public async Task PaymentCapturedInTimeIsCreditedEvenWhenConfirmedAfterCheckoutExpiry()
     {
         using var f = new Fixture();
