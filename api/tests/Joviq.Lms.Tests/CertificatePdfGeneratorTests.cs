@@ -1,4 +1,6 @@
 using System.Net;
+using System.IO.Compression;
+using System.Text;
 using Joviq.Lms.Domain.Entities;
 using Joviq.Lms.Infrastructure.Services;
 using Moq;
@@ -37,9 +39,89 @@ public sealed class CertificatePdfGeneratorTests
         Assert.Contains("\nendstream\nendobj", pdf);
     }
 
+    [Fact]
+    public async Task IncludesQrAndDefaultSignatureInPdfWhenAssetsAreAvailable()
+    {
+        using var httpClient = new HttpClient(new CertificateArtworkHandler());
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(x => x.CreateClient("CertificatePdf")).Returns(httpClient);
+        var generator = new CertificatePdfGenerator(factory.Object);
+
+        var attachment = await generator.CreateAsync(new Certificate
+        {
+            CertificateId = "JOVIQ-20261015-ARTWORK",
+            StudentName = "Ravi Kumar",
+            Type = Joviq.Lms.Domain.Enums.CertificateType.Internship,
+            VerificationUrl = "https://example.com/verify/joviq-artwork",
+            QrCodeUrl = "https://example.com/qr.png",
+            FromDate = new DateOnly(2026, 10, 14),
+            ToDate = new DateOnly(2027, 4, 12)
+        }, "Full Stack Web Development", default);
+
+        var pdf = Encoding.ASCII.GetString(attachment.Content);
+        Assert.Contains("/Qr 7 0 R", pdf);
+        Assert.Contains("/Sig 9 0 R", pdf);
+        Assert.Contains("/SMask 8 0 R", pdf);
+        Assert.Contains("/Filter /FlateDecode", pdf);
+    }
+
     private sealed class NotFoundHandler : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             => Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound) { RequestMessage = request });
+    }
+
+    private sealed class CertificateArtworkHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            if (request.RequestUri?.AbsolutePath.EndsWith("/certificate-signature.png", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new ByteArrayContent(CreateOnePixelRgbaPng()),
+                    RequestMessage = request
+                });
+            }
+
+            if (request.RequestUri?.AbsolutePath.EndsWith("/qr.png", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new ByteArrayContent([0xFF, 0xD8, 0xFF, 0xD9]),
+                    RequestMessage = request
+                });
+            }
+
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound) { RequestMessage = request });
+        }
+
+        private static byte[] CreateOnePixelRgbaPng()
+        {
+            using var stream = new MemoryStream();
+            stream.Write([137, 80, 78, 71, 13, 10, 26, 10]);
+            AddChunk(stream, "IHDR", [0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0]);
+
+            using var compressed = new MemoryStream();
+            using (var zlib = new ZLibStream(compressed, CompressionLevel.SmallestSize, leaveOpen: true))
+            {
+                zlib.Write([0, 0, 0, 0, 255]);
+            }
+
+            AddChunk(stream, "IDAT", compressed.ToArray());
+            AddChunk(stream, "IEND", []);
+            return stream.ToArray();
+        }
+
+        private static void AddChunk(Stream stream, string type, byte[] data)
+        {
+            WriteUInt32BigEndian(stream, (uint)data.Length);
+            stream.Write(Encoding.ASCII.GetBytes(type));
+            stream.Write(data);
+            stream.Write([0, 0, 0, 0]);
+        }
+
+        private static void WriteUInt32BigEndian(Stream stream, uint value)
+            => stream.Write([(byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value]);
     }
 }

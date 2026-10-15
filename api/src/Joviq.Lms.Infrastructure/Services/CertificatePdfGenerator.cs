@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.IO.Compression;
 using System.Net.Http;
 using System.Text;
 using Joviq.Lms.Application.Common.Interfaces;
@@ -17,6 +18,8 @@ public sealed class CertificatePdfGenerator(IHttpClientFactory httpClientFactory
     private const double PageHeight = 595.28;
     private const double ArtworkWidth = 1600;
     private const double ArtworkHeight = 1131;
+    private const string DefaultSignatory = "M VIJAYARAMARAJU";
+    private const string DefaultSignatureText = "Executive Director";
 
     public async Task<EmailAttachment> CreateAsync(
         Certificate certificate,
@@ -35,8 +38,11 @@ public sealed class CertificatePdfGenerator(IHttpClientFactory httpClientFactory
         var qrCodeBytes = string.IsNullOrWhiteSpace(certificate.QrCodeUrl)
             ? null
             : await DownloadOptionalAsync(client, AddJpegFormat(certificate.QrCodeUrl), cancellationToken);
+        var signatureBytes = UsesDefaultSignature(certificate)
+            ? await DownloadOptionalAsync(client, $"{frontendOrigin}/assets/certificate-signature.png", cancellationToken)
+            : null;
 
-        var pdf = BuildPdf(certificate, programTitle, templateBytes, qrCodeBytes);
+        var pdf = BuildPdf(certificate, programTitle, templateBytes, qrCodeBytes, signatureBytes);
         return new EmailAttachment(
             $"{SanitizeFileName(certificate.CertificateId)}.pdf",
             "application/pdf",
@@ -63,7 +69,8 @@ public sealed class CertificatePdfGenerator(IHttpClientFactory httpClientFactory
         Certificate certificate,
         string programTitle,
         byte[]? templateBytes,
-        byte[]? qrCodeBytes)
+        byte[]? qrCodeBytes,
+        byte[]? signatureBytes)
     {
         var objects = new List<byte[]>
         {
@@ -90,21 +97,31 @@ public sealed class CertificatePdfGenerator(IHttpClientFactory httpClientFactory
             objects.Add(ImageObject(qrCodeBytes, qrWidth, qrHeight));
         }
 
+        var signatureId = 0;
+        if (signatureBytes is { Length: > 0 } && TryReadRgbaPng(signatureBytes) is { } signature)
+        {
+            var maskId = objects.Count + 1;
+            objects.Add(FlateImageObject(signature.AlphaBytes, signature.Width, signature.Height, 1, null));
+            signatureId = objects.Count + 1;
+            objects.Add(FlateImageObject(signature.RgbBytes, signature.Width, signature.Height, 3, maskId));
+        }
+
         var contentId = objects.Count + 1;
-        objects.Add(ContentStreamObject(BuildContent(certificate, programTitle, backgroundId, qrId)));
-        objects[2] = Ascii(BuildPage(contentId, backgroundId, qrId));
+        objects.Add(ContentStreamObject(BuildContent(certificate, programTitle, backgroundId, qrId, signatureId)));
+        objects[2] = Ascii(BuildPage(contentId, backgroundId, qrId, signatureId));
         return RenderDocument(objects);
     }
 
-    private static string BuildPage(int contentId, int backgroundId, int qrId)
+    private static string BuildPage(int contentId, int backgroundId, int qrId, int signatureId)
     {
         var xObjects = new StringBuilder();
         if (backgroundId > 0) xObjects.Append($"/Bg {backgroundId} 0 R ");
         if (qrId > 0) xObjects.Append($"/Qr {qrId} 0 R ");
+        if (signatureId > 0) xObjects.Append($"/Sig {signatureId} 0 R ");
         return $"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {PageWidth.ToString(CultureInfo.InvariantCulture)} {PageHeight.ToString(CultureInfo.InvariantCulture)}] /Resources << /Font << /F1 4 0 R /F2 5 0 R /F3 6 0 R >> /XObject << {xObjects}>> >> /Contents {contentId} 0 R >>";
     }
 
-    private static string BuildContent(Certificate certificate, string programTitle, int backgroundId, int qrId)
+    private static string BuildContent(Certificate certificate, string programTitle, int backgroundId, int qrId, int signatureId)
     {
         var internship = certificate.Type.ToString().Equals("Internship", StringComparison.OrdinalIgnoreCase);
         var name = ToPdfText(certificate.StudentName);
@@ -113,8 +130,8 @@ public sealed class CertificatePdfGenerator(IHttpClientFactory httpClientFactory
         var to = certificate.ToDate?.ToString("dd MMM yyyy", CultureInfo.InvariantCulture) ?? string.Empty;
         var id = ToPdfText($"Certificate ID: {certificate.CertificateId}");
         var template = internship
-            ? new CertificateLayout(800, 492, 1084, 574, 799, 616, 169, 841, 540, 770, 134, 878, 867, 898, [722, 840, 1014, 906])
-            : new CertificateLayout(800, 560, 990, 629, 828, 671, 182, 1012, 553, 940, 134, 1107, 1009, 1041, [966, 982, 1250, 1052]);
+            ? new CertificateLayout(800, 492, 1084, 574, 799, 616, 169, 841, 540, 770, 134, 878, 867, 898, [722, 840, 1014, 906], 726, 731, 300, 100)
+            : new CertificateLayout(800, 560, 990, 629, 828, 671, 182, 1012, 553, 940, 134, 1107, 1009, 1041, [966, 982, 1250, 1052], 957, 873, 300, 100);
 
         var content = new StringBuilder();
         if (backgroundId > 0)
@@ -132,14 +149,19 @@ public sealed class CertificatePdfGenerator(IHttpClientFactory httpClientFactory
             AddImage(content, "/Qr", template.QrX, template.QrY, template.QrSize, template.QrSize);
         }
 
+        if (signatureId > 0)
+        {
+            AddImage(content, "/Sig", template.SignatureX, template.SignatureY, template.SignatureWidth, template.SignatureHeight);
+        }
+
         var signatory = certificate.AuthorizedSignatory?.Trim();
         var signatureText = certificate.SignatureText?.Trim();
         if (!string.IsNullOrWhiteSpace(signatory) &&
-            (!signatory.Equals("M VIJAYARAMARAJU", StringComparison.OrdinalIgnoreCase) ||
-             !string.Equals(signatureText, "Executive Director", StringComparison.OrdinalIgnoreCase)))
+            (!signatory.Equals(DefaultSignatory, StringComparison.OrdinalIgnoreCase) ||
+             !string.Equals(signatureText, DefaultSignatureText, StringComparison.OrdinalIgnoreCase)))
         {
             AddCover(content, template.SignatoryCover);
-            AddCenteredText(content, "/F3", 12, template.SignatoryCenter, template.SignatoryTitleY, ToPdfText(signatureText ?? "Executive Director"), 0.23, 0.21, 0.45);
+            AddCenteredText(content, "/F3", 12, template.SignatoryCenter, template.SignatoryTitleY, ToPdfText(signatureText ?? DefaultSignatureText), 0.23, 0.21, 0.45);
             AddCenteredText(content, "/F3", 12, template.SignatoryCenter, template.SignatoryNameY, ToPdfText(signatory.ToUpperInvariant()), 0.23, 0.21, 0.45);
         }
 
@@ -187,6 +209,17 @@ public sealed class CertificatePdfGenerator(IHttpClientFactory httpClientFactory
         return stream.ToArray();
     }
 
+    private static byte[] FlateImageObject(byte[] bytes, int width, int height, int colors, int? softMaskId)
+    {
+        var softMask = softMaskId is > 0 ? $" /SMask {softMaskId} 0 R" : string.Empty;
+        var header = Ascii($"<< /Type /XObject /Subtype /Image /Width {width} /Height {height} /ColorSpace /{(colors == 1 ? "DeviceGray" : "DeviceRGB")} /BitsPerComponent 8 /Filter /FlateDecode /DecodeParms << /Predictor 15 /Colors {colors} /BitsPerComponent 8 /Columns {width} >>{softMask} /Length {bytes.Length} >>\nstream\n");
+        using var stream = new MemoryStream(header.Length + bytes.Length + 16);
+        stream.Write(header);
+        stream.Write(bytes);
+        stream.Write(Ascii("\nendstream"));
+        return stream.ToArray();
+    }
+
     private static byte[] ContentStreamObject(string content)
     {
         var contentBytes = Ascii(content);
@@ -225,6 +258,162 @@ public sealed class CertificatePdfGenerator(IHttpClientFactory httpClientFactory
         }
 
         return (180, 180);
+    }
+
+    private static RgbaPngData? TryReadRgbaPng(byte[] bytes)
+    {
+        try
+        {
+            if (bytes.Length < 33 || !bytes.AsSpan(0, 8).SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }))
+            {
+                return null;
+            }
+
+            var offset = 8;
+            var width = 0;
+            var height = 0;
+            var idat = new MemoryStream();
+            while (offset + 12 <= bytes.Length)
+            {
+                var length = ReadUInt32BigEndian(bytes, offset);
+                var dataOffset = offset + 8;
+                if (length > int.MaxValue || dataOffset + (long)length + 4 > bytes.Length)
+                {
+                    return null;
+                }
+
+                var chunkType = Encoding.ASCII.GetString(bytes, offset + 4, 4);
+                var chunkLength = (int)length;
+                switch (chunkType)
+                {
+                    case "IHDR" when chunkLength >= 13:
+                        width = (int)ReadUInt32BigEndian(bytes, dataOffset);
+                        height = (int)ReadUInt32BigEndian(bytes, dataOffset + 4);
+                        if (bytes[dataOffset + 8] != 8 || bytes[dataOffset + 9] != 6 || bytes[dataOffset + 12] != 0)
+                        {
+                            return null;
+                        }
+
+                        break;
+                    case "IDAT":
+                        idat.Write(bytes, dataOffset, chunkLength);
+                        break;
+                    case "IEND":
+                        offset = bytes.Length;
+                        continue;
+                }
+
+                offset = dataOffset + chunkLength + 4;
+            }
+
+            if (width <= 0 || height <= 0 || width > 10000 || height > 10000 || idat.Length == 0)
+            {
+                return null;
+            }
+
+            var rowBytes = checked(width * 4);
+            var expectedLength = checked((rowBytes + 1) * height);
+            byte[] decoded;
+            idat.Position = 0;
+            using (var zlib = new ZLibStream(idat, CompressionMode.Decompress, leaveOpen: true))
+            using (var decodedStream = new MemoryStream(expectedLength))
+            {
+                zlib.CopyTo(decodedStream);
+                decoded = decodedStream.ToArray();
+            }
+
+            if (decoded.Length < expectedLength)
+            {
+                return null;
+            }
+
+            var rgbRowBytes = checked(width * 3 + 1);
+            var alphaRowBytes = checked(width + 1);
+            var rgb = new byte[checked(rgbRowBytes * height)];
+            var alpha = new byte[checked(alphaRowBytes * height)];
+            var previous = new byte[rowBytes];
+            var current = new byte[rowBytes];
+
+            for (var row = 0; row < height; row++)
+            {
+                var sourceOffset = row * (rowBytes + 1);
+                var filter = decoded[sourceOffset];
+                for (var index = 0; index < rowBytes; index++)
+                {
+                    var raw = decoded[sourceOffset + index + 1];
+                    var left = index >= 4 ? current[index - 4] : 0;
+                    var up = previous[index];
+                    var upLeft = index >= 4 ? previous[index - 4] : 0;
+                    current[index] = filter switch
+                    {
+                        0 => raw,
+                        1 => unchecked((byte)(raw + left)),
+                        2 => unchecked((byte)(raw + up)),
+                        3 => unchecked((byte)(raw + ((left + up) / 2))),
+                        4 => unchecked((byte)(raw + PaethPredictor(left, up, upLeft))),
+                        _ => throw new InvalidDataException("Unsupported PNG filter.")
+                    };
+                }
+
+                var rgbOffset = row * rgbRowBytes;
+                var alphaOffset = row * alphaRowBytes;
+                rgb[rgbOffset] = 0;
+                alpha[alphaOffset] = 0;
+                for (var pixel = 0; pixel < width; pixel++)
+                {
+                    var sourcePixel = pixel * 4;
+                    var rgbPixel = rgbOffset + 1 + pixel * 3;
+                    rgb[rgbPixel] = current[sourcePixel];
+                    rgb[rgbPixel + 1] = current[sourcePixel + 1];
+                    rgb[rgbPixel + 2] = current[sourcePixel + 2];
+                    alpha[alphaOffset + 1 + pixel] = current[sourcePixel + 3];
+                }
+
+                (previous, current) = (current, previous);
+            }
+
+            return new RgbaPngData(Compress(rgb), Compress(alpha), width, height);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    private static int PaethPredictor(int left, int up, int upLeft)
+    {
+        var estimate = left + up - upLeft;
+        var leftDistance = Math.Abs(estimate - left);
+        var upDistance = Math.Abs(estimate - up);
+        var upLeftDistance = Math.Abs(estimate - upLeft);
+        return leftDistance <= upDistance && leftDistance <= upLeftDistance
+            ? left
+            : upDistance <= upLeftDistance ? up : upLeft;
+    }
+
+    private static byte[] Compress(byte[] bytes)
+    {
+        using var compressed = new MemoryStream();
+        using (var zlib = new ZLibStream(compressed, CompressionLevel.SmallestSize, leaveOpen: true))
+        {
+            zlib.Write(bytes);
+        }
+
+        return compressed.ToArray();
+    }
+
+    private static uint ReadUInt32BigEndian(byte[] bytes, int offset)
+        => ((uint)bytes[offset] << 24) |
+           ((uint)bytes[offset + 1] << 16) |
+           ((uint)bytes[offset + 2] << 8) |
+           bytes[offset + 3];
+
+    private static bool UsesDefaultSignature(Certificate certificate)
+    {
+        var signatory = certificate.AuthorizedSignatory?.Trim();
+        var signatureText = certificate.SignatureText?.Trim();
+        return (string.IsNullOrWhiteSpace(signatory) || signatory.Equals(DefaultSignatory, StringComparison.OrdinalIgnoreCase)) &&
+               (string.IsNullOrWhiteSpace(signatureText) || signatureText.Equals(DefaultSignatureText, StringComparison.OrdinalIgnoreCase));
     }
 
     private static byte[] RenderDocument(IReadOnlyList<byte[]> objects)
@@ -291,5 +480,11 @@ public sealed class CertificatePdfGenerator(IHttpClientFactory httpClientFactory
         double SignatoryCenter,
         double SignatoryTitleY,
         double SignatoryNameY,
-        int[] SignatoryCover);
+        int[] SignatoryCover,
+        double SignatureX,
+        double SignatureY,
+        double SignatureWidth,
+        double SignatureHeight);
+
+    private sealed record RgbaPngData(byte[] RgbBytes, byte[] AlphaBytes, int Width, int Height);
 }
