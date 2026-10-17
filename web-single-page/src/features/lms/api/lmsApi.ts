@@ -19,12 +19,18 @@ export const publicLmsApi = {
 };
 
 export const studentOnboardingApi = {
+  get() {
+    return request<{ academic: { college?: string }; registration: { executiveName?: string } }>("/api/v1/student/onboarding");
+  },
   saveRegistration(body: SavePostPaymentRegistrationRequest) {
     return request<unknown>("/api/v1/student/onboarding/registration", { method: "PUT", body });
   }
 };
 
 export const studentLmsApi = {
+  getPayments() {
+    return request<PaymentTransactionResponse[]>("/api/v1/student/lms/payments");
+  },
   createEnrollment(body: CreateEnrollmentRequest) {
     return request<EnrollmentResponse>("/api/v1/student/lms/enrollments", { method: "POST", body });
   },

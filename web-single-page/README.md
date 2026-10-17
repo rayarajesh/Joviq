@@ -19,6 +19,30 @@ Configure in `.env.local` (see `.env.example`):
 | `VITE_DEV_PROXY_TARGET` | Dev proxy target for `/api`. |
 | `VITE_LMS_APP_URL` | The full LMS app, used for the post-payment dashboard link and legal pages. |
 
+## Resume onboarding after payment
+
+Share `/onboarding` on the single-page site's domain (for example,
+`https://joviqtechnologieslms.com/onboarding`). The homepage's resume email field
+and **Open onboarding** link both lead here, without redirecting to the LMS dashboard.
+Signed-in students resume the registration form using their verified payment from
+the API. Signed-out students can sign in or set/reset a password with email OTP;
+Google sign-in is not required. Multiple paid enrollments are shown for selection.
+Pending or failed payments do not unlock registration. No new checkout is started.
+The host must serve `index.html` for `/onboarding`; Vite and the included Azure
+Static Web Apps navigation fallback already do this.
+
+After payment, the confirmation shows the verified payment reference and college.
+Registration saves college and executive name in the API. The email and Google
+choices then open the LMS `/student/account-setup` route with the payment reference.
+Email users can create a password using email OTP; Google users proceed to the
+username step. The username is the profile/display name (email remains the login).
+Only after saving this name does the flow navigate to the dashboard.
+
+Deploy the API and both frontends together, and apply EF migration
+`20261017113419_AddRegistrationExecutiveName` before starting the updated API.
+Set `VITE_LMS_APP_URL` to the full LMS origin and keep the Google callback pointing
+to the LMS callback route, which preserves the account-setup return URL.
+
 ## Shareable checkout links
 
 The enrollment form at the top of the page supports these direct links:
