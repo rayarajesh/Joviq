@@ -11,6 +11,7 @@ import { CertificateSection, Contact, Faq, FinalCta, Footer, PartnersMarquee, Pr
 import { EnrollmentDialog } from "./components/EnrollmentDialog";
 import { PaymentReturn } from "./components/PaymentReturn";
 import { BackToTop } from "./components/BackToTop";
+import { OnboardingPage } from "./components/OnboardingPage";
 import { CampusSection } from "./components/Campus";
 import type { CampusInterest } from "./components/Campus";
 import { checkoutLink, readCheckoutLink } from "./lib/checkoutLinks";
@@ -44,7 +45,7 @@ function readReturnedTransactionId() {
 export function App() {
   return (
     <AuthProvider>
-      <SinglePage />
+      {window.location.pathname.replace(/\/+$/, "") === "/onboarding" ? <OnboardingPage /> : <SinglePage />}
     </AuthProvider>
   );
 }

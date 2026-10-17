@@ -40,6 +40,18 @@ export function PaymentReturn({ orderId, paymentTransactionId, onClose, onContin
   }, [auth.isBooting, auth.user, orderId, payment, paymentTransactionId]);
 
   const signedOut = !auth.isBooting && !auth.user;
+  const verified = payment.verifiedTransaction;
+  const confirmedTarget: PaymentTarget | null = verified && auth.user ? {
+    ...paymentTarget,
+    programId: verified.programId,
+    programTitle: verified.programTitle ?? paymentTarget?.programTitle ?? "Your program",
+    planId: verified.programPlanId ?? paymentTarget?.planId ?? "",
+    planName: verified.programPlanName ?? paymentTarget?.planName ?? "",
+    paymentTransactionId: verified.id,
+    paymentMode: verified.mode === "PayInFull" ? 2 : 1,
+    amountPaid: verified.amount,
+    applicant: paymentTarget?.applicant ?? { fullName: auth.user.fullName, email: auth.user.email, phoneNumber: auth.user.phoneNumber ?? "", collegeName: "" }
+  } : paymentTarget;
 
   return (
     <div className="enroll-backdrop" role="presentation">
@@ -48,16 +60,17 @@ export function PaymentReturn({ orderId, paymentTransactionId, onClose, onContin
           {signedOut ? (
             <div className="pay-panel pay-panel--error">
               <h3>Sign in to confirm your payment</h3>
-              <p>Your session has ended. Sign in to your Joviq dashboard — your payment status is confirmed there automatically.</p>
+              <p>Your session has ended. Sign in with your payment email to resume onboarding. Do not pay again.</p>
+              <a className="btn btn--primary" href="/onboarding">Resume onboarding</a>
               <div className="pay-panel__actions"><button className="btn btn--primary" type="button" onClick={onClose}>Close</button></div>
             </div>
           ) : (
             <PaymentPanel
               payment={payment}
-              target={paymentTarget}
+              target={confirmedTarget}
               onRetry={() => void payment.checkStatus({ gatewayOrderId: orderId, paymentTransactionId })}
-              onContinueRegistration={paymentTarget && onContinueRegistration
-                ? () => onContinueRegistration(paymentTarget)
+              onContinueRegistration={confirmedTarget && onContinueRegistration
+                ? () => onContinueRegistration(confirmedTarget)
                 : undefined}
               onClose={onClose}
             />

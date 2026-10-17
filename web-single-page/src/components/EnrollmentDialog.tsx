@@ -43,6 +43,8 @@ type PaymentChoice = "token" | "full";
 type RegistrationStep = "details" | "signin" | "reset" | "payment" | "registration" | "account-choice";
 
 type RegistrationDetails = {
+  collegeName: string;
+  executiveName: string;
   fullName: string;
   phoneNumber: string;
   whatsappNumber: string;
@@ -82,6 +84,8 @@ function getStartMonthOptions(today: Date) {
 
 function createRegistrationDetails(fullName = "", phoneNumber = ""): RegistrationDetails {
   return {
+    collegeName: "",
+    executiveName: "",
     fullName,
     phoneNumber,
     whatsappNumber: phoneNumber,
@@ -136,10 +140,10 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [notice, setNotice] = useState("");
-  const [registration, setRegistration] = useState<RegistrationDetails>(() => createRegistrationDetails(
-    initialValues?.fullName ?? user?.fullName ?? "",
-    initialValues?.phoneNumber ?? user?.phoneNumber ?? ""
-  ));
+  const [registration, setRegistration] = useState<RegistrationDetails>(() => ({
+    ...createRegistrationDetails(initialValues?.fullName ?? user?.fullName ?? "", initialValues?.phoneNumber ?? user?.phoneNumber ?? ""),
+    collegeName: initialValues?.collegeName ?? ""
+  }));
   const [retryAt, setRetryAt] = useState(0);
   const [retrySeconds, setRetrySeconds] = useState(0);
   const submittingRef = useRef(false);
@@ -216,6 +220,18 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
     void run(continueToPayment);
   }, [autoStart, isBooting]);
 
+  useEffect(() => {
+    if (!initialPostPaymentTarget || !user) return;
+    let active = true;
+    studentOnboardingApi.get().then(({ data }) => {
+      if (active) setRegistration((current) => ({ ...current,
+        collegeName: current.collegeName || data.academic?.college || "",
+        executiveName: current.executiveName || data.registration?.executiveName || ""
+      }));
+    }).catch(() => { /* The student can enter missing details manually. */ });
+    return () => { active = false; };
+  }, [initialPostPaymentTarget, user?.id]);
+
   if (hideAutomaticCheckout) return null;
 
   function goToPayment(target: PaymentTarget) {
@@ -234,7 +250,8 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
       ...current,
       fullName: current.fullName || user?.fullName || applicant?.fullName || fullName,
       phoneNumber: current.phoneNumber || user?.phoneNumber || applicant?.phoneNumber || phoneNumber,
-      whatsappNumber: current.whatsappNumber || user?.phoneNumber || applicant?.phoneNumber || phoneNumber
+      whatsappNumber: current.whatsappNumber || user?.phoneNumber || applicant?.phoneNumber || phoneNumber,
+      collegeName: current.collegeName || applicant?.collegeName || collegeName
     }));
     setErrorMessage("");
     setStep("registration");
@@ -251,6 +268,9 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
   async function submitRegistrationDetails(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     await run(async () => {
+      if (!registration.collegeName.trim() || !registration.executiveName.trim()) {
+        throw new Error("Enter your college name and executive name.");
+      }
       const category = programCategories.find((item) => item.domain === registration.categoryName);
       const selectedProgram = category?.programs.find((program) => program.slug === registration.programSlug);
       if (!category || !selectedProgram) throw new Error("Choose a category and program to continue.");
@@ -291,6 +311,8 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
       };
       savePostPaymentRegistration(savedDetails);
       await studentOnboardingApi.saveRegistration({
+        collegeName: registration.collegeName.trim(),
+        executiveName: registration.executiveName.trim(),
         fullName: savedDetails.fullName,
         phoneNumber: savedDetails.phoneNumber,
         whatsappNumber: savedDetails.whatsappNumber,
@@ -318,11 +340,16 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
 
   function redirectToMainWebLogin() {
     const mainWebUrl = env.lmsAppUrl || "http://localhost:5173";
-    window.location.assign(`${mainWebUrl}/login?returnUrl=${encodeURIComponent("/dashboard")}`);
+    window.location.assign(`${mainWebUrl}${accountSetupPath("email")}`);
+  }
+
+  function accountSetupPath(method: "email" | "google") {
+    const search = new URLSearchParams({ method, payment: targetRef.current?.paymentTransactionId ?? "" });
+    return `/student/account-setup?${search}`;
   }
 
   function continueWithGoogle() {
-    window.location.assign(authApi.oauthStartUrl({ phoneNumber: registration.phoneNumber }));
+    window.location.assign(authApi.oauthStartUrl({ phoneNumber: registration.phoneNumber, allowSignUp: false, returnUrl: accountSetupPath("google") }));
   }
 
   /** Mirrors /web's continueToCheckout: authoritative pricing, checkout account, then payment. */
@@ -678,6 +705,18 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
                       <option value="Graduated">Graduated</option>
                     </select>
                   </label>
+                  <label className="field">
+                    <span>Email</span>
+                    <input type="email" value={enrollmentEmail} readOnly />
+                  </label>
+                  <label className="field">
+                    <span>College name <b>*</b></span>
+                    <input required maxLength={200} value={registration.collegeName} onChange={(event) => setRegistration((current) => ({ ...current, collegeName: event.target.value }))} />
+                  </label>
+                  <label className="field">
+                    <span>Executive name <b>*</b></span>
+                    <input required maxLength={160} value={registration.executiveName} onChange={(event) => setRegistration((current) => ({ ...current, executiveName: event.target.value }))} />
+                  </label>
                 </div>
               </fieldset>
 
@@ -723,13 +762,13 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
               <div className="pay-panel__icon account-choice-panel__icon"><CheckCircle2 size={34} /></div>
               <span className="eyebrow">Registration saved</span>
               <h3>Course registration complete</h3>
-              <p>Your course and preferred start date are saved. Continue to the main Joviq website to access your student dashboard.</p>
+              <p>Your onboarding details are saved. Choose Google or email to set up your login, then choose the name shown on your dashboard.</p>
               <div className="account-choice-panel__summary">
                 <span><GraduationCap size={16} /><strong>{selectedRegistrationProgram?.title ?? "Selected program"}</strong></span>
                 <span><CalendarDays size={16} /><strong>{registration.startDate}</strong></span>
               </div>
               <div className="pay-panel__actions account-choice-panel__actions">
-                <button className="btn btn--primary" onClick={redirectToMainWebLogin} type="button"><LogIn size={18} /> Continue to website</button>
+                <button className="btn btn--primary" onClick={redirectToMainWebLogin} type="button"><LogIn size={18} /> Continue with email</button>
                 <button className="btn btn--ghost account-choice-panel__google" onClick={continueWithGoogle} type="button"><Globe2 size={18} /> Continue with Google</button>
               </div>
               <div className="enroll-note"><MessageCircle size={17} /><span>After sign-in, your saved onboarding details will be ready in the main Joviq web app.</span></div>
@@ -752,7 +791,7 @@ export function PaymentPanel({ payment, target, onBack, onRetry, onContinueRegis
   onClose: () => void;
 }) {
   const { phase, message } = payment;
-  const amountPaid = payment.checkout?.transaction.amount ?? target?.amountPaid;
+  const amountPaid = payment.verifiedTransaction?.amount ?? payment.checkout?.transaction.amount ?? target?.amountPaid;
   const title = {
     idle: "Preparing your secure checkout",
     preparing: "Opening secure checkout",
@@ -760,11 +799,11 @@ export function PaymentPanel({ payment, target, onBack, onRetry, onContinueRegis
     pending: "Payment is being processed",
     closed: "Checkout closed",
     development: "Test checkout is ready",
-    success: "Onboarding successful!",
+    success: "Payment Successful!",
     error: "We could not complete checkout"
   }[phase];
   const text = phase === "success"
-    ? "Your payment was successful and your onboarding is confirmed. Review your details, then continue onboarding."
+    ? "Thanks for choosing Joviq Technologies. Your payment is confirmed. Review your details, then continue onboarding."
     : phase === "confirming"
       ? "Checking with your bank. Please keep this window open — this usually takes a few seconds."
       : message || "Your payment dialog will open here. Please keep this window open.";
@@ -784,6 +823,8 @@ export function PaymentPanel({ payment, target, onBack, onRetry, onContinueRegis
           <div><small>Full name</small><strong>{target?.applicant.fullName ?? "Your Joviq account"}</strong></div>
           <div><small>Email</small><strong>{target?.applicant.email ?? payment.checkout?.transaction.studentEmail ?? "Saved at checkout"}</strong></div>
           <div><small>Phone number</small><strong>{target?.applicant.phoneNumber ?? "Saved at checkout"}</strong></div>
+          <div><small>College name</small><strong>{target?.applicant.collegeName || "Add during onboarding"}</strong></div>
+          <div><small>Payment ID</small><strong>{payment.verifiedTransaction?.gatewayPaymentId || payment.verifiedTransaction?.id || payment.checkout?.transaction.gatewayPaymentId || payment.checkout?.transaction.id || target?.paymentTransactionId || "Confirmed by gateway"}</strong></div>
           <div><small>Enrolled level</small><strong>{target?.planName ?? "Selected plan"}</strong></div>
           <div><small>Amount paid</small><strong>{amountPaid === undefined ? "Confirmed" : formatInr(amountPaid)}</strong></div>
         </div>
