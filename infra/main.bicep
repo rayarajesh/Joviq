@@ -251,6 +251,8 @@ var apiSettings = [
   { name: 'Cors__AllowedOrigins__3', value: origins[length(origins) > 3 ? 3 : 0] }
   { name: 'Cors__AllowedOrigins__4', value: origins[length(origins) > 4 ? 4 : 0] }
   { name: 'Cors__AllowedOrigins__5', value: origins[length(origins) > 5 ? 5 : 0] }
+  { name: 'Cors__AllowedOrigins__6', value: origins[length(origins) > 6 ? 6 : 0] }
+  { name: 'Cors__AllowedOrigins__7', value: origins[length(origins) > 7 ? 7 : 0] }
   { name: 'ExternalAuth__FrontendCallbackUrl', value: '${origin}/auth/google/callback' }
   { name: 'Payments__FrontendBaseUrl', value: origin }
   { name: 'Payments__SinglePageOrigins__0', value: 'https://joviqtechnologieslms.com' }
