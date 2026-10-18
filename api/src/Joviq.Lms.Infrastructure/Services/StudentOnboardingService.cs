@@ -89,6 +89,11 @@ public sealed class StudentOnboardingService(
         pair.Profile.PreferredProgramSlug = RequiredText(request.ProgramSlug, nameof(UpdateRegistrationDetailsRequest.ProgramSlug), 160);
         pair.Profile.PreferredProgramTitle = RequiredText(request.ProgramTitle, nameof(UpdateRegistrationDetailsRequest.ProgramTitle), 200);
         pair.Profile.PreferredStartDate = request.StartDate;
+        // Optional for compatibility with existing clients; omitted fields retain saved values.
+        if (request.CollegeName is not null)
+            pair.Profile.College = RequiredText(request.CollegeName, nameof(request.CollegeName), 200);
+        if (request.ExecutiveName is not null)
+            pair.Profile.ExecutiveName = RequiredText(request.ExecutiveName, nameof(request.ExecutiveName), 160);
         MarkInProgress(pair.User);
 
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -249,7 +254,8 @@ public sealed class StudentOnboardingService(
                 profile.PreferredProgramSlug,
                 profile.PreferredProgramTitle,
                 profile.PreferredStartDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                profile.CurrentYearOfStudy),
+                profile.CurrentYearOfStudy,
+                profile.ExecutiveName),
             completionPercentage,
             missingFields);
     }

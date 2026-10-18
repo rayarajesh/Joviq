@@ -15,14 +15,14 @@ import {
 } from "lucide-react";
 import { defaultProgramPlans } from "../data/siteContent";
 import type { ProgramPlan } from "../data/siteContent";
-import { authApi } from "../features/auth/api/authApi";
-import { env } from "../config/env";
+import { openOnboarding } from "../lib/onboardingLink";
 import { formatInr } from "./format";
 import { planLink, readPlanLink } from "../lib/planLinks";
 
 export type HeroPaymentChoice = "token" | "full";
 
 export type HeroCheckoutDetails = {
+  programSlug: string;
   plan: ProgramPlan;
   paymentChoice: HeroPaymentChoice;
   fullName: string;
@@ -32,18 +32,12 @@ export type HeroCheckoutDetails = {
   acceptedTerms: boolean;
 };
 
-function GoogleMark() {
-  return (
-    <svg aria-hidden="true" className="hero-resume-strip__google-mark" viewBox="0 0 24 24">
-      <path fill="#4285F4" d="M21.35 12.27c0-.72-.06-1.25-.2-1.8H12v3.41h5.37a4.58 4.58 0 0 1-1.99 3.01v2.48h3.22c1.89-1.74 2.75-4.3 2.75-7.1Z" />
-      <path fill="#34A853" d="M12 21.6c2.7 0 4.96-.89 6.61-2.42l-3.22-2.48c-.9.6-2.05.96-3.39.96-2.61 0-4.82-1.76-5.61-4.13H3.06v2.56A9.99 9.99 0 0 0 12 21.6Z" />
-      <path fill="#FBBC05" d="M6.39 13.53A6 6 0 0 1 6.08 12c0-.53.11-1.05.31-1.53V7.91H3.06A9.93 9.93 0 0 0 2 12c0 1.47.35 2.86 1.06 4.09l3.33-2.56Z" />
-      <path fill="#EA4335" d="M12 6.34c1.47 0 2.79.5 3.83 1.49l2.87-2.87C16.95 3.35 14.7 2.4 12 2.4a9.99 9.99 0 0 0-8.94 5.51l3.33 2.56C7.18 8.1 9.39 6.34 12 6.34Z" />
-    </svg>
-  );
-}
+// The single-page landing page promotes this primary program. Other programs
+// can still pass their own slug through the course cards and checkout links.
+const defaultHeroProgramSlug = "full-stack-web-development";
 
-export function Hero({ onCheckout }: { onCheckout: (details: HeroCheckoutDetails) => void }) {
+export function Hero({ onCheckout, checkoutError }: { onCheckout: (details: HeroCheckoutDetails) => void; checkoutError?: string }) {
+  const selectedProgramSlug = defaultHeroProgramSlug;
   const [selectedPlanCode, setSelectedPlanCode] = useState(() => readPlanLink(window.location.pathname)?.planCode ?? "INTERMEDIATE");
   const [paymentChoice, setPaymentChoice] = useState<HeroPaymentChoice>(() => readPlanLink(window.location.pathname)?.paymentChoice ?? "token");
   const [fullName, setFullName] = useState("");
@@ -73,6 +67,7 @@ export function Hero({ onCheckout }: { onCheckout: (details: HeroCheckoutDetails
   const isValidPhone = /^[6-9][0-9]{9}$/.test(phoneNumber);
   const canContinueToPayment = Boolean(
     selectedPlan &&
+    selectedProgramSlug &&
     fullName.trim() &&
     isValidPhone &&
     isValidEmail &&
@@ -164,6 +159,7 @@ export function Hero({ onCheckout }: { onCheckout: (details: HeroCheckoutDetails
     if (!canContinueToPayment) return;
     setPopupOpen(false);
     onCheckout({
+      programSlug: selectedProgramSlug,
       plan: selectedPlan,
       paymentChoice,
       fullName: fullName.trim(),
@@ -182,12 +178,7 @@ export function Hero({ onCheckout }: { onCheckout: (details: HeroCheckoutDetails
     }
 
     setResumeError("");
-    const mainWebUrl = env.lmsAppUrl || "http://localhost:5173";
-    window.location.assign(`${mainWebUrl}/login?returnUrl=${encodeURIComponent("/student/onboarding")}&email=${encodeURIComponent(normalizedEmail)}`);
-  }
-
-  function continueWithGoogle() {
-    window.location.assign(authApi.oauthStartUrl({ allowSignUp: false, acceptedTerms: false, returnUrl: "/student/onboarding" }));
+    openOnboarding(normalizedEmail);
   }
 
   return (
@@ -257,9 +248,7 @@ export function Hero({ onCheckout }: { onCheckout: (details: HeroCheckoutDetails
                 <button type="button" onClick={resumeOnboarding}>Continue <ArrowRight size={16} /></button>
               </div>
               {resumeError ? <small className="hero-resume-strip__error" role="alert">{resumeError}</small> : null}
-              <button className="hero-resume-strip__google" type="button" onClick={continueWithGoogle}>
-                <GoogleMark /> Continue with Google
-              </button>
+              <span className="hero-resume-strip__help">Use the same email you used for payment.</span>
             </div>
           </div>
 
@@ -318,6 +307,7 @@ export function Hero({ onCheckout }: { onCheckout: (details: HeroCheckoutDetails
                 <input id="hero-terms" checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.currentTarget.checked)} required type="checkbox" />
                 <label htmlFor="hero-terms">I agree to the <button className="hero-payment__terms-link" onClick={(event) => { event.preventDefault(); event.stopPropagation(); setTermsOpen(true); }} type="button">Terms &amp; Conditions</button></label>
               </div>
+              {checkoutError ? <p className="enroll-error" role="alert">{checkoutError}</p> : null}
               <button className="hero-payment__submit" disabled={!canContinueToPayment} type="submit"><CreditCard size={15} /> {selectedPlan ? paymentChoice === "token" ? `Pay securely ${amountLabel} & reserve your seat` : `Pay securely ${amountLabel}` : "Continue to payment"}</button>
             </section>
           </div>

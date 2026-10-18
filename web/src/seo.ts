@@ -1,11 +1,14 @@
 import { allPrograms } from './data/siteContent';
 import { companyInformation } from './data/companyInformation';
 import { socialProfileUrls } from './components/socialLinks';
+import { getProgramSocialImage } from './data/programVisuals';
 
 export const siteUrl = 'https://joviqtechnologies.com';
 export const siteName = 'Joviq Technologies';
 const alternateNames = ['Joviq', 'JoviQ Technologies'];
-export const publicPages = [
+type SeoPage = { path: string; title: string; description: string; image?: string; imageAlt?: string };
+
+export const publicPages: SeoPage[] = [
   { path: '/', title: 'Joviq Technologies | Online Training and Career Skills', description: 'Joviq Technologies is a Hyderabad-based training company offering technology and business courses with hands-on projects, expert guidance, and career preparation.' },
   { path: '/programs', title: 'Training Programs', description: 'Explore technology and business training programs at Joviq Technologies. Compare skills, curriculum, projects, and learning options.' },
   { path: '/about', title: 'About Joviq Technologies', description: 'Learn about Joviq Technologies and our approach to practical learning, professional skills, and career-focused training.' },
@@ -20,7 +23,13 @@ export const publicPages = [
   { path: '/terms', title: 'Terms and Conditions', description: 'Read the terms and conditions for using Joviq Technologies programs and services.' },
   { path: '/cookie-policy', title: 'Cookie Policy', description: 'Read the Joviq Technologies cookie policy and information about your cookie preferences.' },
   { path: '/return-policy', title: 'Refund Policy', description: 'Read the refund and cancellation policy for Joviq Technologies programs.' },
-  ...allPrograms.filter((program, index, programs) => programs.findIndex(item => item.slug === program.slug) === index).map(program => ({ path: `/programs/${program.slug}`, title: `${program.title} Training`, description: `${program.shortDescription} Explore the curriculum and practical projects at Joviq Technologies.`.slice(0, 170) }))
+  ...allPrograms.filter((program, index, programs) => programs.findIndex(item => item.slug === program.slug) === index).map(program => ({
+    path: `/programs/${program.slug}`,
+    title: `${program.title} Training`,
+    description: `${program.shortDescription} Explore the curriculum and practical projects at Joviq Technologies.`.slice(0, 170),
+    image: getProgramSocialImage(program.slug, program.domain),
+    imageAlt: `${program.title} training program at Joviq Technologies`
+  }))
 ];
 
 export function pageSeo(pathname: string, indexable = true) {
@@ -32,7 +41,9 @@ export function pageSeo(pathname: string, indexable = true) {
     description: page?.description ?? 'Secure account access for Joviq Technologies learners.',
     canonical: `${siteUrl}${path === '/' ? '/' : path}`,
     robots: page && indexable ? 'index, follow, max-image-preview:large' : 'noindex, follow',
-    image: `${siteUrl}/assets/hero-student-panels.png`,
+    image: page?.image ? `${siteUrl}${page.image}` : `${siteUrl}/assets/hero-student-panels.png`,
+    imageAlt: page?.imageAlt ?? `${siteName} training and career programs`,
+    imageType: page?.image?.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg',
     structuredData: page ? {
       '@context': 'https://schema.org',
       '@graph': [

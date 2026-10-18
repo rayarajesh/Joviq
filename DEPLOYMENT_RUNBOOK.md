@@ -77,8 +77,10 @@ Use `scripts/configure-integrations.mjs` with a private JSON file under `.deploy
   "settings": [
     { "name": "EmailSettings__SmtpServer", "value": "smtp.gmail.com" },
     { "name": "EmailSettings__Port", "value": "587" },
-    { "name": "EmailSettings__SenderEmail", "value": "joviqtechnologies@gmail.com" },
-    { "name": "EmailSettings__Username", "value": "joviqtechnologies@gmail.com" },
+    { "name": "EmailSettings__SenderName", "value": "Joviq Technologies" },
+    { "name": "EmailSettings__SenderEmail", "value": "notifications@joviqtechnologies.com" },
+    { "name": "EmailSettings__ReplyToEmail", "value": "support@joviqtechnologies.com" },
+    { "name": "EmailSettings__Username", "value": "notifications@joviqtechnologies.com" },
     { "name": "EmailSettings__Password", "value": "@Microsoft.KeyVault(SecretUri=https://YOUR-VAULT.vault.azure.net/secrets/smtp-password)" },
     { "name": "ExternalAuth__Google__ClientId", "value": "YOUR_GOOGLE_CLIENT_ID" },
     { "name": "ExternalAuth__Google__ClientSecret", "value": "@Microsoft.KeyVault(SecretUri=https://YOUR-VAULT.vault.azure.net/secrets/google-client-secret)" },
@@ -95,9 +97,21 @@ node scripts/configure-integrations.mjs dev .deploy-state/integrations-dev.json
 node scripts/configure-integrations.mjs production .deploy-state/integrations-production.json
 ```
 
-Omit unused integrations and configure sandbox keys in dev. Set the Google authorized redirect URI to `<API_ORIGIN>/signin-google`; register the actual payment webhook URLs with the chosen gateway. A Gmail account password is not an SMTP app password. Do not put credentials in chat, source files, or frontend `VITE_*` variables.
+Omit unused integrations and configure sandbox keys in dev. Set the Google authorized redirect URI to `<API_ORIGIN>/signin-google`; register the actual payment webhook URLs with the chosen gateway. A Gmail account password is not an SMTP app password. The authenticated SMTP account and `EmailSettings__SenderEmail` must be the same verified mailbox or an explicitly authorised alias. Prefer a domain mailbox such as `notifications@joviqtechnologies.com` (or a verified transactional-email provider identity) instead of a personal `@gmail.com` From address. Publish SPF for every service that sends mail, enable a 2048-bit DKIM key for the sending domain, and keep DMARC aligned with the From domain before testing delivery. Do not put credentials in chat, source files, or frontend `VITE_*` variables.
 
 The script also persists nonsecret settings/Key Vault references in `AZURE_INTEGRATION_SETTINGS` so infrastructure reapplication and local bootstrap preserve them.
+
+### Email deliverability checklist
+
+The application sends transactional mail through authenticated SMTP. SMTP authentication alone does not guarantee inbox placement. Configure the sender mailbox and the DNS records for the same sending domain before testing certificate, enrollment, OTP, and notification mail:
+
+1. Set `EmailSettings__SenderEmail` and `EmailSettings__Username` to the same verified mailbox, or to a provider-authorised alias. Set `EmailSettings__ReplyToEmail` to a monitored mailbox on the same domain.
+2. Publish one SPF TXT record for the domain. For Google Workspace/Gmail SMTP, it normally includes `include:_spf.google.com`; combine it with any existing sender services instead of publishing multiple SPF records.
+3. Enable DKIM in the mail provider and publish the exact selector TXT/CNAME record it provides. The selector is provider-specific and must match the provider's signing configuration.
+4. Publish a DMARC TXT record at `_dmarc` with an aligned policy, for example `v=DMARC1; p=quarantine; rua=mailto:dmarc@joviqtechnologies.com`. Use a mailbox that exists and monitor the aggregate reports before moving to `p=reject`.
+5. Send a fresh test email to Gmail, open `Show original`, and confirm `SPF: PASS`, `DKIM: PASS`, and `DMARC: PASS`. Also verify that the `From` domain matches the authenticated sender domain.
+
+Do not put SMTP passwords in `appsettings*.json`, source control, or frontend variables. Use environment variables locally (`EmailSettings__Password`) and the Key Vault reference shown above in Azure. Rotate any password that was previously stored in a local settings file.
 
 ### Production Cashfree
 

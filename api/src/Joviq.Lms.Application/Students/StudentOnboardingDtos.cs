@@ -52,7 +52,8 @@ public sealed record RegistrationDetailsResponse(
     string? ProgramSlug,
     string? ProgramTitle,
     string? StartDate,
-    string? CurrentYearOfStudy);
+    string? CurrentYearOfStudy,
+    string? ExecutiveName = null);
 
 public sealed record UpdatePersonalDetailsRequest
 {
@@ -88,6 +89,12 @@ public sealed record UpdateAcademicDetailsRequest
 
 public sealed record UpdateRegistrationDetailsRequest
 {
+    [MaxLength(200)]
+    public string? CollegeName { get; init; }
+
+    [MaxLength(160)]
+    public string? ExecutiveName { get; init; }
+
     [Required, MaxLength(160)]
     public string FullName { get; init; } = string.Empty;
 

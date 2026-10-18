@@ -11,6 +11,7 @@ import { CertificateSection, Contact, Faq, FinalCta, Footer, PartnersMarquee, Pr
 import { EnrollmentDialog } from "./components/EnrollmentDialog";
 import { PaymentReturn } from "./components/PaymentReturn";
 import { BackToTop } from "./components/BackToTop";
+import { OnboardingPage } from "./components/OnboardingPage";
 import { CampusSection } from "./components/Campus";
 import type { CampusInterest } from "./components/Campus";
 import { checkoutLink, readCheckoutLink } from "./lib/checkoutLinks";
@@ -44,7 +45,7 @@ function readReturnedTransactionId() {
 export function App() {
   return (
     <AuthProvider>
-      <SinglePage />
+      {window.location.pathname.replace(/\/+$/, "") === "/onboarding" ? <OnboardingPage /> : <SinglePage />}
     </AuthProvider>
   );
 }
@@ -55,6 +56,7 @@ function SinglePage() {
   const [returnedOrderId, setReturnedOrderId] = useState(readReturnedOrderId);
   const [returnedTransactionId, setReturnedTransactionId] = useState(readReturnedTransactionId);
   const [postPaymentTarget, setPostPaymentTarget] = useState<PaymentTarget | null>(null);
+  const [heroCheckoutError, setHeroCheckoutError] = useState("");
   const [enrollment, setEnrollment] = useState<Enrollment | null>(() => readCheckoutLink(window.location.search, defaultProgramPlans));
   const [contactInterest, setContactInterest] = useState<CampusInterest | "program">("program");
   useReveal();
@@ -105,7 +107,8 @@ function SinglePage() {
   }
 
   function openHeroCheckout(details: HeroCheckoutDetails) {
-    setEnrollment({ plan: details.plan, prefill: details, autoStart: true });
+    setHeroCheckoutError("");
+    setEnrollment({ plan: details.plan, programSlug: details.programSlug, prefill: details, autoStart: true });
   }
 
   function closeReturn() {
@@ -132,7 +135,7 @@ function SinglePage() {
       <a className="skip-link" href="#programs">Skip to programs</a>
       <Navbar />
       <main>
-        <Hero onCheckout={openHeroCheckout} />
+        <Hero onCheckout={openHeroCheckout} checkoutError={heroCheckoutError} />
         <PartnersMarquee />
         <ProgramExplorer query={query} onQueryChange={setQuery} selectedSlug={selectedSlug} onSelect={openCourse} />
         {selectedSlug ? (
@@ -170,6 +173,7 @@ function SinglePage() {
           onPaymentChoiceChange={updatePaymentChoice}
           initialAcceptedTerms={enrollment.prefill?.acceptedTerms}
           autoStart={enrollment.autoStart}
+          onAutoStartError={enrollment.autoStart ? (message) => { setHeroCheckoutError(message); setEnrollment(null); } : undefined}
           onClose={closeEnrollment}
         />
       ) : null}

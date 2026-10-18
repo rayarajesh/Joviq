@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { useAuth } from "../auth/context/useAuth";
 import { studentLmsApi } from "./api/lmsApi";
-import type { PaymentCheckoutResponse } from "./api/lmsTypes";
+import type { PaymentCheckoutResponse, PaymentTransactionResponse } from "./api/lmsTypes";
 import { clearPendingEnrollment } from "./checkout";
 import type { EnrollmentApplicant } from "./checkout";
 import { loadCashfreeScript, loadRazorpayScript } from "./paymentGateways";
@@ -52,6 +52,7 @@ export function usePaymentFlow() {
   const [phase, setPhase] = useState<PaymentPhase>("idle");
   const [message, setMessage] = useState("");
   const [checkout, setCheckout] = useState<PaymentCheckoutResponse | null>(null);
+  const [verifiedTransaction, setVerifiedTransaction] = useState<PaymentTransactionResponse | null>(null);
   const enrollmentIdRef = useRef<string | null>(null);
   const busyRef = useRef(false);
 
@@ -68,7 +69,8 @@ export function usePaymentFlow() {
     setMessage("");
     for (let attempt = 1; attempt <= attempts; attempt += 1) {
       try {
-        await studentLmsApi.verifyPayment(target);
+        const verified = await studentLmsApi.verifyPayment(target);
+        setVerifiedTransaction(verified.data);
         await finishPaidCheckout();
         return "paid" as const;
       } catch (error) {
@@ -87,12 +89,13 @@ export function usePaymentFlow() {
     setPhase("confirming");
     setMessage("");
     try {
-      await studentLmsApi.verifyPayment({
+      const verified = await studentLmsApi.verifyPayment({
         paymentTransactionId: current.transaction.id,
         gatewayOrderId: gatewayResponse.razorpay_order_id,
         gatewayPaymentId: gatewayResponse.razorpay_payment_id,
         gatewaySignature: gatewayResponse.razorpay_signature
       });
+      setVerifiedTransaction(verified.data);
       await finishPaidCheckout();
     } catch (error) {
       setPhase("error");
@@ -141,6 +144,7 @@ export function usePaymentFlow() {
     if (busyRef.current) return;
     busyRef.current = true;
     setPhase("preparing");
+    setVerifiedTransaction(null);
     setMessage("");
     void loadCashfreeScript().catch(() => undefined);
 
@@ -250,6 +254,7 @@ export function usePaymentFlow() {
   const reset = useCallback(() => {
     enrollmentIdRef.current = null;
     setCheckout(null);
+    setVerifiedTransaction(null);
     setPhase("idle");
     setMessage("");
   }, []);
@@ -264,5 +269,5 @@ export function usePaymentFlow() {
     }
   }, [checkout, phase]);
 
-  return { phase, message, checkout, startPayment, checkStatus, completeTestPayment, reset, cancel };
+  return { phase, message, checkout, verifiedTransaction, startPayment, checkStatus, completeTestPayment, reset, cancel };
 }

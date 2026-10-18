@@ -8,9 +8,11 @@ public sealed class EmailSettingsOptions
 
     public int Port { get; init; } = 587;
 
-    public string SenderName { get; init; } = string.Empty;
+    public string SenderName { get; init; } = "Joviq Technologies";
 
     public string SenderEmail { get; init; } = string.Empty;
+
+    public string ReplyToEmail { get; init; } = string.Empty;
 
     public string Username { get; init; } = string.Empty;
 

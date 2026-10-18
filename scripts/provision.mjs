@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url';
 
 export function integrations(value = '[]') {
   const settings = JSON.parse(value || '[]');
-  const allowed = /^(EmailSettings__(SmtpServer|Port|SenderName|SenderEmail|Username|Password)|ExternalAuth__Google__(ClientId|ClientSecret)|Payments__(Provider|KeyId|KeySecret|WebhookSecret|CashfreeEnvironment|Environment))$/;
+  const allowed = /^(EmailSettings__(SmtpServer|Port|SenderName|SenderEmail|ReplyToEmail|Username|Password)|ExternalAuth__Google__(ClientId|ClientSecret)|Payments__(Provider|KeyId|KeySecret|WebhookSecret|CashfreeEnvironment|Environment))$/;
   if (!Array.isArray(settings) || settings.some(setting => !allowed.test(setting.name) || typeof setting.value !== 'string'))
     throw new Error('Invalid integration settings');
   for (const setting of settings) {

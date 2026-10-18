@@ -64,14 +64,14 @@ const TEMPLATES: Record<"Training" | "Internship", Template> = {
   },
 };
 
-/** The student's name is the certificate's focal point: a large script face. */
+/** Match the bold italic typography used by the certificate artwork/PDF. */
 const NAME_SIZE = 84;
-const NAME_FONT = `400 ${NAME_SIZE}px "Joviq Certificate Script", cursive`;
-/** Program and both dates share one font and size, sized to the certificate's own sentences. */
+const NAME_FONT = `italic 700 ${NAME_SIZE}px Arial, Helvetica, sans-serif`;
+/** Program and both dates share the same font and size as the printed certificate. */
 const FIELD_SIZE = 24;
-const FIELD_FONT = `600 ${FIELD_SIZE}px Poppins, sans-serif`;
+const FIELD_FONT = `italic 700 ${FIELD_SIZE}px Arial, Helvetica, sans-serif`;
 /** Matches the printed sentence text ("…from", "to") in the original artwork. */
-const CONNECTOR_SIZE = 26;
+const CONNECTOR_SIZE = FIELD_SIZE;
 const ID_SIZE = 29;
 const ID_FONT = `400 ${ID_SIZE}px 'Times New Roman', Times, serif`;
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -106,7 +106,7 @@ function formatCertificateName(value?: string) {
     .replace(/(^|[\s'-])([a-z])/g, (_, separator: string, letter: string) => `${separator}${letter.toUpperCase()}`);
 }
 
-const CERTIFICATE_FONTS = [NAME_FONT, FIELD_FONT, `500 ${CONNECTOR_SIZE}px "Joviq Certificate Body"`];
+const CERTIFICATE_FONTS = [NAME_FONT, FIELD_FONT];
 
 /** Loads the certificate fonts, then re-measures so fitted sizes use the real glyphs. */
 function useFontsReady() {

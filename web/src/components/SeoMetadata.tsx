@@ -19,8 +19,27 @@ export function SeoMetadata() {
     }
     meta('description', seo.description);
     meta('robots', seo.robots);
-    for (const [key, value] of Object.entries({ 'og:title': seo.title, 'og:description': seo.description, 'og:url': seo.canonical, 'og:image': seo.image, 'og:site_name': siteName, 'og:type': 'website', 'og:locale': 'en_IN' })) meta(key, value, true);
-    for (const [key, value] of Object.entries({ 'twitter:card': 'summary_large_image', 'twitter:title': seo.title, 'twitter:description': seo.description, 'twitter:image': seo.image })) meta(key, value);
+    for (const [key, value] of Object.entries({
+      'og:title': seo.title,
+      'og:description': seo.description,
+      'og:url': seo.canonical,
+      'og:image': seo.image,
+      'og:image:secure_url': seo.image,
+      'og:image:type': seo.imageType,
+      'og:image:width': '1200',
+      'og:image:height': '630',
+      'og:image:alt': seo.imageAlt,
+      'og:site_name': siteName,
+      'og:type': 'website',
+      'og:locale': 'en_IN'
+    })) meta(key, value, true);
+    for (const [key, value] of Object.entries({
+      'twitter:card': 'summary_large_image',
+      'twitter:title': seo.title,
+      'twitter:description': seo.description,
+      'twitter:image': seo.image,
+      'twitter:image:alt': seo.imageAlt
+    })) meta(key, value);
     let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
     if (!canonical) {
       canonical = document.createElement('link');

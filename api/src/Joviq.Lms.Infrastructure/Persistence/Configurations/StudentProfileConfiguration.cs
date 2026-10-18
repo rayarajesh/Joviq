@@ -11,6 +11,7 @@ public sealed class StudentProfileConfiguration : IEntityTypeConfiguration<Stude
         builder.ToTable("student_profiles");
         builder.HasKey(x => x.UserId);
         builder.Property(x => x.College).HasMaxLength(200);
+        builder.Property(x => x.ExecutiveName).HasMaxLength(160);
         builder.Property(x => x.Degree).HasMaxLength(120);
         builder.Property(x => x.Branch).HasMaxLength(120);
         builder.Property(x => x.WhatsAppNumber).HasMaxLength(20);

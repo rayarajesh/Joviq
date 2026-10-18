@@ -8,6 +8,8 @@ public sealed class StudentProfile : AuditableEntity
 
     public string? College { get; set; }
 
+    public string? ExecutiveName { get; set; }
+
     public string? Degree { get; set; }
 
     public string? Branch { get; set; }

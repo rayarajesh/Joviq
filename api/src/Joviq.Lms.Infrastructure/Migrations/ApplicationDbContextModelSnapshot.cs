@@ -1297,6 +1297,10 @@ namespace Joviq.Lms.Infrastructure.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
+                    b.Property<string>("ExecutiveName")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
                     b.Property<string>("GitHubUrl")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");

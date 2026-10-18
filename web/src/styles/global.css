@@ -32072,3 +32072,11 @@ button.hero-button {
     justify-self: start;
   }
 }
+.account-setup-page { min-height: 80vh; padding: 36px 18px; background: linear-gradient(135deg, #f4f0ff, #ecfbff); }
+.account-setup-card { display: grid; gap: 18px; width: min(100%, 560px); margin: 0 auto; padding: clamp(20px, 5vw, 36px); border-radius: 24px; background: #fff; color: #242140; box-shadow: 0 16px 50px #30306015; }
+.account-setup-card h1 { font-size: clamp(1.7rem, 5vw, 2.3rem); }
+.account-setup-card form, .account-setup-card label { display: grid; gap: 12px; }
+.account-setup-card label { gap: 7px; font-weight: 600; }
+.account-setup-card input { width: 100%; min-width: 0; padding: 12px; border: 1px solid #d8d4e8; border-radius: 10px; font: inherit; }
+.account-setup-card p { overflow-wrap: anywhere; }
+.account-setup-card [role=alert] { color: #a12135; }

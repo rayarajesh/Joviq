@@ -22,6 +22,7 @@ import {
   RequestCallbackPage,
 } from "../pages/PublicPages";
 import { StudentOnboardingPage } from "../pages/StudentOnboardingPage";
+import { AccountSetupPage } from "../pages/AccountSetupPage";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { StudentPreviewPage } from "../pages/StudentPreviewPage";
 import { PrivacyPolicyPage } from "../pages/PrivacyPolicyPage";
@@ -42,8 +43,7 @@ export function App() {
         <SeoMetadata />
         <HashScroll />
         <ScrollToTopButton />
-        <SocialSidebar />
-        <WelcomePopup />
+        <PagePromotions />
         <CookieConsentBanner />
         <Routes>
           {import.meta.env.DEV && (
@@ -66,6 +66,7 @@ export function App() {
           <Route path="/cookie-policy" element={<CookiePolicyPage />} />
           <Route path="/return-policy" element={<RefundPolicyPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/student/account-setup" element={<ProtectedRoute allowIncompleteProfile><AccountSetupPage /></ProtectedRoute>} />
           <Route
             path="/verify/:certificateId"
             element={<VerifyCertificatePage />}
@@ -119,6 +120,12 @@ export function App() {
       </AuthProvider>
     </BrowserRouter>
   );
+}
+
+function PagePromotions() {
+  const { pathname } = useLocation();
+  if (pathname.replace(/\/$/, "") === "/student/account-setup") return null;
+  return <><SocialSidebar /><WelcomePopup /></>;
 }
 
 function HashScroll() {
