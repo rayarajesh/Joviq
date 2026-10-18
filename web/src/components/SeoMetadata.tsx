@@ -26,6 +26,8 @@ export function SeoMetadata() {
       'og:image': seo.image,
       'og:image:secure_url': seo.image,
       'og:image:type': seo.imageType,
+      'og:image:width': '1200',
+      'og:image:height': '630',
       'og:image:alt': seo.imageAlt,
       'og:site_name': siteName,
       'og:type': 'website',

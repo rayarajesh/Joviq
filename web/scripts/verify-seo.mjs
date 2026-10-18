@@ -46,10 +46,12 @@ try {
   }
   assert.equal(await page.locator('meta[property="og:image"]').count(), 1);
   await page.setContent(await readFile('dist/programs/full-stack-web-development/index.html', 'utf8'));
-  assert.equal(await page.locator('meta[property="og:image"]').getAttribute('content'), 'https://joviqtechnologies.com/assets/programs/full-stack.jpg');
-  assert.equal(await page.locator('meta[property="og:image:secure_url"]').getAttribute('content'), 'https://joviqtechnologies.com/assets/programs/full-stack.jpg');
+  assert.equal(await page.locator('meta[property="og:image"]').getAttribute('content'), 'https://joviqtechnologies.com/assets/programs/full-stack-og.jpg');
+  assert.equal(await page.locator('meta[property="og:image:secure_url"]').getAttribute('content'), 'https://joviqtechnologies.com/assets/programs/full-stack-og.jpg');
   assert.equal(await page.locator('meta[property="og:image:type"]').getAttribute('content'), 'image/jpeg');
-  assert.equal(await page.locator('meta[name="twitter:image"]').getAttribute('content'), 'https://joviqtechnologies.com/assets/programs/full-stack.jpg');
+  assert.equal(await page.locator('meta[property="og:image:width"]').getAttribute('content'), '1200');
+  assert.equal(await page.locator('meta[property="og:image:height"]').getAttribute('content'), '630');
+  assert.equal(await page.locator('meta[name="twitter:image"]').getAttribute('content'), 'https://joviqtechnologies.com/assets/programs/full-stack-og.jpg');
   assert.equal(await page.locator('meta[name="twitter:image:alt"]').getAttribute('content'), 'Full Stack Web Development training program at Joviq Technologies');
   await page.setContent(await readFile('dist/about/index.html', 'utf8'));
   assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), 'https://joviqtechnologies.com/about');

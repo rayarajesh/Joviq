@@ -19,6 +19,10 @@
   hrm: "/assets/programs/Human- resources.Jpg.jpg"
 };
 
+export const programSocialImageBySlug: Record<string, string> = {
+  "full-stack-web-development": "/assets/programs/full-stack-og.jpg"
+};
+
 export const programImageByDomain: Record<string, string> = {
   "Computer Science & IT": "/assets/programs/generative-ai.jpg",
   "Electrical & Electronics": "/assets/programs/electrical-electronics.jpg",
@@ -28,6 +32,10 @@ export const programImageByDomain: Record<string, string> = {
 
 export function getProgramImage(slug: string, domain: string) {
   return programImageBySlug[slug] ?? programImageByDomain[domain] ?? "/assets/joviq-learning-studio.png";
+}
+
+export function getProgramSocialImage(slug: string, domain: string) {
+  return programSocialImageBySlug[slug] ?? getProgramImage(slug, domain);
 }
 
 

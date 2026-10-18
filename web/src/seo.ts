@@ -1,7 +1,7 @@
 import { allPrograms } from './data/siteContent';
 import { companyInformation } from './data/companyInformation';
 import { socialProfileUrls } from './components/socialLinks';
-import { getProgramImage } from './data/programVisuals';
+import { getProgramSocialImage } from './data/programVisuals';
 
 export const siteUrl = 'https://joviqtechnologies.com';
 export const siteName = 'Joviq Technologies';
@@ -27,7 +27,7 @@ export const publicPages: SeoPage[] = [
     path: `/programs/${program.slug}`,
     title: `${program.title} Training`,
     description: `${program.shortDescription} Explore the curriculum and practical projects at Joviq Technologies.`.slice(0, 170),
-    image: getProgramImage(program.slug, program.domain),
+    image: getProgramSocialImage(program.slug, program.domain),
     imageAlt: `${program.title} training program at Joviq Technologies`
   }))
 ];
