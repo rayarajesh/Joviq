@@ -82,6 +82,9 @@ export const publicLmsApi = {
 };
 
 export const studentLmsApi = {
+  getPayments() {
+    return request<PaymentTransactionResponse[]>("/api/v1/student/lms/payments");
+  },
   getDashboard() {
     return request<StudentLmsDashboardResponse>(
       "/api/v1/student/lms/dashboard",

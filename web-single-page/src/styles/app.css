@@ -2291,6 +2291,24 @@ button, input, select, textarea { font: inherit; }
 .pay-panel .enroll-note { text-align: left; }
 
 /* Post-payment onboarding panels. */
+.resume-onboarding {
+  min-height: 100vh;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, #f4f0ff, #ecfbff 65%, #fff3e9);
+}
+.resume-onboarding__card {
+  display: grid;
+  gap: 20px;
+  width: min(100%, 620px);
+  margin: 0 auto;
+  padding: clamp(20px, 5vw, 40px);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: var(--surface);
+}
+.resume-onboarding__card h1 { font-size: clamp(1.7rem, 5vw, 2.5rem); line-height: 1.15; }
+.resume-onboarding__card p { overflow-wrap: anywhere; color: var(--muted); }
+.resume-onboarding__card .btn { white-space: normal; text-align: center; }
 .payment-success-details {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2310,6 +2328,8 @@ button, input, select, textarea { font: inherit; }
 }
 .payment-success-details small { color: var(--muted); font-size: 0.72rem; }
 .payment-success-details strong { color: var(--ink-2); font-size: 0.88rem; }
+.payment-success-details > div { min-width: 0; }
+.payment-success-details strong { overflow-wrap: anywhere; }
 .post-payment-registration__intro {
   display: flex;
   align-items: flex-start;
