@@ -14,6 +14,7 @@ test('integration configuration requires Key Vault references for credentials', 
   assert.throws(() => integrations(JSON.stringify([{ name: 'EmailSettings__Password', value: 'password-in-config' }])));
   assert.throws(() => integrations(JSON.stringify([{ name: 'ConnectionStrings__DefaultConnection', value: 'override' }])));
   assert.equal(integrations(JSON.stringify([{ name: 'EmailSettings__Password', value: '@Microsoft.KeyVault(SecretUri=https://joviq.vault.azure.net/secrets/smtp-password)' }])).length, 1);
+  assert.equal(integrations(JSON.stringify([{ name: 'EmailSettings__ReplyToEmail', value: 'support@joviqtechnologies.com' }])).length, 1);
 });
 test('rejects unexpected environment, weak credentials and invalid budget', () => {
   assert.throws(() => parameters({ ...env, DEPLOY_ENVIRONMENT: 'preview' }));

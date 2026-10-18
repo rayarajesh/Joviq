@@ -34,10 +34,17 @@ public sealed class SmtpEmailSender(IOptions<EmailSettingsOptions> options) : IE
             From = new MailAddress(_options.SenderEmail, _options.SenderName),
             Subject = subject,
             Body = ToPlainText(htmlBody),
-            IsBodyHtml = false
+            IsBodyHtml = false,
+            BodyEncoding = Encoding.UTF8,
+            SubjectEncoding = Encoding.UTF8,
+            HeadersEncoding = Encoding.UTF8
         };
         message.AlternateViews.Add(AlternateView.CreateAlternateViewFromString(htmlBody, Encoding.UTF8, MediaTypeNames.Text.Html));
         message.To.Add(to);
+        if (!string.IsNullOrWhiteSpace(_options.ReplyToEmail))
+        {
+            message.ReplyToList.Add(new MailAddress(_options.ReplyToEmail, _options.SenderName));
+        }
         if (attachments is not null)
         {
             foreach (var attachment in attachments.Where(x => x.Content.Length > 0))

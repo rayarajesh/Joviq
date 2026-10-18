@@ -12,6 +12,8 @@ public sealed class EmailSettingsOptions
 
     public string SenderEmail { get; init; } = string.Empty;
 
+    public string ReplyToEmail { get; init; } = string.Empty;
+
     public string Username { get; init; } = string.Empty;
 
     public string Password { get; init; } = string.Empty;
