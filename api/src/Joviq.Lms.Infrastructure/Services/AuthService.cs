@@ -219,6 +219,44 @@ public sealed class AuthService(
         return await IssueTokenPairAsync(user, request.RememberMe, metadata with { DeviceName = request.DeviceName ?? metadata.DeviceName }, cancellationToken);
     }
 
+    public async Task<AuthTokenResponse> ResumeOnboardingByEmailAsync(ResumeOnboardingRequest request, RequestMetadata metadata, CancellationToken cancellationToken)
+    {
+        var email = NormalizeEmail(request.Email);
+        var user = await userManager.FindByEmailAsync(email);
+
+        // Email-only resume: the learner proves nothing beyond the email address, so access is
+        // gated strictly on an existing verified payment for that student account. The same
+        // generic message is returned for every failure so a caller cannot probe which emails exist.
+        if (user is null || !await userManager.IsInRoleAsync(user, RoleNames.Student))
+        {
+            AddAudit(user?.Id, "OnboardingResumeFailed", email, user?.PhoneNumber, metadata, new { reason = "no_student_account" });
+            await dbContext.SaveChangesAsync(cancellationToken);
+            throw new AppException("No verified payment was found for this email.", 404, "no_verified_payment");
+        }
+
+        var hasVerifiedPayment = await dbContext.PaymentTransactions.AnyAsync(
+            payment => payment.StudentId == user.Id
+                && payment.Status == PaymentStatus.Verified
+                && payment.EnrollmentId != null
+                && payment.ProgramPlanId != null,
+            cancellationToken);
+        if (!hasVerifiedPayment)
+        {
+            AddAudit(user.Id, "OnboardingResumeFailed", user.Email, user.PhoneNumber, metadata, new { reason = "no_verified_payment" });
+            await dbContext.SaveChangesAsync(cancellationToken);
+            throw new AppException("No verified payment was found for this email.", 404, "no_verified_payment");
+        }
+
+        // Accounts created during checkout may not have a confirmed email yet; the verified
+        // payment is the authorization signal for resuming onboarding.
+        EnsureCanLogin(user, requireEmailConfirmed: false);
+
+        user.LastLoginAt = clock.UtcNow;
+        AddAudit(user.Id, "OnboardingResumeSucceeded", user.Email, user.PhoneNumber, metadata);
+
+        return await IssueTokenPairAsync(user, rememberMe: true, metadata, cancellationToken);
+    }
+
     public async Task<AuthTokenResponse> ExternalLoginAsync(ExternalLoginRequest request, RequestMetadata metadata, CancellationToken cancellationToken)
     {
         var provider = NormalizeProvider(request.Provider);

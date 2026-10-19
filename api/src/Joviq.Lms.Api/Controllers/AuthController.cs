@@ -66,6 +66,16 @@ public sealed class AuthController(
         return Ok(ApiResponse<AuthTokenResponse>.Ok(result, "Login successful.", CorrelationId));
     }
 
+    [HttpPost("resume-onboarding")]
+    [AllowAnonymous]
+    [EnableRateLimiting("AuthLogin")]
+    public async Task<ActionResult<ApiResponse<AuthTokenResponse>>> ResumeOnboarding(ResumeOnboardingRequest request, CancellationToken cancellationToken)
+    {
+        var result = await authService.ResumeOnboardingByEmailAsync(request, RequestMetadata(), cancellationToken);
+        SetRefreshTokenCookieIfPresent(result);
+        return Ok(ApiResponse<AuthTokenResponse>.Ok(result, "Onboarding resumed.", CorrelationId));
+    }
+
     [HttpGet("oauth/google/start")]
     [AllowAnonymous]
     [EnableRateLimiting("AuthLogin")]

@@ -2170,12 +2170,16 @@ button, input, select, textarea { font: inherit; }
 
 .field { display: grid; gap: 7px; font-size: 0.86rem; font-weight: 600; color: var(--ink-2); }
 .field b { color: var(--danger); }
-.field input, .field select, .phone-field {
+.field input, .field select, .phone-field, .password-field {
   width: 100%; min-height: 50px; padding: 0 14px;
   border: 1px solid var(--line); border-radius: 14px; background: var(--surface-2); color: var(--ink);
   font-weight: 500; outline: 0; transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
 }
-.field input:focus, .field select:focus, .phone-field:focus-within { border-color: var(--violet); background: var(--surface); box-shadow: 0 0 0 4px rgba(122, 108, 240, 0.15); }
+.field input:focus, .field select:focus, .phone-field:focus-within, .password-field:focus-within { border-color: var(--violet); background: var(--surface); box-shadow: 0 0 0 4px rgba(122, 108, 240, 0.15); }
+.password-field { display: flex; align-items: center; gap: 6px; padding-right: 8px; }
+.password-field input { min-height: 48px; padding: 0 0 0 14px; border: 0; background: none; box-shadow: none !important; }
+.password-field button { display: inline-flex; align-items: center; justify-content: center; padding: 6px; border: 0; background: none; color: var(--muted); cursor: pointer; border-radius: 8px; }
+.password-field button:hover { color: var(--violet); }
 .field input[readonly] { color: var(--muted); }
 .phone-field { display: flex; align-items: center; gap: 10px; padding-right: 0; }
 .phone-field i { font-style: normal; font-weight: 700; color: var(--violet); padding-right: 10px; border-right: 1px solid var(--line); }

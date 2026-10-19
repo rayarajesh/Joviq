@@ -66,6 +66,12 @@ public sealed record LoginRequest
     public string? DeviceName { get; init; }
 }
 
+public sealed record ResumeOnboardingRequest
+{
+    [Required, EmailAddress, MaxLength(256)]
+    public string Email { get; init; } = string.Empty;
+}
+
 public sealed record ExternalLoginRequest
 {
     [Required, MaxLength(64)]

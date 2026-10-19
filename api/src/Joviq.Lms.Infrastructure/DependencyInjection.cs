@@ -17,6 +17,7 @@ using Joviq.Lms.Infrastructure.Services;
 using Joviq.Lms.Infrastructure.Services.Assets;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Authentication.OAuth.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -32,7 +33,7 @@ namespace Joviq.Lms.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration, IHostEnvironment? environment = null)
     {
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<RefreshTokenOptions>(configuration.GetSection(RefreshTokenOptions.SectionName));
@@ -244,7 +245,16 @@ public static class DependencyInjection
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<IOtpService, OtpService>();
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
-        services.AddScoped<IEmailSender, SmtpEmailSender>();
+        // In Development, when no SMTP settings are present, log emails (incl. OTP codes) instead of
+        // failing, so local flows can be tested without an SMTP account. Production always uses SMTP.
+        var emailConfigured = !string.IsNullOrWhiteSpace(configuration["EmailSettings:SmtpServer"])
+            && !string.IsNullOrWhiteSpace(configuration["EmailSettings:SenderEmail"])
+            && !string.IsNullOrWhiteSpace(configuration["EmailSettings:Username"])
+            && !string.IsNullOrWhiteSpace(configuration["EmailSettings:Password"]);
+        if (environment?.IsDevelopment() == true && !emailConfigured)
+            services.AddScoped<IEmailSender, DevConsoleEmailSender>();
+        else
+            services.AddScoped<IEmailSender, SmtpEmailSender>();
         services.AddHostedService<AuditLogRetentionService>();
         services.AddHostedService<AbandonedCheckoutCleanupService>();
 

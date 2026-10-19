@@ -35,6 +35,17 @@ export const authApi = {
     });
   },
 
+  // Email-only resume: signs the student in when their email has a verified payment, with no
+  // password or OTP. The API rejects any email without a verified payment.
+  resumeOnboarding(email: string) {
+    return request<AuthTokenResponse>("/api/v1/auth/resume-onboarding", {
+      method: "POST",
+      body: { email },
+      accessToken: null,
+      skipAuthRetry: true
+    });
+  },
+
   refresh() {
     return request<AuthTokenResponse>("/api/v1/auth/refresh", {
       method: "POST",

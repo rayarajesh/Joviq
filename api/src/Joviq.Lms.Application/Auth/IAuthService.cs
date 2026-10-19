@@ -10,6 +10,8 @@ public interface IAuthService
 
     Task<AuthTokenResponse> LoginAsync(LoginRequest request, RequestMetadata metadata, CancellationToken cancellationToken);
 
+    Task<AuthTokenResponse> ResumeOnboardingByEmailAsync(ResumeOnboardingRequest request, RequestMetadata metadata, CancellationToken cancellationToken);
+
     Task<AuthTokenResponse> ExternalLoginAsync(ExternalLoginRequest request, RequestMetadata metadata, CancellationToken cancellationToken);
 
     Task<AuthTokenResponse> RefreshAsync(string? refreshToken, RequestMetadata metadata, CancellationToken cancellationToken);

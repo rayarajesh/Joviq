@@ -7,6 +7,8 @@ import {
   CalendarDays,
   CalendarClock,
   CheckCircle2,
+  Eye,
+  EyeOff,
   GraduationCap,
   CreditCard,
   KeyRound,
@@ -43,6 +45,7 @@ type RegistrationStep = "details" | "signin" | "reset" | "payment" | "registrati
 
 type RegistrationDetails = {
   collegeName: string;
+  executiveName: string;
   fullName: string;
   email: string;
   phoneNumber: string;
@@ -67,15 +70,15 @@ function addMonths(date: Date, months: number) {
 }
 
 function getStartMonthOptions(today: Date) {
-  const firstAvailableDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-  const firstAvailableMonth = new Date(firstAvailableDate.getFullYear(), firstAvailableDate.getMonth(), 1);
+  // Offer the next three months only, excluding the current month. Each option is the
+  // first day of that month, which stays inside the API's "within the next three months" window.
+  const firstNextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
 
   return Array.from({ length: 3 }, (_, index) => {
-    const monthDate = new Date(firstAvailableMonth.getFullYear(), firstAvailableMonth.getMonth() + index, 1);
-    const startDate = index === 0 ? firstAvailableDate : monthDate;
+    const monthDate = new Date(firstNextMonth.getFullYear(), firstNextMonth.getMonth() + index, 1);
 
     return {
-      value: formatDateInput(startDate),
+      value: formatDateInput(monthDate),
       label: monthDate.toLocaleDateString("en-IN", { month: "long", year: "numeric" })
     };
   });
@@ -84,6 +87,7 @@ function getStartMonthOptions(today: Date) {
 function createRegistrationDetails(fullName = "", phoneNumber = ""): RegistrationDetails {
   return {
     collegeName: "",
+    executiveName: "",
     fullName,
     email: "",
     phoneNumber,
@@ -143,6 +147,15 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [notice, setNotice] = useState("");
+  const [confirmingEmail, setConfirmingEmail] = useState(false);
+  const [showPasswordAuth, setShowPasswordAuth] = useState(false);
+  const [passwordAuthView, setPasswordAuthView] = useState<"create" | "login">("create");
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loginConfirm, setLoginConfirm] = useState(false);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [registration, setRegistration] = useState<RegistrationDetails>(() => ({
     ...createRegistrationDetails(initialValues?.fullName ?? user?.fullName ?? "", initialValues?.phoneNumber ?? user?.phoneNumber ?? ""),
     email: initialValues?.email ?? user?.email ?? "",
@@ -180,8 +193,13 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
     onClose();
   }
 
-  useDialogAccessibility(true, ".enroll-dialog", () => {
+  // Disable the main dialog's focus trap while the password-auth modal is open, otherwise it
+  // steals focus back and the modal's inputs cannot be typed into. The modal gets its own trap.
+  useDialogAccessibility(!showPasswordAuth, ".enroll-dialog", () => {
     if (!isWorking) closeDialog();
+  });
+  useDialogAccessibility(showPasswordAuth, ".password-auth-dialog", () => {
+    if (!isSubmitting) closePasswordAuth();
   });
 
   useEffect(() => {
@@ -292,6 +310,7 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
         throw new Error("Choose one of the available start months.");
       }
       if (!registration.currentYearOfStudy) throw new Error("Choose your current year of study.");
+      if (!registration.executiveName.trim()) throw new Error("Enter the executive name.");
 
       const paymentTarget = targetRef.current ?? currentTarget;
       const paymentTransactionId = paymentTarget?.paymentTransactionId ?? payment.checkout?.transaction.id;
@@ -326,6 +345,7 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
       savePostPaymentRegistration(savedDetails);
       await studentOnboardingApi.saveRegistration({
         collegeName: registration.collegeName.trim(),
+        executiveName: registration.executiveName.trim(),
         fullName: savedDetails.fullName,
         phoneNumber: savedDetails.phoneNumber,
         whatsappNumber: savedDetails.whatsappNumber,
@@ -351,15 +371,84 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
     });
   }
 
-  function redirectToMainWebLogin() {
-    const mainWebUrl = env.lmsAppUrl || "http://localhost:5173";
-    window.location.assign(`${mainWebUrl}${accountSetupPath("email")}`);
+  function openPasswordLogin() {
+    setLoginEmail(enrollmentEmail || registration.email || user?.email || "");
+    setPassword("");
+    setConfirmPassword("");
+    setOtp("");
+    setShowPassword(false);
+    setOtpSent(false);
+    setErrorMessage("");
+    setNotice("");
+    setLoginConfirm(false);
+    setPasswordAuthView("create");
+    setShowPasswordAuth(true);
   }
 
-  function accountSetupPath(method: "email" | "google") {
-    const search = new URLSearchParams({ method, payment: targetRef.current?.paymentTransactionId ?? "" });
-    return `/student/account-setup?${search}`;
+  function closePasswordAuth() {
+    setShowPasswordAuth(false);
+    setPassword("");
+    setConfirmPassword("");
+    setOtp("");
+    setOtpSent(false);
+    setErrorMessage("");
+    setNotice("");
+    setLoginConfirm(false);
   }
+
+  function switchPasswordAuthView(view: "create" | "login") {
+    setPasswordAuthView(view);
+    setPassword("");
+    setConfirmPassword("");
+    setOtp("");
+    setOtpSent(false);
+    setErrorMessage("");
+    setNotice("");
+  }
+
+  // Create-password popup: email OTP proves ownership before a new password is set.
+  function sendPasswordOtp() {
+    void run(async () => {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginEmail.trim())) throw new Error("Enter the email used during payment.");
+      await authApi.forgotPassword(loginEmail.trim());
+      setOtpSent(true);
+      setNotice(`Enter the 6-digit code sent to ${loginEmail.trim()} and create your password.`);
+    });
+  }
+
+  async function submitCreatePassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await run(async () => {
+      if (password !== confirmPassword) throw new Error("Password and confirm password must match.");
+      const verification = await authApi.verifyForgotPassword(loginEmail.trim(), otp.trim());
+      await authApi.resetPassword({ userId: verification.data.userId, resetToken: verification.data.resetToken, newPassword: password, confirmPassword });
+      const response = await authApi.login({ email: loginEmail.trim(), password, rememberMe: true, deviceName: "Joviq Web" });
+      auth.applyAuthResponse(response.data);
+      setPassword("");
+      setConfirmPassword("");
+      setOtp("");
+      setLoginConfirm(true);
+    });
+  }
+
+  async function submitPasswordLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await run(async () => {
+      const response = await authApi.login({ email: loginEmail.trim(), password, rememberMe: true, deviceName: "Joviq Web" });
+      auth.applyAuthResponse(response.data);
+      setPassword("");
+      // Signed in; show the final confirmation before opening the dashboard.
+      setLoginConfirm(true);
+    });
+  }
+
+  function redirectToDashboard() {
+    const mainWebUrl = env.lmsAppUrl || "http://localhost:5173";
+    // The student is already signed in; the main app restores the session from the shared
+    // refresh cookie on load and opens the dashboard directly.
+    window.location.assign(`${mainWebUrl}/dashboard`);
+  }
+
 
   /** Mirrors /web's continueToCheckout: authoritative pricing, checkout account, then payment. */
   async function continueToPayment() {
@@ -490,6 +579,7 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
   const activeIndex = step === "reset" ? 1 : step === "registration" || step === "account-choice" ? 3 : steps.findIndex((item) => item.key === step);
 
   return (
+    <>
     <div
       className="enroll-backdrop"
       role="presentation"
@@ -763,6 +853,11 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
                     </select>
                     <small className="field__hint">Choose one of the next 3 available months.</small>
                   </label>
+                  <label className="field">
+                    <span>Executive Name <b>*</b></span>
+                    <input autoComplete="off" maxLength={160} required placeholder="Executive who assisted you" value={registration.executiveName} onChange={(event) => setRegistration((current) => ({ ...current, executiveName: event.target.value }))} />
+                    <small className="field__hint">The executive who assisted you.</small>
+                  </label>
                 </div>
               </fieldset>
 
@@ -779,21 +874,125 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
             <div className="pay-panel account-choice-panel">
               <div className="pay-panel__icon account-choice-panel__icon"><CheckCircle2 size={34} /></div>
               <span className="eyebrow">Registration saved</span>
-              <h3>Course registration complete</h3>
-              <p>Your onboarding details are saved. Continue with your payment email to set up your login, then choose the name shown on your dashboard.</p>
+              <h3>Your onboarding was successful</h3>
+              <p>Your onboarding details are saved. Continue with your payment email to set up your login.</p>
               <div className="account-choice-panel__summary">
                 <span><GraduationCap size={16} /><strong>{selectedRegistrationProgram?.title ?? "Selected program"}</strong></span>
-                <span><CalendarDays size={16} /><strong>{registration.startDate}</strong></span>
+                <span><CalendarDays size={16} /><strong>{registration.startDate ? new Date(`${registration.startDate}T00:00:00`).toLocaleDateString("en-IN", { month: "short", year: "numeric" }) : ""}</strong></span>
               </div>
-              <div className="pay-panel__actions account-choice-panel__actions">
-                <button className="btn btn--primary" onClick={redirectToMainWebLogin} type="button"><LogIn size={18} /> Continue with email</button>
-              </div>
+              {confirmingEmail ? (
+                <div className="account-choice-panel__confirm" role="alertdialog" aria-label="Confirm your email">
+                  <p>Continue to your dashboard as <strong>{enrollmentEmail || registration.email || user?.email}</strong>?</p>
+                  <div className="pay-panel__actions account-choice-panel__actions">
+                    <button className="btn btn--primary" onClick={redirectToDashboard} type="button"><CheckCircle2 size={18} /> Confirm</button>
+                    <button className="btn btn--ghost" onClick={() => setConfirmingEmail(false)} type="button"><X size={18} /> Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="pay-panel__actions account-choice-panel__actions">
+                  <button className="btn btn--primary" onClick={() => setConfirmingEmail(true)} type="button"><LogIn size={18} /> Continue with Google</button>
+                  <button className="btn btn--ghost" onClick={openPasswordLogin} type="button"><LockKeyhole size={18} /> Login with email and password</button>
+                </div>
+              )}
               <div className="enroll-note"><MessageCircle size={17} /><span>After sign-in, your saved onboarding details will be ready in the main Joviq web app.</span></div>
             </div>
           ) : null}
         </div>
       </section>
     </div>
+
+    {showPasswordAuth ? (
+      <div className="enroll-backdrop" role="presentation" onClick={(event) => { if (event.target === event.currentTarget && !isSubmitting) closePasswordAuth(); }}>
+        <section aria-modal="true" className="enroll-dialog enroll-dialog--compact password-auth-dialog" role="dialog" aria-label={passwordAuthView === "create" ? "Create your password" : "Login with email and password"}>
+          <header className="enroll-dialog__header">
+            <span className="enroll-dialog__orb" aria-hidden="true" />
+            <div className="enroll-dialog__title-icon">{passwordAuthView === "create" ? <KeyRound size={22} /> : <LockKeyhole size={22} />}</div>
+            <div className="enroll-dialog__heading">
+              <span className="eyebrow eyebrow--light">{passwordAuthView === "create" ? "Set up your login" : "Sign in"}</span>
+              <h2>{passwordAuthView === "create" ? "Create your password" : "Login with email and password"}</h2>
+              <p>{passwordAuthView === "create" ? "Verify your email with a code, then create a password for your dashboard login." : "Enter your email and password to open your dashboard."}</p>
+            </div>
+            <button aria-label="Close" className="enroll-dialog__close" disabled={isSubmitting} onClick={closePasswordAuth} type="button"><X size={18} /></button>
+          </header>
+
+          <div className="enroll-dialog__body">
+            {loginConfirm ? (
+              <div className="pay-panel account-choice-panel">
+                <div className="pay-panel__icon account-choice-panel__icon"><CheckCircle2 size={34} /></div>
+                <h3>You're signed in</h3>
+                <p>Signed in as <strong>{loginEmail}</strong>. Continue to your dashboard?</p>
+                <div className="pay-panel__actions account-choice-panel__actions">
+                  <button className="btn btn--primary" onClick={redirectToDashboard} type="button"><LogIn size={18} /> Continue to dashboard</button>
+                  <button className="btn btn--ghost" onClick={closePasswordAuth} type="button"><X size={18} /> Cancel</button>
+                </div>
+              </div>
+            ) : passwordAuthView === "create" ? (
+              <form className="enroll-form" onSubmit={submitCreatePassword}>
+                <label className="field"><span>Email <b>*</b></span>
+                  <input type="email" autoComplete="email" required readOnly={otpSent} value={loginEmail} onChange={(event) => setLoginEmail(event.target.value)} />
+                </label>
+                {!otpSent ? (
+                  <>
+                    {notice ? <p role="status" className="enroll-banner"><KeyRound size={18} /><span>{notice}</span></p> : null}
+                    {errorMessage ? <p className="enroll-error" role="alert">{errorMessage}</p> : null}
+                    <button className="btn btn--primary btn--block" disabled={isSubmitting} type="button" onClick={sendPasswordOtp}>
+                      {isSubmitting ? <LoaderCircle className="spin" size={18} /> : <KeyRound size={18} />} Send code
+                    </button>
+                    <button className="btn btn--ghost btn--block" type="button" onClick={() => switchPasswordAuthView("login")}><ArrowLeft size={17} /> Back to login with email and password</button>
+                  </>
+                ) : (
+                  <>
+                    {notice ? <div className="enroll-banner"><KeyRound size={18} /><span>{notice}</span></div> : null}
+                    <label className="field"><span>Email OTP <b>*</b></span>
+                      <input autoComplete="one-time-code" inputMode="numeric" required value={otp} onChange={(event) => setOtp(event.target.value)} />
+                    </label>
+                    <label className="field"><span>Create password <b>*</b></span>
+                      <div className="password-field">
+                        <input type={showPassword ? "text" : "password"} autoComplete="new-password" minLength={8} required value={password} onChange={(event) => setPassword(event.target.value)} />
+                        <button type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+                      </div>
+                    </label>
+                    <label className="field"><span>Confirm password <b>*</b></span>
+                      <div className="password-field">
+                        <input type={showPassword ? "text" : "password"} autoComplete="new-password" minLength={8} required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
+                        <button type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+                      </div>
+                    </label>
+                    <small>Use at least 8 characters, including uppercase, lowercase, a number and a symbol.</small>
+                    {errorMessage ? <p className="enroll-error" role="alert">{errorMessage}</p> : null}
+                    <button className="btn btn--primary btn--block" disabled={isSubmitting || retrySeconds > 0} type="submit">
+                      {isSubmitting ? <LoaderCircle className="spin" size={18} /> : <CheckCircle2 size={18} />}
+                      {retrySeconds > 0 ? `Try again in ${retrySeconds}s` : isSubmitting ? "Saving…" : "Confirm"}
+                    </button>
+                    <button className="btn btn--ghost btn--block" type="button" disabled={isSubmitting} onClick={sendPasswordOtp}>Resend code</button>
+                    <button className="btn btn--ghost btn--block" type="button" onClick={() => switchPasswordAuthView("login")}><ArrowLeft size={17} /> Back to login with email and password</button>
+                  </>
+                )}
+              </form>
+            ) : (
+              <form className="enroll-form" onSubmit={submitPasswordLogin}>
+                <label className="field"><span>Email <b>*</b></span>
+                  <input type="email" autoComplete="email" required value={loginEmail} onChange={(event) => setLoginEmail(event.target.value)} />
+                </label>
+                <label className="field"><span>Password <b>*</b></span>
+                  <div className="password-field">
+                    <input type={showPassword ? "text" : "password"} autoComplete="current-password" autoFocus required value={password} onChange={(event) => setPassword(event.target.value)} />
+                    <button type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+                  </div>
+                </label>
+                {errorMessage ? <p className="enroll-error" role="alert">{errorMessage}</p> : null}
+                <button className="btn btn--primary btn--block" disabled={isSubmitting || retrySeconds > 0} type="submit">
+                  {isSubmitting ? <LoaderCircle className="spin" size={18} /> : <LockKeyhole size={18} />}
+                  {retrySeconds > 0 ? `Try again in ${retrySeconds}s` : isSubmitting ? "Signing in…" : "Confirm"}
+                </button>
+                <button className="btn btn--ghost btn--block" type="button" onClick={() => switchPasswordAuthView("create")}><KeyRound size={17} /> Create a password instead</button>
+              </form>
+            )}
+          </div>
+        </section>
+      </div>
+    ) : null}
+    </>
   );
 }
 
