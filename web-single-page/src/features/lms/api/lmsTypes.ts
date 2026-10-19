@@ -385,6 +385,7 @@ export type ChangeEnrollmentProgramRequest = {
 
 export type SavePostPaymentRegistrationRequest = {
   collegeName: string;
+  executiveName: string;
   fullName: string;
   phoneNumber: string;
   whatsappNumber: string;

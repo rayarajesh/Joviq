@@ -41,9 +41,9 @@ export function pageSeo(pathname: string, indexable = true) {
     description: page?.description ?? 'Secure account access for Joviq Technologies learners.',
     canonical: `${siteUrl}${path === '/' ? '/' : path}`,
     robots: page && indexable ? 'index, follow, max-image-preview:large' : 'noindex, follow',
-    image: page?.image ? `${siteUrl}${page.image}` : `${siteUrl}/assets/hero-student-panels.png`,
+    image: page?.image ? `${siteUrl}${page.image}` : `${siteUrl}/assets/og-joviq.jpg`,
     imageAlt: page?.imageAlt ?? `${siteName} training and career programs`,
-    imageType: page?.image?.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg',
+    imageType: (page?.image ?? '/assets/og-joviq.jpg').toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg',
     structuredData: page ? {
       '@context': 'https://schema.org',
       '@graph': [

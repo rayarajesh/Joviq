@@ -29961,6 +29961,29 @@ button.hero-button {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
 }
+/* The global heading/button normalizers (heading-colors.css, home-sections.css) force this
+   card's button to white text with no gradient and its title to the brand purple, which makes
+   the title invisible. Restore the intended light card with higher specificity + !important. */
+.my-program-library-card .my-program-library-card__open {
+  background: linear-gradient(135deg, #ffffff, #f6f8ff) !important;
+  color: #1c2e4c !important;
+}
+.my-program-library-card .my-program-library-card__body h2 {
+  color: #1a2c49 !important;
+  -webkit-text-fill-color: #1a2c49 !important;
+}
+/* On hover, switch the card to the brand purple with white text for a clear highlight. */
+.my-program-library-card:hover .my-program-library-card__open {
+  background: linear-gradient(135deg, #504b91, #3b3570) !important;
+  color: #ffffff !important;
+}
+.my-program-library-card:hover .my-program-library-card__body h2 {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+.my-program-library-card:hover .my-program-library-card__body p {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
 .my-program-library-card__meta {
   display: flex;
   flex-wrap: wrap;
