@@ -1312,6 +1312,13 @@ namespace Joviq.Lms.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("OnboardingReviewStatus")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTimeOffset?>("OnboardingSubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("PortfolioUrl")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -1364,6 +1371,8 @@ namespace Joviq.Lms.Infrastructure.Migrations
                         .HasColumnType("character varying(20)");
 
                     b.HasKey("UserId");
+
+                    b.HasIndex("OnboardingSubmittedAt");
 
                     b.ToTable("student_profiles", (string)null);
                 });

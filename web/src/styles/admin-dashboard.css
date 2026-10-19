@@ -14,3 +14,30 @@
 @media(max-width:1500px){.academy-date{position:static;margin-left:auto}}@media(max-width:1200px){.academy-date{margin-left:0}}
 .dashboard-shell--admin .academy-view-all{background:transparent!important;background-image:none!important;box-shadow:none!important;border:0!important;color:#5940c8!important;font-size:13px;font-weight:650;padding:0;}
 .authenticated-app:has(.dashboard-shell--admin) .auth-nav__profile-button{border-color:#574b9e;background:#574b9e;color:#fff}.authenticated-app:has(.dashboard-shell--admin) .auth-nav__profile-button:hover,.authenticated-app:has(.dashboard-shell--admin) .auth-nav__profile-button:focus-visible,.authenticated-app:has(.dashboard-shell--admin) .auth-nav__profile-button.is-active{border-color:#463b88;background:#463b88;color:#fff}.authenticated-app:has(.dashboard-shell--admin) .auth-nav__profile-button .auth-nav__identity strong{color:#fff}.authenticated-app:has(.dashboard-shell--admin) .auth-nav__profile-button .auth-nav__identity small{color:#fff}.authenticated-app:has(.dashboard-shell--admin) .auth-nav__profile-button>svg{color:#fff}
+
+/* Pair admin card text with its background, including global button hover overrides. */
+.dashboard-shell--admin .admin-summary-card:is(:hover, :focus-visible) {
+  background: #fff !important;
+  color: #15183f !important;
+}
+.dashboard-shell--admin .admin-summary-card:is(:hover, :focus-visible) .admin-summary-label,
+.dashboard-shell--admin .admin-summary-card:is(:hover, :focus-visible) > strong {
+  color: #15183f !important;
+  -webkit-text-fill-color: #15183f !important;
+}
+.dashboard-shell--admin .admin-summary-card:is(:hover, :focus-visible) :is(small, .admin-summary-snapshot, .admin-summary-chart-caption) {
+  color: #505d7a !important;
+  -webkit-text-fill-color: #505d7a !important;
+}
+.dashboard-shell--admin .academy-priorities button:is(:hover, :focus-visible) {
+  background: #373374 !important;
+  color: #fff !important;
+}
+.dashboard-shell--admin .academy-priorities button:is(:hover, :focus-visible) :is(span, strong, small, svg) {
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+}
+.dashboard-shell--admin .academy-priorities button:focus-visible {
+  outline: 3px solid #8070ba;
+  outline-offset: 3px;
+}

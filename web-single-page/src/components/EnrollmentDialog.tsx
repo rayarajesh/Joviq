@@ -342,7 +342,6 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
         startDate: registration.startDate,
         currentYearOfStudy: registration.currentYearOfStudy
       };
-      savePostPaymentRegistration(savedDetails);
       await studentOnboardingApi.saveRegistration({
         collegeName: registration.collegeName.trim(),
         executiveName: registration.executiveName.trim(),
@@ -355,6 +354,7 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
         startDate: savedDetails.startDate,
         currentYearOfStudy: savedDetails.currentYearOfStudy
       });
+      savePostPaymentRegistration(savedDetails);
       if (paymentTarget) {
         targetRef.current = {
           ...paymentTarget,
@@ -819,7 +819,7 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
                   </label>
                   <label className="field">
                     <span>Email <b>*</b></span>
-                    <input autoComplete="email" onChange={(event) => setRegistration((current) => ({ ...current, email: event.target.value }))} required type="email" value={registration.email} />
+                    <input autoComplete="email" readOnly required type="email" value={user?.email || registration.email} />
                   </label>
                   <label className="field">
                     <span>College name <b>*</b></span>

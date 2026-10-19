@@ -1,0 +1,26 @@
+.admin-onboarding{min-width:0;background:#fff;border:1px solid #e4e9f5;border-radius:14px;padding:24px;color:#202944}
+.admin-onboarding__header,.admin-onboarding__dialog header{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.admin-onboarding h2{display:flex;align-items:center;gap:10px;margin:0;font-size:22px}
+.admin-onboarding p{color:#596783;line-height:1.6}
+.admin-onboarding button{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:8px;padding:9px 14px;border:1px solid #504b91;cursor:pointer}
+.admin-onboarding__filters{display:grid;grid-template-columns:2fr repeat(4,minmax(130px,1fr));gap:14px;margin:24px 0}
+.admin-onboarding label{display:flex;flex-direction:column;gap:7px;font-size:13px;font-weight:600}
+.admin-onboarding label>span{display:flex;align-items:center;gap:6px}
+.admin-onboarding input,.admin-onboarding select{width:100%;min-width:0;background:#fff;color:#202944;border:1px solid #cdd5e4;border-radius:8px;padding:10px;font:inherit}
+.admin-onboarding__table{overflow:auto;border:1px solid #e4e9f5;border-radius:10px}
+.admin-onboarding table{width:100%;border-collapse:collapse;font-size:13px;text-align:left}
+.admin-onboarding th{background:#f4f5fb;color:#394464;white-space:nowrap}
+.admin-onboarding th,.admin-onboarding td{padding:14px;border-bottom:1px solid #e9edf4;min-width:120px}
+.admin-onboarding td{max-width:240px;overflow-wrap:anywhere}
+.admin-onboarding tbody tr:hover{background:#f8f9fd}
+.admin-onboarding__status{display:inline-block;background:#eeedfa;color:#373374;border-radius:20px;padding:5px 10px;white-space:nowrap}
+.admin-onboarding footer{display:flex;align-items:center;justify-content:flex-end;gap:15px;margin-top:20px}
+.admin-onboarding__empty{text-align:center;padding:48px 20px;background:#fafbff;border-radius:10px}
+.admin-onboarding .admin-onboarding__error{color:#9f2036;background:#fff1f3;padding:12px;border-radius:8px}
+.admin-onboarding__dialog{width:min(680px,calc(100% - 32px));max-height:85dvh;overflow:auto;border:1px solid #d3d0e8;border-radius:16px;padding:24px;color:#202944}
+.admin-onboarding__dialog::backdrop{background:#151b4266}
+.admin-onboarding__dialog dl{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:24px 0}
+.admin-onboarding__dialog dt{font-size:12px;color:#596783;margin-bottom:5px}
+.admin-onboarding__dialog dd{margin:0;overflow-wrap:anywhere;font-weight:600}
+@media(max-width:1100px){.admin-onboarding__filters{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.admin-onboarding{padding:16px}.admin-onboarding__header{align-items:flex-start;flex-direction:column}.admin-onboarding__filters,.admin-onboarding__dialog dl{grid-template-columns:1fr}.admin-onboarding footer{justify-content:center}}

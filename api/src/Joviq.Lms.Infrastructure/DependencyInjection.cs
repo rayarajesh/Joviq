@@ -240,6 +240,7 @@ public static class DependencyInjection
         });
         
         services.AddScoped<IStudentOnboardingService, StudentOnboardingService>();
+        services.AddScoped<IAdminOnboardingService, AdminOnboardingService>();
         services.AddScoped<IAuditLogService, AuditLogService>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();

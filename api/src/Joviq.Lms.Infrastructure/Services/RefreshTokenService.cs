@@ -31,7 +31,11 @@ public sealed class RefreshTokenService(
             ? []
             : await dbContext.UserSessions
                 .Where(x => x.UserId == userId && x.DeviceId == metadata.DeviceId)
-                .OrderByDescending(x => x.LastSeenAt ?? x.CreatedAt)
+                // Rotation can give the revoked and replacement sessions identical
+                // timestamps. Always reuse the active row before considering history,
+                // otherwise reactivating history violates the active-device unique index.
+                .OrderByDescending(x => x.RevokedAt == null)
+                .ThenByDescending(x => x.LastSeenAt ?? x.CreatedAt)
                 .ToListAsync(cancellationToken);
 
         var session = existingSessions.FirstOrDefault();
