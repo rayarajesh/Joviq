@@ -1,4 +1,5 @@
 import "../styles/admin-modules.css";
+import { AdminStudentOnboarding } from "../components/AdminStudentOnboarding";
 import { AcademyOverview } from "../components/AcademyOverview";
 import { AdminCallbackRequests } from "../components/AdminCallbackRequests";
 import { AdminEnrollmentDialog } from "../components/AdminEnrollmentDialog";
@@ -206,6 +207,7 @@ const dashboardNavItems: Record<PrimaryRole, string[]> = {
     "Projects",
     "Certificates",
     "Students",
+    "Student Onboarding",
     "Enrollments",
     "Support Chat",
     "Callback Requests",
@@ -234,7 +236,7 @@ const adminNavGroups: DashboardNavGroup[] = [
     label: "Learning",
     items: ["Categories", "Programs", "Curriculum", "Projects", "Certificates"],
   },
-  { label: "People", items: ["Students", "Enrollments"] },
+  { label: "People", items: ["Students", "Student Onboarding", "Enrollments"] },
   { label: "Billing", items: ["Payments", "Coupons"] },
   { label: "Inquiries", items: ["Support Chat", "Callback Requests"] },
   { label: "System", items: ["Audit Logs"] },
@@ -244,6 +246,7 @@ const moduleIconMap: Record<string, ComponentType<{ size?: number }>> = {
   Overview: LayoutDashboard,
   "My Program": BookMarked,
   Students: UsersRound,
+  "Student Onboarding": ClipboardList,
   Categories: Tags,
   Programs: BookOpen,
   Curriculum: ListChecks,
@@ -319,7 +322,7 @@ export function DashboardPage({
   const hideDashboardHeader =
     usesAdminModuleHero ||
     (primaryRole === "Admin" &&
-      ["Overview", "Enrollments", "Payments", "Callback Requests", "Support Chat"].includes(activeModule)) ||
+      ["Overview", "Enrollments", "Payments", "Callback Requests", "Support Chat", "Student Onboarding"].includes(activeModule)) ||
     (primaryRole === "Student" &&
       [
         "My Program",
@@ -800,8 +803,9 @@ function AdminDashboard({
       ) : null}
 
       {activeModule === "Support Chat" ? <AdminSupportInbox /> : null}
+      {activeModule === "Student Onboarding" ? <AdminStudentOnboarding /> : null}
 
-      {!showOverview && !showPeopleModule && activeModule !== "Callback Requests" && activeModule !== "Support Chat" ? (
+      {!showOverview && !showPeopleModule && activeModule !== "Callback Requests" && activeModule !== "Support Chat" && activeModule !== "Student Onboarding" ? (
         <AdminLmsPanel
           activeModule={activeModule}
           adminCertificates={adminCertificates}

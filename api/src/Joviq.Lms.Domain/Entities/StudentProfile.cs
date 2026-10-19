@@ -6,6 +6,10 @@ public sealed class StudentProfile : AuditableEntity
 {
     public Guid UserId { get; set; }
 
+    public DateTimeOffset? OnboardingSubmittedAt { get; set; }
+
+    public string? OnboardingReviewStatus { get; set; }
+
     public string? College { get; set; }
 
     public string? ExecutiveName { get; set; }

@@ -142,7 +142,12 @@ public sealed class CertificatePdfGenerator(IHttpClientFactory httpClientFactory
         AddCenteredText(content, "/F2", 42, template.NameCenter, template.NameY, name, 0.18, 0.15, 0.41);
         AddText(content, "/F2", 12, template.ProgramX, template.ProgramY, program, 0.18, 0.15, 0.41);
         AddText(content, "/F2", 12, template.DateX, template.DateY, ToPdfText($"{from}  to  {to}"), 0.18, 0.15, 0.41);
-        AddText(content, "/F3", 14, template.CertificateIdX, template.CertificateIdY, id, 0.23, 0.21, 0.45);
+        // Reserve the same 19-artwork-pixel gap used by the web certificate viewer.
+        // The email attachment must fit the full ID before drawing the QR over it.
+        var idWidth = (template.QrX - template.CertificateIdX - 19) / ArtworkWidth * PageWidth;
+        var idFontSize = Math.Min(14, idWidth / MeasureTimesRomanText(id));
+        AddText(content, "/F3", Math.Floor(idFontSize * 1000) / 1000,
+            template.CertificateIdX, template.CertificateIdY, id, 0.23, 0.21, 0.45);
 
         if (qrId > 0)
         {
@@ -166,6 +171,30 @@ public sealed class CertificatePdfGenerator(IHttpClientFactory httpClientFactory
         }
 
         return content.ToString();
+    }
+
+    private static double MeasureTimesRomanText(string pdfLiteral)
+    {
+        // Standard PDF Times-Roman advance widths in 1/1000 em. The label and
+        // generated IDs use these characters; conservatively bound other glyphs.
+        int[] capitals = [722, 667, 667, 722, 611, 556, 722, 722, 333, 389, 722, 611, 889,
+            722, 722, 556, 722, 667, 556, 611, 722, 722, 944, 722, 722, 611];
+        var width = 0;
+        foreach (var character in pdfLiteral.AsSpan(1, pdfLiteral.Length - 2))
+        {
+            width += character switch
+            {
+                >= 'A' and <= 'Z' => capitals[character - 'A'],
+                >= '0' and <= '9' => 500,
+                ' ' => 250,
+                '-' => 333,
+                ':' or 'i' or 't' => 278,
+                'a' or 'c' or 'e' => 444,
+                'f' or 'r' => 333,
+                _ => 1000
+            };
+        }
+        return Math.Max(1, width) / 1000d;
     }
 
     private static void AddImage(StringBuilder content, string name, double x, double y, double width, double height)

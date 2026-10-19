@@ -385,9 +385,8 @@ export function LoginPage() {
   // Kept only in memory so the student is signed in right after verifying their email.
   const pendingPasswordRef = useRef("");
 
-  useEffect(() => {
-    if (!auth.isBooting && auth.user) navigate(returnUrl, { replace: true });
-  }, [auth.isBooting, auth.user, navigate, returnUrl]);
+  // Keep login accessible when a session already exists so users can switch accounts.
+  // Successful sign-in handlers navigate to returnUrl after applying the new session.
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

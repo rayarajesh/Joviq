@@ -89,11 +89,14 @@ public sealed class StudentOnboardingService(
         pair.Profile.PreferredProgramSlug = RequiredText(request.ProgramSlug, nameof(UpdateRegistrationDetailsRequest.ProgramSlug), 160);
         pair.Profile.PreferredProgramTitle = RequiredText(request.ProgramTitle, nameof(UpdateRegistrationDetailsRequest.ProgramTitle), 200);
         pair.Profile.PreferredStartDate = request.StartDate;
-        // Optional for compatibility with existing clients; omitted fields retain saved values.
-        if (request.CollegeName is not null)
-            pair.Profile.College = RequiredText(request.CollegeName, nameof(request.CollegeName), 200);
-        if (request.ExecutiveName is not null)
-            pair.Profile.ExecutiveName = RequiredText(request.ExecutiveName, nameof(request.ExecutiveName), 160);
+        // Older clients may omit these fields on updates, but a submission must have saved values.
+        pair.Profile.College = RequiredText(request.CollegeName ?? pair.Profile.College, nameof(request.CollegeName), 200);
+        pair.Profile.ExecutiveName = RequiredText(request.ExecutiveName ?? pair.Profile.ExecutiveName, nameof(request.ExecutiveName), 160);
+        if (string.IsNullOrWhiteSpace(pair.User.Email))
+            throw new AppException("Your account requires an email address before submitting onboarding.", 400, "email_required");
+        // One profile per authenticated user; a resubmission returns it to review.
+        pair.Profile.OnboardingSubmittedAt = clock.UtcNow;
+        pair.Profile.OnboardingReviewStatus = "Submitted";
         MarkInProgress(pair.User);
 
         await dbContext.SaveChangesAsync(cancellationToken);
