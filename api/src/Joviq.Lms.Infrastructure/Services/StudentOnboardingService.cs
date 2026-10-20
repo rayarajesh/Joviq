@@ -82,7 +82,18 @@ public sealed class StudentOnboardingService(
         }
 
         pair.User.FullName = RequiredText(request.FullName, nameof(UpdateRegistrationDetailsRequest.FullName), 160);
-        pair.User.PhoneNumber = NormalizePhoneNumber(request.PhoneNumber, nameof(UpdateRegistrationDetailsRequest.PhoneNumber));
+        var normalizedPhone = NormalizePhoneNumber(request.PhoneNumber, nameof(UpdateRegistrationDetailsRequest.PhoneNumber));
+        // Phone numbers are unique per account; surface a clear validation error instead of a 500
+        // when the submitted number already belongs to a different student.
+        if (normalizedPhone != pair.User.PhoneNumber &&
+            await dbContext.Users.AnyAsync(other => other.Id != pair.User.Id && other.PhoneNumber == normalizedPhone, cancellationToken))
+        {
+            throw new ValidationAppException(new Dictionary<string, string[]>
+            {
+                [nameof(UpdateRegistrationDetailsRequest.PhoneNumber)] = ["This phone number is already registered to another account. Please use a different number."]
+            });
+        }
+        pair.User.PhoneNumber = normalizedPhone;
         pair.Profile.WhatsAppNumber = NormalizePhoneNumber(request.WhatsAppNumber, nameof(UpdateRegistrationDetailsRequest.WhatsAppNumber));
         pair.Profile.CurrentYearOfStudy = RequiredText(request.CurrentYearOfStudy, nameof(UpdateRegistrationDetailsRequest.CurrentYearOfStudy), 40);
         pair.Profile.PreferredCategoryName = RequiredText(request.CategoryName, nameof(UpdateRegistrationDetailsRequest.CategoryName), 160);
