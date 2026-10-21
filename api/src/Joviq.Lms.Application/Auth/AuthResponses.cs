@@ -17,7 +17,9 @@ public sealed record UserSummaryResponse(
     bool PhoneNumberConfirmed,
     IReadOnlyList<string> Roles,
     string AccountStatus,
-    string OnboardingStatus);
+    string OnboardingStatus,
+    bool HasPassword,
+    bool HasExternalLogin);
 
 public sealed record AccountProfileResponse(
     Guid UserId,

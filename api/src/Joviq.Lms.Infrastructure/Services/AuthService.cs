@@ -212,6 +212,7 @@ public sealed class AuthService(
 
         EnsureIdentitySucceeded(await userManager.ResetAccessFailedCountAsync(user));
         EnsureCanLogin(user);
+        await EnsureOnboardingCompleteForDashboardAsync(user, cancellationToken);
 
         user.LastLoginAt = clock.UtcNow;
         AddAudit(user.Id, "LoginSucceeded", user.Email, user.PhoneNumber, metadata);
@@ -352,6 +353,9 @@ public sealed class AuthService(
         }
 
         EnsureCanLogin(user);
+        // Google links by email even for a learner who has not finished onboarding; the dashboard is
+        // still gated until onboarding is complete (this rolls back any just-created link on failure).
+        await EnsureOnboardingCompleteForDashboardAsync(user, cancellationToken);
 
         user.LastLoginAt = clock.UtcNow;
         AddAudit(user.Id, "LoginSucceeded", user.Email, user.PhoneNumber, metadata, new { method = "oauth", provider });
@@ -673,6 +677,11 @@ public sealed class AuthService(
     private async Task<UserSummaryResponse> BuildUserSummaryAsync(ApplicationUser user)
     {
         var roles = await userManager.GetRolesAsync(user);
+        // A checkout account created during enrollment has no password until the learner sets one.
+        // The frontend uses this to keep an email-only (passwordless) resume out of the dashboard.
+        // A linked external login (Google) is an equally valid login method, so it counts too.
+        var hasPassword = await userManager.HasPasswordAsync(user);
+        var hasExternalLogin = (await userManager.GetLoginsAsync(user)).Count > 0;
         return new UserSummaryResponse(
             user.Id,
             user.FullName,
@@ -683,7 +692,9 @@ public sealed class AuthService(
             user.PhoneNumberConfirmed,
             roles.ToList(),
             user.AccountStatus.ToString(),
-            user.OnboardingStatus.ToString());
+            user.OnboardingStatus.ToString(),
+            hasPassword,
+            hasExternalLogin);
     }
 
     private void EnsureCanLogin(ApplicationUser user, bool requireEmailConfirmed = true)
@@ -702,6 +713,39 @@ public sealed class AuthService(
         {
             throw new AppException("Please verify your email before login.", 403, "email_not_verified");
         }
+    }
+
+    // A student may sign in to the dashboard only after finishing onboarding — payment plus course
+    // selection. The paid onboarding saves a preferred program + start date on the profile (and only
+    // marks the user InProgress, not Completed), so the saved course is the real signal; OnboardingStatus
+    // Completed also passes (seeded/admin-created accounts and the dashboard profile-completion flow).
+    // An unfinished learner resumes through the onboarding app (resume-onboarding), never dashboard
+    // login, so this is deliberately NOT part of EnsureCanLogin.
+    private async Task EnsureOnboardingCompleteForDashboardAsync(ApplicationUser user, CancellationToken cancellationToken)
+    {
+        if (user.OnboardingStatus == OnboardingStatus.Completed)
+        {
+            return;
+        }
+
+        if (!await userManager.IsInRoleAsync(user, RoleNames.Student))
+        {
+            return;
+        }
+
+        var hasSelectedCourse = await dbContext.StudentProfiles.AnyAsync(
+            profile => profile.UserId == user.Id
+                && profile.PreferredProgramSlug != null && profile.PreferredProgramSlug != ""
+                && profile.PreferredStartDate != null,
+            cancellationToken);
+        if (hasSelectedCourse)
+        {
+            return;
+        }
+
+        throw new AppException(
+            "Please complete your onboarding — finish your payment and course selection — before signing in to your dashboard.",
+            403, "onboarding_incomplete");
     }
 
     private void AddAudit(Guid? userId, string eventType, string? email, string? phone, RequestMetadata? metadata, object? extra = null)

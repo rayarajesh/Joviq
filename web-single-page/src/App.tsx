@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { defaultProgramPlans } from "./data/siteContent";
 import type { ProgramPlan } from "./data/siteContent";
 import { AuthProvider } from "./features/auth/context/AuthContext";
+import { useAuth } from "./features/auth/context/useAuth";
+import { env } from "./config/env";
 import { useReveal } from "./hooks/useReveal";
 import { Navbar } from "./components/Navbar";
 import { Hero } from "./components/Hero";
@@ -14,6 +16,8 @@ import { BackToTop } from "./components/BackToTop";
 import { OnboardingPage } from "./components/OnboardingPage";
 import { CampusSection } from "./components/Campus";
 import type { CampusInterest } from "./components/Campus";
+import { studentOnboardingApi } from "./features/lms/api/lmsApi";
+import { openOnboarding } from "./lib/onboardingLink";
 import { checkoutLink, readCheckoutLink } from "./lib/checkoutLinks";
 import type { PaymentChoice } from "./lib/checkoutLinks";
 import type { PaymentTarget } from "./features/lms/usePaymentFlow";
@@ -59,7 +63,31 @@ function SinglePage() {
   const [heroCheckoutError, setHeroCheckoutError] = useState("");
   const [enrollment, setEnrollment] = useState<Enrollment | null>(() => readCheckoutLink(window.location.search, defaultProgramPlans));
   const [contactInterest, setContactInterest] = useState<CampusInterest | "program">("program");
+  const auth = useAuth();
   useReveal();
+
+  // Only a student who has FINISHED every onboarding step — payment, course + start date saved,
+  // AND password creation — belongs on the dashboard. Send them there so the browser Back button
+  // can't return them to this starting page after onboarding. A learner who paid and chose a
+  // course but has only an email-only (passwordless) resume session must stay in the onboarding
+  // flow until they create their password; redirecting them early would open the dashboard and
+  // silently enroll them before login is set up. A payment return or in-progress checkout is left
+  // alone so the flow can complete.
+  useEffect(() => {
+    if (auth.isBooting || !auth.user || returnedOrderId || returnedTransactionId || enrollment || postPaymentTarget) return;
+    // A learner is "done" only with a usable login method — a password OR a linked Google login —
+    // plus saved onboarding (checked below). An email-only resume session has neither and stays put.
+    if (!auth.user.roles.includes("Student") || !(auth.user.hasPassword || auth.user.hasExternalLogin)) return;
+    let active = true;
+    studentOnboardingApi.get().then(({ data }) => {
+      if (!active) return;
+      const registration = data.registration;
+      if (registration?.programSlug && registration?.startDate && registration?.categoryName) {
+        window.location.replace(`${env.lmsAppUrl || "http://localhost:5173"}/dashboard`);
+      }
+    }).catch(() => { /* Leave the learner on this page if the onboarding check fails. */ });
+    return () => { active = false; };
+  }, [auth.isBooting, auth.user, returnedOrderId, returnedTransactionId, enrollment, postPaymentTarget]);
 
   useEffect(() => {
     function restoreLocation() {
@@ -122,8 +150,17 @@ function SinglePage() {
     setPostPaymentTarget(target);
   }
 
+  // Plain close (details already saved / not the course form) simply dismisses the dialog.
   function closePostPaymentRegistration() {
     setPostPaymentTarget(null);
+  }
+
+  // Guard: closing the UNSAVED course form sends the learner to the "Complete your onboarding"
+  // email-entry page (signed out, payment email prefilled) so an accidental close is recoverable.
+  function guardPostPaymentRegistration() {
+    const paymentEmail = postPaymentTarget?.applicant.email ?? auth.user?.email ?? "";
+    setPostPaymentTarget(null);
+    void auth.logout().finally(() => openOnboarding(paymentEmail, true));
   }
 
   const postPaymentPlan = postPaymentTarget
@@ -198,6 +235,7 @@ function SinglePage() {
           }}
           initialPostPaymentTarget={postPaymentTarget}
           onClose={closePostPaymentRegistration}
+          onRequestResumeGuard={guardPostPaymentRegistration}
         />
       ) : null}
     </>

@@ -8,6 +8,10 @@ public sealed class ExternalAuthOptions
 
     public string FrontendCallbackUrl { get; init; } = "http://localhost:5173/auth/google/callback";
 
+    /// <summary>Where a Google sign-in started from the onboarding (single-page) app returns on error,
+    /// e.g. when the chosen Google account does not match the paid-onboarding email.</summary>
+    public string OnboardingCallbackUrl { get; init; } = "http://localhost:5174/onboarding";
+
     public string DefaultPolicyVersion { get; init; } = "2026-08-20";
 }
 

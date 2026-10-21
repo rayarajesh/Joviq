@@ -46,6 +46,8 @@ export type UserSummary = {
   roles: RoleName[];
   accountStatus: string;
   onboardingStatus: string;
+  hasPassword: boolean;
+  hasExternalLogin: boolean;
 };
 
 export type AccountProfile = {

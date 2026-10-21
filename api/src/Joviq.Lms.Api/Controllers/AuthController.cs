@@ -5,6 +5,7 @@ using Joviq.Lms.Application.Common.Interfaces;
 using Joviq.Lms.Application.Common.Models;
 using Joviq.Lms.Application.Common.Options;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -87,18 +88,29 @@ public sealed class AuthController(
         [FromQuery] string? phoneNumber,
         [FromQuery] string? termsVersion,
         [FromQuery] string? privacyPolicyVersion,
-        [FromQuery] string? deviceId)
+        [FromQuery] string? deviceId,
+        // Set only when starting from the onboarding (single-page) app: the paid-onboarding email.
+        // It both pre-selects the Google account (login_hint) and is enforced in the callback so a
+        // learner cannot link a different Google account to their paid enrollment.
+        [FromQuery] string? email)
     {
         var normalizedReturnUrl = NormalizeReturnUrl(returnUrl);
+        var expectedEmail = string.IsNullOrWhiteSpace(email) ? null : email.Trim();
         if (await authenticationSchemeProvider.GetSchemeAsync("Google") is null)
         {
-            return Redirect(BuildFrontendCallbackUrl(normalizedReturnUrl, "Google OAuth is not configured."));
+            return Redirect(BuildCallbackUrl(expectedEmail, normalizedReturnUrl, "Google OAuth is not configured."));
         }
 
-        var properties = new AuthenticationProperties
+        var properties = new GoogleChallengeProperties
         {
             RedirectUri = Url.Action(nameof(CompleteGoogleOAuth))
         };
+
+        if (expectedEmail is not null)
+        {
+            properties.LoginHint = expectedEmail;
+            properties.Items["expectedEmail"] = expectedEmail;
+        }
 
         properties.Items["returnUrl"] = normalizedReturnUrl;
         properties.Items["acceptedTerms"] = acceptedTerms ? "true" : "false";
@@ -118,12 +130,13 @@ public sealed class AuthController(
     {
         var authenticateResult = await HttpContext.AuthenticateAsync(IdentityConstants.ExternalScheme);
         var returnUrl = NormalizeReturnUrl(GetAuthenticationProperty(authenticateResult, "returnUrl"));
+        var expectedEmail = GetAuthenticationProperty(authenticateResult, "expectedEmail");
 
         try
         {
             if (!authenticateResult.Succeeded || authenticateResult.Principal is null)
             {
-                return Redirect(BuildFrontendCallbackUrl(returnUrl, "Google sign-in was cancelled or failed."));
+                return Redirect(BuildCallbackUrl(expectedEmail, returnUrl, "Google sign-in was cancelled or failed."));
             }
 
             var principal = authenticateResult.Principal;
@@ -135,7 +148,16 @@ public sealed class AuthController(
 
             if (string.IsNullOrWhiteSpace(providerKey) || string.IsNullOrWhiteSpace(email))
             {
-                return Redirect(BuildFrontendCallbackUrl(returnUrl, "Google did not return the required account details."));
+                return Redirect(BuildCallbackUrl(expectedEmail, returnUrl, "Google did not return the required account details."));
+            }
+
+            // Onboarding started with a known paid email: the Google account must match it, otherwise
+            // the sign-in would link a different account and strand the saved enrollment.
+            if (!string.IsNullOrWhiteSpace(expectedEmail) &&
+                !email.Trim().Equals(expectedEmail.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                return Redirect(BuildCallbackUrl(expectedEmail, returnUrl,
+                    $"Use the Google account for {expectedEmail} to continue your onboarding."));
             }
 
             var result = await authService.ExternalLoginAsync(
@@ -158,17 +180,18 @@ public sealed class AuthController(
                 cancellationToken);
 
             SetRefreshTokenCookieIfPresent(result);
+            // Success always lands on the dashboard app, which restores the shared session cookie.
             return Redirect(BuildFrontendCallbackUrl(returnUrl));
         }
         catch (AppException exception)
         {
             logger.LogWarning(exception, "Google OAuth login failed with application error {ErrorCode}.", exception.ErrorCode);
-            return Redirect(BuildFrontendCallbackUrl(returnUrl, exception.Message));
+            return Redirect(BuildCallbackUrl(expectedEmail, returnUrl, exception.Message));
         }
         catch (Exception exception)
         {
             logger.LogError(exception, "Google OAuth login failed.");
-            return Redirect(BuildFrontendCallbackUrl(returnUrl, "Google sign-in failed."));
+            return Redirect(BuildCallbackUrl(expectedEmail, returnUrl, "Google sign-in failed."));
         }
         finally
         {
@@ -312,6 +335,23 @@ public sealed class AuthController(
     }
 
     private bool UseSecureRefreshCookie => !_isDevelopment || Request.IsHttps;
+
+    // Chooses where Google redirects back to. An onboarding-originated error (expectedEmail set)
+    // returns to the onboarding app with the email prefilled; everything else goes to the dashboard
+    // app's OAuth callback.
+    private string BuildCallbackUrl(string? expectedEmail, string? returnUrl, string? error)
+    {
+        if (!string.IsNullOrWhiteSpace(expectedEmail) && !string.IsNullOrWhiteSpace(error))
+        {
+            var baseUrl = string.IsNullOrWhiteSpace(_externalAuthOptions.OnboardingCallbackUrl)
+                ? "http://localhost:5174/onboarding"
+                : _externalAuthOptions.OnboardingCallbackUrl.Trim();
+            var separator = baseUrl.Contains('?') ? '&' : '?';
+            return $"{baseUrl}{separator}email={Uri.EscapeDataString(expectedEmail.Trim())}&googleError={Uri.EscapeDataString(error)}";
+        }
+
+        return BuildFrontendCallbackUrl(returnUrl, error);
+    }
 
     private string BuildFrontendCallbackUrl(string? returnUrl, string? error = null)
     {

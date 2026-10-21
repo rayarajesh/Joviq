@@ -20,7 +20,18 @@ export const publicLmsApi = {
 
 export const studentOnboardingApi = {
   get() {
-    return request<{ academic: { college?: string } }>("/api/v1/student/onboarding");
+    return request<{
+      academic: { college?: string };
+      registration: {
+        whatsAppNumber?: string | null;
+        categoryName?: string | null;
+        programSlug?: string | null;
+        programTitle?: string | null;
+        startDate?: string | null;
+        currentYearOfStudy?: string | null;
+        executiveName?: string | null;
+      };
+    }>("/api/v1/student/onboarding");
   },
   saveRegistration(body: SavePostPaymentRegistrationRequest) {
     return request<unknown>("/api/v1/student/onboarding/registration", { method: "PUT", body });
