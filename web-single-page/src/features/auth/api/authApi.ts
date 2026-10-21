@@ -4,7 +4,7 @@ import { env } from "../../../config/env";
 
 // The enrollment subset of the /web auth API: same endpoints, same payloads.
 export const authApi = {
-  oauthStartUrl(options: { phoneNumber?: string; returnUrl?: string; acceptedTerms?: boolean; allowSignUp?: boolean } = {}) {
+  oauthStartUrl(options: { phoneNumber?: string; returnUrl?: string; acceptedTerms?: boolean; allowSignUp?: boolean; email?: string } = {}) {
     const search = new URLSearchParams({
       returnUrl: options.returnUrl ?? "/dashboard",
       acceptedTerms: String(options.acceptedTerms ?? true),
@@ -14,7 +14,15 @@ export const authApi = {
       privacyPolicyVersion: "2026-08-20"
     });
     if (options.phoneNumber) search.set("phoneNumber", options.phoneNumber);
+    // The paid-onboarding email: pre-selects the Google account (login_hint) and is enforced
+    // server-side so a different Google account cannot be linked to this enrollment.
+    if (options.email) search.set("email", options.email);
     return `${env.apiBaseUrl}/api/v1/auth/oauth/google/start?${search.toString()}`;
+  },
+
+  // Whether Google sign-in is configured on the server (client id/secret present).
+  providers() {
+    return request<{ google: boolean }>("/api/v1/auth/providers", { accessToken: null, skipAuthRetry: true });
   },
 
   createCheckoutAccount(body: CheckoutAccountRequest) {

@@ -6,22 +6,45 @@ import { studentLmsApi } from "../features/lms/api/lmsApi";
 import type { PaymentTransactionResponse } from "../features/lms/api/lmsTypes";
 import type { PaymentTarget } from "../features/lms/usePaymentFlow";
 import { formatApiError } from "../lib/api/httpClient";
-import { readOnboardingEmail } from "../lib/onboardingLink";
+import { consumeManualResumeFlag, readOnboardingEmail } from "../lib/onboardingLink";
 import { defaultProgramPlans } from "../data/siteContent";
 import { EnrollmentDialog } from "./EnrollmentDialog";
 
 /** A resumable entry point: a paid learner enters only the payment email — no password. */
 export function OnboardingPage() {
   const auth = useAuth();
-  const [email, setEmail] = useState(readOnboardingEmail);
+  // A Google sign-in that failed its onboarding email-match returns here as ?email=&googleError=.
+  const googleCallback = useRef((() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return { email: params.get("email") ?? "", googleError: params.get("googleError") ?? "" };
+    } catch { return { email: "", googleError: "" }; }
+  })());
+  const [email, setEmail] = useState(() => googleCallback.current.email || readOnboardingEmail());
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(googleCallback.current.googleError);
   const [payments, setPayments] = useState<PaymentTransactionResponse[] | null>(null);
   const [target, setTarget] = useState<PaymentTarget | null>(null);
   const [retry, setRetry] = useState(0);
   const busyRef = useRef(false);
-  const autoResumeRef = useRef(false);
-  const [autoResuming, setAutoResuming] = useState(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(readOnboardingEmail().trim()));
+  // Skip the auto-resume when the page was opened by closing the onboarding form, when a Google
+  // sign-in bounced back with an error, or when opened from a shared ?email= link (sent manually to
+  // a learner) — show the email-entry screen with the email prefilled and let the learner press
+  // Continue themselves.
+  const manualResume = useRef(consumeManualResumeFlag() || !!googleCallback.current.googleError || !!googleCallback.current.email);
+  const autoResumeRef = useRef(manualResume.current);
+  const [autoResuming, setAutoResuming] = useState(() => !manualResume.current && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((googleCallback.current.email || readOnboardingEmail()).trim()));
+
+  // Strip the Google callback params so a refresh does not replay the error.
+  useEffect(() => {
+    if (!googleCallback.current.email && !googleCallback.current.googleError) return;
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("email");
+      url.searchParams.delete("googleError");
+      window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+    } catch { /* ignore */ }
+  }, []);
   const user = auth.user;
   const emailMatches = !email.trim() || email.trim().toLowerCase() === user?.email.toLowerCase();
 
@@ -73,6 +96,27 @@ export function OnboardingPage() {
       paymentMode: payment.mode === "Full" ? 2 : 1,
       amountPaid: payment.amount,
       applicant: { fullName: user.fullName, email: user.email, phoneNumber: user.phoneNumber ?? "", collegeName: "" }
+    });
+  }
+
+  // Plain close (details already saved / not the course form): just dismiss the dialog.
+  function closeRegistration() {
+    setTarget(null);
+  }
+
+  // Guard: closing the UNSAVED course form (X) must not jump the learner all the way back. It
+  // returns them to the "enter the email used for payment" screen with their email still filled in.
+  // From there, Continue onboarding re-opens the form — so a mis-click is easily recovered.
+  function guardCloseRegistration() {
+    void run(async () => {
+      const resumeEmail = user?.email ?? email;
+      setTarget(null);
+      setPayments(null);
+      await auth.logout();
+      setEmail(resumeEmail);
+      // Keep the auto-resume guard set so the email entry does not auto-submit; the learner
+      // confirms the email and clicks Continue onboarding themselves.
+      autoResumeRef.current = true;
     });
   }
 
@@ -151,7 +195,8 @@ export function OnboardingPage() {
         plan={plan}
         initialValues={target.applicant}
         initialPostPaymentTarget={target}
-        onClose={() => setTarget(null)}
+        onClose={closeRegistration}
+        onRequestResumeGuard={guardCloseRegistration}
       /> : null}
     </main>
   );

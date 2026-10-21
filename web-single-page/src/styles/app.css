@@ -2380,6 +2380,9 @@ button, input, select, textarea { font: inherit; }
 .account-choice-panel__actions .btn { min-width: 185px; }
 .account-choice-panel__google { border-color: #b7c3e7; color: #4f6090; background: #fff; }
 .account-choice-panel__google:hover { border-color: #8799ec; color: #3c4e82; background: #f8f9ff; }
+.account-choice-panel__signin { margin: 4px 0 0; color: #536696; font-size: 0.85rem; text-align: center; }
+.account-choice-panel__signin a { color: #4f46c4; font-weight: 500; text-decoration: underline; }
+.account-choice-panel__signin a:hover { color: #3a32a0; }
 
 .confetti { position: absolute; inset: -20px 0 auto; height: 0; pointer-events: none; }
 .confetti i {

@@ -1,5 +1,10 @@
 .dashboard-shell.dashboard-shell--student{grid-template-columns:190px minmax(0,1fr);background:radial-gradient(ellipse at 80% 0%,#eeeaff 0,transparent 42%),#f7f9ff;color:#11133e;min-height:calc(100dvh - 74px)}
 .authenticated-app:has(.dashboard-shell--student) .auth-nav__identity strong,.authenticated-app:has(.dashboard-shell--student) .auth-nav__identity small{color:#fff}
+/* The student account button is a dark pill (white text). Give it an explicit dark background and a
+   dark hover so the white name/role never washes out against the default/hover surface. */
+.authenticated-app:has(.dashboard-shell--student) .auth-nav__profile-button{background:#574b9e;border-color:rgba(93,88,162,0.34);color:#fff}
+.authenticated-app:has(.dashboard-shell--student) .auth-nav__profile-button:hover,.authenticated-app:has(.dashboard-shell--student) .auth-nav__profile-button:focus-visible,.authenticated-app:has(.dashboard-shell--student) .auth-nav__profile-button.is-active{background:#463b88;border-color:rgba(93,88,162,0.5);color:#fff}
+.authenticated-app:has(.dashboard-shell--student) .auth-nav__profile-button > svg{color:#fff}
 .dashboard-shell--student .dashboard-main{padding:24px 32px 30px;min-width:0}
 .dashboard-sidebar.dashboard-sidebar--student{background:#fff;border-right:1px solid #edf0f9;padding:20px 12px;display:flex;flex-direction:column;gap:22px;box-shadow:none}
 .dashboard-sidebar--student .sidebar-nav{flex:none;gap:6px;padding:0}

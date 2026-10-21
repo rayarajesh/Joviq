@@ -84,14 +84,23 @@ function getStartMonthOptions(today: Date) {
   });
 }
 
+// Checkout stores the phone with its +91 country code (e.g. "+919777777777"). The form renders a
+// separate +91 prefix and a 10-digit national field, so strip the country code on prefill — otherwise
+// the first edit runs digits through slice(0, 10) and silently drops the last national digits.
+function toNationalPhone(value = "") {
+  const digits = value.replace(/\D/g, "");
+  return digits.length > 10 ? digits.slice(-10) : digits;
+}
+
 function createRegistrationDetails(fullName = "", phoneNumber = ""): RegistrationDetails {
+  const national = toNationalPhone(phoneNumber);
   return {
     collegeName: "",
     executiveName: "",
     fullName,
     email: "",
-    phoneNumber,
-    whatsappNumber: phoneNumber,
+    phoneNumber: national,
+    whatsappNumber: national,
     categoryName: "",
     programSlug: "",
     startDate: "",
@@ -116,9 +125,12 @@ type Props = {
   onAutoStartError?: (message: string) => void;
   initialPostPaymentTarget?: PaymentTarget;
   onClose: () => void;
+  /** Post-payment only: invoked instead of onClose when the learner closes the UNSAVED course form,
+   *  so an accidental close is guarded by the resume (email-entry) screen rather than lost. */
+  onRequestResumeGuard?: () => void;
 };
 
-export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaymentChoice, onPaymentChoiceChange, initialAcceptedTerms, autoStart = false, onAutoStartError, initialPostPaymentTarget, onClose }: Props) {
+export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaymentChoice, onPaymentChoiceChange, initialAcceptedTerms, autoStart = false, onAutoStartError, initialPostPaymentTarget, onClose, onRequestResumeGuard }: Props) {
   const auth = useAuth();
   const { user, isBooting } = auth;
   const payment = usePaymentFlow();
@@ -126,7 +138,7 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
   const [selectedSlug, setSelectedSlug] = useState(programSlug ?? "");
   const slug = programSlug ?? selectedSlug;
   const [fullName, setFullName] = useState(initialValues?.fullName ?? user?.fullName ?? "");
-  const [phoneNumber, setPhoneNumber] = useState(initialValues?.phoneNumber ?? user?.phoneNumber ?? "");
+  const [phoneNumber, setPhoneNumber] = useState(toNationalPhone(initialValues?.phoneNumber ?? user?.phoneNumber ?? ""));
   const [email, setEmail] = useState(initialValues?.email ?? user?.email ?? "");
   const [collegeName, setCollegeName] = useState(initialValues?.collegeName ?? "");
   const [paymentChoice, setPaymentChoice] = useState<PaymentChoice>(initialPaymentChoice ?? "token");
@@ -147,7 +159,7 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [notice, setNotice] = useState("");
-  const [confirmingEmail, setConfirmingEmail] = useState(false);
+  const [googleEnabled, setGoogleEnabled] = useState(true);
   const [showPasswordAuth, setShowPasswordAuth] = useState(false);
   const [passwordAuthView, setPasswordAuthView] = useState<"create" | "login">("create");
   const [otpSent, setOtpSent] = useState(false);
@@ -165,6 +177,9 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
   const [retrySeconds, setRetrySeconds] = useState(0);
   const submittingRef = useRef(false);
   const autoStartedRef = useRef(false);
+  // When resuming after payment, briefly hold the form until we know whether the learner has
+  // already saved their course details (so they resume where they left off, not at course selection).
+  const [checkingProgress, setCheckingProgress] = useState(!!initialPostPaymentTarget);
   const targetRef = useRef<PaymentTarget | null>(initialPostPaymentTarget ?? null);
   const programTitle = uniquePrograms.find((program) => program.slug === slug)?.title ?? "your selected course";
   const enrollmentEmail = resolveCheckoutEmail(email, user?.email);
@@ -190,6 +205,13 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
 
   function closeDialog() {
     void payment.cancel();
+    // Closing the UNSAVED post-payment course form routes through the resume (email-entry) guard so
+    // an accidental close is recoverable. Once details are saved (account-choice) or in any other
+    // step, there is nothing to lose, so just close normally — no email-entry screen.
+    if (initialPostPaymentTarget && step === "registration" && onRequestResumeGuard) {
+      onRequestResumeGuard();
+      return;
+    }
     onClose();
   }
 
@@ -256,12 +278,33 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
     if (!initialPostPaymentTarget || !user) return;
     let active = true;
     studentOnboardingApi.get().then(({ data }) => {
-      if (active) setRegistration((current) => ({ ...current,
-        collegeName: current.collegeName || data.academic?.college || ""
+      if (!active) return;
+      const saved = data.registration;
+      // Course details are "saved" once a program and start date exist on the profile. A learner
+      // who has reached that point resumes on the final onboarding-success step (sign in), never
+      // back on course selection. Otherwise they resume at course selection with any partial values.
+      const detailsSaved = !!(saved?.programSlug && saved?.startDate && saved?.categoryName);
+      setRegistration((current) => ({ ...current,
+        collegeName: current.collegeName || data.academic?.college || "",
+        whatsappNumber: current.whatsappNumber || toNationalPhone(saved?.whatsAppNumber ?? "") || current.whatsappNumber,
+        currentYearOfStudy: current.currentYearOfStudy || saved?.currentYearOfStudy || "",
+        categoryName: current.categoryName || saved?.categoryName || "",
+        programSlug: current.programSlug || saved?.programSlug || "",
+        startDate: current.startDate || saved?.startDate || "",
+        executiveName: current.executiveName || saved?.executiveName || ""
       }));
-    }).catch(() => { /* The student can enter missing details manually. */ });
+      if (detailsSaved) setStep("account-choice");
+      setCheckingProgress(false);
+    }).catch(() => { if (active) setCheckingProgress(false); /* The student can enter missing details manually. */ });
     return () => { active = false; };
   }, [initialPostPaymentTarget, user?.id]);
+
+  // Only offer "Continue with Google" when the server has a Google client configured.
+  useEffect(() => {
+    let active = true;
+    authApi.providers().then(({ data }) => { if (active) setGoogleEnabled(data.google); }).catch(() => { /* leave the button enabled; the server guards it */ });
+    return () => { active = false; };
+  }, []);
 
   if (hideAutomaticCheckout) return null;
 
@@ -281,8 +324,8 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
       ...current,
       fullName: current.fullName || user?.fullName || applicant?.fullName || fullName,
       email: current.email || applicant?.email || enrollmentEmail,
-      phoneNumber: current.phoneNumber || user?.phoneNumber || applicant?.phoneNumber || phoneNumber,
-      whatsappNumber: current.whatsappNumber || user?.phoneNumber || applicant?.phoneNumber || phoneNumber,
+      phoneNumber: current.phoneNumber || toNationalPhone(user?.phoneNumber || applicant?.phoneNumber || phoneNumber),
+      whatsappNumber: current.whatsappNumber || toNationalPhone(user?.phoneNumber || applicant?.phoneNumber || phoneNumber),
       collegeName: current.collegeName || applicant?.collegeName || collegeName
     }));
     setErrorMessage("");
@@ -442,11 +485,19 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
     });
   }
 
+  // Standard Google OAuth (authorization-code redirect). The payment email is passed as login_hint
+  // and enforced server-side, so Google links to this same paid account and never a different one.
+  function startGoogleSignIn() {
+    const paymentEmail = enrollmentEmail || registration.email || user?.email || "";
+    window.location.assign(authApi.oauthStartUrl({ email: paymentEmail, returnUrl: "/dashboard", allowSignUp: false }));
+  }
+
   function redirectToDashboard() {
     const mainWebUrl = env.lmsAppUrl || "http://localhost:5173";
     // The student is already signed in; the main app restores the session from the shared
-    // refresh cookie on load and opens the dashboard directly.
-    window.location.assign(`${mainWebUrl}/dashboard`);
+    // refresh cookie on load and opens the dashboard directly. Use replace() so the completed
+    // onboarding page is removed from history and the browser Back button cannot return to it.
+    window.location.replace(`${mainWebUrl}/dashboard`);
   }
 
 
@@ -773,7 +824,16 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
             />
           ) : null}
 
-          {step === "registration" ? (
+          {step === "registration" && checkingProgress ? (
+            <div className="pay-panel" aria-live="polite">
+              <div className="pay-panel__icon"><LockKeyhole size={30} /><span className="pay-panel__ring" aria-hidden="true" /></div>
+              <span className="eyebrow">Secure onboarding</span>
+              <h3>Resuming your onboarding</h3>
+              <p>Checking where you left off…</p>
+            </div>
+          ) : null}
+
+          {step === "registration" && !checkingProgress ? (
             <form className="enroll-form post-payment-registration" onSubmit={submitRegistrationDetails}>
               <div className="post-payment-registration__intro">
                 <span className="post-payment-registration__icon"><GraduationCap size={21} /></span>
@@ -880,20 +940,12 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
                 <span><GraduationCap size={16} /><strong>{selectedRegistrationProgram?.title ?? "Selected program"}</strong></span>
                 <span><CalendarDays size={16} /><strong>{registration.startDate ? new Date(`${registration.startDate}T00:00:00`).toLocaleDateString("en-IN", { month: "short", year: "numeric" }) : ""}</strong></span>
               </div>
-              {confirmingEmail ? (
-                <div className="account-choice-panel__confirm" role="alertdialog" aria-label="Confirm your email">
-                  <p>Continue to your dashboard as <strong>{enrollmentEmail || registration.email || user?.email}</strong>?</p>
-                  <div className="pay-panel__actions account-choice-panel__actions">
-                    <button className="btn btn--primary" onClick={redirectToDashboard} type="button"><CheckCircle2 size={18} /> Confirm</button>
-                    <button className="btn btn--ghost" onClick={() => setConfirmingEmail(false)} type="button"><X size={18} /> Cancel</button>
-                  </div>
-                </div>
-              ) : (
-                <div className="pay-panel__actions account-choice-panel__actions">
-                  <button className="btn btn--primary" onClick={() => setConfirmingEmail(true)} type="button"><LogIn size={18} /> Continue with Google</button>
-                  <button className="btn btn--ghost" onClick={openPasswordLogin} type="button"><LockKeyhole size={18} /> Login with email and password</button>
-                </div>
-              )}
+              <div className="pay-panel__actions account-choice-panel__actions">
+                <button className="btn btn--primary" disabled={!googleEnabled} onClick={startGoogleSignIn} type="button"><LogIn size={18} /> Continue with Google</button>
+                <button className="btn btn--ghost" onClick={openPasswordLogin} type="button"><LockKeyhole size={18} /> Create a password for your account</button>
+              </div>
+              {!googleEnabled ? <small className="field__hint">Google sign-in is being set up — use email and password for now.</small> : null}
+              <p className="account-choice-panel__signin">Already have an account? <a href={`${env.lmsAppUrl || "http://localhost:5173"}/login`}>Login here</a></p>
               <div className="enroll-note"><MessageCircle size={17} /><span>After sign-in, your saved onboarding details will be ready in the main Joviq web app.</span></div>
             </div>
           ) : null}
@@ -938,7 +990,6 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
                     <button className="btn btn--primary btn--block" disabled={isSubmitting} type="button" onClick={sendPasswordOtp}>
                       {isSubmitting ? <LoaderCircle className="spin" size={18} /> : <KeyRound size={18} />} Send code
                     </button>
-                    <button className="btn btn--ghost btn--block" type="button" onClick={() => switchPasswordAuthView("login")}><ArrowLeft size={17} /> Back to login with email and password</button>
                   </>
                 ) : (
                   <>
@@ -965,7 +1016,6 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
                       {retrySeconds > 0 ? `Try again in ${retrySeconds}s` : isSubmitting ? "Saving…" : "Confirm"}
                     </button>
                     <button className="btn btn--ghost btn--block" type="button" disabled={isSubmitting} onClick={sendPasswordOtp}>Resend code</button>
-                    <button className="btn btn--ghost btn--block" type="button" onClick={() => switchPasswordAuthView("login")}><ArrowLeft size={17} /> Back to login with email and password</button>
                   </>
                 )}
               </form>

@@ -41,3 +41,59 @@
   outline: 3px solid #8070ba;
   outline-offset: 3px;
 }
+
+/* Admin Action Center: stack the label/detail and keep the count on the right (it was overlapping). */
+.dashboard-shell--admin .academy-action-list button {
+  align-items: center;
+  gap: 13px;
+}
+.dashboard-shell--admin .academy-action-list button > span {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.dashboard-shell--admin .academy-action-list button > span strong {
+  margin-left: 0;
+  font-size: 13px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dashboard-shell--admin .academy-action-list button > span small {
+  color: #7581a0;
+  font-size: 11px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dashboard-shell--admin .academy-action-list button > strong {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 15px;
+  color: #101234;
+}
+
+/* Admin sidebar nav: the global button normalizer turns the text white; keep it readable in every state. */
+.dashboard-sidebar--admin .sidebar-nav button,
+.dashboard-sidebar--admin .sidebar-nav button :is(span, small, strong) {
+  color: #4a5887 !important;
+  -webkit-text-fill-color: #4a5887 !important;
+}
+.dashboard-sidebar--admin .sidebar-nav button.is-active,
+.dashboard-sidebar--admin .sidebar-nav button.is-active :is(span, small, strong) {
+  color: #3d3480 !important;
+  -webkit-text-fill-color: #3d3480 !important;
+}
+/* Keep the nav icons readable: dark on normal/hover, and a visible dark purple on the active
+   (light lavender) tab — the active chip has no dark background, so white was invisible. */
+.dashboard-sidebar--admin .sidebar-nav button > svg {
+  color: #4a5887 !important;
+}
+.dashboard-sidebar--admin .sidebar-nav button.is-active > svg {
+  color: #3d3480 !important;
+}

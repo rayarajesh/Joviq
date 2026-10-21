@@ -544,11 +544,16 @@ public sealed class LmsPortalService(
         if (payment.Enrollment is null)
             throw new AppException("The verified payment is not linked to an enrollment.", 409, "enrollment_not_found");
 
-        return await ChangeEnrollmentProgramCoreAsync(
+        var result = await ChangeEnrollmentProgramCoreAsync(
             payment.Enrollment,
             request,
             "Student.EnrollmentProgramChangedAfterPayment",
             cancellationToken);
+
+        // The learner has now chosen and saved their course, so confirm it by email with the real
+        // program and start date (the payment-time email was a receipt only).
+        await SendCourseConfirmedEmailAsync(payment, cancellationToken);
+        return result;
     }
 
     public async Task<PaymentCheckoutResponse> CreatePaymentCheckoutAsync(
@@ -579,7 +584,7 @@ public sealed class LmsPortalService(
                 await dbContext.SaveChangesAsync(cancellationToken);
                 if (wasUnpaidBeforeRecovery)
                 {
-                    await SendEnrollmentConfirmationEmailAsync(recoveredPayment, cancellationToken);
+                    await SendPaymentReceivedEmailAsync(recoveredPayment, cancellationToken);
                 }
                 throw new AppException(
                     "We have already received your earlier payment, so nothing was charged again. Your dashboard is updated.",
@@ -879,7 +884,7 @@ public sealed class LmsPortalService(
         await dbContext.SaveChangesAsync(cancellationToken);
         if (sendEnrollmentConfirmation)
         {
-            await SendEnrollmentConfirmationEmailAsync(transaction, cancellationToken);
+            await SendPaymentReceivedEmailAsync(transaction, cancellationToken);
         }
         return MapPayment(transaction);
     }
@@ -977,7 +982,7 @@ public sealed class LmsPortalService(
                 await dbContext.SaveChangesAsync(cancellationToken);
                 if (sendEnrollmentConfirmation)
                 {
-                    await SendEnrollmentConfirmationEmailAsync(transaction, cancellationToken);
+                    await SendPaymentReceivedEmailAsync(transaction, cancellationToken);
                 }
 
                 continue;
@@ -1108,7 +1113,7 @@ public sealed class LmsPortalService(
         await dbContext.SaveChangesAsync(cancellationToken);
         if (sendEnrollmentConfirmation)
         {
-            await SendEnrollmentConfirmationEmailAsync(transaction, cancellationToken);
+            await SendPaymentReceivedEmailAsync(transaction, cancellationToken);
         }
     }
 
@@ -1153,7 +1158,7 @@ public sealed class LmsPortalService(
         await dbContext.SaveChangesAsync(cancellationToken);
         if (sendEnrollmentConfirmation)
         {
-            await SendEnrollmentConfirmationEmailAsync(transaction, cancellationToken);
+            await SendPaymentReceivedEmailAsync(transaction, cancellationToken);
         }
     }
 
@@ -2424,7 +2429,7 @@ public sealed class LmsPortalService(
         await dbContext.SaveChangesAsync(cancellationToken);
         if (sendEnrollmentConfirmation)
         {
-            await SendEnrollmentConfirmationEmailAsync(payment, cancellationToken);
+            await SendPaymentReceivedEmailAsync(payment, cancellationToken);
         }
         return MapPayment(payment);
     }
@@ -3438,7 +3443,40 @@ public sealed class LmsPortalService(
         return sendEnrollmentConfirmation;
     }
 
-    private async Task SendEnrollmentConfirmationEmailAsync(
+    // Sent when the payment is verified — BEFORE the learner has picked a course. It is a payment
+    // receipt only; it must not claim any course/program (the enrollment still holds a placeholder
+    // program at this point). The course confirmation is a separate email sent once the course is saved.
+    private async Task SendPaymentReceivedEmailAsync(
+        PaymentTransaction transaction,
+        CancellationToken cancellationToken)
+    {
+        var student = await dbContext.Users
+            .AsNoTracking()
+            .Where(x => x.Id == transaction.StudentId)
+            .Select(x => new { x.FullName, x.Email })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (student is null || string.IsNullOrWhiteSpace(student.Email))
+        {
+            return;
+        }
+
+        var planName = transaction.Enrollment?.ProgramPlan?.Name ?? "Selected plan";
+        var amount = transaction.Amount.ToString("N0");
+        var invoiceNumber = transaction.InvoiceNumber ?? $"JOVIQ-{transaction.Id.ToString("N")[..10].ToUpperInvariant()}";
+
+        await SendEmailBestEffortAsync(
+            transaction.StudentId,
+            student.Email,
+            "We've received your Joviq payment",
+            EmailTemplates.PaymentReceived(student.FullName, planName, amount, invoiceNumber),
+            "payment received",
+            cancellationToken);
+    }
+
+    // Sent once the learner has selected and saved their course, so it carries the real program and
+    // start date — "your learning journey starts here".
+    private async Task SendCourseConfirmedEmailAsync(
         PaymentTransaction transaction,
         CancellationToken cancellationToken)
     {
@@ -3462,9 +3500,9 @@ public sealed class LmsPortalService(
         await SendEmailBestEffortAsync(
             transaction.StudentId,
             student.Email,
-            "Your Joviq course enrollment is confirmed",
+            "Your Joviq course is confirmed — happy learning!",
             EmailTemplates.EnrollmentConfirmation(student.FullName, programTitle, planName, amount, invoiceNumber, startDate),
-            "enrollment confirmation",
+            "course confirmation",
             cancellationToken);
     }
 

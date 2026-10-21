@@ -48,6 +48,30 @@ public static class EmailTemplates
                 </table>
                 """);
 
+    public static string PaymentReceived(
+        string recipientName,
+        string planName,
+        string amount,
+        string invoiceNumber)
+        => Layout(
+            preheader: $"We received your payment of INR {amount}.",
+            eyebrow: "PAYMENT RECEIVED",
+            title: "Your payment is confirmed",
+            intro: $"{Greeting(recipientName)},<br />Thank you — we have received your payment. Continue your onboarding to choose your course and preferred start date.",
+            content: $"""
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:24px 0;border:1px solid #e2e7f0;border-radius:16px;overflow:hidden;">
+                  <tr><td style="padding:17px 20px;background:#182448;color:#ffffff;font-size:15px;font-weight:700;">Payment receipt</td></tr>
+                  <tr><td style="padding:18px 20px;background:#fbfcff;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                      {DetailRow("Plan", planName)}
+                      {DetailRow("Amount received", $"INR {amount}")}
+                      {DetailRow("Invoice", invoiceNumber)}
+                    </table>
+                  </td></tr>
+                </table>
+                <p style="margin:0;color:#53617d;font-size:14px;line-height:23px;">Next step: open your onboarding and select your course. We'll send a course confirmation once your course is set.</p>
+                """);
+
     public static string EnrollmentConfirmation(
         string recipientName,
         string programTitle,
