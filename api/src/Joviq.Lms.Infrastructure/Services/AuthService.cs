@@ -681,7 +681,7 @@ public sealed class AuthService(
         // The frontend uses this to keep an email-only (passwordless) resume out of the dashboard.
         // A linked external login (Google) is an equally valid login method, so it counts too.
         var hasPassword = await userManager.HasPasswordAsync(user);
-        var hasExternalLogin = (await userManager.GetLoginsAsync(user)).Count > 0;
+        var hasExternalLogin = await userManager.GetLoginsAsync(user) is { Count: > 0 };
         return new UserSummaryResponse(
             user.Id,
             user.FullName,
