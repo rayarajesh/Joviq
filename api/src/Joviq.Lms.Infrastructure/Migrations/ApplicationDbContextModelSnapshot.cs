@@ -624,7 +624,9 @@ namespace Joviq.Lms.Infrastructure.Migrations
 
                     b.HasIndex("ProgramPlanId");
 
-                    b.HasIndex("StudentId", "ProgramId");
+                    b.HasIndex("StudentId", "ProgramId")
+                        .IsUnique()
+                        .HasFilter("\"Status\" <> 'Cancelled'");
 
                     b.ToTable("enrollments", (string)null);
                 });
@@ -993,6 +995,10 @@ namespace Joviq.Lms.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
                     b.Property<string>("InvoiceNumber")
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
@@ -1045,6 +1051,10 @@ namespace Joviq.Lms.Infrastructure.Migrations
                         .HasFilter("\"GatewayPaymentId\" IS NOT NULL");
 
                     b.HasIndex("EnrollmentId", "Status");
+
+                    b.HasIndex("StudentId", "IdempotencyKey")
+                        .IsUnique()
+                        .HasFilter("\"IdempotencyKey\" IS NOT NULL");
 
                     b.HasIndex("StudentId", "Status");
 
@@ -1528,6 +1538,8 @@ namespace Joviq.Lms.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("CreatedIp", "CreatedAt");
 
                     b.HasIndex("Destination", "Purpose", "ConsumedAt");
 

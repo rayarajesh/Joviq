@@ -19,9 +19,9 @@ public sealed class AuditLogService(
         dbContext.AuthAuditLogs.Add(new AuthAuditLog
         {
             UserId = userId ?? currentUser.UserId,
-            EventType = eventType.Trim(),
-            Email = email,
-            Phone = phone,
+            EventType = RemoveUnsupportedControlCharacters(eventType.Trim()) ?? string.Empty,
+            Email = RemoveUnsupportedControlCharacters(email),
+            Phone = RemoveUnsupportedControlCharacters(phone),
             MetadataJson = metadata is null
                 ? null
                 : JsonSerializer.Serialize(new
@@ -32,6 +32,16 @@ public sealed class AuditLogService(
                     data = metadata
                 }, JsonOptions)
         });
+    }
+
+    private static string? RemoveUnsupportedControlCharacters(string? value)
+    {
+        if (value is null)
+        {
+            return null;
+        }
+
+        return new string(value.Where(character => !char.IsControl(character)).ToArray());
     }
 
     public async Task<PagedResult<AuditLogResponse>> GetAuditLogsAsync(

@@ -1,8 +1,9 @@
-using Joviq.Lms.Domain.Entities;
+using Joviq.Lms.Application.Lms;
 using Joviq.Lms.Domain.Enums;
 using Joviq.Lms.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace Joviq.Lms.Api.Controllers;
@@ -12,13 +13,16 @@ namespace Joviq.Lms.Api.Controllers;
 public class CallbackRequestsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly ILmsPortalService _lmsPortalService;
     private readonly ILogger<CallbackRequestsController> _logger;
 
     public CallbackRequestsController(
         ApplicationDbContext context,
+        ILmsPortalService lmsPortalService,
         ILogger<CallbackRequestsController> logger)
     {
         _context = context;
+        _lmsPortalService = lmsPortalService;
         _logger = logger;
     }
 
@@ -27,38 +31,28 @@ public class CallbackRequestsController : ControllerBase
     /// </summary>
     [HttpPost]
     [AllowAnonymous]
+    [EnableRateLimiting("PublicLead")]
     public async Task<IActionResult> SubmitCallbackRequest([FromBody] CreateCallbackRequestDto dto)
     {
-        try
-        {
-            var request = new CallbackRequest
+        var result = await _lmsPortalService.CreateCallbackRequestAsync(
+            new CallbackRequestCreateRequest
             {
-                Id = Guid.NewGuid(),
                 FullName = dto.FullName,
                 Email = dto.Email,
                 PhoneNumber = dto.Phone,
                 InterestedProgram = dto.ProgramInterest,
-                Status = LeadStatus.New,
                 Notes = dto.CollegeUniversity
-            };
+            },
+            HttpContext.RequestAborted);
 
-            _context.CallbackRequests.Add(request);
-            await _context.SaveChangesAsync();
+        _logger.LogInformation("Callback request submitted: {Email}", dto.Email);
 
-            _logger.LogInformation("Callback request submitted: {Email}", dto.Email);
-
-            return Ok(new
-            {
-                success = true,
-                message = "Your callback request has been submitted successfully. Our team will contact you soon.",
-                requestId = request.Id
-            });
-        }
-        catch (Exception ex)
+        return Ok(new
         {
-            _logger.LogError(ex, "Error submitting callback request");
-            return StatusCode(500, new { success = false, message = "An error occurred while submitting your request." });
-        }
+            success = true,
+            message = "Your callback request has been submitted successfully. Our team will contact you soon.",
+            requestId = result.Id
+        });
     }
 
     /// <summary>

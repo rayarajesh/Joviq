@@ -34,7 +34,11 @@ public interface ILmsPortalService
         ChangeEnrollmentProgramRequest request,
         CancellationToken cancellationToken);
 
-    Task<PaymentCheckoutResponse> CreatePaymentCheckoutAsync(Guid studentId, CreatePaymentCheckoutRequest request, CancellationToken cancellationToken);
+    Task<PaymentCheckoutResponse> CreatePaymentCheckoutAsync(
+        Guid studentId,
+        CreatePaymentCheckoutRequest request,
+        string? idempotencyKey,
+        CancellationToken cancellationToken);
 
     Task<CouponValidationResponse> ValidateCouponAsync(Guid studentId, ValidateCouponRequest request, CancellationToken cancellationToken);
 

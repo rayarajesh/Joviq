@@ -20,7 +20,10 @@ public class DeploymentTests
         ["Cors:AllowedOrigins:0"] = "https://app.example.com",
         ["Assets:Provider"] = "AzureBlob",
         ["DataProtection:BlobUri"] = "https://storage.blob.core.windows.net/system/keys.xml",
-        ["DataProtection:KeyIdentifier"] = "https://vault.vault.azure.net/keys/data-protection"
+        ["DataProtection:KeyIdentifier"] = "https://vault.vault.azure.net/keys/data-protection",
+        ["Payments:Provider"] = "Cashfree",
+        ["Payments:CashfreeEnvironment"] = "production",
+        ["Payments:PublicBaseUrl"] = "https://api.example.com"
     };
 
     [Fact]

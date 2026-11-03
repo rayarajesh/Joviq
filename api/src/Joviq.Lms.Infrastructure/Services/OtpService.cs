@@ -26,6 +26,17 @@ public sealed class OtpService(
     {
         var normalizedDestination = NormalizeDestination(destination, destinationType);
         var since = clock.UtcNow.AddHours(-1);
+        var normalizedIp = string.IsNullOrWhiteSpace(ipAddress) ? null : ipAddress.Trim();
+        if (normalizedIp is not null && _options.MaxRequestsPerIpPerHour > 0)
+        {
+            var ipCount = await dbContext.UserOtps
+                .CountAsync(x => x.CreatedIp == normalizedIp && x.CreatedAt >= since, cancellationToken);
+            if (ipCount >= _options.MaxRequestsPerIpPerHour)
+            {
+                throw new AppException("Too many OTP requests from this connection. Please try again later.", 429, "otp_ip_rate_limited");
+            }
+        }
+
         var recentCount = await dbContext.UserOtps
             .CountAsync(x => x.Destination == normalizedDestination && x.Purpose == purpose && x.CreatedAt >= since, cancellationToken);
 
@@ -53,7 +64,7 @@ public sealed class OtpService(
             CodeHash = SecureTokenHasher.Hash(code),
             ExpiresAt = clock.UtcNow.AddMinutes(_options.ExpiryMinutes),
             MaxAttempts = _options.MaxAttempts,
-            CreatedIp = ipAddress
+            CreatedIp = normalizedIp
         });
 
         await dbContext.SaveChangesAsync(cancellationToken);

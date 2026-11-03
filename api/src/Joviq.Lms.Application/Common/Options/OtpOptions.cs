@@ -11,4 +11,7 @@ public sealed class OtpOptions
     public int MaxAttempts { get; init; } = 5;
 
     public int MaxResendsPerHour { get; init; } = 5;
+
+    /// <summary>Maximum OTP emails/SMS requests accepted from one client IP in an hour.</summary>
+    public int MaxRequestsPerIpPerHour { get; init; } = 10;
 }

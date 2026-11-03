@@ -91,6 +91,9 @@ public sealed class PaymentTransaction : AuditableEntity
     /// <summary>Gateway checkout session, kept so a retry reopens the same order instead of creating a second one.</summary>
     public string? GatewaySessionId { get; set; }
 
+    /// <summary>Client-supplied idempotency key for safely retrying checkout creation.</summary>
+    public string? IdempotencyKey { get; set; }
+
     /// <summary>Set when the gateway captured more than the enrollment still owed; an admin must refund it.</summary>
     public bool RefundRequired { get; set; }
 }

@@ -13,6 +13,7 @@ public sealed class SupportChatService(ApplicationDbContext dbContext, IDateTime
 {
     private const int MaxMessagesPerChat = 300;
     private const int MaxConversations = 200;
+    private const int MaxStudentMessagesPerMinute = 10;
     private const string SupportTeamName = "Joviq Support";
     private const string StudentSupportUrl = "/dashboard?section=Support";
 
@@ -29,6 +30,28 @@ public sealed class SupportChatService(ApplicationDbContext dbContext, IDateTime
         SendSupportMessageRequest request,
         CancellationToken cancellationToken)
     {
+        var now = clock.UtcNow;
+        var recentSince = now.AddMinutes(-1);
+        var recentCount = await dbContext.SupportMessages.CountAsync(
+            x => x.StudentId == studentId && x.FromStudent && x.CreatedAt >= recentSince,
+            cancellationToken);
+        if (recentCount >= MaxStudentMessagesPerMinute)
+        {
+            throw new AppException("Too many support messages. Please wait a minute before sending more.", 429, "support_rate_limited");
+        }
+
+        var body = request.Body?.Trim();
+        if (!string.IsNullOrWhiteSpace(body))
+        {
+            var duplicate = await dbContext.SupportMessages.AnyAsync(
+                x => x.StudentId == studentId && x.FromStudent && x.Body == body && x.CreatedAt >= now.AddSeconds(-30),
+                cancellationToken);
+            if (duplicate)
+            {
+                throw new AppException("This support message was already sent. Please wait before sending it again.", 429, "support_duplicate_message");
+            }
+        }
+
         var message = await CreateMessageAsync(studentId, studentId, fromStudent: true, request, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         return Map(message, "You");
@@ -168,6 +191,11 @@ public sealed class SupportChatService(ApplicationDbContext dbContext, IDateTime
         if (body.Length > 2000)
         {
             throw Validation(nameof(request.Body), "Message must be 2000 characters or fewer.");
+        }
+
+        if (body.Any(character => char.IsControl(character) && character is not '\r' and not '\n' and not '\t'))
+        {
+            throw Validation(nameof(request.Body), "Message contains unsupported control characters.");
         }
 
         Asset? attachment = null;

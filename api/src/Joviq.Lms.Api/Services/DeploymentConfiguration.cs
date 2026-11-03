@@ -30,5 +30,19 @@ public static class DeploymentConfiguration
 
         if (configuration.GetValue<bool>("SeedAdmin:ResetPassword"))
             throw new InvalidOperationException("Automatic administrator password resets are disabled in deployed environments.");
+
+        var deploymentEnvironment = configuration["Deployment:Environment"]
+            ?? (environment.IsProduction() ? "production" : "staging");
+        var isProductionDeployment = string.Equals(deploymentEnvironment, "production", StringComparison.OrdinalIgnoreCase);
+        if (isProductionDeployment &&
+            (!string.Equals(configuration["Payments:Provider"], "Cashfree", StringComparison.OrdinalIgnoreCase) ||
+             configuration.GetValue<bool>("Payments:AllowTestPayments") ||
+             !string.Equals(configuration["Payments:CashfreeEnvironment"], "production", StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException("Production deployments must use the Cashfree production gateway and must not allow test payments.");
+
+        var paymentBaseUrl = configuration["Payments:PublicBaseUrl"];
+        if (!Uri.TryCreate(paymentBaseUrl, UriKind.Absolute, out var paymentUri) ||
+            paymentUri.Scheme != Uri.UriSchemeHttps || paymentUri.IsLoopback)
+            throw new InvalidOperationException("Deployed environments require a public HTTPS Payments:PublicBaseUrl.");
     }
 }

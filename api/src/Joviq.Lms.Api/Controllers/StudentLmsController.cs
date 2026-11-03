@@ -4,6 +4,7 @@ using Joviq.Lms.Application.Contracts.Payments;
 using Joviq.Lms.Application.Lms;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Joviq.Lms.Api.Controllers;
 
@@ -54,6 +55,7 @@ public sealed class StudentLmsController(
     }
 
     [HttpPost("enrollments")]
+    [EnableRateLimiting("StudentEnrollment")]
     public async Task<ActionResult<ApiResponse<EnrollmentResponse>>> CreateEnrollment(
         CreateEnrollmentRequest request,
         CancellationToken cancellationToken)
@@ -63,6 +65,7 @@ public sealed class StudentLmsController(
     }
 
     [HttpPatch("payments/{paymentId:guid}/enrollment")]
+    [EnableRateLimiting("StudentEnrollment")]
     public async Task<ActionResult<ApiResponse<EnrollmentResponse>>> CompletePaidEnrollmentRegistration(
         Guid paymentId,
         ChangeEnrollmentProgramRequest request,
@@ -77,15 +80,22 @@ public sealed class StudentLmsController(
     }
 
     [HttpPost("payments/checkout")]
+    [EnableRateLimiting("PaymentCheckout")]
     public async Task<ActionResult<ApiResponse<PaymentCheckoutResponse>>> CreatePaymentCheckout(
         CreatePaymentCheckoutRequest request,
         CancellationToken cancellationToken)
     {
-        var result = await lmsPortalService.CreatePaymentCheckoutAsync(RequiredUserId, request, cancellationToken);
+        var idempotencyKey = Request.Headers["Idempotency-Key"].ToString();
+        var result = await lmsPortalService.CreatePaymentCheckoutAsync(
+            RequiredUserId,
+            request,
+            string.IsNullOrWhiteSpace(idempotencyKey) ? null : idempotencyKey,
+            cancellationToken);
         return Ok(ApiResponse<PaymentCheckoutResponse>.Ok(result, "Payment checkout created.", CorrelationId));
     }
 
     [HttpPost("payments/coupon/validate")]
+    [EnableRateLimiting("PaymentCheckout")]
     public async Task<ActionResult<ApiResponse<CouponValidationResponse>>> ValidateCoupon(
         ValidateCouponRequest request,
         CancellationToken cancellationToken)
@@ -95,6 +105,7 @@ public sealed class StudentLmsController(
     }
 
     [HttpPost("payments/verify")]
+    [EnableRateLimiting("PaymentCheckout")]
     public async Task<ActionResult<ApiResponse<PaymentTransactionResponse>>> VerifyPayment(
         VerifyPaymentRequest request,
         CancellationToken cancellationToken)
@@ -111,6 +122,7 @@ public sealed class StudentLmsController(
     }
 
     [HttpPost("payments/{paymentId:guid}/failed")]
+    [EnableRateLimiting("PaymentCheckout")]
     public async Task<ActionResult<ApiResponse<PaymentTransactionResponse>>> MarkPaymentFailed(
         Guid paymentId,
         [FromBody] PaymentFailureRequest request,

@@ -232,7 +232,8 @@ resource plan 'Microsoft.Web/serverfarms@2023-12-01' = {
   properties: { reserved: true }
 }
 var apiSettings = [
-  { name: 'ASPNETCORE_ENVIRONMENT', value: 'Production' }
+  { name: 'ASPNETCORE_ENVIRONMENT', value: production ? 'Production' : 'Staging' }
+  { name: 'Deployment__Environment', value: environment }
   { name: 'AZURE_CLIENT_ID', value: runtimeIdentity.properties.clientId }
   { name: 'Hosting__AzureAppService', value: 'true' }
   { name: 'Assets__Provider', value: 'AzureBlob' }
@@ -258,6 +259,7 @@ var apiSettings = [
   { name: 'Payments__SinglePageOrigins__0', value: 'https://joviqtechnologieslms.com' }
   { name: 'Payments__SinglePageOrigins__1', value: 'https://www.joviqtechnologieslms.com' }
   { name: 'Payments__PublicBaseUrl', value: 'https://${baseName}-api.azurewebsites.net' }
+  { name: 'Payments__AllowTestPayments', value: 'false' }
   { name: 'Payments__CashfreeEnvironment', value: production ? 'production' : 'sandbox' }
   { name: 'Database__SeedCatalog', value: 'true' }
   { name: 'Database__SeedDemoContent', value: production ? 'false' : 'true' }
@@ -361,6 +363,24 @@ resource apiHealth 'Microsoft.Insights/metricAlerts@2018-03-01' = if (!empty(ale
     criteria: {
       'odata.type': 'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria'
       allOf: [{ name: 'health', metricNamespace: 'Microsoft.Web/sites', metricName: 'HealthCheckStatus', operator: 'LessThanOrEqual', threshold: 0, timeAggregation: 'Average', criterionType: 'StaticThresholdCriterion' }]
+    }
+    actions: [{ actionGroupId: alerts!.id }]
+  }
+}
+resource apiClientErrors 'Microsoft.Insights/metricAlerts@2018-03-01' = if (!empty(alertEmail)) {
+  name: '${baseName}-api-client-errors'
+  location: 'global'
+  tags: tags
+  properties: {
+    description: 'Unusual API 4xx activity, including rate-limit responses, may indicate automated abuse.'
+    severity: 2
+    enabled: true
+    scopes: [api.id]
+    evaluationFrequency: 'PT1M'
+    windowSize: 'PT5M'
+    criteria: {
+      'odata.type': 'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria'
+      allOf: [{ name: 'client-errors', metricNamespace: 'Microsoft.Web/sites', metricName: 'Http4xx', operator: 'GreaterThanOrEqual', threshold: 50, timeAggregation: 'Total', criterionType: 'StaticThresholdCriterion' }]
     }
     actions: [{ actionGroupId: alerts!.id }]
   }

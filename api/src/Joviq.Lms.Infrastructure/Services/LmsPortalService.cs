@@ -19,6 +19,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Joviq.Lms.Application.Users;
 using Joviq.Lms.Application.Common.Security;
+using Npgsql;
 
 namespace Joviq.Lms.Infrastructure.Services;
 
@@ -106,20 +107,26 @@ public sealed class LmsPortalService(
             query = query.Where(x => x.Category != null && x.Category.Slug.ToLower() == categorySlug);
         }
 
-        if (!string.IsNullOrWhiteSpace(request.Search))
-        {
-            var search = request.Search.Trim().ToLowerInvariant();
-            query = query.Where(x =>
-                x.Title.ToLower().Contains(search) ||
-                x.ShortDescription.ToLower().Contains(search) ||
-                x.SkillsJson.ToLower().Contains(search));
-        }
+        var search = request.Search?.Trim();
 
         var programs = await query
             .OrderBy(x => x.Category == null ? 999 : x.Category.SortOrder)
             .ThenBy(x => x.SortOrder)
             .ThenBy(x => x.Title)
             .ToListAsync(cancellationToken);
+
+        // SkillsJson is stored as PostgreSQL jsonb. Filtering it with string.ToLower() generates
+        // lower(jsonb), which PostgreSQL rejects. The catalog is intentionally small, so parse the
+        // JSON after the safe, bounded query instead of allowing search input to trigger a database error.
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            programs = programs
+                .Where(x =>
+                    x.Title.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                    x.ShortDescription.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                    DeserializeList(x.SkillsJson).Any(skill => skill.Contains(search, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+        }
 
         return programs.Select(MapProgramSummary).ToList();
     }
@@ -518,7 +525,29 @@ public sealed class LmsPortalService(
         });
 
         Audit("Student.EnrollmentCreated", new { studentId, enrollment.Id, programId = program.Id, planId = plan.Id });
-        await dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (IsUniqueViolation(exception))
+        {
+            // Two tabs or two requests can pass the read above at the same time. The database
+            // constraint is the final authority; return the already-created enrollment instead of
+            // creating a second record.
+            dbContext.ChangeTracker.Clear();
+            var concurrentEnrollment = await dbContext.Enrollments
+                .Include(x => x.Program)
+                .Include(x => x.ProgramPlan)
+                .FirstOrDefaultAsync(
+                    x => x.StudentId == studentId && x.ProgramId == program.Id && x.Status != EnrollmentStatus.Cancelled,
+                    cancellationToken);
+            if (concurrentEnrollment is null)
+            {
+                throw;
+            }
+
+            return MapEnrollment(concurrentEnrollment);
+        }
         enrollment.Program = program;
         enrollment.ProgramPlan = plan;
         return MapEnrollment(enrollment);
@@ -556,16 +585,59 @@ public sealed class LmsPortalService(
         return result;
     }
 
-    public async Task<PaymentCheckoutResponse> CreatePaymentCheckoutAsync(
+    public Task<PaymentCheckoutResponse> CreatePaymentCheckoutAsync(
         Guid studentId,
         CreatePaymentCheckoutRequest request,
         CancellationToken cancellationToken)
+        => CreatePaymentCheckoutAsync(studentId, request, null, cancellationToken);
+
+    public async Task<PaymentCheckoutResponse> CreatePaymentCheckoutAsync(
+        Guid studentId,
+        CreatePaymentCheckoutRequest request,
+        string? idempotencyKey,
+        CancellationToken cancellationToken)
     {
+        var normalizedIdempotencyKey = NormalizeIdempotencyKey(idempotencyKey);
+        if (normalizedIdempotencyKey is not null)
+        {
+            var previousAttempt = await dbContext.PaymentTransactions
+                .Include(x => x.Enrollment)
+                    .ThenInclude(x => x!.Program)
+                .Include(x => x.Enrollment)
+                    .ThenInclude(x => x!.ProgramPlan)
+                .FirstOrDefaultAsync(
+                    x => x.StudentId == studentId && x.IdempotencyKey == normalizedIdempotencyKey,
+                    cancellationToken);
+            if (previousAttempt is not null)
+            {
+                return ReuseIdempotentCheckout(previousAttempt, request);
+            }
+        }
+
         var enrollment = await FindPaymentEnrollmentAsync(studentId, request.EnrollmentId, request.ProgramId, cancellationToken);
 
         if (enrollment is null)
         {
             enrollment = await CreateEnrollmentEntityAsync(studentId, request.ProgramId, request.ProgramPlanId, cancellationToken);
+            try
+            {
+                await dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException exception) when (IsUniqueViolation(exception))
+            {
+                dbContext.ChangeTracker.Clear();
+                var concurrentEnrollment = await FindPaymentEnrollmentAsync(
+                    studentId,
+                    request.EnrollmentId,
+                    request.ProgramId,
+                    cancellationToken);
+                if (concurrentEnrollment is null)
+                {
+                    throw;
+                }
+
+                enrollment = concurrentEnrollment;
+            }
         }
         else
         {
@@ -665,7 +737,8 @@ public sealed class LmsPortalService(
             CouponId = coupon?.Id,
             CouponCode = coupon?.Code,
             Currency = Payments.Currency,
-            CheckoutExpiresAt = checkoutExpiresAt
+            CheckoutExpiresAt = checkoutExpiresAt,
+            IdempotencyKey = normalizedIdempotencyKey
         };
 
         dbContext.PaymentTransactions.Add(transaction);
@@ -688,7 +761,28 @@ public sealed class LmsPortalService(
             dbContext.CouponRedemptions.Add(redemption);
         }
         Audit("Student.PaymentCheckoutCreated", new { studentId, transaction.Id, transaction.EnrollmentId, transaction.ProgramId, transaction.Mode, transaction.Amount });
-        await dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (normalizedIdempotencyKey is not null && IsUniqueViolation(exception))
+        {
+            dbContext.ChangeTracker.Clear();
+            var existingAttempt = await dbContext.PaymentTransactions
+                .Include(x => x.Enrollment)
+                    .ThenInclude(x => x!.Program)
+                .Include(x => x.Enrollment)
+                    .ThenInclude(x => x!.ProgramPlan)
+                .FirstOrDefaultAsync(
+                    x => x.StudentId == studentId && x.IdempotencyKey == normalizedIdempotencyKey,
+                    cancellationToken);
+            if (existingAttempt is null)
+            {
+                throw;
+            }
+
+            return ReuseIdempotentCheckout(existingAttempt, request);
+        }
 
         if (amount == 0)
         {
@@ -2984,6 +3078,77 @@ public sealed class LmsPortalService(
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    private PaymentCheckoutResponse ReuseIdempotentCheckout(
+        PaymentTransaction transaction,
+        CreatePaymentCheckoutRequest request)
+    {
+        var requestedCouponCode = string.IsNullOrWhiteSpace(request.CouponCode)
+            ? null
+            : request.CouponCode.Trim().ToUpperInvariant();
+        if (transaction.ProgramId != request.ProgramId ||
+            transaction.Mode != request.Mode ||
+            (request.EnrollmentId.HasValue && transaction.EnrollmentId != request.EnrollmentId) ||
+            !string.Equals(transaction.CouponCode, requestedCouponCode, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new AppException(
+                "This idempotency key was already used for a different checkout request. Start a new payment attempt.",
+                409,
+                "idempotency_key_reused");
+        }
+
+        if (transaction.Status == PaymentStatus.Failed)
+        {
+            throw new AppException(
+                "This checkout attempt was not completed. Start a new payment attempt with a new idempotency key.",
+                409,
+                "payment_idempotency_failed");
+        }
+
+        if (string.Equals(transaction.Gateway, "Free", StringComparison.OrdinalIgnoreCase))
+        {
+            return new PaymentCheckoutResponse(
+                MapPayment(transaction),
+                "Free",
+                string.Empty,
+                transaction.GatewayOrderId ?? $"free_{transaction.Id:N}",
+                0,
+                transaction.Currency,
+                transaction.CheckoutExpiresAt ?? clock.UtcNow.AddMinutes(15));
+        }
+
+        if (string.IsNullOrWhiteSpace(transaction.GatewaySessionId) ||
+            string.IsNullOrWhiteSpace(transaction.GatewayOrderId))
+        {
+            throw new AppException(
+                "This checkout is still being prepared. Please retry in a few seconds.",
+                409,
+                "checkout_in_progress");
+        }
+
+        if (transaction.Status == PaymentStatus.Pending &&
+            transaction.CheckoutExpiresAt.HasValue &&
+            transaction.CheckoutExpiresAt <= clock.UtcNow)
+        {
+            throw new AppException(
+                "This payment session has expired. Start a new payment attempt with a new idempotency key.",
+                409,
+                "payment_expired");
+        }
+
+        return new PaymentCheckoutResponse(
+            MapPayment(transaction),
+            transaction.Gateway,
+            Payments.KeyId,
+            transaction.GatewayOrderId,
+            checked((long)Math.Round(transaction.Amount * 100m, MidpointRounding.AwayFromZero)),
+            transaction.Currency,
+            transaction.CheckoutExpiresAt ?? clock.UtcNow.AddMinutes(15),
+            transaction.GatewaySessionId,
+            string.Equals(transaction.Gateway, "Cashfree", StringComparison.OrdinalIgnoreCase)
+                ? Payments.CashfreeEnvironment
+                : Payments.Environment);
+    }
+
     private async Task<CouponEvaluation> EvaluateCouponAsync(
         Coupon coupon,
         Guid studentId,
@@ -4264,6 +4429,11 @@ public sealed class LmsPortalService(
             throw Validation(fieldName, $"{fieldName} must be {minLength} to {maxLength} characters.");
         }
 
+        if (ContainsUnsupportedControlCharacter(trimmed))
+        {
+            throw Validation(fieldName, $"{fieldName} contains unsupported control characters.");
+        }
+
         return trimmed;
     }
 
@@ -4290,8 +4460,40 @@ public sealed class LmsPortalService(
             throw Validation(nameof(value), $"Value must be {maxLength} characters or fewer.");
         }
 
+        if (ContainsUnsupportedControlCharacter(trimmed))
+        {
+            throw Validation(nameof(value), "Value contains unsupported control characters.");
+        }
+
         return trimmed;
     }
+
+    private static string? NormalizeIdempotencyKey(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var trimmed = value.Trim();
+        if (trimmed.Length > 128)
+        {
+            throw Validation("Idempotency-Key", "Idempotency-Key must be 128 characters or fewer.");
+        }
+
+        if (ContainsUnsupportedControlCharacter(trimmed))
+        {
+            throw Validation("Idempotency-Key", "Idempotency-Key contains unsupported control characters.");
+        }
+
+        return trimmed;
+    }
+
+    private static bool ContainsUnsupportedControlCharacter(string value) =>
+        value.Any(character => char.IsControl(character) && character is not '\r' and not '\n' and not '\t');
+
+    private static bool IsUniqueViolation(DbUpdateException exception) =>
+        exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation };
 
     private static string ValidateEmail(string value, string fieldName)
     {

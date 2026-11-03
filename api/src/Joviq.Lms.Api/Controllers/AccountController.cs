@@ -3,6 +3,7 @@ using Joviq.Lms.Application.Common.Interfaces;
 using Joviq.Lms.Application.Common.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Joviq.Lms.Api.Controllers;
 
@@ -30,6 +31,7 @@ public sealed class AccountController(
     }
 
     [HttpPost("delete/request")]
+    [EnableRateLimiting("AuthEmail")]
     public async Task<ActionResult<ApiResponse>> RequestDelete(CancellationToken cancellationToken)
     {
         await authService.RequestAccountDeletionAsync(RequiredUserId, RequestMetadata(), cancellationToken);
@@ -37,6 +39,7 @@ public sealed class AccountController(
     }
 
     [HttpPost("delete/confirm")]
+    [EnableRateLimiting("AuthOtpVerify")]
     public async Task<ActionResult<ApiResponse>> ConfirmDelete(ConfirmAccountDeletionRequest request, CancellationToken cancellationToken)
     {
         await authService.ConfirmAccountDeletionAsync(RequiredUserId, request, RequestMetadata(), cancellationToken);

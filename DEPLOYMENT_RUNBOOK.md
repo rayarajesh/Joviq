@@ -134,8 +134,16 @@ Service's Key Vault references, verify authentication, and revoke the exposed ke
 Do not paste replacement credentials into source control or chat.
 
 Normal API deployment runs the `initialize` WebJob and waits for its new successful
-run. This applies `AddSupportChat` and `AddPaymentSessionAndRefundFlag`; the latter
-adds `GatewaySessionId` and `RefundRequired` and updates the enrollment/status index.
+run. This applies all pending EF migrations, including `SecurityHardening` and
+`SecurityHardeningOtpIpIndex`.
+
+`SecurityHardening` is intentionally data-changing: before applying it to production,
+take/verify a PostgreSQL backup and review the duplicate-enrollment counts. It keeps
+the best non-cancelled enrollment per student/program, reparents payment/coupon/project/
+certificate references to that row, and removes only duplicate non-cancelled enrollment
+rows before creating the database uniqueness constraint. A slot or application rollback
+does not undo this migration.
+
 Never accept an older successful run as evidence that the new migrations applied.
 
 ## Domains, Storage, and Launch Checks

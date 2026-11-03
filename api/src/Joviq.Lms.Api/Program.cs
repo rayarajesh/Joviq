@@ -112,6 +112,18 @@ builder.Services.AddCors(options =>
     });
 });
 
+string ClientRateLimitKey(HttpContext context, bool includeUser = true)
+{
+    var ip = context.Connection.RemoteIpAddress?.ToString() ?? "anonymous";
+    if (!includeUser)
+    {
+        return ip;
+    }
+
+    var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+    return string.IsNullOrWhiteSpace(userId) ? ip : $"{userId}:{ip}";
+}
+
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -153,7 +165,7 @@ builder.Services.AddRateLimiter(options =>
     // Checkout retries must not consume the hour-long registration allowance.
     options.AddPolicy("CheckoutAccount", context =>
     {
-        var partitionKey = context.Connection.RemoteIpAddress?.ToString() ?? "anonymous";
+        var partitionKey = ClientRateLimitKey(context, includeUser: false);
         return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
         {
             PermitLimit = 10,
@@ -162,11 +174,86 @@ builder.Services.AddRateLimiter(options =>
             AutoReplenishment = true
         });
     });
+    options.AddPolicy("AuthEmail", context =>
+    {
+        var partitionKey = ClientRateLimitKey(context, includeUser: false);
+        return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 10,
+            Window = TimeSpan.FromHours(1),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        });
+    });
+    options.AddPolicy("AuthOtpVerify", context =>
+    {
+        var partitionKey = ClientRateLimitKey(context, includeUser: false);
+        return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 20,
+            Window = TimeSpan.FromMinutes(10),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        });
+    });
+    options.AddPolicy("AuthPasswordReset", context =>
+    {
+        var partitionKey = ClientRateLimitKey(context, includeUser: false);
+        return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 5,
+            Window = TimeSpan.FromMinutes(10),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        });
+    });
+    options.AddPolicy("StudentEnrollment", context =>
+    {
+        var partitionKey = ClientRateLimitKey(context);
+        return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 5,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        });
+    });
+    options.AddPolicy("PaymentCheckout", context =>
+    {
+        var partitionKey = ClientRateLimitKey(context);
+        return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 5,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        });
+    });
+    options.AddPolicy("StudentSupport", context =>
+    {
+        var partitionKey = ClientRateLimitKey(context);
+        return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        });
+    });
+    options.AddPolicy("PublicLead", context =>
+    {
+        var partitionKey = ClientRateLimitKey(context, includeUser: false);
+        return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 5,
+            Window = TimeSpan.FromMinutes(10),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        });
+    });
     options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
     {
-        var partitionKey = context.User.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? context.Connection.RemoteIpAddress?.ToString()
-            ?? "anonymous";
+        var partitionKey = ClientRateLimitKey(context);
 
         return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
         {

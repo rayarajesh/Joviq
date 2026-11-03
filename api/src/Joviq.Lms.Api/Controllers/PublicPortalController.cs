@@ -1,6 +1,7 @@
 using Joviq.Lms.Application.Common.Models;
 using Joviq.Lms.Application.Lms;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Joviq.Lms.Api.Controllers;
 
@@ -45,6 +46,7 @@ public sealed class PublicPortalController(ILmsPortalService lmsPortalService) :
     }
 
     [HttpPost("callback-requests")]
+    [EnableRateLimiting("PublicLead")]
     public async Task<ActionResult<ApiResponse<LeadCaptureResponse>>> CreateCallbackRequest(
         CallbackRequestCreateRequest request,
         CancellationToken cancellationToken)
@@ -54,6 +56,7 @@ public sealed class PublicPortalController(ILmsPortalService lmsPortalService) :
     }
 
     [HttpPost("enquiries")]
+    [EnableRateLimiting("PublicLead")]
     public async Task<ActionResult<ApiResponse<LeadCaptureResponse>>> CreateEnquiry(
         EnquiryCreateRequest request,
         CancellationToken cancellationToken)

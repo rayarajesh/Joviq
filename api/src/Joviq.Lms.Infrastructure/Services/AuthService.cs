@@ -753,13 +753,23 @@ public sealed class AuthService(
         dbContext.AuthAuditLogs.Add(new AuthAuditLog
         {
             UserId = userId,
-            EventType = eventType,
-            Email = email,
-            Phone = phone,
-            IpAddress = metadata?.IpAddress,
-            UserAgent = metadata?.UserAgent,
+            EventType = RemoveUnsupportedControlCharacters(eventType) ?? string.Empty,
+            Email = RemoveUnsupportedControlCharacters(email),
+            Phone = RemoveUnsupportedControlCharacters(phone),
+            IpAddress = RemoveUnsupportedControlCharacters(metadata?.IpAddress),
+            UserAgent = RemoveUnsupportedControlCharacters(metadata?.UserAgent),
             MetadataJson = extra is null ? null : JsonSerializer.Serialize(extra)
         });
+    }
+
+    private static string? RemoveUnsupportedControlCharacters(string? value)
+    {
+        if (value is null)
+        {
+            return null;
+        }
+
+        return new string(value.Where(character => !char.IsControl(character)).ToArray());
     }
 
     private ResetTokenPayload ReadResetTokenPayload(string token)

@@ -16,6 +16,7 @@ public sealed class UserOtpConfiguration : IEntityTypeConfiguration<UserOtp>
         builder.Property(x => x.CodeHash).HasMaxLength(256).IsRequired();
         builder.Property(x => x.CreatedIp).HasMaxLength(64);
         builder.HasIndex(x => new { x.Destination, x.Purpose, x.ConsumedAt });
+        builder.HasIndex(x => new { x.CreatedIp, x.CreatedAt });
         builder.HasIndex(x => x.UserId);
     }
 }
