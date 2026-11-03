@@ -149,6 +149,9 @@ export function usePaymentFlow() {
     void loadCashfreeScript().catch(() => undefined);
 
     try {
+      const idempotencyKey = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
       const enrollmentId = enrollmentIdRef.current ?? (await studentLmsApi.createEnrollment({
         programId: target.programId,
         programPlanId: target.planId,
@@ -165,7 +168,7 @@ export function usePaymentFlow() {
         customerEmail: target.applicant.email,
         customerPhone: target.applicant.phoneNumber,
         customerCollege: target.applicant.collegeName
-      });
+      }, idempotencyKey);
       const current = response.data;
       setCheckout(current);
 

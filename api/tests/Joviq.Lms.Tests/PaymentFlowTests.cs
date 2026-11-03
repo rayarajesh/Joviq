@@ -120,6 +120,26 @@ public sealed class PaymentFlowTests
     }
 
     [Fact]
+    public async Task IdempotencyKeyReturnsTheSameCheckout()
+    {
+        using var f = new Fixture();
+        var request = new CreatePaymentCheckoutRequest
+        {
+            ProgramId = f.ProgramId,
+            ProgramPlanId = f.LaunchPlanId,
+            Mode = PaymentMode.PayInFull
+        };
+
+        var first = await f.Service.CreatePaymentCheckoutAsync(f.StudentId, request, "checkout-attempt-1", default);
+        var second = await f.Service.CreatePaymentCheckoutAsync(f.StudentId, request, "checkout-attempt-1", default);
+
+        Assert.Equal(first.Transaction.Id, second.Transaction.Id);
+        Assert.Equal(first.GatewayOrderId, second.GatewayOrderId);
+        Assert.Single(f.Db.PaymentTransactions);
+        Assert.Equal(1, f.OrdersCreated);
+    }
+
+    [Fact]
     public async Task EarlierAttemptPaidAfterThePopupClosedIsCreditedInsteadOfChargingAgain()
     {
         using var f = new Fixture();

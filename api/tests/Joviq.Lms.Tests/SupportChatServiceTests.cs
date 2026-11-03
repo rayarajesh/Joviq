@@ -68,6 +68,19 @@ public sealed class SupportChatServiceTests
     }
 
     [Fact]
+    public async Task StudentCannotImmediatelyRepeatTheSameMessage()
+    {
+        using var fixture = new Fixture();
+        await fixture.Service.SendStudentMessageAsync(fixture.StudentId, Text("Please help"), CancellationToken.None);
+
+        var error = await Assert.ThrowsAsync<AppException>(() =>
+            fixture.Service.SendStudentMessageAsync(fixture.StudentId, Text("Please help"), CancellationToken.None));
+
+        Assert.Equal("support_duplicate_message", error.ErrorCode);
+        Assert.Single(fixture.Db.SupportMessages);
+    }
+
+    [Fact]
     public async Task AdminCannotMessageNonStudent()
     {
         using var fixture = new Fixture();

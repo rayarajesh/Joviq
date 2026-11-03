@@ -13,11 +13,12 @@ public sealed class RequestResponseLoggingMiddleware(
         stopwatch.Stop();
 
         logger.LogInformation(
-            "HTTP {Method} {Path} responded {StatusCode} in {ElapsedMs} ms. CorrelationId: {CorrelationId}",
+            "HTTP {Method} {Path} responded {StatusCode} in {ElapsedMs} ms. ClientIp: {ClientIp}. CorrelationId: {CorrelationId}",
             context.Request.Method,
             context.Request.Path,
             context.Response.StatusCode,
             stopwatch.ElapsedMilliseconds,
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             context.TraceIdentifier);
     }
 }

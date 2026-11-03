@@ -309,6 +309,9 @@ export function EnrollmentCheckoutPage() {
     setCashfreeStatus(null);
 
     try {
+      const idempotencyKey = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
       const currentEnrollment = enrollment ?? (await studentLmsApi.createEnrollment({
         programId: program.id,
         programPlanId: selectedPlan.id,
@@ -325,7 +328,7 @@ export function EnrollmentCheckoutPage() {
         customerEmail: pending.applicant?.email,
         customerPhone: pending.applicant?.phoneNumber,
         customerCollege: pending.applicant?.collegeName
-      });
+      }, idempotencyKey);
       setCheckout(response.data);
 
       if (response.data.transaction.couponCode && response.data.transaction.discountAmount > 0) {

@@ -138,7 +138,9 @@ public sealed class EnrollmentConfiguration : IEntityTypeConfiguration<Enrollmen
     {
         builder.ToTable("enrollments");
         builder.HasKey(x => x.Id);
-        builder.HasIndex(x => new { x.StudentId, x.ProgramId });
+        builder.HasIndex(x => new { x.StudentId, x.ProgramId })
+            .IsUnique()
+            .HasFilter("\"Status\" <> 'Cancelled'");
         builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(64);
         builder.Property(x => x.TotalAmount).HasPrecision(12, 2);
         builder.Property(x => x.PaidAmount).HasPrecision(12, 2);
@@ -179,7 +181,11 @@ public sealed class PaymentTransactionConfiguration : IEntityTypeConfiguration<P
         builder.Property(x => x.FailureReason).HasMaxLength(500);
         builder.Property(x => x.InvoiceNumber).HasMaxLength(80);
         builder.Property(x => x.GatewaySessionId).HasMaxLength(500);
+        builder.Property(x => x.IdempotencyKey).HasMaxLength(128);
         builder.HasIndex(x => new { x.EnrollmentId, x.Status });
+        builder.HasIndex(x => new { x.StudentId, x.IdempotencyKey })
+            .IsUnique()
+            .HasFilter("\"IdempotencyKey\" IS NOT NULL");
         builder.HasIndex(x => x.GatewayPaymentId)
             .IsUnique()
             .HasFilter("\"GatewayPaymentId\" IS NOT NULL");

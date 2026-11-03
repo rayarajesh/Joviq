@@ -237,6 +237,7 @@ public sealed class AuthController(
 
     [HttpPost("email-verification/send")]
     [AllowAnonymous]
+    [EnableRateLimiting("AuthEmail")]
     public async Task<ActionResult<ApiResponse>> SendEmailVerification(EmailRequest request, CancellationToken cancellationToken)
     {
         await authService.SendEmailVerificationAsync(request, RequestMetadata(), cancellationToken);
@@ -245,6 +246,7 @@ public sealed class AuthController(
 
     [HttpPost("email-verification/verify")]
     [AllowAnonymous]
+    [EnableRateLimiting("AuthOtpVerify")]
     public async Task<ActionResult<ApiResponse>> VerifyEmail(VerifyEmailRequest request, CancellationToken cancellationToken)
     {
         await authService.VerifyEmailAsync(request, RequestMetadata(), cancellationToken);
@@ -253,6 +255,7 @@ public sealed class AuthController(
 
     [HttpPost("forgot-password")]
     [AllowAnonymous]
+    [EnableRateLimiting("AuthEmail")]
     public async Task<ActionResult<ApiResponse>> ForgotPassword(ForgotPasswordRequest request, CancellationToken cancellationToken)
     {
         await authService.ForgotPasswordAsync(request, RequestMetadata(), cancellationToken);
@@ -261,6 +264,7 @@ public sealed class AuthController(
 
     [HttpPost("forgot-password/verify")]
     [AllowAnonymous]
+    [EnableRateLimiting("AuthOtpVerify")]
     public async Task<ActionResult<ApiResponse<PasswordResetVerificationResponse>>> VerifyForgotPassword(VerifyForgotPasswordRequest request, CancellationToken cancellationToken)
     {
         var result = await authService.VerifyForgotPasswordAsync(request, RequestMetadata(), cancellationToken);
@@ -269,6 +273,7 @@ public sealed class AuthController(
 
     [HttpPost("reset-password")]
     [AllowAnonymous]
+    [EnableRateLimiting("AuthPasswordReset")]
     public async Task<ActionResult<ApiResponse>> ResetPassword(ResetPasswordRequest request, CancellationToken cancellationToken)
     {
         await authService.ResetPasswordAsync(request, RequestMetadata(), cancellationToken);

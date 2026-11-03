@@ -50,8 +50,12 @@ export const studentLmsApi = {
     return request<EnrollmentResponse>(`/api/v1/student/lms/payments/${paymentId}/enrollment`, { method: "PATCH", body });
   },
 
-  createPaymentCheckout(body: CreatePaymentCheckoutRequest) {
-    return request<PaymentCheckoutResponse>("/api/v1/student/lms/payments/checkout", { method: "POST", body });
+  createPaymentCheckout(body: CreatePaymentCheckoutRequest, idempotencyKey?: string) {
+    return request<PaymentCheckoutResponse>("/api/v1/student/lms/payments/checkout", {
+      method: "POST",
+      body,
+      headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined
+    });
   },
 
   verifyPayment(body: VerifyPaymentRequest) {

@@ -120,10 +120,14 @@ export const studentLmsApi = {
     });
   },
 
-  createPaymentCheckout(body: CreatePaymentCheckoutRequest) {
+  createPaymentCheckout(body: CreatePaymentCheckoutRequest, idempotencyKey?: string) {
     return request<PaymentCheckoutResponse>(
       "/api/v1/student/lms/payments/checkout",
-      { method: "POST", body },
+      {
+        method: "POST",
+        body,
+        headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined
+      },
     );
   },
 

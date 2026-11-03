@@ -3,6 +3,7 @@ using Joviq.Lms.Application.Common.Models;
 using Joviq.Lms.Application.Support;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Joviq.Lms.Api.Controllers;
 
@@ -21,6 +22,7 @@ public sealed class StudentSupportController(
     }
 
     [HttpPost("messages")]
+    [EnableRateLimiting("StudentSupport")]
     public async Task<ActionResult<ApiResponse<SupportMessageResponse>>> SendMessage(
         SendSupportMessageRequest request,
         CancellationToken cancellationToken)
