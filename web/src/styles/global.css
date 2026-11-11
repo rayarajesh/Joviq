@@ -4805,13 +4805,13 @@ button.hero-button {
 }
 
 .auth-nav__identity strong {
-  color: #fff;
+  color: #18251e;
   font-size: 0.82rem;
 }
 
 .auth-nav__identity small {
   margin-top: 2px;
-  color: #ffffff;
+  color: #748078;
   font-size: 0.67rem;
   font-weight: 800;
 }
@@ -4917,7 +4917,7 @@ button.hero-button {
   display: -webkit-box;
   overflow: hidden;
   margin-top: 4px;
-  color: #ffffff;
+  color: #4a554e;
   font-size: 0.74rem;
   line-height: 1.45;
   -webkit-box-orient: vertical;
@@ -4926,7 +4926,7 @@ button.hero-button {
 
 .auth-nav__notification-list time {
   margin-top: 6px;
-  color: #ffffff;
+  color: #78837c;
   font-size: 0.66rem;
   font-weight: 800;
 }

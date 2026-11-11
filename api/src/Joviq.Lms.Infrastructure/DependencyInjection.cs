@@ -256,6 +256,9 @@ public static class DependencyInjection
             services.AddScoped<IEmailSender, DevConsoleEmailSender>();
         else
             services.AddScoped<IEmailSender, SmtpEmailSender>();
+        // One shared resolver (its own cache); used to confirm a signup email's domain can receive mail.
+        services.AddSingleton<DnsClient.ILookupClient>(_ => new DnsClient.LookupClient());
+        services.AddScoped<IEmailDomainVerifier, DnsEmailDomainVerifier>();
         services.AddHostedService<AuditLogRetentionService>();
         services.AddHostedService<AbandonedCheckoutCleanupService>();
 

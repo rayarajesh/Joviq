@@ -62,7 +62,7 @@ public sealed class CertificatePdfGeneratorTests
         }, "Full Stack Web Development", default);
 
         Assert.Equal("application/pdf", attachment.ContentType);
-        Assert.Equal("JOVIQ-20261015-TEST1234.pdf", attachment.FileName);
+        Assert.Equal("Joviq_Training_Certificate_Ravi_Kumar.pdf", attachment.FileName);
         var pdf = System.Text.Encoding.ASCII.GetString(attachment.Content);
         Assert.StartsWith("%PDF-1.4", pdf);
         Assert.Contains("JOVIQ-20261015-TEST1234", pdf);

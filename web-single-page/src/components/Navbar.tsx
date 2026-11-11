@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, Menu, X } from "lucide-react";
-import { useAuth } from "../features/auth/context/useAuth";
 
 export const navLinks = [
   ["programs", "Programs"],
@@ -18,7 +17,6 @@ export function scrollToSection(id: string) {
 }
 
 export function Navbar() {
-  const { user } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [active, setActive] = useState("");
@@ -79,7 +77,6 @@ export function Navbar() {
           ))}
         </nav>
         <div className="nav__actions">
-          {user ? <span className="nav__user" title={user.email}>{user.fullName.split(" ")[0]}</span> : null}
           <button className="btn btn--primary btn--sm nav__cta" type="button" onClick={() => go("programs")}>
             Enroll now <ArrowRight size={16} />
           </button>

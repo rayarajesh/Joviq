@@ -6,7 +6,7 @@ import { studentLmsApi } from "../features/lms/api/lmsApi";
 import type { PaymentTransactionResponse } from "../features/lms/api/lmsTypes";
 import type { PaymentTarget } from "../features/lms/usePaymentFlow";
 import { formatApiError } from "../lib/api/httpClient";
-import { consumeManualResumeFlag, readOnboardingEmail } from "../lib/onboardingLink";
+import { clearOnboardingEnteredName, consumeManualResumeFlag, readOnboardingEmail, readOnboardingEnteredName } from "../lib/onboardingLink";
 import { defaultProgramPlans } from "../data/siteContent";
 import { EnrollmentDialog } from "./EnrollmentDialog";
 
@@ -47,6 +47,10 @@ export function OnboardingPage() {
   }, []);
   const user = auth.user;
   const emailMatches = !email.trim() || email.trim().toLowerCase() === user?.email.toLowerCase();
+  // Name typed on the registration form (read once). If it differs from the name already on the
+  // resumed account, we show a verification banner so the learner can confirm it is their account.
+  const [enteredName] = useState(() => { const name = readOnboardingEnteredName(); clearOnboardingEnteredName(); return name; });
+  const nameMismatch = !!(user && enteredName && user.fullName.trim().toLowerCase() !== enteredName.trim().toLowerCase());
 
   // Email-only resume: if the page already has the payment email (e.g. opened from the resume strip),
   // sign the student in without a password. The API only succeeds when that email has a verified
@@ -80,10 +84,12 @@ export function OnboardingPage() {
       // A learner who has already paid goes straight to the registration form for their
       // most recent verified enrollment (enrollments are sorted newest-first). The selection
       // list stays rendered behind it, so closing the dialog still lets them pick another.
-      if (enrollments.length >= 1) openRegistration(enrollments[0]);
+      // When the typed name differs from the account's, hold on the verification banner first so
+      // they confirm this is their account (then press Continue onboarding) instead of auto-opening.
+      if (enrollments.length >= 1 && !nameMismatch) openRegistration(enrollments[0]);
     }).catch((reason: unknown) => { if (active) setError(formatApiError(reason)); });
     return () => { active = false; };
-  }, [user?.id, emailMatches, retry]);
+  }, [user?.id, emailMatches, retry, nameMismatch]);
 
   function openRegistration(payment: PaymentTransactionResponse) {
     if (!user || !payment.programPlanId) return;
@@ -179,6 +185,11 @@ export function OnboardingPage() {
         ) : (
           <>
             <p>Signed in as {user.email}</p>
+            {nameMismatch ? (
+              <p role="alert" style={{ padding: "12px 14px", borderRadius: 10, border: "1px solid #f3c2c2", background: "#fdecec", color: "#8a2b2b", fontSize: 14, lineHeight: 1.5 }}>
+                This email is already registered under the name <strong>{user.fullName}</strong>. You entered &ldquo;{enteredName}&rdquo;. If this is your account, continue below; otherwise choose <strong>Use another account</strong>.
+              </p>
+            ) : null}
             {!payments && !error ? <p role="status">Loading your verified payment…</p> : null}
             {payments?.length === 0 ? <p>No verified payment was found for this account. If money was deducted, wait for payment confirmation or contact support. Do not pay again.</p> : null}
             {payments && payments.length > 0 ? <button className="btn btn--primary" key={payments[0].id} onClick={() => openRegistration(payments[0])}>

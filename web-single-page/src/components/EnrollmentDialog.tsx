@@ -28,11 +28,12 @@ import type { ProgramPlan } from "../data/siteContent";
 import { authApi } from "../features/auth/api/authApi";
 import { useAuth } from "../features/auth/context/useAuth";
 import { publicLmsApi, studentLmsApi, studentOnboardingApi } from "../features/lms/api/lmsApi";
-import { checkoutEmailsMatch, resolveCheckoutEmail, savePendingEnrollment, savePostPaymentRegistration } from "../features/lms/checkout";
+import { checkEmailDomain, checkoutEmailsMatch, resolveCheckoutEmail, savePendingEnrollment, savePostPaymentRegistration } from "../features/lms/checkout";
 import type { EnrollmentApplicant } from "../features/lms/checkout";
 import { usePaymentFlow } from "../features/lms/usePaymentFlow";
 import type { PaymentTarget } from "../features/lms/usePaymentFlow";
 import { useDialogAccessibility } from "../hooks/useDialogAccessibility";
+import { openOnboarding, setOnboardingEnteredName } from "../lib/onboardingLink";
 import { ApiError, formatApiError } from "../lib/api/httpClient";
 import { env } from "../config/env";
 import { formatInr } from "./format";
@@ -182,10 +183,19 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
   const [checkingProgress, setCheckingProgress] = useState(!!initialPostPaymentTarget);
   const targetRef = useRef<PaymentTarget | null>(initialPostPaymentTarget ?? null);
   const programTitle = uniquePrograms.find((program) => program.slug === slug)?.title ?? "your selected course";
-  const enrollmentEmail = resolveCheckoutEmail(email, user?.email);
+  // The start-page checkout (anything except the post-payment course form) is a fresh
+  // registration: collect the person's own details so a stale session can't own a new payment.
+  const collectFreshDetails = !initialPostPaymentTarget;
+  const enrollmentEmail = resolveCheckoutEmail(email, collectFreshDetails ? undefined : user?.email);
+  // Reuse the signed-in session only when it is the same person (email matches) or during the
+  // post-payment resume. A different email means a new learner, so continueToPayment signs the
+  // previous account out and registers the new one — a stale session never owns a new payment.
+  const reuseSession = !!user && (!collectFreshDetails || checkoutEmailsMatch(enrollmentEmail, user.email));
   // Signed-in students already registered their details; only ask for a phone if the account lacks one.
   const needsPhone = !user?.phoneNumber;
-  const paymentStepNumber = user && !needsPhone ? "01" : "02";
+  const paymentStepNumber = !collectFreshDetails && user && !needsPhone ? "01" : "02";
+  // New registration must use an accepted email domain; highlight it on the field and block submit.
+  const emailDomainError = collectFreshDetails && !reuseSession && email.trim().length > 0 ? checkEmailDomain(email) : null;
   const amount = paymentChoice === "token" ? plan.reserveAmount : plan.offerPrice;
   const isWorking = ["preparing", "confirming"].includes(payment.phase);
   const currentTarget = targetRef.current;
@@ -503,12 +513,28 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
 
   /** Mirrors /web's continueToCheckout: authoritative pricing, checkout account, then payment. */
   async function continueToPayment() {
-      if (user && !user.roles.includes("Student")) {
+      if (reuseSession && user && !user.roles.includes("Student")) {
         throw new Error("You are signed in as an administrator. Choose Use another account and sign in with a student account to continue checkout.");
       }
       if (!slug) throw new Error("Choose the course you want to join.");
-      const applicant: EnrollmentApplicant = user
-        ? { fullName: user.fullName, phoneNumber: user.phoneNumber || phoneNumber, email: enrollmentEmail, collegeName: "" }
+      // Re-registering an email that already belongs to the signed-in account, but under a different
+      // name, means the email is already taken — stop and say so instead of creating another payment.
+      if (reuseSession && user && fullName.trim() && fullName.trim().toLowerCase() !== user.fullName.trim().toLowerCase()) {
+        throw new Error(`This email is already registered under the name "${user.fullName}". Use a different email to register a new learner.`);
+      }
+      // New registration: reject a malformed or mistyped email domain before anything is created,
+      // so the confirmation email isn't lost. The server also verifies the domain can receive mail.
+      if (!reuseSession) {
+        const domainError = checkEmailDomain(enrollmentEmail);
+        if (domainError) throw new Error(domainError);
+      }
+      // A different email than the signed-in account means a new learner. Sign the previous
+      // account out first so the new registration and its payment can never attach to it.
+      if (user && !reuseSession) {
+        await auth.logout();
+      }
+      const applicant: EnrollmentApplicant = reuseSession
+        ? { fullName: user!.fullName, phoneNumber: user!.phoneNumber || phoneNumber, email: enrollmentEmail, collegeName: "" }
         : { fullName: fullName.trim(), phoneNumber, email: enrollmentEmail, collegeName: collegeName.trim() };
 
       // Checkout must use a published database program and its authoritative pricing.
@@ -537,7 +563,7 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
         applicant
       });
 
-      if (!user) {
+      if (!reuseSession) {
         try {
           const response = await authApi.createCheckoutAccount({
             fullName: applicant.fullName,
@@ -550,6 +576,14 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
           });
           auth.applyAuthResponse(response.data);
         } catch (error) {
+          if (error instanceof ApiError && error.problem?.errorCode === "resume_onboarding") {
+            // Paid earlier but never set a password — they can't sign in, so send them to the
+            // onboarding page to resume (choose course, then create their password). Carry the typed
+            // name so onboarding can flag it if it differs from the name already on the account.
+            setOnboardingEnteredName(applicant.fullName);
+            openOnboarding(applicant.email);
+            return;
+          }
           if (error instanceof ApiError && error.status === 409 &&
             ["email_exists", "phone_exists"].includes(error.problem?.errorCode ?? "")) {
             // Existing learners sign in right here instead of leaving the page.
@@ -686,11 +720,11 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
                 </fieldset>
               ) : null}
 
-              {user && !needsPhone ? null : (
+              {!collectFreshDetails && user && !needsPhone ? null : (
                 <fieldset>
-                  <legend><span>01</span><strong>{user ? "Add your phone number" : "Your details"}</strong><small>We use these details for your onboarding and payment receipt.</small></legend>
+                  <legend><span>01</span><strong>{user && !collectFreshDetails ? "Add your phone number" : "Your details"}</strong><small>We use these details for your onboarding and payment receipt.</small></legend>
                   <div className="enroll-fields">
-                    {user ? null : (
+                    {user && !collectFreshDetails ? null : (
                       <label className="field">
                         <span>Name <b>*</b></span>
                         <input autoComplete="name" onChange={(event) => setFullName(event.target.value)} placeholder="Enter your full name" required value={fullName} />
@@ -715,11 +749,14 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
                         />
                       </div>
                     </label>
-                    {user ? null : (
+                    {user && !collectFreshDetails ? null : (
                       <>
                         <label className="field">
                           <span>Email ID <b>*</b></span>
-                          <input autoComplete="email" onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" required type="email" value={email} />
+                          <input autoComplete="email" onChange={(event) => setEmail(event.target.value)} placeholder="you@gmail.com" required type="email" value={email}
+                            aria-invalid={emailDomainError ? true : undefined}
+                            style={emailDomainError ? { borderColor: "#c0392b" } : undefined} />
+                          {emailDomainError ? <small className="enroll-error" role="alert" style={{ marginTop: 6 }}>{emailDomainError}</small> : null}
                         </label>
                         <label className="field">
                           <span>College name <b>*</b></span>
@@ -755,7 +792,7 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
               </label>
               {errorMessage ? <p className="enroll-error" role="alert">{errorMessage}</p> : null}
               <div className="enroll-note"><ShieldCheck size={17} /><span>Existing learners sign in to continue. New learners receive a checkout account before secure payment opens.</span></div>
-              <button className="btn btn--primary btn--block" disabled={isSubmitting || retrySeconds > 0} type="submit">
+              <button className="btn btn--primary btn--block" disabled={isSubmitting || retrySeconds > 0 || !!emailDomainError} type="submit">
                 {isSubmitting ? <LoaderCircle className="spin" size={18} /> : <ArrowRight size={18} />}
                 {retrySeconds > 0
                   ? `Try again in ${retrySeconds}s`

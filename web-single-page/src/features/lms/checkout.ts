@@ -10,6 +10,23 @@ export function checkoutEmailsMatch(applicantEmail: string, accountEmail: string
   return normalized.length > 0 && normalized === accountEmail.trim().toLowerCase();
 }
 
+/** The only email domain accepted for new registration. */
+export const allowedEmailDomain = "gmail.com";
+
+/**
+ * Returns a problem message when the email is not a valid @gmail.com address, else null.
+ * Only Gmail is accepted, so any other domain (including typos like gmaail.com) is rejected.
+ */
+export function checkEmailDomain(email: string): string | null {
+  const value = email.trim().toLowerCase();
+  const match = /^[^\s@]+@([^\s@]+)$/.exec(value);
+  if (!match) return "Enter a valid email address.";
+  if (match[1] !== allowedEmailDomain) {
+    return `Invalid email domain. Only @${allowedEmailDomain} addresses are accepted — please enter a valid Gmail address.`;
+  }
+  return null;
+}
+
 export type EnrollmentApplicant = {
   fullName: string;
   phoneNumber: string;

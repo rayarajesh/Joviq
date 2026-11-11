@@ -39,7 +39,10 @@ export function AuthenticatedNavbar() {
   }, [location.pathname]);
 
   useEffect(() => {
-    if (!isStudent || user?.onboardingStatus !== "Completed") {
+    // Any student on the dashboard should see their notifications, including paid learners still on
+    // preview access (onboarding status stays "InProgress"). If the dashboard isn't available yet,
+    // the catch below clears the list.
+    if (!isStudent) {
       setNotifications([]);
       return;
     }

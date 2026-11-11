@@ -86,7 +86,9 @@ public sealed class AuthServiceTests
             protection.Setup(x => x.CreateProtector(It.IsAny<string>())).Returns(Mock.Of<IDataProtector>());
 
             Service = new AuthService(Users.Object, Db, jwt.Object, Sessions.Object, Mock.Of<IOtpService>(),
-                Mock.Of<IEmailSender>(), clock.Object, protection.Object, NullLogger<AuthService>.Instance);
+                Mock.Of<IEmailSender>(),
+                Mock.Of<IEmailDomainVerifier>(v => v.HasDeliverableDomainAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()) == Task.FromResult(true)),
+                clock.Object, protection.Object, NullLogger<AuthService>.Instance);
         }
 
         public void Dispose() => Db.Dispose();

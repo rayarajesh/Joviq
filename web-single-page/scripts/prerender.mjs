@@ -34,14 +34,14 @@ function applyMeta(html, { path, title, description }) {
   const url = `${siteUrl}${path}`;
   const t = esc(title);
   const d = esc(description);
+  // Only the SEO <title>, meta description, and the per-route url/canonical change.
+  // The social preview (og/twitter title, description and image) is company-branded and
+  // identical on every page — it stays as set in index.html so shared links never leak
+  // page-specific plan or course details. Only og:url is per-route.
   return html
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${t}</title>`)
     .replace(/(<meta name="description" content=")[^"]*(")/, `$1${d}$2`)
-    .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${t}$2`)
-    .replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${d}$2`)
     .replace(/(<meta property="og:url" content=")[^"]*(")/, `$1${url}$2`)
-    .replace(/(<meta name="twitter:title" content=")[^"]*(")/, `$1${t}$2`)
-    .replace(/(<meta name="twitter:description" content=")[^"]*(")/, `$1${d}$2`)
     .replace(/(<link rel="canonical" href=")[^"]*(")/, `$1${url}$2`);
 }
 
