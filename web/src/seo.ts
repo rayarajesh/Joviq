@@ -5,10 +5,22 @@ import { socialProfileUrls } from './components/socialLinks';
 export const siteUrl = 'https://joviqtechnologies.com';
 export const siteName = 'Joviq Technologies';
 const alternateNames = ['Joviq', 'JoviQ Technologies'];
+
+// Global company-branded social-share preview (Open Graph / Twitter). Every public
+// page shares the same title, description and image so links never leak page-specific
+// course, curriculum or technology details. Only og:url stays page-specific. This does
+// not affect the SEO <title>, meta description, canonical, or structured data, which
+// remain per-page.
+export const socialPreview = {
+  title: siteName,
+  description: 'www.joviqtechnologies.com',
+  image: `${siteUrl}/assets/og-joviq.jpg`,
+  imageAlt: `${siteName} training and career programs`
+};
 type SeoPage = { path: string; title: string; description: string; image?: string; imageAlt?: string };
 
 export const publicPages: SeoPage[] = [
-  { path: '/', title: 'Joviq Technologies | Online Training and Career Skills', description: 'Joviq Technologies is a Hyderabad-based training company offering technology and business courses with hands-on projects, expert guidance, and career preparation.' },
+  { path: '/', title: 'joviQ technologies', description: 'Joviq Technologies transforms technical knowledge into practical skills through innovative learning experiences and project-based development. We empower aspiring professionals with industry-relevant expertise and hands-on experience. Our focus is on building future-ready talent equipped to solve real-world challenges.' },
   { path: '/programs', title: 'Training Programs', description: 'Explore technology and business training programs at Joviq Technologies. Compare skills, curriculum, projects, and learning options.' },
   { path: '/about', title: 'About Joviq Technologies', description: 'Learn about Joviq Technologies and our approach to practical learning, professional skills, and career-focused training.' },
   { path: '/features', title: 'Learning Experience', description: 'Discover the Joviq Technologies learning experience, including hands-on projects, guided training, and career preparation.' },
@@ -36,7 +48,7 @@ export function pageSeo(pathname: string, indexable = true) {
   const page = publicPages.find(page => page.path === path);
   return {
     path,
-    title: page ? (page.title.includes(siteName) ? page.title : `${page.title} | ${siteName}`) : `Account | ${siteName}`,
+    title: page ? (path === '/' || page.title.includes(siteName) ? page.title : `${page.title} | ${siteName}`) : `Account | ${siteName}`,
     description: page?.description ?? 'Secure account access for Joviq Technologies learners.',
     canonical: `${siteUrl}${path === '/' ? '/' : path}`,
     robots: page && indexable ? 'index, follow, max-image-preview:large' : 'noindex, follow',

@@ -1,5 +1,20 @@
 const emailKey = "joviq-onboarding-email";
 const manualKey = "joviq-onboarding-manual";
+const enteredNameKey = "joviq-onboarding-entered-name";
+
+/** The name typed on the registration form, kept so /onboarding can flag a mismatch with the
+ *  name already on the account (e.g. re-registering a paid email under a different name). */
+export function setOnboardingEnteredName(name: string) {
+  try { sessionStorage.setItem(enteredNameKey, name.trim()); } catch { /* best effort */ }
+}
+
+export function readOnboardingEnteredName() {
+  try { return sessionStorage.getItem(enteredNameKey) ?? ""; } catch { return ""; }
+}
+
+export function clearOnboardingEnteredName() {
+  try { sessionStorage.removeItem(enteredNameKey); } catch { /* best effort */ }
+}
 
 export function openOnboarding(email: string, manual = false) {
   try {

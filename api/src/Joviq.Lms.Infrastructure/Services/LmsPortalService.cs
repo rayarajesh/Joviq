@@ -1341,6 +1341,13 @@ public sealed class LmsPortalService(
     {
         var payments = await dbContext.PaymentTransactions
             .AsNoTracking()
+            // Load the enrollment's program and plan so the response carries the real
+            // program title and plan name (e.g. "Elevate"). Without these, onboarding
+            // cannot match the paid plan and silently falls back to the first plan.
+            .Include(x => x.Enrollment)
+                .ThenInclude(x => x!.Program)
+            .Include(x => x.Enrollment)
+                .ThenInclude(x => x!.ProgramPlan)
             .Where(x => x.StudentId == studentId)
             .OrderByDescending(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
@@ -2346,6 +2353,7 @@ public sealed class LmsPortalService(
 
         var oldProgramId = enrollment.ProgramId;
         var oldPlanId = enrollment.ProgramPlanId;
+        var oldProgramTitle = enrollment.Program?.Title;
         var pricing = GetFixedPricing(plan);
         var linkedPayments = await dbContext.PaymentTransactions
             .Where(x => x.EnrollmentId == enrollment.Id)
@@ -2387,6 +2395,23 @@ public sealed class LmsPortalService(
             NewProgramId = enrollment.ProgramId,
             NewPlanId = enrollment.ProgramPlanId
         });
+
+        // The payment/enrollment notifications were created before the learner picked a course, so
+        // they still name the placeholder program. Rewrite them to the chosen program so the bell
+        // shows the real course (e.g. "AutoCAD") instead of the default "Full Stack Web Development".
+        if (!string.IsNullOrWhiteSpace(oldProgramTitle) && !string.Equals(oldProgramTitle, program.Title, StringComparison.Ordinal))
+        {
+            var staleNotifications = await dbContext.Notifications
+                .Where(x => x.UserId == enrollment.StudentId
+                    && (x.Title == "Enrollment created" || x.Title == "Payment verified" || x.Title == "Extra payment received")
+                    && x.Body.Contains(oldProgramTitle))
+                .ToListAsync(cancellationToken);
+            foreach (var notification in staleNotifications)
+            {
+                notification.Body = notification.Body.Replace(oldProgramTitle, program.Title);
+            }
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapEnrollment(enrollment);
     }

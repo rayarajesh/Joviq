@@ -12,7 +12,7 @@ try {
   const page = await browser.newPage({ javaScriptEnabled: false });
   await page.route('**/*', route => route.abort());
   await page.setContent(await readFile('dist/index.html', 'utf8'));
-  assert.match(await page.title(), /Joviq Technologies/);
+  assert.equal(await page.title(), 'joviQ technologies');
   assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'), indexable ? 'index, follow, max-image-preview:large' : 'noindex, follow');
   assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), 'https://joviqtechnologies.com/');
   assert.ok((await page.locator('#root').innerText()).length > 500);
@@ -27,7 +27,7 @@ try {
   assert.equal(website.url, 'https://joviqtechnologies.com/');
   assert.equal(organization.address.addressLocality, 'Hyderabad');
   assert.equal(await page.locator('meta[property="og:site_name"]').getAttribute('content'), website.name);
-  assert.match(await page.locator('meta[name="description"]').getAttribute('content'), /Joviq Technologies.*Hyderabad/);
+  assert.equal(await page.locator('meta[name="description"]').getAttribute('content'), 'Joviq Technologies transforms technical knowledge into practical skills through innovative learning experiences and project-based development. We empower aspiring professionals with industry-relevant expertise and hands-on experience. Our focus is on building future-ready talent equipped to solve real-world challenges.');
   assert.deepEqual(organization.sameAs, [
     'https://www.instagram.com/joviqtechnologies/',
     'https://www.linkedin.com/company/joviq-technologies-private-limited/',

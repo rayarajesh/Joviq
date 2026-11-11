@@ -16,6 +16,7 @@ import {
 import { defaultProgramPlans } from "../data/siteContent";
 import type { ProgramPlan } from "../data/siteContent";
 import { openOnboarding } from "../lib/onboardingLink";
+import { checkEmailDomain } from "../features/lms/checkout";
 import { formatInr } from "./format";
 import { planLink, readPlanLink } from "../lib/planLinks";
 
@@ -64,6 +65,8 @@ export function Hero({ onCheckout, checkoutError }: { onCheckout: (details: Hero
   const timerLabel = `${Math.floor(remainingSeconds / 60)}:${String(remainingSeconds % 60).padStart(2, "0")}`;
   const timerProgress = (remainingSeconds / (5 * 60)) * 360;
   const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  // Only an accepted email domain (gmail.com) may enroll; show it on the field and block submit.
+  const emailDomainError = email.trim().length > 0 ? checkEmailDomain(email) : null;
   const isValidPhone = /^[6-9][0-9]{9}$/.test(phoneNumber);
   const canContinueToPayment = Boolean(
     selectedPlan &&
@@ -71,6 +74,7 @@ export function Hero({ onCheckout, checkoutError }: { onCheckout: (details: Hero
     fullName.trim() &&
     isValidPhone &&
     isValidEmail &&
+    !emailDomainError &&
     collegeName.trim() &&
     acceptedTerms
   );
@@ -300,7 +304,7 @@ export function Hero({ onCheckout, checkoutError }: { onCheckout: (details: Hero
               <div className="hero-payment__fields">
                 <label className="hero-payment__field"><span>Full name</span><span className="hero-payment__control"><UserRound size={14} aria-hidden="true" /><input autoComplete="name" onChange={(event) => setFullName(event.target.value)} placeholder="Your full name" required value={fullName} /></span></label>
                 <label className="hero-payment__field"><span>Phone</span><span className="hero-payment__phone-control"><b>+91</b><Phone size={13} aria-hidden="true" /><input autoComplete="tel-national" inputMode="numeric" maxLength={10} minLength={10} onChange={(event) => setPhoneNumber(event.target.value.replace(/\D/g, "").slice(0, 10))} pattern="[6-9][0-9]{9}" placeholder="10-digit number" required type="tel" value={phoneNumber} /></span></label>
-                <label className="hero-payment__field"><span>Email</span><span className="hero-payment__control"><Mail size={14} aria-hidden="true" /><input autoComplete="email" onChange={(event) => setEmail(event.target.value)} placeholder="Your email address" required type="email" value={email} /></span></label>
+                <label className="hero-payment__field"><span>Email</span><span className="hero-payment__control" style={emailDomainError ? { borderColor: "#c0392b" } : undefined}><Mail size={14} aria-hidden="true" /><input autoComplete="email" onChange={(event) => setEmail(event.target.value)} placeholder="yourname@gmail.com" required type="email" value={email} aria-invalid={emailDomainError ? true : undefined} /></span>{emailDomainError ? <small role="alert" style={{ color: "#c0392b", fontSize: 12, marginTop: 4, display: "block" }}>{emailDomainError}</small> : null}</label>
                 <label className="hero-payment__field"><span>College</span><span className="hero-payment__control"><GraduationCap size={14} aria-hidden="true" /><input autoComplete="organization" onChange={(event) => setCollegeName(event.target.value)} placeholder="Your college name" required value={collegeName} /></span></label>
               </div>
               <div className="hero-payment__terms">

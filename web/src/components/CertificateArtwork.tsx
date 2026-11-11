@@ -27,8 +27,12 @@ type Template = {
   name: { cx: number; y: number; maxWidth: number };
   /** Start right after "…Program in". */
   program: { x: number; y: number; maxWidth: number };
-  /** "<start> to <end>" starts right after "from", on that word's baseline. */
-  dates: { x: number; y: number };
+  /**
+   * "<start> to <end>" dates. `x`/`y` is the left-anchored baseline fallback
+   * (training). When the template prints two separate blanks, `fromCx`/`toCx`
+   * centre each date over its own blank and `connectorCx` centres the "to".
+   */
+  dates: { x: number; y: number; fromCx?: number; connectorCx?: number; toCx?: number };
   certificateId: { x: number; y: number; maxWidth: number };
   qr: { x: number; y: number; size: number };
   signatory: { cx: number; titleY: number; nameY: number; cover: [number, number, number, number] };
@@ -54,13 +58,13 @@ const TEMPLATES: Record<"Training" | "Internship", Template> = {
   },
   Internship: {
     src: "/assets/certificates/internship-template.jpg",
-    name: { cx: 800, y: 492, maxWidth: 1100 },
-    program: { x: 1084, y: 574, maxWidth: 415 },
-    dates: { x: 799, y: 616 },
-    certificateId: { x: 169, y: 841, maxWidth: 352 },
-    qr: { x: 540, y: 770, size: 134 },
-    signatory: { cx: 878, titleY: 867, nameY: 898, cover: [722, 840, 1014, 906] },
-    signatureImage: { x: 726, y: 731, width: 300, height: 100 },
+    name: { cx: 800, y: 500, maxWidth: 1120 },
+    program: { x: 1090, y: 572, maxWidth: 390 },
+    dates: { x: 795, y: 610, fromCx: 867, connectorCx: 978, toCx: 1086 },
+    certificateId: { x: 169, y: 842, maxWidth: 345 },
+    qr: { x: 540, y: 769, size: 134 },
+    signatory: { cx: 879, titleY: 905, nameY: 820, cover: [700, 744, 1070, 965] },
+    signatureImage: { x: 726, y: 744, width: 300, height: 92 },
   },
 };
 
@@ -164,17 +168,28 @@ export function CertificateArtwork({
         <image href={template.src} width={WIDTH} height={HEIGHT} preserveAspectRatio="none" />
         <text className="certificate-artwork__name" x={template.name.cx} y={template.name.y} fontSize={sizes.name} textAnchor="middle">{name}</text>
         <text className="certificate-artwork__field" x={template.program.x} y={template.program.y} fontSize={sizes.program}>{program}</text>
-        <text className="certificate-artwork__field" x={template.dates.x} y={template.dates.y} fontSize={FIELD_SIZE}>
-          {from}
-          <tspan className="certificate-artwork__connector" fontSize={CONNECTOR_SIZE}>{"\u00a0 to \u00a0"}</tspan>
-          {to}
-        </text>
+        {template.dates.fromCx != null ? (
+          // Two printed blanks: centre each date over its own blank so both sit on their line.
+          <>
+            <text className="certificate-artwork__field" x={template.dates.fromCx} y={template.dates.y} fontSize={FIELD_SIZE} textAnchor="middle">{from}</text>
+            <text className="certificate-artwork__connector" x={template.dates.connectorCx} y={template.dates.y} fontSize={CONNECTOR_SIZE} textAnchor="middle">to</text>
+            <text className="certificate-artwork__field" x={template.dates.toCx} y={template.dates.y} fontSize={FIELD_SIZE} textAnchor="middle">{to}</text>
+          </>
+        ) : (
+          <text className="certificate-artwork__field" x={template.dates.x} y={template.dates.y} fontSize={FIELD_SIZE}>
+            {from}
+            <tspan className="certificate-artwork__connector" fontSize={CONNECTOR_SIZE}>{"\u00a0 to \u00a0"}</tspan>
+            {to}
+          </text>
+        )}
         <text className="certificate-artwork__id" x={template.certificateId.x} y={template.certificateId.y} fontSize={sizes.id}>{idText}</text>
         <rect x={template.qr.x} y={template.qr.y} width={template.qr.size} height={template.qr.size} fill="#fff" />
         {qrCodeUrl ? (
           <image href={qrCodeUrl} x={template.qr.x} y={template.qr.y} width={template.qr.size} height={template.qr.size} />
         ) : null}
-        {!customSignatory ? (
+        {!customSignatory && !internship ? (
+          // The internship template already carries the official signature; only the
+          // training template needs the default signature image drawn over it.
           <image
             href={SIGNATURE_IMAGE}
             x={signature.x}

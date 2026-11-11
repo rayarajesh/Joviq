@@ -24,6 +24,7 @@ public sealed class AuthService(
     IRefreshTokenService refreshTokenService,
     IOtpService otpService,
     IEmailSender emailSender,
+    IEmailDomainVerifier emailDomainVerifier,
     IDateTimeProvider clock,
     IDataProtectionProvider dataProtectionProvider,
     ILogger<AuthService> logger) : IAuthService
@@ -122,8 +123,36 @@ public sealed class AuthService(
         var email = NormalizeEmail(request.Email);
         var phone = NormalizeIndianPhone(request.PhoneNumber);
 
-        if (await userManager.FindByEmailAsync(email) is not null)
+        // Only Gmail addresses may register; this also rejects look-alike typos (e.g. gmaail.com).
+        var emailDomain = email[(email.LastIndexOf('@') + 1)..];
+        if (!string.Equals(emailDomain, "gmail.com", StringComparison.OrdinalIgnoreCase))
         {
+            throw new AppException("Only @gmail.com email addresses are accepted. Please use a valid Gmail address.", 400, "email_domain_not_allowed");
+        }
+
+        if (!await emailDomainVerifier.HasDeliverableDomainAsync(email, cancellationToken))
+        {
+            throw new AppException("Enter an email with a valid, reachable domain so we can send your confirmation.", 400, "email_domain_unreachable");
+        }
+
+        var existingUser = await userManager.FindByEmailAsync(email);
+        if (existingUser is not null)
+        {
+            // A learner who paid on a previous visit but never set a password cannot "sign in" — they
+            // must resume onboarding (course + password steps), the same path /onboarding uses. Only
+            // then do we send them there; otherwise they sign in normally.
+            var canResumeOnboarding = !await userManager.HasPasswordAsync(existingUser)
+                && await dbContext.PaymentTransactions.AnyAsync(
+                    payment => payment.StudentId == existingUser.Id
+                        && payment.Status == PaymentStatus.Verified
+                        && payment.EnrollmentId != null
+                        && payment.ProgramPlanId != null,
+                    cancellationToken);
+            if (canResumeOnboarding)
+            {
+                throw new AppException("You already paid with this email. Continue your onboarding where you left off.", 409, "resume_onboarding");
+            }
+
             throw new AppException("This email already has an account. Sign in to continue your enrollment.", 409, "email_exists");
         }
 

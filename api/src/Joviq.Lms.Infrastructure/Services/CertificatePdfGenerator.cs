@@ -43,10 +43,12 @@ public sealed class CertificatePdfGenerator(IHttpClientFactory httpClientFactory
             : null;
 
         var pdf = BuildPdf(certificate, programTitle, templateBytes, qrCodeBytes, signatureBytes);
-        return new EmailAttachment(
-            $"{SanitizeFileName(certificate.CertificateId)}.pdf",
-            "application/pdf",
-            pdf);
+        // Meaningful, per-student filename, e.g. Joviq_Internship_Certificate_Joviq_Test_Student.pdf
+        var safeName = SanitizeFileName((certificate.StudentName ?? string.Empty).Replace(' ', '_')).Trim('_');
+        var fileName = string.IsNullOrWhiteSpace(safeName)
+            ? $"Joviq_{certificate.Type}_Certificate_{SanitizeFileName(certificate.CertificateId)}.pdf"
+            : $"Joviq_{certificate.Type}_Certificate_{safeName}.pdf";
+        return new EmailAttachment(fileName, "application/pdf", pdf);
     }
 
     private static async Task<byte[]?> DownloadOptionalAsync(HttpClient client, string url, CancellationToken cancellationToken)
@@ -130,7 +132,7 @@ public sealed class CertificatePdfGenerator(IHttpClientFactory httpClientFactory
         var to = certificate.ToDate?.ToString("dd MMM yyyy", CultureInfo.InvariantCulture) ?? string.Empty;
         var id = ToPdfText($"Certificate ID: {certificate.CertificateId}");
         var template = internship
-            ? new CertificateLayout(800, 492, 1084, 574, 799, 616, 169, 841, 540, 770, 134, 878, 867, 898, [722, 840, 1014, 906], 726, 731, 300, 100)
+            ? new CertificateLayout(800, 500, 1090, 572, 795, 610, 169, 842, 540, 769, 134, 879, 905, 820, [700, 744, 1070, 965], 726, 744, 300, 92)
             : new CertificateLayout(800, 560, 990, 629, 828, 671, 182, 1012, 553, 940, 134, 1107, 1009, 1041, [966, 982, 1250, 1052], 957, 873, 300, 100);
 
         var content = new StringBuilder();
@@ -141,7 +143,17 @@ public sealed class CertificatePdfGenerator(IHttpClientFactory httpClientFactory
 
         AddCenteredText(content, "/F2", 42, template.NameCenter, template.NameY, name, 0.18, 0.15, 0.41);
         AddText(content, "/F2", 12, template.ProgramX, template.ProgramY, program, 0.18, 0.15, 0.41);
-        AddText(content, "/F2", 12, template.DateX, template.DateY, ToPdfText($"{from}  to  {to}"), 0.18, 0.15, 0.41);
+        if (internship)
+        {
+            // Two printed blanks: centre each date over its own blank (matches the web viewer).
+            AddCenteredText(content, "/F2", 12, 867, template.DateY, ToPdfText(from), 0.18, 0.15, 0.41);
+            AddCenteredText(content, "/F2", 12, 978, template.DateY, ToPdfText("to"), 0.18, 0.15, 0.41);
+            AddCenteredText(content, "/F2", 12, 1086, template.DateY, ToPdfText(to), 0.18, 0.15, 0.41);
+        }
+        else
+        {
+            AddText(content, "/F2", 12, template.DateX, template.DateY, ToPdfText($"{from}  to  {to}"), 0.18, 0.15, 0.41);
+        }
         // Reserve the same 19-artwork-pixel gap used by the web certificate viewer.
         // The email attachment must fit the full ID before drawing the QR over it.
         var idWidth = (template.QrX - template.CertificateIdX - 19) / ArtworkWidth * PageWidth;
@@ -154,7 +166,9 @@ public sealed class CertificatePdfGenerator(IHttpClientFactory httpClientFactory
             AddImage(content, "/Qr", template.QrX, template.QrY, template.QrSize, template.QrSize);
         }
 
-        if (signatureId > 0)
+        // The internship template already carries the official signature; only the
+        // training template needs the default signature image drawn over it.
+        if (signatureId > 0 && !internship)
         {
             AddImage(content, "/Sig", template.SignatureX, template.SignatureY, template.SignatureWidth, template.SignatureHeight);
         }

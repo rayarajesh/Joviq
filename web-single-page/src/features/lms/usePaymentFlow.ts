@@ -7,6 +7,7 @@ import type { EnrollmentApplicant } from "./checkout";
 import { loadCashfreeScript, loadRazorpayScript } from "./paymentGateways";
 import type { CashfreeResult, RazorpaySuccess } from "./paymentGateways";
 import { ApiError, formatApiError } from "../../lib/api/httpClient";
+import { openOnboarding } from "../../lib/onboardingLink";
 
 /**
  * The /web checkout page's payment logic (enrollment → checkout → gateway → server verification),
@@ -227,6 +228,12 @@ export function usePaymentFlow() {
     } catch (error) {
       if (errorCode(error) === "payment_already_received") {
         await finishPaidCheckout();
+        return;
+      }
+      if (errorCode(error) === "initial_payment_already_paid") {
+        // The reserve for this enrollment is already paid, so don't charge it again or
+        // dead-end on an error — resume onboarding (course selection) for the paid account.
+        openOnboarding(target.applicant.email);
         return;
       }
       setPhase("error");
