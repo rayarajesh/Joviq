@@ -4032,6 +4032,12 @@ public sealed class LmsPortalService(
         string? studentEmail = null,
         string? studentPhone = null)
     {
+        // Keep the displayed total tied to the selected plan, even for enrollments
+        // created before a plan switch updated the enrollment snapshot.
+        var totalAmount = enrollment.ProgramPlan is null
+            ? enrollment.TotalAmount
+            : GetPlanTotal(enrollment.ProgramPlan);
+
         return new EnrollmentResponse(
             enrollment.Id,
             enrollment.StudentId,
@@ -4042,9 +4048,9 @@ public sealed class LmsPortalService(
             enrollment.ProgramPlan?.Name,
             enrollment.ProgramPlan?.Code,
             enrollment.Status.ToString(),
-            enrollment.TotalAmount,
+            totalAmount,
             enrollment.PaidAmount,
-            Math.Max(enrollment.TotalAmount - enrollment.PaidAmount - enrollment.DiscountAmount, 0),
+            Math.Max(totalAmount - enrollment.PaidAmount - enrollment.DiscountAmount, 0),
             enrollment.EnrolledAt,
             enrollment.StartDate,
             enrollment.FullAccessUnlockedAt,

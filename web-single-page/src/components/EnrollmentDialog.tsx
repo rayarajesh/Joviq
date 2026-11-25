@@ -534,7 +534,7 @@ export function EnrollmentDialog({ plan, programSlug, initialValues, initialPaym
         await auth.logout();
       }
       const applicant: EnrollmentApplicant = reuseSession
-        ? { fullName: user!.fullName, phoneNumber: user!.phoneNumber || phoneNumber, email: enrollmentEmail, collegeName: "" }
+        ? { fullName: user!.fullName, phoneNumber: user!.phoneNumber || phoneNumber, email: enrollmentEmail, collegeName: collegeName.trim() }
         : { fullName: fullName.trim(), phoneNumber, email: enrollmentEmail, collegeName: collegeName.trim() };
 
       // Checkout must use a published database program and its authoritative pricing.

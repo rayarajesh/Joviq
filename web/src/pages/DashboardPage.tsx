@@ -4768,7 +4768,7 @@ function AdminLmsPanel({
                             {formatCurrency(enrollment.totalAmount)}
                           </strong>
                           <small>
-                            {enrollment.programPlanCode || "Plan pricing"}
+                            {enrollment.programPlanName || enrollment.programPlanCode || "Plan pricing"}
                           </small>
                         </div>
                         <div className="enrollment-admin-detail">
